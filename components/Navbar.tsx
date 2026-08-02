@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import AssessmentModal from "./AssessmentModal";
-
 import Image from "next/image";
 import Link from "next/link";
+
+import AssessmentModal from "./AssessmentModal";
 
 const navLinks = [
   { href: "#about", label: "About" },
@@ -14,56 +14,59 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-
   const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
-
 
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-[#E7DDD1] bg-[#FAF8F5]/90 backdrop-blur-md">
-
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-
 
           {/* Logo */}
 
           <Link
             href="/"
-            className="group flex items-center gap-2.5"
+            className="group flex items-center gap-3"
           >
-
             <Image
               src="/logo/talkseed-icon.svg"
               alt="TalkSeed logo"
-              width={46}
-              height={46}
+              width={36}
+              height={36}
               priority
-              className="shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5"
+              className="
+                h-auto
+                w-9
+                shrink-0
+                self-center
+                transition-transform
+                duration-300
+                group-hover:-translate-y-0.5
+              "
             />
 
-
-            <div>
+            <div className="flex flex-col justify-center">
 
               <h1
                 className="
                   leading-none
-                  text-2xl
+                  text-xl
                   font-semibold
                   text-[#2B2B2B]
+                  md:text-2xl
                   [font-family:var(--font-cormorant)]
                 "
               >
                 TalkSeed
               </h1>
 
-
               <p
                 className="
                   mt-1
-                  text-[10px]
+                  text-[9px]
                   uppercase
-                  tracking-[0.32em]
+                  tracking-[0.28em]
                   text-[#6F8F72]
+                  md:text-[10px]
                 "
               >
                 From Small Talk to Big Ideas
@@ -73,15 +76,11 @@ export default function Navbar() {
 
           </Link>
 
-
-
-          {/* Navigation */}
+          {/* Desktop Navigation */}
 
           <nav className="hidden items-center gap-8 md:flex">
 
-
             {navLinks.map((link) => (
-
               <Link
                 key={link.href}
                 href={link.href}
@@ -108,12 +107,7 @@ export default function Navbar() {
               >
                 {link.label}
               </Link>
-
             ))}
-
-
-
-            {/* Start Learning Button */}
 
             <button
               onClick={() => setIsAssessmentOpen(true)}
@@ -135,23 +129,15 @@ export default function Navbar() {
               Start Learning
             </button>
 
-
           </nav>
 
-
         </div>
-
       </header>
-
-
-
-      {/* Assessment Modal */}
 
       <AssessmentModal
         isOpen={isAssessmentOpen}
         onClose={() => setIsAssessmentOpen(false)}
       />
-
     </>
   );
 }
