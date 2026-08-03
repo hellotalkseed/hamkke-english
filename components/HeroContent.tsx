@@ -6,7 +6,7 @@ export default function HeroContent({
   onStartConversation,
 }: HeroContentProps) {
   return (
-    <div className="order-2 lg:order-1">
+    <div>
 
       <p
         className="

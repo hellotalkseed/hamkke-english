@@ -9,7 +9,13 @@ export default function HeroImage({
   onOpenVideo,
 }: HeroImageProps) {
   return (
-    <div className="order-1 flex justify-center lg:order-2 lg:justify-end">
+    <div
+  className="
+    flex
+    justify-center
+    lg:justify-end
+  "
+>
 
       <div
         className="
