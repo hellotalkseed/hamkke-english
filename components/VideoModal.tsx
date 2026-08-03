@@ -79,72 +79,59 @@ export default function VideoModal({
 
           <div>
 
-            <p
-              className="
-                text-xs
-                uppercase
-                tracking-[0.35em]
-                text-[#6F8F72]
-              "
-            >
-              Welcome to TalkSeed
-            </p>
+           <p
+  className="
+    text-xs
+    uppercase
+    tracking-[0.35em]
+    text-[#6F8F72]
+  "
+>
+  Meet Your Coach
+</p>
 
 
-            <h2
-              className="
-                mt-5
-                text-4xl
-                leading-tight
-                text-[#2B2B2B]
-                [font-family:var(--font-cormorant)]
-                md:text-5xl
-              "
-            >
-              Every meaningful conversation starts somewhere.
-            </h2>
+<h2
+  className="
+    mt-5
+    text-4xl
+    leading-tight
+    text-[#2B2B2B]
+    [font-family:var(--font-cormorant)]
+    md:text-5xl
+  "
+>
+  Every meaningful conversation starts somewhere.
+</h2>
 
 
-            <p
-              className="
-                mt-4
-                text-xl
-                italic
-                text-[#6F8F72]
-                [font-family:var(--font-cormorant)]
-              "
-            >
-              Here's a little about mine.
-            </p>
+<p
+  className="
+    mt-5
+    text-xl
+    italic
+    text-[#6F8F72]
+    [font-family:var(--font-cormorant)]
+  "
+>
+  Here's a little about mine.
+</p>
 
 
-            <p
-              className="
-                mt-6
-                text-base
-                leading-8
-                text-[#5B5B5B]
-                md:text-lg
-              "
-            >
-              I started teaching English while studying business, and over
-              the years, I discovered that the best lessons are not only
-              about grammar. They are about helping people feel confident
-              enough to speak.
-            </p>
-
-
-            <p
-              className="
-                mt-8
-                text-xl
-                italic
-                text-[#6F8F72]
-                [font-family:var(--font-cormorant)]
-              "
-            >
-              Let's grow your confidence, one conversation at a time.
-            </p>
+<p
+  className="
+    mt-8
+    text-base
+    leading-8
+    text-[#5B5B5B]
+    md:text-lg
+  "
+>
+  Teaching English has shown me that confidence grows through
+  meaningful conversations. My goal is to create a space where
+  you can speak naturally, embrace mistakes, and enjoy the
+  process of learning.
+</p>
 
           </div>
 
@@ -221,19 +208,17 @@ export default function VideoModal({
                 </p>
 
                 <p
-                  className="
-                    mt-3
-                    text-sm
-                    leading-6
-                    text-[#444]
-                  "
-                >
-                  Bachelor's Degree
-                  <br />
-                  Business
-                  <br />
-                  Administration
-                </p>
+  className="
+    mt-3
+    text-sm
+    leading-6
+    text-[#444]
+  "
+>
+  Bachelor's Degree
+  <br />
+  in Business Administration
+</p>
               </div>
 
 
@@ -258,19 +243,19 @@ export default function VideoModal({
                 </p>
 
                 <p
-                  className="
-                    mt-3
-                    text-sm
-                    leading-6
-                    text-[#444]
-                  "
-                >
-                  4+ Years
-                  <br />
-                  Online English
-                  <br />
-                  Coaching
-                </p>
+  className="
+    mt-3
+    text-sm
+    leading-6
+    text-[#444]
+  "
+>
+  4+ years of
+  <br />
+  online English
+  <br />
+  coaching
+</p>
               </div>
 
 
@@ -295,19 +280,19 @@ export default function VideoModal({
                 </p>
 
                 <p
-                  className="
-                    mt-3
-                    text-sm
-                    leading-6
-                    text-[#444]
-                  "
-                >
-                  Advanced TESOL
-                  <br />
-                  TEFL Course
-                  <br />
-                  Young Learners
-                </p>
+  className="
+    mt-3
+    text-sm
+    leading-6
+    text-[#444]
+  "
+>
+  Advanced TESOL
+  <br />
+  TEFL
+  <br />
+  Teaching English to Young Learners
+</p>
               </div>
 
             </div>
