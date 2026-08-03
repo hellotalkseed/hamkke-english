@@ -28,26 +28,28 @@ export default function Navbar() {
       <header className="sticky top-0 z-50 border-b border-[#E7DDD1] bg-[#FAF8F5]/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
 
-          {/* Logo */}
+         {/* Logo */}
 
 <Link
   href="/"
-  className="group flex items-center gap-3 md:gap-4"
+  className="group flex items-center gap-2.5 md:gap-3"
 >
   <Image
     src="/logo/talkseed-icon.svg"
     alt="TalkSeed logo"
-    width={42}
-    height={42}
+    width={34}
+    height={34}
     priority
     className="
-      h-14
+      h-9
       w-auto
+      shrink-0
       transition-transform
       duration-300
       group-hover:scale-105
-      sm:h-16
-      md:h-11
+
+      sm:h-10
+      md:h-9
     "
   />
 
@@ -55,10 +57,12 @@ export default function Navbar() {
 
     <h1
       className="
-        text-[2rem]
+        text-[1.75rem]
+        font-semibold
         text-[#2B2B2B]
         [font-family:var(--font-cormorant)]
-        sm:text-[2.2rem]
+
+        sm:text-[1.9rem]
         md:text-[2rem]
       "
     >
@@ -67,12 +71,15 @@ export default function Navbar() {
 
     <p
       className="
-        hidden
-        text-[10px]
+        mt-1
+        text-[8px]
         uppercase
-        tracking-[0.32em]
+        tracking-[0.18em]
         text-[#6F8F72]
-        md:block
+
+        sm:text-[9px]
+        md:text-[10px]
+        md:tracking-[0.28em]
       "
     >
       From Small Talk to Big Ideas
