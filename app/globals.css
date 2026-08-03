@@ -24,3 +24,70 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/* ------------------------------ */
+/* TalkSeed Animations */
+/* ------------------------------ */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeRight {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp .9s ease forwards;
+}
+
+.fade-left {
+  animation: fadeLeft .9s ease forwards;
+}
+
+.fade-right {
+  animation: fadeRight .9s ease forwards;
+}
+
+.delay-1 {
+  animation-delay: .15s;
+}
+
+.delay-2 {
+  animation-delay: .3s;
+}
+
+.delay-3 {
+  animation-delay: .45s;
+}
+
+.delay-4 {
+  animation-delay: .6s;
+}

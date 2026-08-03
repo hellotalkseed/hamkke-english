@@ -7,12 +7,13 @@ export default function HeroContent({
 }: HeroContentProps) {
   return (
     <div
-      className="
-        flex
-        flex-col
-        justify-center
-      "
-    >
+  className="
+    fade-left
+    flex
+    flex-col
+    justify-center
+  "
+>
       {/* Section Label */}
 
       <p

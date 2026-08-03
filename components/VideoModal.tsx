@@ -87,7 +87,7 @@ export default function VideoModal({
                 text-[#6F8F72]
               "
             >
-              Meet Your Coach
+              Welcome to TalkSeed
             </p>
 
 
