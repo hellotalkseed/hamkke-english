@@ -48,16 +48,16 @@ export default function Hero() {
     mx-auto
     grid
     max-w-7xl
-    items-center
     gap-10
     px-6
-    pt-6
+    pt-8
     pb-12
     md:px-8
-    md:pt-10
-    md:pb-16
+    md:pt-14
+    md:pb-20
     lg:min-h-[calc(100vh-88px)]
     lg:grid-cols-2
+    lg:items-center
     lg:gap-16
     lg:px-10
   "

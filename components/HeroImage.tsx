@@ -20,19 +20,14 @@ export default function HeroImage({
       <div
         className="
           relative
-          h-[410px]
-          w-full
-          max-w-[320px]
-          overflow-hidden
-          rounded-[2.5rem]
-          border-8
-          border-white
-          bg-white
-          shadow-[0_35px_80px_rgba(0,0,0,0.12)]
-          md:h-[500px]
-          md:max-w-[360px]
-          lg:h-[540px]
-          lg:max-w-[390px]
+          h-[370px]
+max-w-[300px]
+sm:h-[430px]
+sm:max-w-[330px]
+md:h-[500px]
+md:max-w-[360px]
+lg:h-[540px]
+lg:max-w-[390px]
         "
       >
 

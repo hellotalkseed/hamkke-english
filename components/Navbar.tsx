@@ -30,60 +30,57 @@ export default function Navbar() {
 
           {/* Logo */}
 
-          <Link
-            href="/"
-            className="group flex min-w-0 items-center gap-3"
-          >
-            <Image
-              src="/logo/talkseed-icon.svg"
-              alt="TalkSeed logo"
-              width={38}
-              height={38}
-              priority
-              className="
-                h-auto
-                w-9
-                shrink-0
-                transition-transform
-                duration-300
-                group-hover:-translate-y-0.5
-              "
-            />
+<Link
+  href="/"
+  className="group flex items-center gap-3 md:gap-4"
+>
+  <Image
+    src="/logo/talkseed-icon.svg"
+    alt="TalkSeed logo"
+    width={42}
+    height={42}
+    priority
+    className="
+      h-14
+      w-auto
+      transition-transform
+      duration-300
+      group-hover:scale-105
+      sm:h-16
+      md:h-11
+    "
+  />
 
-            <div className="min-w-0">
+  <div className="leading-none">
 
-              <h1
-                className="
-                  text-xl
-                  leading-none
-                  font-semibold
-                  text-[#2B2B2B]
-                  md:text-2xl
-                  [font-family:var(--font-cormorant)]
-                "
-              >
-                TalkSeed
-              </h1>
+    <h1
+      className="
+        text-[2rem]
+        text-[#2B2B2B]
+        [font-family:var(--font-cormorant)]
+        sm:text-[2.2rem]
+        md:text-[2rem]
+      "
+    >
+      TalkSeed
+    </h1>
 
-              <p
-                className="
-                  mt-1
-                  hidden
-                  whitespace-nowrap
-                  text-[9px]
-                  uppercase
-                  tracking-[0.22em]
-                  text-[#6F8F72]
-                  sm:block
-                  md:text-[10px]
-                "
-              >
-                From Small Talk to Big Ideas
-              </p>
+    <p
+      className="
+        hidden
+        text-[10px]
+        uppercase
+        tracking-[0.32em]
+        text-[#6F8F72]
+        md:block
+      "
+    >
+      From Small Talk to Big Ideas
+    </p>
 
-            </div>
+  </div>
 
-          </Link>
+</Link>
 
 
 
