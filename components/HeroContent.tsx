@@ -6,18 +6,25 @@ export default function HeroContent({
   onStartConversation,
 }: HeroContentProps) {
   return (
-    <div className="w-full">
-
-      {/* Label */}
+    <div
+      className="
+        flex
+        flex-col
+        justify-center
+      "
+    >
+      {/* Section Label */}
 
       <p
         className="
-          mb-4
-          text-[11px]
+          mb-5
+          text-[12px]
           font-medium
           uppercase
           tracking-[0.35em]
           text-[#6F8F72]
+
+          sm:mb-6
         "
       >
         English Coaching
@@ -28,11 +35,13 @@ export default function HeroContent({
       <h1
         className="
           max-w-[620px]
-          text-[44px]
-          leading-[0.95]
+          text-[42px]
+          leading-[0.98]
           text-[#2B2B2B]
           [font-family:var(--font-cormorant)]
-          sm:text-[58px]
+
+          sm:text-[52px]
+          md:text-[60px]
           lg:text-[76px]
         "
       >
@@ -44,11 +53,16 @@ export default function HeroContent({
       <p
         className="
           mt-6
-          max-w-[520px]
+          max-w-[400px]
           text-[18px]
           leading-8
           text-[#5B5B5B]
-          md:mt-8
+
+          sm:mt-7
+          sm:max-w-[430px]
+          sm:text-[19px]
+
+          md:max-w-[480px]
           md:text-[20px]
           md:leading-9
         "
@@ -65,16 +79,20 @@ export default function HeroContent({
           flex
           flex-col
           gap-4
+
+          sm:mt-9
+          lg:mt-10
           sm:flex-row
         "
       >
         <button
           onClick={onStartConversation}
           className="
+            w-full
             rounded-full
             bg-[#6F8F72]
             px-10
-            py-4
+            py-5
             text-lg
             font-medium
             text-white
@@ -84,6 +102,9 @@ export default function HeroContent({
             duration-300
             hover:-translate-y-1
             hover:bg-[#5B7960]
+            hover:shadow-xl
+
+            sm:w-auto
           "
         >
           Start a Conversation
@@ -92,24 +113,27 @@ export default function HeroContent({
         <a
           href="#lessons"
           className="
+            w-full
             rounded-full
             border
             border-[#6F8F72]
             px-10
-            py-4
+            py-5
             text-center
             text-lg
             font-medium
             text-[#6F8F72]
             transition-all
             duration-300
+            hover:-translate-y-1
             hover:bg-[#EEF5EE]
+
+            sm:w-auto
           "
         >
           Explore Lessons
         </a>
       </div>
-
     </div>
   );
 }
