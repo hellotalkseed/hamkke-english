@@ -1,187 +1,250 @@
-import { Sprout, Leaf, TreePine } from "lucide-react";
-
-const steps = [
-  {
-    icon: Sprout,
-    title: "Start Where You Are",
-    text: "Every learner begins with a different story. We take time to understand your goals, your current level, and the conversations you want to have with confidence.",
-  },
-  {
-    icon: Leaf,
-    title: "Learn Through Conversation",
-    text: "Practice through meaningful discussions, real-life situations, and thoughtful feedback that helps you communicate naturally instead of simply memorizing grammar rules.",
-  },
-  {
-    icon: TreePine,
-    title: "Speak With Confidence",
-    text: "As your confidence grows, conversations become easier, ideas become clearer, and English becomes a natural part of your everyday life.",
-  },
-];
-
 export default function Process() {
+  const steps = [
+    {
+      number: "01",
+      progress: 25,
+      title: "We Start with a Conversation",
+      text: "Every learner has a different story. We'll talk about your goals, your current level, and the situations where you'd like to use English so we can create lessons that truly fit you.",
+    },
+    {
+      number: "02",
+      progress: 50,
+      title: "Lessons Designed Around You",
+      text: "Your lessons are personalized to your pace, interests, and learning style. Rather than following a one-size-fits-all approach, each lesson is built around meaningful conversations that help you communicate naturally.",
+    },
+    {
+      number: "03",
+      progress: 75,
+      title: "Confidence Through Practice",
+      text: "Confidence doesn't come from memorizing grammar rules. It grows through regular conversations, thoughtful feedback, and practical language you can immediately use in everyday life.",
+    },
+    {
+      number: "04",
+      progress: 100,
+      title: "Keep Growing",
+      text: "Language learning is an ongoing journey. As your confidence grows, we'll continue refining your communication skills, celebrating your progress, and helping you express yourself with greater ease.",
+    },
+  ];
+
   return (
     <section
       id="lessons"
-      className="relative overflow-hidden bg-[#FAF8F5] py-32"
+      className="
+        relative
+        bg-[#FCFBF9]
+        py-20
+        lg:py-28
+      "
     >
-      <div className="mx-auto max-w-7xl px-6">
-
-        <div className="grid items-start gap-24 lg:grid-cols-[0.9fr_1.1fr]">
-
+      <div
+        className="
+          mx-auto
+          max-w-7xl
+          px-6
+          lg:px-10
+        "
+      >
+        <div
+          className="
+            grid
+            gap-16
+            lg:grid-cols-[0.9fr_1.1fr]
+            lg:gap-24
+          "
+        >
           {/* LEFT */}
 
-          <div className="lg:sticky lg:top-32 self-start">
+          <div className="self-start lg:sticky lg:top-32">
 
-            <p className="mb-5 text-sm uppercase tracking-[0.35em] text-[#6F8F72]">
-              The Learning Journey
+            <p
+              className="
+                mb-5
+                text-sm
+                font-medium
+                uppercase
+                tracking-[0.32em]
+                text-[#6F8F72]
+              "
+            >
+              YOUR JOURNEY
             </p>
 
-            <h2 className="text-5xl leading-tight text-[#2B2B2B] [font-family:var(--font-cormorant)]">
-              From Small Talk to Big Ideas.
+            <h2
+              className="
+                text-[34px]
+                leading-[1.1]
+                tracking-[-0.02em]
+                text-[#2B2B2B]
+                [font-family:var(--font-cormorant)]
+                sm:text-[42px]
+                lg:text-[60px]
+              "
+            >
+              From the first conversation to lasting confidence.
             </h2>
 
-            <p className="mt-8 max-w-lg text-lg leading-8 text-[#5B5B5B]">
-              Every learner starts somewhere. Through meaningful
-              conversations, each lesson helps you grow naturally,
-              one conversation at a time.
+            <p
+              className="
+                mt-8
+                max-w-lg
+                text-[16px]
+                leading-8
+                text-[#5B5B5B]
+                lg:text-lg
+                lg:leading-9
+              "
+            >
+              Every learner begins somewhere different. Together,
+              we'll build your confidence through meaningful
+              conversations, personalized guidance, and consistent
+              practice.
             </p>
 
           </div>
 
           {/* RIGHT */}
 
-          <div className="justify-self-end w-full max-w-2xl">
+          <div className="max-w-2xl">
 
-            {steps.map((step, index) => {
+            {steps.map((step, index) => (
 
-              const Icon = step.icon;
+              <div
+                key={step.number}
+                className="
+                  grid
+                  grid-cols-[60px_1fr]
+                  gap-6
+                  sm:grid-cols-[80px_1fr]
+                  sm:gap-8
+                "
+              >
 
-              return (
+                {/* Timeline */}
 
-                <div
-                  key={step.title}
-                  className="grid grid-cols-[110px_1fr] gap-8"
-                >
+                <div className="flex flex-col items-center">
 
-                  {/* Plant */}
-
-                  <div className="flex flex-col items-center">
+                  <div
+                    className="
+                      relative
+                      flex
+                      h-8
+                      w-8
+                      items-center
+                      justify-center
+                      rounded-full
+                      border-2
+                      border-[#6F8F72]
+                      bg-white
+                    "
+                  >
 
                     <div
                       className="
-                        floating
-                        relative
-                        flex
-                        h-24
-                        w-24
-                        items-center
-                        justify-center
+                        h-6
+                        w-6
                         rounded-full
-                        border
-                        border-[#DDE9D8]
-                        bg-white
-                        shadow-lg
-                        transition-all
-                        duration-500
-                        hover:scale-105
                       "
-                    >
-
-                      <Icon
-                        className="h-11 w-11 text-[#6F8F72]"
-                        strokeWidth={1.7}
-                      />
-
-                    </div>
-
-                    {index !== steps.length - 1 && (
-
-                      <div className="relative flex h-40 w-full justify-center">
-
-                        {/* Vine */}
-
-                        <div className="vine absolute top-0 h-full w-[2px] rounded-full bg-[#DDE9D8]" />
-
-                        {/* Decorative Leaf */}
-
-                        <Leaf
-                          className="
-                            leaf
-                            absolute
-                            top-16
-                            -right-1
-                            h-4
-                            w-4
-                            -rotate-45
-                            text-[#A6BFA6]
-                          "
-                          strokeWidth={2}
-                        />
-
-                      </div>
-
-                    )}
+                      style={{
+                        background: `conic-gradient(
+                          #6F8F72 ${step.progress}%,
+                          #EEF5EE ${step.progress}% 100%
+                        )`,
+                      }}
+                    />
 
                   </div>
 
-                  {/* Content */}
+                  {index !== steps.length - 1 && (
 
-                  <div className="pt-6 pb-20">
+                    <div
+                      className="
+                        mt-2
+                        w-[2px]
+                        flex-1
+                        bg-[#DCE7D8]
+                      "
+                    />
 
-                    <h3 className="text-3xl text-[#2B2B2B] [font-family:var(--font-cormorant)]">
-                      {step.title}
-                    </h3>
-
-                    <p className="mt-5 leading-8 text-[#5B5B5B]">
-                      {step.text}
-                    </p>
-
-                  </div>
+                  )}
 
                 </div>
 
-              );
+                {/* Content */}
 
-            })}
-                
+                <div
+                  className="
+                    pb-14
+                    sm:pb-20
+                  "
+                >
+
+                  <p
+                    className="
+                      text-5xl
+                      leading-none
+                      text-[#D5E1D2]
+                      [font-family:var(--font-cormorant)]
+                      sm:text-6xl
+                    "
+                  >
+                    {step.number}
+                  </p>
+
+                  <h3
+                    className="
+                      mt-3
+                      text-[28px]
+                      leading-tight
+                      text-[#2B2B2B]
+                      [font-family:var(--font-cormorant)]
+                      sm:mt-4
+                      sm:text-[34px]
+                    "
+                  >
+                    {step.title}
+                  </h3>
+
+                  <p
+                    className="
+                      mt-5
+                      text-[15px]
+                      leading-7
+                      text-[#5B5B5B]
+                      sm:mt-6
+                      sm:text-[16px]
+                      sm:leading-8
+                    "
+                  >
+                    {step.text}
+                  </p>
+
+                </div>
+
+              </div>
+
+            ))}
+
+            <div className="mt-4 text-center sm:mt-8">
+
+              <p
+                className="
+                  text-2xl
+                  italic
+                  text-[#6F8F72]
+                  [font-family:var(--font-cormorant)]
+                  sm:text-3xl
+                "
+              >
+                Small conversations. Lasting confidence.
+              </p>
+
+            </div>
 
           </div>
 
         </div>
 
       </div>
-
-      {/* Organic Bottom Transition */}
-
-      <div
-        className="
-          absolute
-          bottom-0
-          left-0
-          w-full
-          overflow-hidden
-          leading-[0]
-        "
-      >
-        <svg
-          viewBox="0 0 1200 120"
-          preserveAspectRatio="none"
-          className="block h-[70px] w-full"
-        >
-          <path
-            d="
-              M0,0
-              C180,60 400,100 650,55
-              C850,20 1050,90 1200,40
-              L1200,120
-              L0,120
-              Z
-            "
-            fill="#FFFFFF"
-          />
-        </svg>
-      </div>
-
     </section>
   );
 }

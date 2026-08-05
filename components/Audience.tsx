@@ -1,23 +1,42 @@
-import { Sprout, MessageCircle, Target } from "lucide-react";
+import {
+  Sprout,
+  MessageCircle,
+  Briefcase,
+  Plane,
+  GraduationCap,
+  Target,
+} from "lucide-react";
 
 const audiences = [
   {
-    title: "Young Learners",
+    title: "Beginners",
     icon: Sprout,
-    text: "Build strong foundations through engaging conversations, vocabulary development, and confidence-building practice.",
-    shape: "rounded-[55%_45%_60%_40%]",
+    text: "Develop confidence through everyday conversations, practical vocabulary, and a strong foundation that makes speaking English feel natural.",
   },
   {
-    title: "Adults & Professionals",
+    title: "Everyday Conversation",
     icon: MessageCircle,
-    text: "Communicate more naturally for work, travel, presentations, and meaningful real-world conversations.",
-    shape: "rounded-[45%_55%_50%_50%]",
+    text: "Express yourself more naturally through meaningful conversations that help you share your thoughts, opinions, and experiences with confidence.",
   },
   {
-    title: "Goal-Oriented Learners",
+    title: "Professionals",
+    icon: Briefcase,
+    text: "Strengthen your English for meetings, presentations, interviews, and workplace communication while building confidence in professional settings.",
+  },
+  {
+    title: "Travelers",
+    icon: Plane,
+    text: "Learn practical English for airports, hotels, restaurants, shopping, and everyday situations so you can travel with greater confidence.",
+  },
+  {
+    title: "Students",
+    icon: GraduationCap,
+    text: "Improve your communication skills for school, presentations, interviews, and future opportunities while building confidence that lasts beyond the classroom.",
+  },
+  {
+    title: "Goal-Focused Learners",
     icon: Target,
-    text: "Prepare for specific goals, including aviation English, professional communication, and important milestones.",
-    shape: "rounded-[50%_50%_40%_60%]",
+    text: "Prepare for specific goals, including aviation English, career opportunities, important interviews, or other personal milestones with lessons tailored to your journey.",
   },
 ];
 
@@ -25,72 +44,107 @@ export default function Audience() {
   return (
     <section
       className="
-        bg-white
-        pt-20
-        pb-32
         relative
         overflow-hidden
+        bg-white
+        py-28
       "
     >
+      {/* Decorative Background */}
 
-      <div className="max-w-7xl mx-auto px-6">
+      <div
+        className="
+          pointer-events-none
+          absolute
+          left-[-180px]
+          top-24
+          h-[380px]
+          w-[380px]
+          rounded-full
+          bg-[#EEF5EE]
+          opacity-50
+          blur-3xl
+        "
+      />
 
-
+      <div
+        className="
+          relative
+          mx-auto
+          max-w-7xl
+          px-6
+          lg:px-10
+        "
+      >
         {/* Heading */}
-        <div className="max-w-3xl">
 
+        <div className="mb-24 max-w-2xl">
 
-          <p className="
-            uppercase
-            tracking-[0.3em]
-            text-[#6F8F72]
-            mb-6
-            text-sm
-          ">
-            Who It's For
+          <p
+            className="
+              mb-6
+              text-sm
+              font-medium
+              uppercase
+              tracking-[0.32em]
+              text-[#6F8F72]
+            "
+          >
+            WHO THIS IS FOR
           </p>
 
-
-
-          <h2 className="
-            text-5xl
-            leading-tight
-            text-[#2B2B2B]
-            [font-family:var(--font-cormorant)]
-          ">
-            Every learner begins somewhere.
+          <h2
+            className="
+              text-[42px]
+              leading-[1.08]
+              tracking-[-0.02em]
+              text-[#2B2B2B]
+              [font-family:var(--font-cormorant)]
+              sm:text-[52px]
+              lg:text-[60px]
+            "
+          >
+            Different goals. One conversation at a time.
           </h2>
 
-
-
-          <p className="
-            mt-8
-            text-lg
-            text-gray-600
-            leading-8
-          ">
-            Whether you are building confidence from the beginning,
-            improving everyday communication, or preparing for a specific
-            goal, lessons are designed around your journey and what matters
-            to you.
+          <p
+            className="
+              mt-10
+              text-lg
+              leading-9
+              text-[#5B5B5B]
+            "
+          >
+            Whether you're building confidence, preparing for new
+            opportunities, or simply looking to communicate more
+            naturally, your lessons are designed around your goals,
+            your pace, and the conversations that matter most to you.
           </p>
 
+          <p
+            className="
+              mt-8
+              text-xl
+              italic
+              text-[#6F8F72]
+              [font-family:var(--font-cormorant)]
+            "
+          >
+            Wherever you're starting, we'll meet you there.
+          </p>
 
         </div>
 
+        {/* Audience Cards */}
 
-
-
-
-        {/* Audience Shapes */}
-        <div className="
-          grid
-          md:grid-cols-3
-          gap-10
-          mt-16
-        ">
-
-
+        <div
+          className="
+            grid
+            gap-8
+            md:grid-cols-2
+            xl:grid-cols-3
+          "
+        >
           {audiences.map((item, index) => {
 
             const Icon = item.icon;
@@ -99,134 +153,85 @@ export default function Audience() {
 
               <div
                 key={index}
-                className="flex justify-center"
+                className="
+                  h-full
+                  rounded-[2rem]
+                  border
+                  border-white/70
+                  bg-[#FCFBF9]
+                  p-10
+                  shadow-[0_12px_35px_rgba(0,0,0,0.05)]
+                  backdrop-blur-sm
+                  transition-all
+                  duration-500
+                  hover:-translate-y-1
+                  hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]
+                "
               >
 
                 <div
-                  className={`
-                    ${item.shape}
-                    bg-[#EEF5EE]
-                    border
-                    border-[#DDE9D8]
-                    w-full
-                    max-w-sm
-                    aspect-square
-                    p-10
+                  className="
+                    mb-7
                     flex
-                    flex-col
                     items-center
-                    justify-center
-                    text-center
-                    transition
-                    duration-300
-                    hover:-translate-y-2
-                  `}
+                    gap-4
+                  "
                 >
 
-
-                  <div className="
-                    bg-white
-                    rounded-full
-                    w-14
-                    h-14
-                    flex
-                    items-center
-                    justify-center
-                    mb-6
-                    shadow-sm
-                  ">
+                  <div
+                    className="
+                      flex
+                      h-12
+                      w-12
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-[#EEF5EE]
+                    "
+                  >
 
                     <Icon
                       className="
-                        w-7
-                        h-7
+                        h-6
+                        w-6
                         text-[#6F8F72]
                       "
                     />
 
                   </div>
 
-
-
-
-                  <h3 className="
-                    text-3xl
-                    text-[#2B2B2B]
-                    [font-family:var(--font-cormorant)]
-                    mb-4
-                  ">
+                  <h3
+                    className="
+                      text-[30px]
+                      leading-none
+                      text-[#2B2B2B]
+                      [font-family:var(--font-cormorant)]
+                    "
+                  >
                     {item.title}
                   </h3>
 
-
-
-
-                  <p className="
-                    text-gray-600
-                    leading-7
-                    max-w-xs
-                  ">
-                    {item.text}
-                  </p>
-
-
                 </div>
+
+                <p
+                  className="
+                    text-[16px]
+                    leading-8
+                    text-[#5B5B5B]
+                  "
+                >
+                  {item.text}
+                </p>
 
               </div>
 
             );
 
           })}
-
-
         </div>
 
-
       </div>
-
-
-
-
-
-
-      {/* Organic Transition */}
-      <div
-        className="
-          absolute
-          bottom-0
-          left-0
-          w-full
-          overflow-hidden
-          leading-[0]
-        "
-      >
-
-        <svg
-          viewBox="0 0 1200 120"
-          preserveAspectRatio="none"
-          className="
-            block
-            w-full
-            h-[70px]
-          "
-        >
-
-          <path
-            d="
-              M0,0
-              C250,90 450,20 700,70
-              C900,110 1050,40 1200,80
-              L1200,120
-              L0,120
-              Z
-            "
-            fill="#FAF8F5"
-          />
-
-        </svg>
-
-      </div>
-
 
     </section>
   );
