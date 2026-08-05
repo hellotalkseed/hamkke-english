@@ -42,7 +42,7 @@ export default function HeroImage({
           md:h-[510px]
           md:max-w-[360px]
 
-          lg:h-[560px]
+          lg:h-[600px]
           lg:max-w-[395px]
         "
       >

@@ -51,7 +51,7 @@ export default function Hero() {
     gap-10
     px-6
     pt-8
-    pb-12
+    pb-8
     md:px-8
     md:pt-14
     md:pb-20
