@@ -1,3 +1,7 @@
+import FadeUp from "./animations/FadeUp";
+import StaggerContainer from "./animations/StaggerContainer";
+import StaggerItem from "./animations/StaggerItem";
+
 export default function Process() {
   const steps = [
     {
@@ -33,218 +37,270 @@ export default function Process() {
         relative
         bg-[#FCFBF9]
         py-20
-        lg:py-28
+
+        sm:py-24
+        lg:py-32
       "
     >
+
       <div
         className="
           mx-auto
           max-w-7xl
           px-6
+
+          md:px-8
           lg:px-10
         "
       >
+
         <div
           className="
             grid
             gap-16
+
             lg:grid-cols-[0.9fr_1.1fr]
             lg:gap-24
           "
         >
+
           {/* LEFT */}
 
-          <div className="self-start lg:sticky lg:top-32">
-
-            <p
+          <FadeUp>
+            <div
               className="
-                mb-5
-                text-sm
-                font-medium
-                uppercase
-                tracking-[0.32em]
-                text-[#6F8F72]
+                self-start
+
+                lg:sticky
+                lg:top-32
               "
             >
-              YOUR JOURNEY
-            </p>
-
-            <h2
-              className="
-                text-[34px]
-                leading-[1.1]
-                tracking-[-0.02em]
-                text-[#2B2B2B]
-                [font-family:var(--font-cormorant)]
-                sm:text-[42px]
-                lg:text-[60px]
-              "
-            >
-              From the first conversation to lasting confidence.
-            </h2>
-
-            <p
-              className="
-                mt-8
-                max-w-lg
-                text-[16px]
-                leading-8
-                text-[#5B5B5B]
-                lg:text-lg
-                lg:leading-9
-              "
-            >
-              Every learner begins somewhere different. Together,
-              we'll build your confidence through meaningful
-              conversations, personalized guidance, and consistent
-              practice.
-            </p>
-
-          </div>
-
-          {/* RIGHT */}
-
-          <div className="max-w-2xl">
-
-            {steps.map((step, index) => (
-
-              <div
-                key={step.number}
-                className="
-                  grid
-                  grid-cols-[60px_1fr]
-                  gap-6
-                  sm:grid-cols-[80px_1fr]
-                  sm:gap-8
-                "
-              >
-
-                {/* Timeline */}
-
-                <div className="flex flex-col items-center">
-
-                  <div
-                    className="
-                      relative
-                      flex
-                      h-8
-                      w-8
-                      items-center
-                      justify-center
-                      rounded-full
-                      border-2
-                      border-[#6F8F72]
-                      bg-white
-                    "
-                  >
-
-                    <div
-                      className="
-                        h-6
-                        w-6
-                        rounded-full
-                      "
-                      style={{
-                        background: `conic-gradient(
-                          #6F8F72 ${step.progress}%,
-                          #EEF5EE ${step.progress}% 100%
-                        )`,
-                      }}
-                    />
-
-                  </div>
-
-                  {index !== steps.length - 1 && (
-
-                    <div
-                      className="
-                        mt-2
-                        w-[2px]
-                        flex-1
-                        bg-[#DCE7D8]
-                      "
-                    />
-
-                  )}
-
-                </div>
-
-                {/* Content */}
-
-                <div
-                  className="
-                    pb-14
-                    sm:pb-20
-                  "
-                >
-
-                  <p
-                    className="
-                      text-5xl
-                      leading-none
-                      text-[#D5E1D2]
-                      [font-family:var(--font-cormorant)]
-                      sm:text-6xl
-                    "
-                  >
-                    {step.number}
-                  </p>
-
-                  <h3
-                    className="
-                      mt-3
-                      text-[28px]
-                      leading-tight
-                      text-[#2B2B2B]
-                      [font-family:var(--font-cormorant)]
-                      sm:mt-4
-                      sm:text-[34px]
-                    "
-                  >
-                    {step.title}
-                  </h3>
-
-                  <p
-                    className="
-                      mt-5
-                      text-[15px]
-                      leading-7
-                      text-[#5B5B5B]
-                      sm:mt-6
-                      sm:text-[16px]
-                      sm:leading-8
-                    "
-                  >
-                    {step.text}
-                  </p>
-
-                </div>
-
-              </div>
-
-            ))}
-
-            <div className="mt-4 text-center sm:mt-8">
 
               <p
                 className="
-                  text-2xl
-                  italic
+                  mb-5
+                  text-[12px]
+                  font-medium
+                  uppercase
+                  tracking-[0.35em]
                   text-[#6F8F72]
-                  [font-family:var(--font-cormorant)]
-                  sm:text-3xl
                 "
               >
-                Small conversations. Lasting confidence.
+                Hamkke │ 함께
+              </p>
+
+
+              <h2
+                className="
+                  text-[36px]
+                  leading-[1.08]
+                  tracking-[-0.02em]
+                  text-[#2B2B2B]
+                  [font-family:var(--font-cormorant)]
+
+                  sm:text-[46px]
+                  lg:text-[60px]
+                "
+              >
+                From the first conversation
+                to lasting confidence.
+              </h2>
+
+
+              <p
+                className="
+                  mt-8
+                  max-w-lg
+                  text-[16px]
+                  leading-8
+                  text-[#5B5B5B]
+
+                  lg:text-lg
+                  lg:leading-9
+                "
+              >
+                Every learner begins somewhere different.
+                Together, we'll build your confidence through
+                meaningful conversations, personalized guidance,
+                and consistent practice.
               </p>
 
             </div>
+          </FadeUp>
 
-          </div>
+
+
+          {/* RIGHT */}
+
+          <StaggerContainer
+            className="
+              max-w-2xl
+            "
+          >
+
+            {steps.map((step, index) => (
+
+              <StaggerItem
+                key={step.number}
+              >
+
+                <div
+                  className="
+                    grid
+                    grid-cols-[50px_1fr]
+                    gap-6
+
+                    sm:grid-cols-[70px_1fr]
+                    sm:gap-8
+                  "
+                >
+
+                  {/* Timeline */}
+
+                  <div
+                    className="
+                      flex
+                      flex-col
+                      items-center
+                    "
+                  >
+
+                    <div
+                      className="
+                        relative
+                        flex
+                        h-8
+                        w-8
+                        items-center
+                        justify-center
+                        rounded-full
+                        border-2
+                        border-[#6F8F72]
+                        bg-white
+                      "
+                    >
+
+                      <div
+                        className="
+                          h-6
+                          w-6
+                          rounded-full
+                        "
+                        style={{
+                          background: `conic-gradient(
+                            #6F8F72 ${step.progress}%,
+                            #EEF5EE ${step.progress}% 100%
+                          )`,
+                        }}
+                      />
+
+                    </div>
+
+
+                    {index !== steps.length - 1 && (
+                      <div
+                        className="
+                          mt-2
+                          w-[2px]
+                          flex-1
+                          bg-[#DCE7D8]
+                        "
+                      />
+                    )}
+
+                  </div>
+
+
+
+                  {/* Content */}
+
+                  <div
+                    className="
+                      pb-14
+
+                      sm:pb-20
+                    "
+                  >
+
+                    <p
+                      className="
+                        text-5xl
+                        leading-none
+                        text-[#D5E1D2]
+                        [font-family:var(--font-cormorant)]
+
+                        sm:text-6xl
+                      "
+                    >
+                      {step.number}
+                    </p>
+
+
+                    <h3
+                      className="
+                        mt-3
+                        text-[26px]
+                        leading-tight
+                        text-[#2B2B2B]
+                        [font-family:var(--font-cormorant)]
+
+                        sm:text-[34px]
+                      "
+                    >
+                      {step.title}
+                    </h3>
+
+
+                    <p
+                      className="
+                        mt-5
+                        text-[15px]
+                        leading-7
+                        text-[#5B5B5B]
+
+                        sm:text-[16px]
+                        sm:leading-8
+                      "
+                    >
+                      {step.text}
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </StaggerItem>
+
+            ))}
+
+          </StaggerContainer>
 
         </div>
 
+
+        {/* Closing Statement */}
+
+        <FadeUp>
+          <p
+            className="
+              mt-4
+              text-center
+              text-2xl
+              italic
+              text-[#6F8F72]
+              [font-family:var(--font-cormorant)]
+
+              sm:mt-8
+              sm:text-3xl
+            "
+          >
+            Small conversations. Lasting confidence.
+          </p>
+        </FadeUp>
+
+
       </div>
+
     </section>
   );
 }

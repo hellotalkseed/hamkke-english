@@ -26,83 +26,98 @@ export default function Navbar() {
   return (
     <>
       <header
-  className="
-    fade-up
-    sticky
-    top-0
-    z-50
-    border-b
-    border-[#E7DDD1]
-    bg-[#FAF8F5]/90
-    backdrop-blur-md
-  "
->
+        className="
+          fade-up
+          sticky
+          top-0
+          z-50
+          border-b
+          border-[#E7DDD1]
+          bg-[#FAF8F5]/90
+          backdrop-blur-md
+        "
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
 
-         {/* Logo */}
+          {/* Logo */}
 
-<Link
+          <Link
   href="/"
-  className="group flex items-center gap-2.5 md:gap-3"
+  className="group flex items-center gap-0"
 >
-  <Image
-    src="/logo/talkseed-icon.svg"
-    alt="TalkSeed logo"
-    width={34}
-    height={34}
-    priority
-    className="
-      h-9
-      w-auto
-      shrink-0
-      transition-transform
-      duration-300
-      group-hover:scale-105
+            <Image
+  src="/logo/hamkke-icon.svg"
+  alt="Hamkke logo"
+  width={100}
+  height={100}
+  priority
+  className="w-[60px] h-[60px]"
+/>
 
-      sm:h-10
-      md:h-9
+            <div className="flex flex-col justify-center leading-none">
+
+              <h1
+  className="
+    flex
+    items-baseline
+    text-[1.75rem]
+    font-semibold
+    text-[#2B2B2B]
+    [font-family:var(--font-cormorant)]
+
+    sm:text-[1.9rem]
+    md:text-[2rem]
+  "
+>
+  <span>Hamkke</span>
+
+  <span
+    className="
+      mx-2
+      h-[0.8em]
+      w-px
+      self-center
+      bg-[#A8BCA5]
+      opacity-50
     "
   />
 
-  <div className="leading-none">
+  <span
+    className="
+      text-[0.62em]
+      font-medium
+      text-[#6F8F72]
+      leading-none
+      translate-y-[1px]
+    "
+  >
+    함께
+  </span>
+</h1>
 
-    <h1
-      className="
-        text-[1.75rem]
-        font-semibold
-        text-[#2B2B2B]
-        [font-family:var(--font-cormorant)]
+              <p
+                className="
+                  mt-1
+                  text-[8px]
+                  uppercase
+                  tracking-[0.22em]
+                  text-[#6F8F72]
 
-        sm:text-[1.9rem]
-        md:text-[2rem]
-      "
-    >
-      TalkSeed
-    </h1>
+                  sm:text-[9px]
+                  sm:tracking-[0.25em]
 
-    <p
-      className="
-        mt-1
-        text-[8px]
-        uppercase
-        tracking-[0.18em]
-        text-[#6F8F72]
+                  md:text-[10px]
+                  md:tracking-[0.34em]
+                "
+              >
+                From Small Talk to Big Ideas
+              </p>
 
-        sm:text-[9px]
-        md:text-[10px]
-        md:tracking-[0.28em]
-      "
-    >
-      From Small Talk to Big Ideas
-    </p>
+            </div>
 
-  </div>
+          </Link>
 
-</Link>
-
-
-
-          {/* Desktop Navigation */}
+                    {/* Desktop Navigation */}
 
           <nav className="hidden items-center gap-8 md:flex">
 
@@ -134,6 +149,7 @@ export default function Navbar() {
             ))}
 
             <button
+              type="button"
               onClick={() => setIsAssessmentOpen(true)}
               className="
                 ml-2
@@ -141,6 +157,7 @@ export default function Navbar() {
                 bg-[#6F8F72]
                 px-7
                 py-3
+                text-[15px]
                 font-medium
                 text-white
                 transition-all
@@ -155,38 +172,35 @@ export default function Navbar() {
 
           </nav>
 
+                    {/* Mobile Menu Button */}
 
-
-         {/* Mobile Menu Button */}
-
-<button
-  type="button"
-  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-  aria-label="Toggle navigation"
-  className="
-    flex
-    h-11
-    w-11
-    shrink-0
-    items-center
-    justify-center
-    rounded-xl
-    text-[#2B2B2B]
-    transition-colors
-    hover:bg-[#EFE8DE]
-    md:hidden
-  "
->
-  {isMobileMenuOpen ? (
-    <X size={26} />
-  ) : (
-    <Menu size={26} />
-  )}
-</button>
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle navigation"
+            className="
+              flex
+              h-11
+              w-11
+              shrink-0
+              items-center
+              justify-center
+              rounded-xl
+              text-[#2B2B2B]
+              transition-colors
+              duration-300
+              hover:bg-[#EFE8DE]
+              md:hidden
+            "
+          >
+            {isMobileMenuOpen ? (
+              <X size={26} />
+            ) : (
+              <Menu size={26} />
+            )}
+          </button>
 
         </div>
-
-
 
         {/* Mobile Menu */}
 
@@ -195,6 +209,7 @@ export default function Navbar() {
             overflow-hidden
             transition-all
             duration-300
+            ease-in-out
             md:hidden
             ${
               isMobileMenuOpen
@@ -217,6 +232,7 @@ export default function Navbar() {
                     font-medium
                     text-[#555]
                     transition-colors
+                    duration-300
                     hover:text-[#6F8F72]
                   "
                 >
@@ -225,6 +241,7 @@ export default function Navbar() {
               ))}
 
               <button
+                type="button"
                 onClick={handleStartLearning}
                 className="
                   mt-3
@@ -233,7 +250,8 @@ export default function Navbar() {
                   py-3.5
                   font-medium
                   text-white
-                  transition
+                  transition-all
+                  duration-300
                   hover:bg-[#5B7960]
                 "
               >

@@ -18,12 +18,12 @@ export async function POST(request: Request) {
     } = body;
 
     await resend.emails.send({
-      from: "TalkSeed <onboarding@resend.dev>",
+      from: "Hamkke <onboarding@resend.dev>",
       to: "hello.talkseed@gmail.com",
       replyTo: email,
-      subject: `New TalkSeed Inquiry from ${name}`,
+      subject: `New Hamkke Inquiry from ${name}`,
       html: `
-        <h2>New TalkSeed Inquiry</h2>
+        <h2>New Hamkke Inquiry</h2>
 
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>

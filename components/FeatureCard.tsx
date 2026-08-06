@@ -16,108 +16,161 @@ export default function FeatureCard({
   description,
   tagline,
 }: FeatureCardProps) {
+
   const [open, setOpen] = useState(false);
 
   return (
     <button
       onClick={() => setOpen(!open)}
+      aria-expanded={open}
       className="
         group
         w-full
-        rounded-3xl
+        rounded-[2rem]
+        border
+        border-white/80
         bg-white
-        p-8
+        p-7
         text-left
-        shadow-sm
+        shadow-[0_12px_35px_rgba(0,0,0,0.05)]
         transition-all
-        duration-300
+        duration-500
+
         hover:-translate-y-1
-        hover:shadow-xl
+        hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]
+
+        sm:p-10
       "
     >
+
       {/* Header */}
 
-      <div className="flex items-start gap-5">
+      <div
+        className="
+          flex
+          items-start
+          gap-5
+        "
+      >
 
         {/* Icon */}
 
         <div
           className="
             flex
-            h-16
-            w-16
+            h-14
+            w-14
             shrink-0
             items-center
             justify-center
             rounded-full
             bg-[#F6FBF6]
-            transition-all
+            transition-transform
             duration-300
+
             group-hover:scale-105
+
+            sm:h-16
+            sm:w-16
           "
         >
-          <Icon className="h-8 w-8 text-[#6F8F72]" />
+
+          <Icon
+            className="
+              h-7
+              w-7
+              text-[#6F8F72]
+
+              sm:h-8
+              sm:w-8
+            "
+          />
+
         </div>
 
-        {/* Content */}
 
-        <div className="flex-1">
+
+        {/* Title */}
+
+        <div
+          className="
+            flex-1
+          "
+        >
 
           <h3
             className="
-              text-3xl
+              text-[26px]
+              leading-tight
               text-[#2B2B2B]
               transition-colors
               duration-300
               group-hover:text-[#6F8F72]
               [font-family:var(--font-cormorant)]
+
+              sm:text-3xl
             "
           >
             {title}
           </h3>
 
+
+
           {!open && (
+
             <>
+
               <p
                 className="
                   mt-2
-                  text-xl
+                  text-lg
                   italic
                   text-[#6F8F72]
                   [font-family:var(--font-cormorant)]
+
+                  sm:text-xl
                 "
               >
                 {tagline}
               </p>
 
+
               <p
                 className="
                   mt-6
-                  text-sm
+                  text-[11px]
                   font-medium
                   uppercase
-                  tracking-[0.2em]
+                  tracking-[0.25em]
                   text-[#6F8F72]
                 "
               >
                 Learn more →
               </p>
+
             </>
+
           )}
 
         </div>
 
+
       </div>
 
-      {/* Expandable */}
+
+
+
+
+      {/* Expandable Content */}
 
       <div
         className={`
           grid
           overflow-hidden
           transition-all
-          duration-300
+          duration-500
           ease-in-out
+
           ${
             open
               ? "mt-8 grid-rows-[1fr] opacity-100"
@@ -125,45 +178,81 @@ export default function FeatureCard({
           }
         `}
       >
-        <div className="overflow-hidden">
 
-          <div className="mb-8 h-px bg-[#E7ECE7]" />
+        <div
+          className="
+            overflow-hidden
+          "
+        >
 
-          <p className="leading-8 text-[#5B5B5B]">
+          <div
+            className="
+              mb-8
+              h-px
+              bg-[#E7ECE7]
+            "
+          />
+
+
+          <p
+            className="
+              text-[15px]
+              leading-8
+              text-[#5B5B5B]
+
+              sm:text-base
+            "
+          >
             {description}
           </p>
 
-          <div className="my-8 h-px bg-[#E7ECE7]" />
+
+
+          <div
+            className="
+              my-8
+              h-px
+              bg-[#E7ECE7]
+            "
+          />
+
+
 
           <p
             className="
               text-center
-              text-xl
+              text-lg
               italic
               text-[#6F8F72]
               [font-family:var(--font-cormorant)]
+
+              sm:text-xl
             "
           >
             {tagline}
           </p>
 
+
+
           <p
             className="
               mt-8
               text-center
-              text-sm
+              text-[11px]
               font-medium
               uppercase
-              tracking-[0.2em]
+              tracking-[0.25em]
               text-[#6F8F72]
             "
           >
             Show less
           </p>
 
+
         </div>
 
       </div>
+
 
     </button>
   );

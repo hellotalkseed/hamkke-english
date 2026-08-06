@@ -4,6 +4,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import SectionHeader from "./SectionHeader";
+import StaggerContainer from "./animations/StaggerContainer";
+import StaggerItem from "./animations/StaggerItem";
+
 const values = [
   {
     icon: MessageCircle,
@@ -13,12 +17,12 @@ const values = [
   {
     icon: Sparkles,
     title: "Personalized Coaching",
-    text: "Every lesson is tailored to your goals, interests, learning style, and pace so your progress feels personal.",
+    text: "Every lesson is designed around your goals, interests, learning style, and pace so your progress feels personal.",
   },
   {
     icon: TrendingUp,
     title: "Confidence Through Practice",
-    text: "Confidence grows through meaningful practice. Each conversation helps you become more comfortable expressing yourself naturally.",
+    text: "Confidence grows through meaningful practice. Each conversation helps you express yourself more comfortably and naturally.",
   },
 ];
 
@@ -29,30 +33,34 @@ export default function About() {
       className="
         relative
         overflow-hidden
-        bg-gradient-to-b
-        from-[#FAF8F5]
-        via-[#F8F8F5]
-        to-[#EEF5EE]
-        pt-24
-        pb-32
+        bg-[#F8F8F5]
+        py-20
+
+        sm:py-24
+        lg:py-32
       "
     >
+
       {/* Background Glow */}
 
       <div
         className="
           pointer-events-none
           absolute
-          right-[-220px]
-          top-16
-          h-[380px]
-          w-[380px]
+          right-[-180px]
+          top-20
+          h-[320px]
+          w-[320px]
           rounded-full
           bg-[#DCE9D8]
           opacity-40
           blur-3xl
+
+          sm:h-[380px]
+          sm:w-[380px]
         "
       />
+
 
       <div
         className="
@@ -60,140 +68,133 @@ export default function About() {
           mx-auto
           max-w-7xl
           px-6
+
+          md:px-8
           lg:px-10
         "
       >
-        {/* Heading */}
 
-        <div className="mb-24 max-w-2xl">
+        {/* Section Header */}
 
-          <p
-            className="
-              mb-6
-              text-sm
-              font-medium
-              uppercase
-              tracking-[0.32em]
-              text-[#6F8F72]
-            "
-          >
-            About TalkSeed
-          </p>
+        <SectionHeader
+          title={
+            <>
+              English grows through conversation.
+              <br />
+              Confidence grows with every exchange.
+            </>
+          }
+          description="
+            At Hamkke │ 함께, I believe English learning should feel
+            natural, meaningful, and connected. Every conversation is
+            an opportunity to express your thoughts, discover new
+            perspectives, and grow more confident using English in
+            real situations.
+          "
+        />
 
-          <h2
-            className="
-              text-[42px]
-              leading-[1.08]
-              tracking-[-0.02em]
-              text-[#2B2B2B]
-              [font-family:var(--font-cormorant)]
-              sm:text-[52px]
-              lg:text-[60px]
-            "
-          >
-            English is more than speaking.
-            <br />
-            It's about expressing who you are.
-          </h2>
-
-          <p
-            className="
-              mt-10
-              text-lg
-              leading-9
-              text-[#5B5B5B]
-            "
-          >
-            At TalkSeed, learning begins with genuine conversation.
-            Instead of memorizing scripts or focusing only on grammar,
-            you'll practice expressing your ideas, sharing your
-            experiences, and building confidence through meaningful
-            discussions that feel natural, engaging, and enjoyable.
-          </p>
-
-        </div>
 
         {/* Values */}
 
-        <div
+        <StaggerContainer
           className="
             grid
-            gap-10
+            gap-6
+
             md:grid-cols-3
+            md:gap-8
           "
         >
-          {values.map((value, index) => {
+
+          {values.map((value) => {
 
             const Icon = value.icon;
 
             return (
-
-              <div
-                key={index}
-                className="
-                  rounded-[2rem]
-                  border
-                  border-white/70
-                  bg-[#FCFBF9]/90
-                  p-10
-                  shadow-[0_12px_35px_rgba(0,0,0,0.05)]
-                  backdrop-blur-sm
-                  transition-all
-                  duration-500
-                  hover:-translate-y-1
-                  hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]
-                "
+              <StaggerItem
+                key={value.title}
               >
 
                 <div
                   className="
-                    mb-6
-                    flex
-                    items-center
-                    gap-3
+                    h-full
+                    rounded-[2rem]
+                    border
+                    border-white/70
+                    bg-[#FCFBF9]
+                    p-8
+                    shadow-[0_12px_35px_rgba(0,0,0,0.05)]
+                    transition-all
+                    duration-500
+
+                    hover:-translate-y-1
+                    hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]
+
+                    sm:p-10
                   "
                 >
 
-                  <Icon
+                  <div
                     className="
-                      h-6
-                      w-6
-                      shrink-0
-                      text-[#6F8F72]
-                    "
-                  />
-
-                  <h3
-                    className="
-                      text-[30px]
-                      leading-none
-                      text-[#2B2B2B]
-                      [font-family:var(--font-cormorant)]
+                      mb-6
+                      flex
+                      items-center
+                      gap-3
                     "
                   >
-                    {value.title}
-                  </h3>
+
+                    <Icon
+                      className="
+                        h-6
+                        w-6
+                        shrink-0
+                        text-[#6F8F72]
+                      "
+                    />
+
+
+                    <h3
+                      className="
+                        text-[24px]
+                        leading-tight
+                        text-[#2B2B2B]
+                        [font-family:var(--font-cormorant)]
+
+                        sm:text-[26px]
+                      "
+                    >
+                      {value.title}
+                    </h3>
+
+                  </div>
+
+
+                  <p
+                    className="
+                      text-[15px]
+                      leading-7
+                      text-[#5B5B5B]
+
+                      sm:text-[16px]
+                      sm:leading-8
+                    "
+                  >
+                    {value.text}
+                  </p>
+
 
                 </div>
 
-                <p
-                  className="
-                    text-[16px]
-                    leading-8
-                    text-[#5B5B5B]
-                  "
-                >
-                  {value.text}
-                </p>
-
-              </div>
-
+              </StaggerItem>
             );
 
           })}
-        </div>
+
+        </StaggerContainer>
+
 
       </div>
+
 
     </section>
   );

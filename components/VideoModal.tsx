@@ -160,7 +160,7 @@ export default function VideoModal({
                 "
               >
                 <source
-                  src="/videos/talkseed-introduction.mp4"
+                  src="/videos/hamkke-introduction.mp4"
                   type="video/mp4"
                 />
 

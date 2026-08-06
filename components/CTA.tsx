@@ -4,35 +4,48 @@ import { useState } from "react";
 import AssessmentModal from "./AssessmentModal";
 
 export default function CTA() {
-
   const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
-
 
   return (
     <>
-
       <section
         id="contact"
-        className="bg-[#6F8F72] py-28"
+        className="
+          bg-[#6F8F72]
+          py-20
+
+          sm:py-24
+          lg:py-32
+        "
       >
 
-        <div className="mx-auto max-w-5xl px-6 text-center">
+        <div
+          className="
+            mx-auto
+            max-w-5xl
+            px-6
+            text-center
 
+            md:px-8
+          "
+        >
 
           {/* Label */}
 
           <p
             className="
-              mb-6
-              text-sm
+              mb-5
+              text-[12px]
+              font-medium
               uppercase
-              tracking-[0.3em]
+              tracking-[0.35em]
               text-[#EEF5EE]
+
+              sm:mb-6
             "
           >
-            Start Your Journey
+            Begin Yours Here
           </p>
-
 
 
 
@@ -40,16 +53,19 @@ export default function CTA() {
 
           <h2
             className="
-              text-5xl
-              leading-tight
+              text-[40px]
+              leading-[1.05]
               text-white
-              lg:text-6xl
               [font-family:var(--font-cormorant)]
+
+              sm:text-[52px]
+              lg:text-[64px]
             "
           >
-            Your English journey begins with a conversation.
+            Ready to grow your confidence
+            <br className="hidden sm:block" />
+            in English?
           </h2>
-
 
 
 
@@ -59,18 +75,19 @@ export default function CTA() {
             className="
               mx-auto
               mt-8
-              max-w-3xl
-              text-lg
+              max-w-2xl
+              text-[17px]
               leading-8
               text-[#F5F5F0]
+
+              sm:text-lg
+              sm:leading-9
             "
           >
-            Every learner has unique goals, experiences, and challenges.
-            Begin with a personalized conversation to understand your
-            current level and create a learning path designed around
-            your growth.
+            Start with a personalized assessment and discover
+            a learning approach designed around your goals,
+            interests, and pace.
           </p>
-
 
 
 
@@ -81,16 +98,24 @@ export default function CTA() {
             <button
               onClick={() => setIsAssessmentOpen(true)}
               className="
-                inline-block
                 rounded-full
                 bg-white
                 px-10
                 py-4
+                text-base
                 font-medium
                 text-[#6F8F72]
-                transition
-                hover:bg-[#F5F5F0]
+                shadow-lg
+                transition-all
+                duration-300
+
                 hover:-translate-y-1
+                hover:bg-[#F5F5F0]
+                hover:shadow-xl
+
+                sm:px-12
+                sm:py-5
+                sm:text-lg
               "
             >
               Book Your First Lesson
@@ -99,22 +124,16 @@ export default function CTA() {
           </div>
 
 
-
         </div>
-
 
       </section>
 
 
 
-
-      {/* Assessment Modal */}
-
       <AssessmentModal
         isOpen={isAssessmentOpen}
         onClose={() => setIsAssessmentOpen(false)}
       />
-
 
     </>
   );

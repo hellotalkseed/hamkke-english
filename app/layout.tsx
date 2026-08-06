@@ -14,7 +14,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "TalkSeed | From Small Talk to Big Ideas",
+  title: "Hamkke 함께 | From Small Talk to Big Ideas",
   description:
     "Personalized English coaching designed to help learners build confidence through meaningful conversations.",
 };

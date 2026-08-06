@@ -47,7 +47,7 @@ export default function Hero() {
   className="
     mx-auto
     grid
-    max-w-7xl
+    max-w-[1400px]
     gap-10
     px-6
     pt-8
@@ -58,7 +58,7 @@ export default function Hero() {
     lg:min-h-[calc(100vh-88px)]
     lg:grid-cols-2
     lg:items-center
-    lg:gap-16
+    lg:gap-10
     lg:px-10
   "
 >

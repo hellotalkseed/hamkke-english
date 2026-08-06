@@ -7,6 +7,10 @@ import {
   Target,
 } from "lucide-react";
 
+import SectionHeader from "./SectionHeader";
+import StaggerContainer from "./animations/StaggerContainer";
+import StaggerItem from "./animations/StaggerItem";
+
 const audiences = [
   {
     title: "Beginners",
@@ -47,9 +51,13 @@ export default function Audience() {
         relative
         overflow-hidden
         bg-white
-        py-28
+        py-20
+
+        sm:py-24
+        lg:py-32
       "
     >
+
       {/* Decorative Background */}
 
       <div
@@ -58,14 +66,18 @@ export default function Audience() {
           absolute
           left-[-180px]
           top-24
-          h-[380px]
-          w-[380px]
+          h-[320px]
+          w-[320px]
           rounded-full
           bg-[#EEF5EE]
           opacity-50
           blur-3xl
+
+          sm:h-[380px]
+          sm:w-[380px]
         "
       />
+
 
       <div
         className="
@@ -73,163 +85,158 @@ export default function Audience() {
           mx-auto
           max-w-7xl
           px-6
+
+          md:px-8
           lg:px-10
         "
       >
-        {/* Heading */}
 
-        <div className="mb-24 max-w-2xl">
+        {/* Section Header */}
 
-          <p
-            className="
-              mb-6
-              text-sm
-              font-medium
-              uppercase
-              tracking-[0.32em]
-              text-[#6F8F72]
-            "
-          >
-            WHO THIS IS FOR
-          </p>
-
-          <h2
-            className="
-              text-[42px]
-              leading-[1.08]
-              tracking-[-0.02em]
-              text-[#2B2B2B]
-              [font-family:var(--font-cormorant)]
-              sm:text-[52px]
-              lg:text-[60px]
-            "
-          >
-            Different goals. One conversation at a time.
-          </h2>
-
-          <p
-            className="
-              mt-10
-              text-lg
-              leading-9
-              text-[#5B5B5B]
-            "
-          >
+        <SectionHeader
+          title="Different goals. One conversation at a time."
+          description="
             Whether you're building confidence, preparing for new
             opportunities, or simply looking to communicate more
             naturally, your lessons are designed around your goals,
             your pace, and the conversations that matter most to you.
-          </p>
+          "
+        />
 
-          <p
-            className="
-              mt-8
-              text-xl
-              italic
-              text-[#6F8F72]
-              [font-family:var(--font-cormorant)]
-            "
-          >
-            Wherever you're starting, we'll meet you there.
-          </p>
 
-        </div>
+        {/* Closing Statement */}
+
+        <p
+          className="
+            -mt-12
+            mb-16
+            text-xl
+            italic
+            text-[#6F8F72]
+            [font-family:var(--font-cormorant)]
+
+            sm:mb-20
+          "
+        >
+          Wherever you're starting, we'll meet you there.
+        </p>
+
+
 
         {/* Audience Cards */}
 
-        <div
+        <StaggerContainer
           className="
             grid
-            gap-8
+            gap-6
+
             md:grid-cols-2
             xl:grid-cols-3
+            md:gap-8
           "
         >
-          {audiences.map((item, index) => {
+
+          {audiences.map((item) => {
 
             const Icon = item.icon;
 
             return (
-
-              <div
-                key={index}
-                className="
-                  h-full
-                  rounded-[2rem]
-                  border
-                  border-white/70
-                  bg-[#FCFBF9]
-                  p-10
-                  shadow-[0_12px_35px_rgba(0,0,0,0.05)]
-                  backdrop-blur-sm
-                  transition-all
-                  duration-500
-                  hover:-translate-y-1
-                  hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]
-                "
+              <StaggerItem
+                key={item.title}
               >
 
                 <div
                   className="
-                    mb-7
-                    flex
-                    items-center
-                    gap-4
+                    h-full
+                    rounded-[2rem]
+                    border
+                    border-white/70
+                    bg-[#FCFBF9]
+                    p-8
+                    shadow-[0_12px_35px_rgba(0,0,0,0.05)]
+                    backdrop-blur-sm
+                    transition-all
+                    duration-500
+
+                    hover:-translate-y-1
+                    hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]
+
+                    sm:p-10
                   "
                 >
 
                   <div
                     className="
+                      mb-7
                       flex
-                      h-12
-                      w-12
-                      shrink-0
                       items-center
-                      justify-center
-                      rounded-full
-                      bg-[#EEF5EE]
+                      gap-4
                     "
                   >
 
-                    <Icon
+                    <div
                       className="
-                        h-6
-                        w-6
-                        text-[#6F8F72]
+                        flex
+                        h-12
+                        w-12
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        bg-[#EEF5EE]
                       "
-                    />
+                    >
+
+                      <Icon
+                        className="
+                          h-6
+                          w-6
+                          text-[#6F8F72]
+                        "
+                      />
+
+                    </div>
+
+
+                    <h3
+                      className="
+                        text-[24px]
+                        leading-tight
+                        text-[#2B2B2B]
+                        [font-family:var(--font-cormorant)]
+
+                        sm:text-[28px]
+                      "
+                    >
+                      {item.title}
+                    </h3>
 
                   </div>
 
-                  <h3
+
+                  <p
                     className="
-                      text-[30px]
-                      leading-none
-                      text-[#2B2B2B]
-                      [font-family:var(--font-cormorant)]
+                      text-[15px]
+                      leading-7
+                      text-[#5B5B5B]
+
+                      sm:text-[16px]
+                      sm:leading-8
                     "
                   >
-                    {item.title}
-                  </h3>
+                    {item.text}
+                  </p>
+
 
                 </div>
 
-                <p
-                  className="
-                    text-[16px]
-                    leading-8
-                    text-[#5B5B5B]
-                  "
-                >
-                  {item.text}
-                </p>
-
-              </div>
-
+              </StaggerItem>
             );
 
           })}
-        </div>
+
+        </StaggerContainer>
+
 
       </div>
 
