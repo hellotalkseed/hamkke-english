@@ -21,7 +21,7 @@ export default function FadeLink({
 
     e.preventDefault();
 
-    // @ts-expect-error View Transition API
+  
     document.startViewTransition(() => {
       window.location.href = href;
     });
