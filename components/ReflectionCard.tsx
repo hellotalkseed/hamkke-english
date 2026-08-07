@@ -82,38 +82,39 @@ export default function ReflectionCard({
       {/* Read More */}
 
       {onClick && (
-        <button
-          type="button"
-          className="
-            mt-7
+  <button
+    type="button"
+    className="
+      mt-6
 
-            inline-flex
-            items-center
-            gap-2
+      inline-flex
+      items-center
+      justify-center
 
-            rounded-full
-            border
-            border-[#6F8F72]
+      rounded-full
 
-            px-5
-            py-2.5
+      bg-[#6F8F72]
+      px-6
+      py-3
 
-            text-sm
-            font-medium
-            tracking-wide
+      text-sm
+      font-medium
+      text-white
 
-            text-[#6F8F72]
+      shadow-sm
 
-            transition-all
+      transition-all
+      duration-300
 
-            hover:bg-[#6F8F72]
-            hover:text-white
-          "
-        >
-          Read More
-          <span>→</span>
-        </button>
-      )}
+      hover:bg-[#5F7F62]
+      hover:shadow-md
+
+      active:scale-95
+    "
+  >
+    Read More →
+  </button>
+)}
 
       {/* Profile */}
 
