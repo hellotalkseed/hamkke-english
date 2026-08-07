@@ -16,7 +16,7 @@ const cormorant = Cormorant_Garamond({
 export const metadata = {
   title: "Hamkke │ 함께 | From Small Talk to Big Ideas",
   description:
-    "English coaching through meaningful conversations.",
+    "A meaningful English learning experience through conversation.",
 };
 
 export default function RootLayout({

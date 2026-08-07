@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import HeroContent from "./HeroContent";
 import HeroImage from "./HeroImage";
 import VideoModal from "./VideoModal";
-import AssessmentModal from "./AssessmentModal";
+import AssessmentModal from "./InquiryModal";
 import Navbar from "./Navbar";
 
 export default function Hero() {

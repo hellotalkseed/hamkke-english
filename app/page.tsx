@@ -3,7 +3,7 @@ import About from "../components/About";
 import Audience from "../components/Audience";
 import Process from "../components/Process";
 import WhyHamkke from "../components/WhyHamkke";
-import Testimonials from "../components/Testimonials";
+import Reflections from "../components/Reflections";
 import CTA from "../components/CTA";
 import Footer from "../components/Footer";
 
@@ -20,7 +20,7 @@ export default function Home() {
 
       <WhyHamkke />
 
-      <Testimonials />
+      <Reflections />
 
       <CTA />
 

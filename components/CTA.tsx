@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import AssessmentModal from "./AssessmentModal";
+import AssessmentModal from "./InquiryModal";
 
 export default function CTA() {
   const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);

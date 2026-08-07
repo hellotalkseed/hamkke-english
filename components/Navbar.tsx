@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
-import AssessmentModal from "./AssessmentModal";
+import AssessmentModal from "./InquiryModal";
 
 const navLinks = [
   { href: "#about", label: "About" },
