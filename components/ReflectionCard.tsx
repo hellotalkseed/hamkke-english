@@ -86,30 +86,11 @@ export default function ReflectionCard({
     type="button"
     className="
       mt-6
-
-      inline-flex
-      items-center
-      justify-center
-
-      rounded-full
-
-      bg-[#6F8F72]
-      px-6
-      py-3
-
       text-sm
       font-medium
-      text-white
-
-      shadow-sm
-
-      transition-all
-      duration-300
-
-      hover:bg-[#5F7F62]
-      hover:shadow-md
-
-      active:scale-95
+      text-[#6F8F72]
+      transition
+      hover:underline
     "
   >
     Read More →

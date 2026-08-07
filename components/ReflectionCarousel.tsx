@@ -68,12 +68,13 @@ const desktopItems = [...reflections, ...reflections];
     >
       {reflections.map((item) => (
         <div
-          key={item.id}
-          className="
-            min-w-0
-            flex-[0_0_85%]
-          "
-        >
+  key={item.id}
+  className="
+    min-w-0
+    flex-[0_0_100%]
+    px-2
+  "
+>
           <ReflectionCard
             reflection={item}
           />

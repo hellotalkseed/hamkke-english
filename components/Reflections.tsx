@@ -86,21 +86,35 @@ export default async function Reflections() {
         <div className="mt-20 text-center">
 
           <a
-            href="/reflections"
-            className="
-              inline-flex
-              items-center
-              rounded-full
-              border
-              border-[#DDE9D8]
-              px-8
-              py-4
-              transition
-              hover:bg-[#EEF5EE]
-            "
-          >
-            Read More Stories →
-          </a>
+  href="/reflections"
+  className="
+    inline-flex
+    items-center
+    justify-center
+
+    rounded-full
+
+    bg-[#6F8F72]
+    px-10
+    py-4
+
+    text-sm
+    font-medium
+    text-white
+
+    shadow-md
+
+    transition-all
+    duration-300
+
+    hover:bg-[#5F7F62]
+    hover:shadow-lg
+
+    active:scale-95
+  "
+>
+  Read More Stories →
+</a>
 
           <p
             className="
