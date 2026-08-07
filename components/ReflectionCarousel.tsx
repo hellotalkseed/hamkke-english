@@ -47,9 +47,7 @@ useEffect(() => {
 }, [emblaApi]);
 
   // Desktop infinite loop
-  const desktopItems = [...reflections, ...reflections];
-
-  // Mobile infinite loop
+const desktopItems = [...reflections, ...reflections];
 
   return (
     <>
