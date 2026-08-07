@@ -17,18 +17,18 @@ export default function ReflectionCard({
   reflection: Reflection;
   onClick?: () => void;
 }) {
-
   const preview =
     reflection.reflection.length > 180
       ? reflection.reflection.slice(0, 180) + "..."
       : reflection.reflection;
 
-
   return (
     <article
       onClick={onClick}
       className="
-        w-[320px]
+        w-[88vw]
+        max-w-[380px]
+
         sm:w-[360px]
         lg:w-[380px]
 
@@ -37,7 +37,10 @@ export default function ReflectionCard({
 
         rounded-[2rem]
         bg-white
-        p-8
+
+        p-6
+        sm:p-7
+        lg:p-8
 
         shadow-md
 
@@ -48,31 +51,33 @@ export default function ReflectionCard({
         hover:shadow-xl
       "
     >
-
       {/* Rating */}
 
       <div className="text-lg tracking-wide text-[#D8A437]">
         {"★".repeat(reflection.rating)}
       </div>
 
-
-
       {/* Preview */}
 
       <blockquote
         className="
-          mt-6
-          italic
-          leading-8
-          text-[#555]
+          mt-5
 
           line-clamp-5
+
+          text-[16px]
+          leading-7
+
+          italic
+          text-[#555]
+
+          sm:mt-6
+          sm:text-[17px]
+          sm:leading-8
         "
       >
         "{preview}"
       </blockquote>
-
-
 
       {/* Read More */}
 
@@ -80,45 +85,62 @@ export default function ReflectionCard({
         <button
           type="button"
           className="
-            mt-6
+            mt-7
+
+            inline-flex
+            items-center
+            gap-2
+
+            rounded-full
+            border
+            border-[#6F8F72]
+
+            px-5
+            py-2.5
+
             text-sm
             font-medium
+            tracking-wide
+
             text-[#6F8F72]
 
-            transition
-            hover:underline
+            transition-all
+
+            hover:bg-[#6F8F72]
+            hover:text-white
           "
         >
-          Read More →
+          Read More
+          <span>→</span>
         </button>
       )}
-
-
 
       {/* Profile */}
 
       <div className="mt-8 flex items-center gap-4">
-
         {reflection.photo_url ? (
-
           <img
             src={reflection.photo_url}
             alt={reflection.name}
             className="
-              h-14
-              w-14
+              h-12
+              w-12
+
               rounded-full
               object-cover
+
+              sm:h-14
+              sm:w-14
             "
           />
-
         ) : (
-
           <div
             className="
               flex
-              h-14
-              w-14
+
+              h-12
+              w-12
+
               items-center
               justify-center
 
@@ -128,45 +150,40 @@ export default function ReflectionCard({
 
               text-[#6F8F72]
               font-medium
+
+              sm:h-14
+              sm:w-14
             "
           >
             {reflection.name.charAt(0)}
           </div>
-
         )}
 
-
-
         <div>
-
           <h3
             className="
+              text-[17px]
               font-medium
               text-[#2B2B2B]
+
+              sm:text-[18px]
             "
           >
             {reflection.name}
           </h3>
 
-
           <p
             className="
+              mt-1
               text-sm
               text-gray-500
             "
           >
             {reflection.role}
-
-            {reflection.country &&
-              ` • ${reflection.country}`
-            }
-
+            {reflection.country && ` • ${reflection.country}`}
           </p>
-
         </div>
-
       </div>
-
     </article>
   );
 }
