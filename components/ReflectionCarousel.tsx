@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReflectionCard from "./ReflectionCard";
 
 type Reflection = {
@@ -24,8 +24,35 @@ export default function ReflectionCarousel({
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  useEffect(() => {
+  if (!mobileRef.current || reflections.length === 0) return;
+
+  const container = mobileRef.current;
+
+  const firstCard =
+    container.querySelector<HTMLElement>("[data-card]");
+
+  if (!firstCard) return;
+
+  const gap = 20;
+
+  const cardWidth = firstCard.offsetWidth + gap;
+
+  // Jump to the first REAL reflection (skip the cloned last card)
+  container.scrollLeft = cardWidth;
+
+  setCurrentIndex(0);
+}, [reflections]);
+
   // Desktop infinite loop
   const desktopItems = [...reflections, ...reflections];
+
+  // Mobile infinite loop
+const mobileItems = [
+  reflections[reflections.length - 1],
+  ...reflections,
+  reflections[0],
+];
 
   const handleScroll = () => {
     if (!mobileRef.current) return;
@@ -87,9 +114,9 @@ export default function ReflectionCarousel({
             pr-[18vw]
           "
         >
-          {reflections.map((item) => (
+          {mobileItems.map((item, index) => (
             <div
-              key={item.id}
+              key={`${item.id}-${index}`}
               data-card
               className="
                 snap-center
