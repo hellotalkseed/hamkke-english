@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import ReflectionCard from "./ReflectionCard";
 
 type Reflection = {
@@ -23,6 +28,29 @@ export default function ReflectionCarousel({
   const mobileRef = useRef<HTMLDivElement>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const [sliderIndex, setSliderIndex] = useState(1);
+
+const touchStartX = useRef(0);
+const touchEndX = useRef(0);
+
+useEffect(() => {
+  if (sliderIndex === 0) {
+    setTimeout(() => {
+      setSliderIndex(reflections.length);
+    }, 300);
+  }
+
+  if (sliderIndex === reflections.length + 1) {
+    setTimeout(() => {
+      setSliderIndex(1);
+    }, 300);
+  }
+
+  setCurrentIndex(
+    ((sliderIndex - 1 + reflections.length) % reflections.length)
+  );
+}, [sliderIndex, reflections.length]);
 
   useEffect(() => {
   if (!mobileRef.current || reflections.length === 0) return;
@@ -85,99 +113,78 @@ const mobileItems = [
     <>
       {/* ================= MOBILE ================= */}
 
+<div className="lg:hidden overflow-hidden px-4">
+
+  <div
+    className={`
+  flex
+  ease-out
+  ${
+    sliderIndex === 0 ||
+    sliderIndex === reflections.length + 1
+      ? "duration-0"
+      : "duration-300"
+  }
+  transition-transform
+`}
+    style={{
+      transform: `translateX(calc(-${sliderIndex * 100}% - ${sliderIndex * 20}px))`,
+      gap: "20px",
+    }}
+    onTouchStart={(e) => {
+      touchStartX.current = e.touches[0].clientX;
+    }}
+    onTouchMove={(e) => {
+      touchEndX.current = e.touches[0].clientX;
+    }}
+    onTouchEnd={() => {
+      const distance =
+        touchStartX.current - touchEndX.current;
+
+      if (distance > 50 && sliderIndex < reflections.length + 1) {
+  setSliderIndex((prev) => prev + 1);
+}
+
+if (distance < -50 && sliderIndex > 0) {
+  setSliderIndex((prev) => prev - 1);
+}
+
+      touchStartX.current = 0;
+      touchEndX.current = 0;
+    }}
+  >
+    {mobileItems.map((item, index) => (
       <div
-        ref={mobileRef}
-        onScroll={handleScroll}
-        className="
-          lg:hidden
-
-          overflow-x-auto
-
-          snap-x
-          snap-mandatory
-
-          scroll-smooth
-
-          px-4
-
-          [-ms-overflow-style:none]
-          [scrollbar-width:none]
-
-          [&::-webkit-scrollbar]:hidden
-        "
+        key={`${item.id}-${index}`}
+        className="w-full flex-shrink-0"
       >
-        <div
-          className="
-            flex
-            gap-5
-
-            pr-[18vw]
-          "
-        >
-          {mobileItems.map((item, index) => (
-            <div
-              key={`${item.id}-${index}`}
-              data-card
-              className="
-                snap-center
-                flex-shrink-0
-              "
-            >
-              <ReflectionCard
-                reflection={item}
-              />
-            </div>
-          ))}
-        </div>
+        <ReflectionCard reflection={item} />
       </div>
+    ))}
+  </div>
 
-      {/* Mobile Indicators */}
+  {/* Dots */}
 
-<div
-  className="
-    mt-8
-    flex
-    justify-center
-    gap-3
+  <div className="mt-8 flex justify-center gap-3">
+    {reflections.map((_, index) => (
+      <button
+        key={index}
+        onClick={() => setSliderIndex(index + 1)}
+        className={`
+          rounded-full
+          transition-all
+          duration-300
 
-    lg:hidden
-  "
->
-  {reflections.map((_, index) => (
-    <button
-      key={index}
-      onClick={() => {
-        if (!mobileRef.current) return;
+          ${
+            sliderIndex === index + 1
+              ? "h-2 w-6 bg-[#6F8F72]"
+              : "h-2 w-2 bg-[#E7EEE5]"
+          }
+        `}
+      />
+    ))}
+  </div>
 
-        const firstCard =
-          mobileRef.current.querySelector<HTMLElement>("[data-card]");
-
-        if (!firstCard) return;
-
-        const gap = 20;
-
-        const cardWidth =
-          firstCard.offsetWidth + gap;
-
-        mobileRef.current.scrollTo({
-          left: index * cardWidth,
-          behavior: "smooth",
-        });
-      }}
-      aria-label={`Go to reflection ${index + 1}`}
-      className={`
-        rounded-full
-        transition-all
-        duration-300
-
-        ${
-          currentIndex === index
-            ? "h-2 w-6 bg-[#6F8F72]"
-            : "h-2 w-2 bg-[#E7EEE5] hover:bg-[#DCE7DA]"
-        }
-      `}
-    />
-  ))}
 </div>
 
       {/* ================= DESKTOP ================= */}
