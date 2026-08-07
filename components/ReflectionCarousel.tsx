@@ -106,34 +106,52 @@ export default function ReflectionCarousel({
 
       {/* Mobile Indicators */}
 
-      <div
-        className="
-          mt-6
-          flex
-          justify-center
-          gap-2
+<div
+  className="
+    mt-8
+    flex
+    justify-center
+    gap-3
 
-          lg:hidden
-        "
-      >
-        {reflections.map((_, index) => (
-          <div
-            key={index}
-            className={`
-              h-2
-              rounded-full
-              transition-all
-              duration-300
+    lg:hidden
+  "
+>
+  {reflections.map((_, index) => (
+    <button
+      key={index}
+      onClick={() => {
+        if (!mobileRef.current) return;
 
-              ${
-                currentIndex === index
-                  ? "w-8 bg-[#6F8F72]"
-                  : "w-2 bg-[#D6E4D5]"
-              }
-            `}
-          />
-        ))}
-      </div>
+        const firstCard =
+          mobileRef.current.querySelector<HTMLElement>("[data-card]");
+
+        if (!firstCard) return;
+
+        const gap = 20;
+
+        const cardWidth =
+          firstCard.offsetWidth + gap;
+
+        mobileRef.current.scrollTo({
+          left: index * cardWidth,
+          behavior: "smooth",
+        });
+      }}
+      aria-label={`Go to reflection ${index + 1}`}
+      className={`
+        rounded-full
+        transition-all
+        duration-300
+
+        ${
+          currentIndex === index
+            ? "h-2 w-6 bg-[#6F8F72]"
+            : "h-2 w-2 bg-[#E7EEE5] hover:bg-[#DCE7DA]"
+        }
+      `}
+    />
+  ))}
+</div>
 
       {/* ================= DESKTOP ================= */}
 
