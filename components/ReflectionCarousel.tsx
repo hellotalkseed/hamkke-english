@@ -1,11 +1,7 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
+import useEmblaCarousel from "embla-carousel-react";
 import ReflectionCard from "./ReflectionCard";
 
 type Reflection = {
@@ -25,9 +21,28 @@ export default function ReflectionCarousel({
 }) {
   const [paused, setPaused] = useState(false);
 
-  const mobileRef = useRef<HTMLDivElement>(null);
-
   const [currentIndex, setCurrentIndex] = useState(0);
+
+const [emblaRef, emblaApi] = useEmblaCarousel({
+  loop: true,
+  align: "center",
+});
+
+useEffect(() => {
+  if (!emblaApi) return;
+
+  const onSelect = () => {
+    setCurrentIndex(emblaApi.selectedScrollSnap());
+  };
+
+  emblaApi.on("select", onSelect);
+
+  onSelect();
+
+  return () => {
+    emblaApi.off("select", onSelect);
+  };
+}, [emblaApi]);
 
   const [sliderIndex, setSliderIndex] = useState(1);
 
@@ -76,11 +91,6 @@ useEffect(() => {
   const desktopItems = [...reflections, ...reflections];
 
   // Mobile infinite loop
-const mobileItems = [
-  reflections[reflections.length - 1],
-  ...reflections,
-  reflections[0],
-];
 
   const handleScroll = () => {
     if (!mobileRef.current) return;
@@ -113,70 +123,60 @@ const mobileItems = [
     <>
       {/* ================= MOBILE ================= */}
 
-<div className="lg:hidden overflow-hidden px-4">
-
-  <div
-    className={`
-  flex
-  ease-out
-  ${
-    sliderIndex === 0 ||
-    sliderIndex === reflections.length + 1
-      ? "duration-0"
-      : "duration-300"
-  }
-  transition-transform
-`}
-    style={{
-      transform: `translateX(calc(-${sliderIndex * 100}% - ${sliderIndex * 20}px))`,
-      gap: "20px",
-    }}
-    onTouchStart={(e) => {
-      touchStartX.current = e.touches[0].clientX;
-    }}
-    onTouchMove={(e) => {
-      touchEndX.current = e.touches[0].clientX;
-    }}
-    onTouchEnd={() => {
-      const distance =
-        touchStartX.current - touchEndX.current;
-
-      if (distance > 50 && sliderIndex < reflections.length + 1) {
-  setSliderIndex((prev) => prev + 1);
-}
-
-if (distance < -50 && sliderIndex > 0) {
-  setSliderIndex((prev) => prev - 1);
-}
-
-      touchStartX.current = 0;
-      touchEndX.current = 0;
-    }}
-  >
-    {mobileItems.map((item, index) => (
-      <div
-        key={`${item.id}-${index}`}
-        className="w-full flex-shrink-0"
-      >
-        <ReflectionCard reflection={item} />
-      </div>
-    ))}
+<div
+  className="
+    lg:hidden
+    overflow-hidden
+  "
+>
+  <div ref={emblaRef}>
+    <div
+      className="
+        flex
+        gap-5
+      "
+    >
+      {reflections.map((item) => (
+        <div
+          key={item.id}
+          className="
+            min-w-0
+            flex-[0_0_85%]
+          "
+        >
+          <ReflectionCard
+            reflection={item}
+          />
+        </div>
+      ))}
+    </div>
   </div>
+
 
   {/* Dots */}
 
-  <div className="mt-8 flex justify-center gap-3">
+  <div
+    className="
+      mt-8
+      flex
+      justify-center
+      gap-3
+    "
+  >
     {reflections.map((_, index) => (
       <button
         key={index}
-        onClick={() => setSliderIndex(index + 1)}
+        onClick={() =>
+          emblaApi?.scrollTo(index)
+        }
+        aria-label={`Go to reflection ${index + 1}`}
         className={`
           rounded-full
           transition-all
           duration-300
 
           ${
-            sliderIndex === index + 1
+            currentIndex === index
               ? "h-2 w-6 bg-[#6F8F72]"
               : "h-2 w-2 bg-[#E7EEE5]"
           }
@@ -184,7 +184,6 @@ if (distance < -50 && sliderIndex > 0) {
       />
     ))}
   </div>
-
 </div>
 
       {/* ================= DESKTOP ================= */}
