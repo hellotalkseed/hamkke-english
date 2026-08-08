@@ -7,20 +7,30 @@ import { Menu, X } from "lucide-react";
 
 import AssessmentModal from "./InquiryModal";
 
+type InquirySource =
+  | "get-in-touch"
+  | "start-learning";
+
 const navLinks = [
   { href: "#about", label: "About" },
   { href: "#lessons", label: "Lessons" },
   { href: "#student-stories", label: "Stories" },
-  { href: "#contact", label: "Contact" },
 ];
 
 export default function Navbar() {
-  const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAssessmentOpen, setIsAssessmentOpen] =
+    useState(false);
 
-  const handleStartLearning = () => {
-    setIsMobileMenuOpen(false);
+  const [inquirySource, setInquirySource] =
+    useState<InquirySource>("start-learning");
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] =
+    useState(false);
+
+  const openInquiry = (source: InquirySource) => {
+    setInquirySource(source);
     setIsAssessmentOpen(true);
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -39,61 +49,60 @@ export default function Navbar() {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
 
-          {/* Logo */}
+          {/* ================= LOGO ================= */}
 
           <Link
-  href="/"
-  className="group flex items-center gap-0"
->
+            href="/"
+            className="group flex items-center gap-0"
+          >
             <Image
-  src="/logo/hamkke-icon.svg"
-  alt="Hamkke logo"
-  width={100}
-  height={100}
-  priority
-  className="w-[60px] h-[60px]"
-/>
+              src="/logo/hamkke-icon.svg"
+              alt="Hamkke logo"
+              width={100}
+              height={100}
+              priority
+              className="h-[60px] w-[60px]"
+            />
 
             <div className="flex flex-col justify-center leading-none">
-
               <h1
-  className="
-    flex
-    items-baseline
-    text-[1.75rem]
-    font-semibold
-    text-[#2B2B2B]
-    [font-family:var(--font-cormorant)]
+                className="
+                  flex
+                  items-baseline
+                  text-[1.75rem]
+                  font-semibold
+                  text-[#2B2B2B]
+                  [font-family:var(--font-cormorant)]
 
-    sm:text-[1.9rem]
-    md:text-[2rem]
-  "
->
-  <span>Hamkke</span>
+                  sm:text-[1.9rem]
+                  md:text-[2rem]
+                "
+              >
+                <span>Hamkke</span>
 
-  <span
-    className="
-      mx-2
-      h-[0.8em]
-      w-px
-      self-center
-      bg-[#A8BCA5]
-      opacity-50
-    "
-  />
+                <span
+                  className="
+                    mx-2
+                    h-[0.8em]
+                    w-px
+                    self-center
+                    bg-[#A8BCA5]
+                    opacity-50
+                  "
+                />
 
-  <span
-    className="
-      text-[0.62em]
-      font-medium
-      text-[#6F8F72]
-      leading-none
-      translate-y-[1px]
-    "
-  >
-    함께
-  </span>
-</h1>
+                <span
+                  className="
+                    translate-y-[1px]
+                    text-[0.62em]
+                    font-medium
+                    leading-none
+                    text-[#6F8F72]
+                  "
+                >
+                  함께
+                </span>
+              </h1>
 
               <p
                 className="
@@ -112,12 +121,10 @@ export default function Navbar() {
               >
                 From Small Talk to Big Ideas
               </p>
-
             </div>
-
           </Link>
 
-                    {/* Desktop Navigation */}
+          {/* ================= DESKTOP NAVIGATION ================= */}
 
           <nav className="hidden items-center gap-8 md:flex">
 
@@ -133,14 +140,16 @@ export default function Navbar() {
                   transition-colors
                   duration-300
                   hover:text-[#6F8F72]
+
                   after:absolute
-                  after:left-0
                   after:-bottom-1
+                  after:left-0
                   after:h-[1.5px]
                   after:w-0
                   after:bg-[#6F8F72]
                   after:transition-all
                   after:duration-300
+
                   hover:after:w-full
                 "
               >
@@ -148,9 +157,44 @@ export default function Navbar() {
               </Link>
             ))}
 
+            {/* Get in Touch */}
+
             <button
               type="button"
-              onClick={() => setIsAssessmentOpen(true)}
+              onClick={() =>
+                openInquiry("get-in-touch")
+              }
+              className="
+                relative
+                text-[15px]
+                font-medium
+                text-[#555]
+                transition-colors
+                duration-300
+                hover:text-[#6F8F72]
+
+                after:absolute
+                after:left-0
+                after:-bottom-1
+                after:h-[1.5px]
+                after:w-0
+                after:bg-[#6F8F72]
+                after:transition-all
+                after:duration-300
+
+                hover:after:w-full
+              "
+            >
+              Get in Touch
+            </button>
+
+            {/* Start Learning */}
+
+            <button
+              type="button"
+              onClick={() =>
+                openInquiry("start-learning")
+              }
               className="
                 ml-2
                 rounded-full
@@ -172,11 +216,13 @@ export default function Navbar() {
 
           </nav>
 
-                    {/* Mobile Menu Button */}
+          {/* ================= MOBILE MENU BUTTON ================= */}
 
           <button
             type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() =>
+              setIsMobileMenuOpen(!isMobileMenuOpen)
+            }
             aria-label="Toggle navigation"
             className="
               flex
@@ -199,10 +245,9 @@ export default function Navbar() {
               <Menu size={26} />
             )}
           </button>
-
         </div>
 
-        {/* Mobile Menu */}
+        {/* ================= MOBILE MENU ================= */}
 
         <div
           className={`
@@ -211,9 +256,10 @@ export default function Navbar() {
             duration-300
             ease-in-out
             md:hidden
+
             ${
               isMobileMenuOpen
-                ? "max-h-[500px] border-t border-[#E7DDD1]"
+                ? "max-h-[600px] border-t border-[#E7DDD1]"
                 : "max-h-0"
             }
           `}
@@ -226,7 +272,9 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() =>
+                    setIsMobileMenuOpen(false)
+                  }
                   className="
                     text-lg
                     font-medium
@@ -240,9 +288,33 @@ export default function Navbar() {
                 </Link>
               ))}
 
+              {/* Get in Touch */}
+
               <button
                 type="button"
-                onClick={handleStartLearning}
+                onClick={() =>
+                  openInquiry("get-in-touch")
+                }
+                className="
+                  text-left
+                  text-lg
+                  font-medium
+                  text-[#555]
+                  transition-colors
+                  duration-300
+                  hover:text-[#6F8F72]
+                "
+              >
+                Get in Touch
+              </button>
+
+              {/* Start Learning */}
+
+              <button
+                type="button"
+                onClick={() =>
+                  openInquiry("start-learning")
+                }
                 className="
                   mt-3
                   rounded-full
@@ -259,15 +331,18 @@ export default function Navbar() {
               </button>
 
             </div>
-
           </nav>
         </div>
-
       </header>
+
+      {/* ================= INQUIRY MODAL ================= */}
 
       <AssessmentModal
         isOpen={isAssessmentOpen}
-        onClose={() => setIsAssessmentOpen(false)}
+        onClose={() =>
+          setIsAssessmentOpen(false)
+        }
+        source={inquirySource}
       />
     </>
   );

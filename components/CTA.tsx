@@ -18,7 +18,6 @@ export default function CTA() {
           lg:py-32
         "
       >
-
         <div
           className="
             mx-auto
@@ -47,8 +46,6 @@ export default function CTA() {
             Begin Yours Here
           </p>
 
-
-
           {/* Heading */}
 
           <h2
@@ -66,8 +63,6 @@ export default function CTA() {
             <br className="hidden sm:block" />
             in English?
           </h2>
-
-
 
           {/* Description */}
 
@@ -89,13 +84,11 @@ export default function CTA() {
             interests, and pace.
           </p>
 
-
-
           {/* Button */}
 
           <div className="mt-10">
-
             <button
+              type="button"
               onClick={() => setIsAssessmentOpen(true)}
               className="
                 rounded-full
@@ -118,23 +111,20 @@ export default function CTA() {
                 sm:text-lg
               "
             >
-              Book Your First Lesson
+              Book a Lesson
             </button>
-
           </div>
 
-
         </div>
-
       </section>
 
-
+      {/* Inquiry Modal */}
 
       <AssessmentModal
         isOpen={isAssessmentOpen}
         onClose={() => setIsAssessmentOpen(false)}
+        source="book-a-lesson"
       />
-
     </>
   );
 }
