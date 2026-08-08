@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   X,
@@ -60,43 +60,18 @@ export default function AssessmentModal({
     message: "",
   });
 
-  /*
-    Store the viewport height from the moment the modal opens.
-
-    IMPORTANT:
-    We intentionally do NOT continuously update this value when
-    the keyboard opens/closes.
-
-    Mobile browsers change the visual viewport when the keyboard
-    appears. If the modal uses that changing value, the modal itself
-    can shrink and later remain at the smaller height.
-  */
-  const modalHeightRef = useRef<number | null>(null);
-
   const heading = inquiryHeadings[source];
 
   /* =========================================================
-     CAPTURE INITIAL MODAL HEIGHT
-     ========================================================= */
-
-  useEffect(() => {
-    if (!isOpen) {
-      modalHeightRef.current = null;
-      return;
-    }
-
-    /*
-      Use the layout viewport rather than visualViewport.
-
-      window.innerHeight is captured ONCE when the modal opens.
-      We don't listen to resize events, so keyboard changes cannot
-      resize the modal.
-    */
-    modalHeightRef.current = window.innerHeight;
-  }, [isOpen]);
-
-  /* =========================================================
      LOCK BACKGROUND PAGE
+     
+     We do NOT:
+     - use visualViewport
+     - use position: fixed on body
+     - calculate keyboard height
+     - resize the modal based on the keyboard
+
+     The modal has its own stable viewport height.
      ========================================================= */
 
   useEffect(() => {
@@ -107,16 +82,9 @@ export default function AssessmentModal({
 
     const originalBodyOverflow = body.style.overflow;
     const originalBodyTouchAction = body.style.touchAction;
-
     const originalHtmlOverflow = html.style.overflow;
     const originalHtmlTouchAction = html.style.touchAction;
 
-    /*
-      Lock the page behind the modal.
-
-      We intentionally don't use position: fixed because that can
-      interact badly with mobile keyboard behavior.
-    */
     body.style.overflow = "hidden";
     body.style.touchAction = "none";
 
@@ -222,16 +190,6 @@ export default function AssessmentModal({
 
   if (!isOpen) return null;
 
-  /*
-    This value is captured only once when opening.
-
-    The inline style gives us a fixed pixel height rather than
-    allowing 100dvh to change underneath us when the keyboard
-    appears/disappears.
-  */
-  const initialViewportHeight =
-    modalHeightRef.current ?? window.innerHeight;
-
   return (
     <div
       className="
@@ -239,6 +197,7 @@ export default function AssessmentModal({
         inset-0
         z-[100]
 
+        h-screen
         w-full
 
         overflow-hidden
@@ -247,50 +206,55 @@ export default function AssessmentModal({
         backdrop-blur-[4px]
 
         overscroll-none
-        touch-none
       "
-      style={{
-        height: `${initialViewportHeight}px`,
-      }}
-      onClick={(event) => {
+      onPointerDown={(event) => {
         /*
-          Clicking the backdrop closes the modal.
+          Only clicking the actual backdrop closes the modal.
 
-          Because this element covers the entire viewport, nothing
-          underneath it can receive the click.
+          Any interaction inside the modal is stopped by the
+          modal container below.
         */
         if (event.target === event.currentTarget) {
           onClose();
-        }
-      }}
-      onPointerDown={(event) => {
-        /*
-          Prevent interaction from passing through the backdrop.
-        */
-        if (event.target === event.currentTarget) {
-          event.stopPropagation();
         }
       }}
       role="presentation"
     >
       {/* =====================================================
           MODAL
+
+          MOBILE
+          - Stable small viewport height
+          - Bottom anchored
+          - Does not resize based on keyboard
+
+          DESKTOP
+          - Centered
+          - 92vh
+          - Maximum width
           ===================================================== */}
 
       <div
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        onTouchStart={(event) => event.stopPropagation()}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+        }}
+        onTouchStart={(event) => {
+          event.stopPropagation();
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="inquiry-modal-title"
         className="
-          relative
-
-          mx-auto
+          fixed
+          inset-x-0
+          bottom-0
 
           flex
-          h-full
+          h-[100svh]
+          max-h-[100svh]
           w-full
           flex-col
 
@@ -300,11 +264,15 @@ export default function AssessmentModal({
 
           shadow-[0_24px_80px_rgba(40,55,42,0.22)]
 
-          sm:my-[4vh]
+          sm:inset-x-auto
+          sm:bottom-auto
+          sm:left-1/2
+          sm:top-[4vh]
           sm:h-[92vh]
           sm:max-h-[92vh]
+          sm:w-[calc(100%-32px)]
           sm:max-w-[680px]
-
+          sm:-translate-x-1/2
           sm:rounded-[30px]
         "
       >
@@ -356,17 +324,23 @@ export default function AssessmentModal({
         </button>
 
         {/* ===================================================
-            SINGLE SCROLL CONTAINER
+            SINGLE STABLE SCROLL AREA
 
-            Header + form scroll together.
+            Heading + form live inside the SAME scroll
+            container.
 
-            The modal itself NEVER changes height when the
-            keyboard appears.
+            This means:
+            - The heading can scroll away
+            - The form can scroll all the way back to top
+            - The modal itself doesn't change height
+            - Keyboard does not determine modal dimensions
             =================================================== */}
 
         <div
           className="
             min-h-0
+            h-full
+            w-full
             flex-1
 
             overflow-y-auto
@@ -374,13 +348,23 @@ export default function AssessmentModal({
 
             overscroll-contain
 
-            touch-pan-y
-
-            [-webkit-overflow-scrolling:touch]
+            px-5
+            pb-10
 
             [scrollbar-color:#DDE9D8_transparent]
             [scrollbar-width:thin]
+
+            sm:px-10
+            sm:pb-12
+
+            [-webkit-overflow-scrolling:touch]
           "
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+          onTouchStart={(event) => {
+            event.stopPropagation();
+          }}
         >
           {!submitted ? (
             <>
@@ -390,15 +374,16 @@ export default function AssessmentModal({
 
               <div
                 className="
-                  px-5
+                  px-0
                   pb-5
                   pt-7
 
-                  sm:px-10
                   sm:pb-6
                   sm:pt-10
                 "
               >
+                {/* Logo + Heading */}
+
                 <div
                   className="
                     flex
@@ -457,6 +442,8 @@ export default function AssessmentModal({
                   </div>
                 </div>
 
+                {/* Intro */}
+
                 <p
                   className="
                     mt-4
@@ -478,6 +465,8 @@ export default function AssessmentModal({
                   what you&apos;d like to achieve with your
                   English.
                 </p>
+
+                {/* Reassurance */}
 
                 <div
                   className="
@@ -549,11 +538,7 @@ export default function AssessmentModal({
 
               <div
                 className="
-                  px-5
-                  pb-8
-
-                  sm:px-10
-                  sm:pb-10
+                  pb-2
                 "
               >
                 <form
@@ -564,7 +549,9 @@ export default function AssessmentModal({
                     sm:space-y-4
                   "
                 >
-                  {/* NAME */}
+                  {/* =================================================
+                      NAME
+                      ================================================= */}
 
                   <div className="relative">
                     <UserRound
@@ -640,7 +627,9 @@ export default function AssessmentModal({
                     </span>
                   </div>
 
-                  {/* EMAIL */}
+                  {/* =================================================
+                      EMAIL
+                      ================================================= */}
 
                   <div className="relative">
                     <Mail
@@ -715,7 +704,9 @@ export default function AssessmentModal({
                     </span>
                   </div>
 
-                  {/* CONTACT METHOD */}
+                  {/* =================================================
+                      CONTACT METHOD
+                      ================================================= */}
 
                   <div className="relative">
                     <Phone
@@ -743,6 +734,7 @@ export default function AssessmentModal({
                       className={`
                         h-[60px]
                         w-full
+
                         appearance-none
 
                         rounded-[15px]
@@ -823,7 +815,9 @@ export default function AssessmentModal({
                     </span>
                   </div>
 
-                  {/* CONTACT ID */}
+                  {/* =================================================
+                      CONTACT ID
+                      ================================================= */}
 
                   <div className="relative">
                     <ContactRound
@@ -883,7 +877,9 @@ export default function AssessmentModal({
                     />
                   </div>
 
-                  {/* LEVEL */}
+                  {/* =================================================
+                      LEVEL
+                      ================================================= */}
 
                   <div className="relative">
                     <ChartNoAxesColumnIncreasing
@@ -912,6 +908,7 @@ export default function AssessmentModal({
                       className={`
                         h-[60px]
                         w-full
+
                         appearance-none
 
                         rounded-[15px]
@@ -1004,7 +1001,9 @@ export default function AssessmentModal({
                     </span>
                   </div>
 
-                  {/* GOAL */}
+                  {/* =================================================
+                      GOAL
+                      ================================================= */}
 
                   <div className="relative">
                     <Target
@@ -1033,6 +1032,7 @@ export default function AssessmentModal({
                       className={`
                         h-[60px]
                         w-full
+
                         appearance-none
 
                         rounded-[15px]
@@ -1129,7 +1129,9 @@ export default function AssessmentModal({
                     </span>
                   </div>
 
-                  {/* MESSAGE */}
+                  {/* =================================================
+                      MESSAGE
+                      ================================================= */}
 
                   <div className="relative">
                     <Pencil
@@ -1157,6 +1159,7 @@ export default function AssessmentModal({
                       className="
                         min-h-[115px]
                         w-full
+
                         resize-y
 
                         rounded-[15px]
@@ -1191,7 +1194,9 @@ export default function AssessmentModal({
                     />
                   </div>
 
-                  {/* ERROR */}
+                  {/* =================================================
+                      ERROR
+                      ================================================= */}
 
                   {error && (
                     <p
@@ -1211,7 +1216,9 @@ export default function AssessmentModal({
                     </p>
                   )}
 
-                  {/* SUBMIT */}
+                  {/* =================================================
+                      SUBMIT
+                      ================================================= */}
 
                   <button
                     type="submit"
@@ -1262,7 +1269,9 @@ export default function AssessmentModal({
                     )}
                   </button>
 
-                  {/* PRIVACY */}
+                  {/* =================================================
+                      PRIVACY
+                      ================================================= */}
 
                   <div
                     className="
