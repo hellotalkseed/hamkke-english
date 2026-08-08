@@ -63,53 +63,41 @@ export default function AssessmentModal({
   const heading = inquiryHeadings[source];
 
   /* =========================================================
-     LOCK BACKGROUND PAGE
+     LOCK BACKGROUND SCROLL
      ========================================================= */
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const body = document.body;
-    const html = document.documentElement;
+    const originalBodyOverflow =
+      document.body.style.overflow;
 
-    const scrollY = window.scrollY;
+    const originalBodyPosition =
+      document.body.style.position;
 
-    const originalBodyPosition = body.style.position;
-    const originalBodyTop = body.style.top;
-    const originalBodyWidth = body.style.width;
-    const originalBodyOverflow = body.style.overflow;
+    const originalBodyWidth =
+      document.body.style.width;
 
-    const originalHtmlOverflow = html.style.overflow;
+    const originalBodyTouchAction =
+      document.body.style.touchAction;
 
-    /*
-      Instead of simply using overflow:hidden, we fix the body
-      at its current scroll position.
-
-      This is much more reliable on mobile browsers.
-    */
-
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
-    body.style.overflow = "hidden";
-
-    html.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "relative";
+    document.body.style.width = "100%";
+    document.body.style.touchAction = "none";
 
     return () => {
-      body.style.position = originalBodyPosition;
-      body.style.top = originalBodyTop;
-      body.style.width = originalBodyWidth;
-      body.style.overflow = originalBodyOverflow;
+      document.body.style.overflow =
+        originalBodyOverflow;
 
-      html.style.overflow = originalHtmlOverflow;
+      document.body.style.position =
+        originalBodyPosition;
 
-      /*
-        Restore the exact page position the user was at
-        before opening the modal.
-      */
-      window.scrollTo(0, scrollY);
+      document.body.style.width =
+        originalBodyWidth;
+
+      document.body.style.touchAction =
+        originalBodyTouchAction;
     };
   }, [isOpen]);
 
@@ -126,10 +114,16 @@ export default function AssessmentModal({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
     };
   }, [isOpen, onClose]);
 
@@ -150,7 +144,9 @@ export default function AssessmentModal({
 
   const handleChange = (
     event: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      HTMLInputElement |
+        HTMLSelectElement |
+        HTMLTextAreaElement
     >
   ) => {
     setFormData((previous) => ({
@@ -196,65 +192,73 @@ export default function AssessmentModal({
       setError(
         "Unable to send your message. Please try again."
       );
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   if (!isOpen) return null;
 
   return (
     <div
+      onClick={onClose}
       className="
         fixed
         inset-0
         z-[100]
 
+        flex
+        items-center
+        justify-center
+
+        overflow-hidden
+
         bg-[#253026]/45
-        backdrop-blur-[4px]
+
+        px-3
+        py-3
 
         overscroll-none
+
+        backdrop-blur-[4px]
+
+        sm:px-6
+        sm:py-6
       "
-      onClick={onClose}
-      role="presentation"
     >
       {/* =====================================================
-          MODAL CONTAINER
-
-          MOBILE:
-          Full viewport height so the form has a predictable
-          scrolling area.
-
-          DESKTOP:
-          Centered modal with max height and rounded corners.
+          MODAL
           ===================================================== */}
 
       <div
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) =>
+          event.stopPropagation()
+        }
         role="dialog"
         aria-modal="true"
         aria-labelledby="inquiry-modal-title"
         className="
           relative
 
-          mx-auto
-
           flex
-          h-[100dvh]
           w-full
+          max-w-[680px]
+
           flex-col
 
           overflow-hidden
+
+          rounded-[24px]
 
           bg-[#FAF9F6]
 
           shadow-[0_24px_80px_rgba(40,55,42,0.22)]
 
-          sm:my-[4vh]
-          sm:h-[92vh]
-          sm:max-h-[92vh]
-          sm:max-w-[680px]
+          h-[calc(100dvh-24px)]
+          max-h-[calc(100dvh-24px)]
 
+          sm:h-auto
+          sm:max-h-[92vh]
           sm:rounded-[30px]
         "
       >
@@ -275,7 +279,6 @@ export default function AssessmentModal({
             flex
             h-9
             w-9
-            shrink-0
             items-center
             justify-center
 
@@ -307,183 +310,175 @@ export default function AssessmentModal({
 
         {/* ===================================================
             HEADER
-
-            This section does NOT scroll.
             =================================================== */}
 
-        {!submitted && (
-          <div
-            className="
-              shrink-0
+        <div
+          className="
+            shrink-0
 
-              px-5
-              pb-5
-              pt-7
+            px-5
+            pb-5
+            pt-7
 
-              sm:px-10
-              sm:pb-6
-              sm:pt-10
-            "
-          >
-            {/* Logo + Heading */}
+            sm:px-10
+            sm:pb-6
+            sm:pt-10
+          "
+        >
+          {!submitted && (
+            <>
+              {/* Logo + Heading */}
 
-            <div
-              className="
-                flex
-                items-start
-                gap-2
-
-                pr-10
-
-                sm:gap-3
-                sm:pr-12
-              "
-            >
-              <Image
-                src="/logo/hamkke-icon.svg"
-                alt="Hamkke"
-                width={48}
-                height={48}
-                priority
+              <div
                 className="
-                  mt-1
+                  flex
+                  items-start
+                  gap-2
+                  pr-10
 
-                  h-10
-                  w-10
-                  shrink-0
-
-                  sm:h-12
-                  sm:w-12
+                  sm:gap-3
+                  sm:pr-12
                 "
-              />
-
-              <div className="min-w-0">
-                <h2
-                  id="inquiry-modal-title"
+              >
+                <Image
+                  src="/logo/hamkke-icon.svg"
+                  alt="Hamkke"
+                  width={48}
+                  height={48}
+                  priority
                   className="
                     mt-1
 
-                    max-w-full
+                    h-10
+                    w-10
+                    shrink-0
 
-                    text-[29px]
-                    leading-[1.08]
-                    tracking-[-0.01em]
-
-                    text-[#2B2B2B]
-
-                    [font-family:var(--font-cormorant)]
-
-                    sm:text-[40px]
-                    sm:leading-[1.05]
-                    sm:tracking-normal
-
-                    lg:text-[42px]
+                    sm:h-12
+                    sm:w-12
                   "
-                >
-                  {heading}
-                </h2>
-              </div>
-            </div>
-
-            {/* Intro */}
-
-            <p
-              className="
-                mt-4
-
-                max-w-[570px]
-
-                text-[14px]
-                leading-6
-
-                text-[#686868]
-
-                sm:ml-[60px]
-                sm:mt-5
-                sm:text-[16px]
-                sm:leading-7
-              "
-            >
-              I&apos;d love to learn more about you and
-              what you&apos;d like to achieve with your
-              English.
-            </p>
-
-            {/* Reassurance */}
-
-            <div
-              className="
-                mt-4
-
-                flex
-                flex-wrap
-                items-center
-
-                gap-x-5
-                gap-y-3
-
-                sm:ml-[60px]
-                sm:mt-5
-              "
-            >
-              <div className="flex items-center gap-2.5">
-                <MessageCircle
-                  className={iconClass}
-                  strokeWidth={1.7}
                 />
 
-                <span
-                  className="
-                    text-[11px]
-                    text-[#777]
+                <div className="min-w-0">
+                  <h2
+                    id="inquiry-modal-title"
+                    className="
+                      mt-1
+                      max-w-full
 
-                    sm:text-[13px]
-                  "
-                >
-                  Personal reply within 24 hours
-                </span>
+                      text-[29px]
+                      leading-[1.08]
+                      tracking-[-0.01em]
+
+                      text-[#2B2B2B]
+
+                      [font-family:var(--font-cormorant)]
+
+                      sm:text-[40px]
+                      sm:leading-[1.05]
+                      sm:tracking-normal
+
+                      lg:text-[42px]
+                    "
+                  >
+                    {heading}
+                  </h2>
+                </div>
               </div>
 
-              <span
+              {/* Intro */}
+
+              <p
                 className="
-                  hidden
-                  h-5
-                  w-px
-                  bg-[#D9E2D6]
+                  mt-4
 
-                  sm:block
+                  max-w-[570px]
+
+                  text-[14px]
+                  leading-6
+
+                  text-[#686868]
+
+                  sm:ml-[60px]
+                  sm:mt-5
+                  sm:text-[16px]
+                  sm:leading-7
                 "
-              />
+              >
+                I&apos;d love to learn more about you and
+                what you&apos;d like to achieve with your
+                English.
+              </p>
 
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck
-                  className={iconClass}
-                  strokeWidth={1.7}
-                />
+              {/* Reassurance */}
+
+              <div
+                className="
+                  mt-4
+
+                  flex
+                  flex-wrap
+                  items-center
+
+                  gap-x-5
+                  gap-y-3
+
+                  sm:ml-[60px]
+                  sm:mt-5
+                "
+              >
+                <div className="flex items-center gap-2.5">
+                  <MessageCircle
+                    className={iconClass}
+                    strokeWidth={1.7}
+                  />
+
+                  <span
+                    className="
+                      text-[11px]
+                      text-[#777]
+
+                      sm:text-[13px]
+                    "
+                  >
+                    Personal reply within 24 hours
+                  </span>
+                </div>
 
                 <span
                   className="
-                    text-[11px]
-                    text-[#777]
+                    hidden
+                    h-5
+                    w-px
+                    bg-[#D9E2D6]
 
-                    sm:text-[13px]
+                    sm:block
                   "
-                >
-                  Your information is safe with me
-                </span>
+                />
+
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck
+                    className={iconClass}
+                    strokeWidth={1.7}
+                  />
+
+                  <span
+                    className="
+                      text-[11px]
+                      text-[#777]
+
+                      sm:text-[13px]
+                    "
+                  >
+                    Your information is safe with me
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
         {/* ===================================================
-            SCROLLABLE CONTENT AREA
-
-            IMPORTANT:
-            This is the ONLY element that scrolls.
-
-            min-h-0 allows flexbox to actually shrink this
-            area instead of expanding beyond the viewport.
+            SCROLLABLE FORM AREA
             =================================================== */}
 
         <div
@@ -495,18 +490,17 @@ export default function AssessmentModal({
             overflow-x-hidden
 
             overscroll-contain
-            touch-pan-y
 
             px-5
-            pb-8
+            pb-7
 
-            [-webkit-overflow-scrolling:touch]
+            sm:px-10
+            sm:pb-10
 
             [scrollbar-color:#DDE9D8_transparent]
             [scrollbar-width:thin]
 
-            sm:px-10
-            sm:pb-10
+            [-webkit-overflow-scrolling:touch]
           "
         >
           {!submitted ? (
@@ -525,7 +519,6 @@ export default function AssessmentModal({
               <div className="relative">
                 <UserRound
                   className="
-                    pointer-events-none
                     absolute
                     left-4
                     top-1/2
@@ -583,7 +576,6 @@ export default function AssessmentModal({
 
                 <span
                   className="
-                    pointer-events-none
                     absolute
                     right-5
                     top-1/2
@@ -603,7 +595,6 @@ export default function AssessmentModal({
               <div className="relative">
                 <Mail
                   className="
-                    pointer-events-none
                     absolute
                     left-4
                     top-1/2
@@ -660,7 +651,6 @@ export default function AssessmentModal({
 
                 <span
                   className="
-                    pointer-events-none
                     absolute
                     right-5
                     top-1/2
@@ -681,6 +671,7 @@ export default function AssessmentModal({
                 <Phone
                   className="
                     pointer-events-none
+
                     absolute
                     left-4
                     top-1/2
@@ -701,8 +692,11 @@ export default function AssessmentModal({
                   value={formData.contactMethod}
                   onChange={handleChange}
                   className={`
+                    block
+
                     h-[60px]
                     w-full
+
                     appearance-none
 
                     rounded-[15px]
@@ -718,7 +712,7 @@ export default function AssessmentModal({
 
                     outline-none
 
-                    transition
+                    transition-colors
                     duration-200
 
                     focus:border-[#6F8F72]
@@ -756,6 +750,7 @@ export default function AssessmentModal({
                 <ChevronDown
                   className="
                     pointer-events-none
+
                     absolute
                     right-5
                     top-1/2
@@ -770,6 +765,7 @@ export default function AssessmentModal({
                 <span
                   className="
                     pointer-events-none
+
                     absolute
                     right-10
                     top-1/2
@@ -790,7 +786,6 @@ export default function AssessmentModal({
               <div className="relative">
                 <ContactRound
                   className="
-                    pointer-events-none
                     absolute
                     left-4
                     top-1/2
@@ -853,6 +848,7 @@ export default function AssessmentModal({
                 <ChartNoAxesColumnIncreasing
                   className="
                     pointer-events-none
+
                     absolute
                     left-4
                     top-1/2
@@ -874,8 +870,11 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
+                    block
+
                     h-[60px]
                     w-full
+
                     appearance-none
 
                     rounded-[15px]
@@ -891,7 +890,7 @@ export default function AssessmentModal({
 
                     outline-none
 
-                    transition
+                    transition-colors
                     duration-200
 
                     focus:border-[#6F8F72]
@@ -941,6 +940,7 @@ export default function AssessmentModal({
                 <ChevronDown
                   className="
                     pointer-events-none
+
                     absolute
                     right-5
                     top-1/2
@@ -955,6 +955,7 @@ export default function AssessmentModal({
                 <span
                   className="
                     pointer-events-none
+
                     absolute
                     right-10
                     top-1/2
@@ -976,6 +977,7 @@ export default function AssessmentModal({
                 <Target
                   className="
                     pointer-events-none
+
                     absolute
                     left-4
                     top-1/2
@@ -997,8 +999,11 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
+                    block
+
                     h-[60px]
                     w-full
+
                     appearance-none
 
                     rounded-[15px]
@@ -1014,7 +1019,7 @@ export default function AssessmentModal({
 
                     outline-none
 
-                    transition
+                    transition-colors
                     duration-200
 
                     focus:border-[#6F8F72]
@@ -1068,6 +1073,7 @@ export default function AssessmentModal({
                 <ChevronDown
                   className="
                     pointer-events-none
+
                     absolute
                     right-5
                     top-1/2
@@ -1082,6 +1088,7 @@ export default function AssessmentModal({
                 <span
                   className="
                     pointer-events-none
+
                     absolute
                     right-10
                     top-1/2
@@ -1103,6 +1110,7 @@ export default function AssessmentModal({
                 <Pencil
                   className="
                     pointer-events-none
+
                     absolute
                     left-4
                     top-5
@@ -1125,6 +1133,7 @@ export default function AssessmentModal({
                   className="
                     min-h-[115px]
                     w-full
+
                     resize-y
 
                     rounded-[15px]
@@ -1167,6 +1176,7 @@ export default function AssessmentModal({
                 <p
                   className="
                     rounded-xl
+
                     bg-[#FDF0F0]
 
                     px-4
@@ -1224,7 +1234,9 @@ export default function AssessmentModal({
                   sm:py-4.5
                 "
               >
-                {loading ? "Sending..." : "Send Inquiry"}
+                {loading
+                  ? "Sending..."
+                  : "Send Inquiry"}
 
                 {!loading && (
                   <Send
@@ -1247,7 +1259,7 @@ export default function AssessmentModal({
 
                   px-4
                   pt-2
-                  pb-2
+                  pb-1
 
                   text-center
                   text-[11px]
@@ -1270,9 +1282,9 @@ export default function AssessmentModal({
               </div>
             </form>
           ) : (
-            /* ===================================================
+            /* =================================================
                SUCCESS
-               =================================================== */
+               ================================================= */
 
             <div
               className="
@@ -1326,6 +1338,7 @@ export default function AssessmentModal({
                 className="
                   mx-auto
                   mt-5
+
                   max-w-md
 
                   text-[15px]
