@@ -13,7 +13,7 @@ const cormorant = Cormorant_Garamond({
   weight: ["400", "500", "600", "700"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Hamkke │ 함께 | From Small Talk to Big Ideas",
   description:
     "A meaningful English learning experience through conversation.",

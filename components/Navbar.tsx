@@ -3,21 +3,32 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
 import AssessmentModal from "./InquiryModal";
+import en from "../messages/en";
 
 type InquirySource =
   | "get-in-touch"
   | "start-learning";
 
-const navLinks = [
-  { href: "#about", label: "About" },
-  { href: "#lessons", label: "Lessons" },
-  { href: "#student-stories", label: "Stories" },
-];
-
 export default function Navbar() {
+  const params = useParams();
+
+  const locale =
+    typeof params.locale === "string"
+      ? params.locale
+      : "en";
+
+  /*
+   * Korean and Chinese translations will be connected
+   * once those message files are completed.
+   *
+   * For now, they safely fall back to English.
+   */
+  const t = en;
+
   const [isAssessmentOpen, setIsAssessmentOpen] =
     useState(false);
 
@@ -26,6 +37,21 @@ export default function Navbar() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] =
     useState(false);
+
+  const navLinks = [
+    {
+      href: `/${locale}#about`,
+      label: t.nav.about,
+    },
+    {
+      href: `/${locale}#lessons`,
+      label: t.nav.lessons,
+    },
+    {
+      href: `/${locale}#student-stories`,
+      label: t.nav.stories,
+    },
+  ];
 
   const openInquiry = (source: InquirySource) => {
     setInquirySource(source);
@@ -52,7 +78,7 @@ export default function Navbar() {
           {/* ================= LOGO ================= */}
 
           <Link
-            href="/"
+            href={`/${locale}`}
             className="group flex items-center gap-0"
           >
             <Image
@@ -119,7 +145,7 @@ export default function Navbar() {
                   md:tracking-[0.34em]
                 "
               >
-                From Small Talk to Big Ideas
+                {t.footer.tagline}
               </p>
             </div>
           </Link>
@@ -185,7 +211,7 @@ export default function Navbar() {
                 hover:after:w-full
               "
             >
-              Get in Touch
+              {t.nav.getInTouch}
             </button>
 
             {/* Start Learning */}
@@ -211,7 +237,7 @@ export default function Navbar() {
                 hover:shadow-lg
               "
             >
-              Start Learning
+              {t.nav.startLearning}
             </button>
 
           </nav>
@@ -305,7 +331,7 @@ export default function Navbar() {
                   hover:text-[#6F8F72]
                 "
               >
-                Get in Touch
+                {t.nav.getInTouch}
               </button>
 
               {/* Start Learning */}
@@ -327,7 +353,7 @@ export default function Navbar() {
                   hover:bg-[#5B7960]
                 "
               >
-                Start Learning
+                {t.nav.startLearning}
               </button>
 
             </div>
