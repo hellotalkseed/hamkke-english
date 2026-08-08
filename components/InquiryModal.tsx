@@ -63,41 +63,46 @@ export default function AssessmentModal({
   const heading = inquiryHeadings[source];
 
   /* =========================================================
-     LOCK BACKGROUND SCROLL
+     LOCK BACKGROUND PAGE
      ========================================================= */
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const originalBodyOverflow =
-      document.body.style.overflow;
+    const body = document.body;
+    const html = document.documentElement;
 
-    const originalBodyPosition =
-      document.body.style.position;
+    const scrollY = window.scrollY;
 
-    const originalBodyWidth =
-      document.body.style.width;
+    const originalBodyPosition = body.style.position;
+    const originalBodyTop = body.style.top;
+    const originalBodyLeft = body.style.left;
+    const originalBodyRight = body.style.right;
+    const originalBodyWidth = body.style.width;
+    const originalBodyOverflow = body.style.overflow;
 
-    const originalBodyTouchAction =
-      document.body.style.touchAction;
+    const originalHtmlOverflow = html.style.overflow;
 
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "relative";
-    document.body.style.width = "100%";
-    document.body.style.touchAction = "none";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+
+    html.style.overflow = "hidden";
 
     return () => {
-      document.body.style.overflow =
-        originalBodyOverflow;
+      body.style.position = originalBodyPosition;
+      body.style.top = originalBodyTop;
+      body.style.left = originalBodyLeft;
+      body.style.right = originalBodyRight;
+      body.style.width = originalBodyWidth;
+      body.style.overflow = originalBodyOverflow;
 
-      document.body.style.position =
-        originalBodyPosition;
+      html.style.overflow = originalHtmlOverflow;
 
-      document.body.style.width =
-        originalBodyWidth;
-
-      document.body.style.touchAction =
-        originalBodyTouchAction;
+      window.scrollTo(0, scrollY);
     };
   }, [isOpen]);
 
@@ -114,16 +119,10 @@ export default function AssessmentModal({
       }
     };
 
-    window.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
 
@@ -144,9 +143,7 @@ export default function AssessmentModal({
 
   const handleChange = (
     event: React.ChangeEvent<
-      HTMLInputElement |
-        HTMLSelectElement |
-        HTMLTextAreaElement
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
     setFormData((previous) => ({
@@ -192,73 +189,66 @@ export default function AssessmentModal({
       setError(
         "Unable to send your message. Please try again."
       );
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   if (!isOpen) return null;
 
   return (
     <div
-      onClick={onClose}
       className="
         fixed
         inset-0
         z-[100]
 
-        flex
-        items-center
-        justify-center
-
-        overflow-hidden
-
         bg-[#253026]/45
-
-        px-3
-        py-3
-
-        overscroll-none
-
         backdrop-blur-[4px]
 
-        sm:px-6
-        sm:py-6
+        overscroll-none
       "
+      onClick={onClose}
+      role="presentation"
     >
       {/* =====================================================
           MODAL
+
+          Mobile:
+          Fixed to the viewport using 100dvh.
+
+          Desktop:
+          Centered with a controlled height.
+
+          IMPORTANT:
+          The modal itself never grows when a select opens.
           ===================================================== */}
 
       <div
-        onClick={(event) =>
-          event.stopPropagation()
-        }
+        onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="inquiry-modal-title"
         className="
           relative
+          mx-auto
 
           flex
+          h-[100dvh]
           w-full
-          max-w-[680px]
-
           flex-col
 
           overflow-hidden
-
-          rounded-[24px]
 
           bg-[#FAF9F6]
 
           shadow-[0_24px_80px_rgba(40,55,42,0.22)]
 
-          h-[calc(100dvh-24px)]
-          max-h-[calc(100dvh-24px)]
-
-          sm:h-auto
+          sm:my-[4vh]
+          sm:h-[92vh]
           sm:max-h-[92vh]
+          sm:max-w-[680px]
+
           sm:rounded-[30px]
         "
       >
@@ -279,6 +269,7 @@ export default function AssessmentModal({
             flex
             h-9
             w-9
+            shrink-0
             items-center
             justify-center
 
@@ -288,7 +279,7 @@ export default function AssessmentModal({
 
             text-[#6F8F72]
 
-            transition-all
+            transition-colors
             duration-200
 
             hover:bg-[#E2EBDF]
@@ -310,175 +301,183 @@ export default function AssessmentModal({
 
         {/* ===================================================
             HEADER
+
+            Fixed/non-scrolling section.
             =================================================== */}
 
-        <div
-          className="
-            shrink-0
+        {!submitted && (
+          <div
+            className="
+              shrink-0
 
-            px-5
-            pb-5
-            pt-7
+              px-5
+              pb-5
+              pt-7
 
-            sm:px-10
-            sm:pb-6
-            sm:pt-10
-          "
-        >
-          {!submitted && (
-            <>
-              {/* Logo + Heading */}
+              sm:px-10
+              sm:pb-6
+              sm:pt-10
+            "
+          >
+            {/* Logo + Heading */}
 
-              <div
+            <div
+              className="
+                flex
+                items-start
+                gap-2
+
+                pr-10
+
+                sm:gap-3
+                sm:pr-12
+              "
+            >
+              <Image
+                src="/logo/hamkke-icon.svg"
+                alt="Hamkke"
+                width={48}
+                height={48}
+                priority
                 className="
-                  flex
-                  items-start
-                  gap-2
-                  pr-10
+                  mt-1
 
-                  sm:gap-3
-                  sm:pr-12
+                  h-10
+                  w-10
+                  shrink-0
+
+                  sm:h-12
+                  sm:w-12
                 "
-              >
-                <Image
-                  src="/logo/hamkke-icon.svg"
-                  alt="Hamkke"
-                  width={48}
-                  height={48}
-                  priority
+              />
+
+              <div className="min-w-0">
+                <h2
+                  id="inquiry-modal-title"
                   className="
                     mt-1
 
-                    h-10
-                    w-10
-                    shrink-0
+                    max-w-full
 
-                    sm:h-12
-                    sm:w-12
+                    text-[29px]
+                    leading-[1.08]
+                    tracking-[-0.01em]
+
+                    text-[#2B2B2B]
+
+                    [font-family:var(--font-cormorant)]
+
+                    sm:text-[40px]
+                    sm:leading-[1.05]
+                    sm:tracking-normal
+
+                    lg:text-[42px]
                   "
-                />
-
-                <div className="min-w-0">
-                  <h2
-                    id="inquiry-modal-title"
-                    className="
-                      mt-1
-                      max-w-full
-
-                      text-[29px]
-                      leading-[1.08]
-                      tracking-[-0.01em]
-
-                      text-[#2B2B2B]
-
-                      [font-family:var(--font-cormorant)]
-
-                      sm:text-[40px]
-                      sm:leading-[1.05]
-                      sm:tracking-normal
-
-                      lg:text-[42px]
-                    "
-                  >
-                    {heading}
-                  </h2>
-                </div>
+                >
+                  {heading}
+                </h2>
               </div>
+            </div>
 
-              {/* Intro */}
+            {/* Intro */}
 
-              <p
-                className="
-                  mt-4
+            <p
+              className="
+                mt-4
 
-                  max-w-[570px]
+                max-w-[570px]
 
-                  text-[14px]
-                  leading-6
+                text-[14px]
+                leading-6
 
-                  text-[#686868]
+                text-[#686868]
 
-                  sm:ml-[60px]
-                  sm:mt-5
-                  sm:text-[16px]
-                  sm:leading-7
-                "
-              >
-                I&apos;d love to learn more about you and
-                what you&apos;d like to achieve with your
-                English.
-              </p>
+                sm:ml-[60px]
+                sm:mt-5
+                sm:text-[16px]
+                sm:leading-7
+              "
+            >
+              I&apos;d love to learn more about you and
+              what you&apos;d like to achieve with your
+              English.
+            </p>
 
-              {/* Reassurance */}
+            {/* Reassurance */}
 
-              <div
-                className="
-                  mt-4
+            <div
+              className="
+                mt-4
 
-                  flex
-                  flex-wrap
-                  items-center
+                flex
+                flex-wrap
+                items-center
 
-                  gap-x-5
-                  gap-y-3
+                gap-x-5
+                gap-y-3
 
-                  sm:ml-[60px]
-                  sm:mt-5
-                "
-              >
-                <div className="flex items-center gap-2.5">
-                  <MessageCircle
-                    className={iconClass}
-                    strokeWidth={1.7}
-                  />
-
-                  <span
-                    className="
-                      text-[11px]
-                      text-[#777]
-
-                      sm:text-[13px]
-                    "
-                  >
-                    Personal reply within 24 hours
-                  </span>
-                </div>
+                sm:ml-[60px]
+                sm:mt-5
+              "
+            >
+              <div className="flex items-center gap-2.5">
+                <MessageCircle
+                  className={iconClass}
+                  strokeWidth={1.7}
+                />
 
                 <span
                   className="
-                    hidden
-                    h-5
-                    w-px
-                    bg-[#D9E2D6]
+                    text-[11px]
+                    text-[#777]
 
-                    sm:block
+                    sm:text-[13px]
                   "
+                >
+                  Personal reply within 24 hours
+                </span>
+              </div>
+
+              <span
+                className="
+                  hidden
+                  h-5
+                  w-px
+                  bg-[#D9E2D6]
+
+                  sm:block
+                "
+              />
+
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck
+                  className={iconClass}
+                  strokeWidth={1.7}
                 />
 
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck
-                    className={iconClass}
-                    strokeWidth={1.7}
-                  />
+                <span
+                  className="
+                    text-[11px]
+                    text-[#777]
 
-                  <span
-                    className="
-                      text-[11px]
-                      text-[#777]
-
-                      sm:text-[13px]
-                    "
-                  >
-                    Your information is safe with me
-                  </span>
-                </div>
+                    sm:text-[13px]
+                  "
+                >
+                  Your information is safe with me
+                </span>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
 
         {/* ===================================================
-            SCROLLABLE FORM AREA
+            SCROLLABLE CONTENT AREA
+
+            This is the ONLY scrolling container.
+
+            The fixed height of the parent + flex-1 +
+            min-h-0 prevents dropdowns from expanding
+            the modal itself.
             =================================================== */}
 
         <div
@@ -490,23 +489,25 @@ export default function AssessmentModal({
             overflow-x-hidden
 
             overscroll-contain
+            touch-pan-y
 
             px-5
-            pb-7
+            pb-8
 
-            sm:px-10
-            sm:pb-10
+            [-webkit-overflow-scrolling:touch]
 
             [scrollbar-color:#DDE9D8_transparent]
             [scrollbar-width:thin]
 
-            [-webkit-overflow-scrolling:touch]
+            sm:px-10
+            sm:pb-10
           "
         >
           {!submitted ? (
             <form
               onSubmit={handleSubmit}
               className="
+                min-h-0
                 space-y-3
 
                 sm:space-y-4
@@ -516,9 +517,10 @@ export default function AssessmentModal({
                   NAME
                   ================================================= */}
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <UserRound
                   className="
+                    pointer-events-none
                     absolute
                     left-4
                     top-1/2
@@ -542,8 +544,12 @@ export default function AssessmentModal({
                   placeholder="What should I call you? (English name)"
                   required
                   className="
+                    box-border
+
                     h-[60px]
+                    min-h-[60px]
                     w-full
+                    shrink-0
 
                     rounded-[15px]
                     border
@@ -555,13 +561,14 @@ export default function AssessmentModal({
                     pr-10
 
                     text-[14px]
+                    leading-none
                     text-[#2B2B2B]
 
                     placeholder:text-[#858585]
 
                     outline-none
 
-                    transition
+                    transition-colors
                     duration-200
 
                     focus:border-[#6F8F72]
@@ -569,6 +576,7 @@ export default function AssessmentModal({
                     focus:ring-[#6F8F72]/10
 
                     sm:h-[72px]
+                    sm:min-h-[72px]
                     sm:pl-14
                     sm:text-[16px]
                   "
@@ -576,6 +584,7 @@ export default function AssessmentModal({
 
                 <span
                   className="
+                    pointer-events-none
                     absolute
                     right-5
                     top-1/2
@@ -592,12 +601,14 @@ export default function AssessmentModal({
                   EMAIL
                   ================================================= */}
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <Mail
                   className="
+                    pointer-events-none
                     absolute
                     left-4
                     top-1/2
+                    z-10
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -617,8 +628,12 @@ export default function AssessmentModal({
                   placeholder="Email Address"
                   required
                   className="
+                    box-border
+
                     h-[60px]
+                    min-h-[60px]
                     w-full
+                    shrink-0
 
                     rounded-[15px]
                     border
@@ -630,13 +645,14 @@ export default function AssessmentModal({
                     pr-10
 
                     text-[14px]
+                    leading-none
                     text-[#2B2B2B]
 
                     placeholder:text-[#858585]
 
                     outline-none
 
-                    transition
+                    transition-colors
                     duration-200
 
                     focus:border-[#6F8F72]
@@ -644,6 +660,7 @@ export default function AssessmentModal({
                     focus:ring-[#6F8F72]/10
 
                     sm:h-[72px]
+                    sm:min-h-[72px]
                     sm:pl-14
                     sm:text-[16px]
                   "
@@ -651,6 +668,7 @@ export default function AssessmentModal({
 
                 <span
                   className="
+                    pointer-events-none
                     absolute
                     right-5
                     top-1/2
@@ -667,11 +685,10 @@ export default function AssessmentModal({
                   CONTACT METHOD
                   ================================================= */}
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <Phone
                   className="
                     pointer-events-none
-
                     absolute
                     left-4
                     top-1/2
@@ -692,10 +709,13 @@ export default function AssessmentModal({
                   value={formData.contactMethod}
                   onChange={handleChange}
                   className={`
-                    block
+                    box-border
 
                     h-[60px]
+                    min-h-[60px]
+                    max-h-[60px]
                     w-full
+                    shrink-0
 
                     appearance-none
 
@@ -709,17 +729,17 @@ export default function AssessmentModal({
                     pr-16
 
                     text-[14px]
+                    leading-none
 
                     outline-none
-
-                    transition-colors
-                    duration-200
 
                     focus:border-[#6F8F72]
                     focus:ring-2
                     focus:ring-[#6F8F72]/10
 
                     sm:h-[72px]
+                    sm:min-h-[72px]
+                    sm:max-h-[72px]
                     sm:pl-14
                     sm:text-[16px]
 
@@ -750,10 +770,10 @@ export default function AssessmentModal({
                 <ChevronDown
                   className="
                     pointer-events-none
-
                     absolute
                     right-5
                     top-1/2
+                    z-10
                     -translate-y-1/2
 
                     text-[#777]
@@ -765,10 +785,10 @@ export default function AssessmentModal({
                 <span
                   className="
                     pointer-events-none
-
                     absolute
                     right-10
                     top-1/2
+                    z-10
                     -translate-y-1/2
                     translate-x-8
 
@@ -783,12 +803,14 @@ export default function AssessmentModal({
                   CONTACT ID
                   ================================================= */}
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <ContactRound
                   className="
+                    pointer-events-none
                     absolute
                     left-4
                     top-1/2
+                    z-10
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -807,8 +829,12 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   placeholder="Your ID / Username / Phone Number"
                   className="
+                    box-border
+
                     h-[60px]
+                    min-h-[60px]
                     w-full
+                    shrink-0
 
                     rounded-[15px]
                     border
@@ -820,13 +846,14 @@ export default function AssessmentModal({
                     pr-5
 
                     text-[14px]
+                    leading-none
                     text-[#2B2B2B]
 
                     placeholder:text-[#858585]
 
                     outline-none
 
-                    transition
+                    transition-colors
                     duration-200
 
                     focus:border-[#6F8F72]
@@ -834,6 +861,7 @@ export default function AssessmentModal({
                     focus:ring-[#6F8F72]/10
 
                     sm:h-[72px]
+                    sm:min-h-[72px]
                     sm:pl-14
                     sm:text-[16px]
                   "
@@ -844,11 +872,10 @@ export default function AssessmentModal({
                   LEVEL
                   ================================================= */}
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <ChartNoAxesColumnIncreasing
                   className="
                     pointer-events-none
-
                     absolute
                     left-4
                     top-1/2
@@ -870,10 +897,13 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
-                    block
+                    box-border
 
                     h-[60px]
+                    min-h-[60px]
+                    max-h-[60px]
                     w-full
+                    shrink-0
 
                     appearance-none
 
@@ -887,17 +917,17 @@ export default function AssessmentModal({
                     pr-16
 
                     text-[14px]
+                    leading-none
 
                     outline-none
-
-                    transition-colors
-                    duration-200
 
                     focus:border-[#6F8F72]
                     focus:ring-2
                     focus:ring-[#6F8F72]/10
 
                     sm:h-[72px]
+                    sm:min-h-[72px]
+                    sm:max-h-[72px]
                     sm:pl-14
                     sm:text-[16px]
 
@@ -940,10 +970,10 @@ export default function AssessmentModal({
                 <ChevronDown
                   className="
                     pointer-events-none
-
                     absolute
                     right-5
                     top-1/2
+                    z-10
                     -translate-y-1/2
 
                     text-[#777]
@@ -955,10 +985,10 @@ export default function AssessmentModal({
                 <span
                   className="
                     pointer-events-none
-
                     absolute
                     right-10
                     top-1/2
+                    z-10
                     -translate-y-1/2
                     translate-x-8
 
@@ -973,11 +1003,10 @@ export default function AssessmentModal({
                   GOAL
                   ================================================= */}
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <Target
                   className="
                     pointer-events-none
-
                     absolute
                     left-4
                     top-1/2
@@ -999,10 +1028,13 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
-                    block
+                    box-border
 
                     h-[60px]
+                    min-h-[60px]
+                    max-h-[60px]
                     w-full
+                    shrink-0
 
                     appearance-none
 
@@ -1016,17 +1048,17 @@ export default function AssessmentModal({
                     pr-16
 
                     text-[14px]
+                    leading-none
 
                     outline-none
-
-                    transition-colors
-                    duration-200
 
                     focus:border-[#6F8F72]
                     focus:ring-2
                     focus:ring-[#6F8F72]/10
 
                     sm:h-[72px]
+                    sm:min-h-[72px]
+                    sm:max-h-[72px]
                     sm:pl-14
                     sm:text-[16px]
 
@@ -1073,10 +1105,10 @@ export default function AssessmentModal({
                 <ChevronDown
                   className="
                     pointer-events-none
-
                     absolute
                     right-5
                     top-1/2
+                    z-10
                     -translate-y-1/2
 
                     text-[#777]
@@ -1088,10 +1120,10 @@ export default function AssessmentModal({
                 <span
                   className="
                     pointer-events-none
-
                     absolute
                     right-10
                     top-1/2
+                    z-10
                     -translate-y-1/2
                     translate-x-8
 
@@ -1106,14 +1138,14 @@ export default function AssessmentModal({
                   MESSAGE
                   ================================================= */}
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <Pencil
                   className="
                     pointer-events-none
-
                     absolute
                     left-4
                     top-5
+                    z-10
 
                     text-[#6F8F72]
 
@@ -1131,9 +1163,11 @@ export default function AssessmentModal({
                   rows={4}
                   placeholder="Anything else you&apos;d like me to know? (Optional)"
                   className="
+                    box-border
+
                     min-h-[115px]
                     w-full
-
+                    shrink-0
                     resize-y
 
                     rounded-[15px]
@@ -1154,7 +1188,7 @@ export default function AssessmentModal({
 
                     outline-none
 
-                    transition
+                    transition-colors
                     duration-200
 
                     focus:border-[#6F8F72]
@@ -1176,7 +1210,6 @@ export default function AssessmentModal({
                 <p
                   className="
                     rounded-xl
-
                     bg-[#FDF0F0]
 
                     px-4
@@ -1202,7 +1235,9 @@ export default function AssessmentModal({
                   mt-2
 
                   flex
+                  min-h-[52px]
                   w-full
+                  shrink-0
                   items-center
                   justify-center
                   gap-3
@@ -1234,9 +1269,7 @@ export default function AssessmentModal({
                   sm:py-4.5
                 "
               >
-                {loading
-                  ? "Sending..."
-                  : "Send Inquiry"}
+                {loading ? "Sending..." : "Send Inquiry"}
 
                 {!loading && (
                   <Send
@@ -1259,7 +1292,7 @@ export default function AssessmentModal({
 
                   px-4
                   pt-2
-                  pb-1
+                  pb-2
 
                   text-center
                   text-[11px]
@@ -1282,9 +1315,9 @@ export default function AssessmentModal({
               </div>
             </form>
           ) : (
-            /* =================================================
+            /* ===================================================
                SUCCESS
-               ================================================= */
+               =================================================== */
 
             <div
               className="
@@ -1338,7 +1371,6 @@ export default function AssessmentModal({
                 className="
                   mx-auto
                   mt-5
-
                   max-w-md
 
                   text-[15px]
