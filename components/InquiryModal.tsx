@@ -38,8 +38,7 @@ const inquiryHeadings: Record<InquirySource, string> = {
   "start-a-conversation": "Let’s start with a conversation.",
 };
 
-const iconClass =
-  "h-[20px] w-[20px] shrink-0 text-[#6F8F72]";
+const iconClass = "h-[20px] w-[20px] shrink-0 text-[#6F8F72]";
 
 export default function AssessmentModal({
   isOpen,
@@ -63,18 +62,42 @@ export default function AssessmentModal({
   const heading = inquiryHeadings[source];
 
   /* =========================================================
-     LOCK BACKGROUND SCROLLING
+     PREVENT BACKGROUND INTERACTION / SCROLLING
+     
+     We deliberately DO NOT use:
+     - position: fixed
+     - visualViewport
+     - keyboard calculations
+     - scroll position restoration
+
+     The backdrop covers the entire viewport and captures all
+     pointer/touch interaction. The modal itself is the only
+     interactive area.
      ========================================================= */
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const originalOverflow = document.body.style.overflow;
+    const body = document.body;
+    const html = document.documentElement;
 
-    document.body.style.overflow = "hidden";
+    const originalBodyOverflow = body.style.overflow;
+    const originalBodyTouchAction = body.style.touchAction;
+    const originalHtmlOverflow = html.style.overflow;
+    const originalHtmlTouchAction = html.style.touchAction;
+
+    body.style.overflow = "hidden";
+    body.style.touchAction = "none";
+
+    html.style.overflow = "hidden";
+    html.style.touchAction = "none";
 
     return () => {
-      document.body.style.overflow = originalOverflow;
+      body.style.overflow = originalBodyOverflow;
+      body.style.touchAction = originalBodyTouchAction;
+
+      html.style.overflow = originalHtmlOverflow;
+      html.style.touchAction = originalHtmlTouchAction;
     };
   }, [isOpen]);
 
@@ -99,7 +122,7 @@ export default function AssessmentModal({
   }, [isOpen, onClose]);
 
   /* =========================================================
-     RESET STATE WHEN MODAL OPENS
+     RESET WHEN OPENING
      ========================================================= */
 
   useEffect(() => {
@@ -118,9 +141,11 @@ export default function AssessmentModal({
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
+    const { name, value } = event.target;
+
     setFormData((previous) => ({
       ...previous,
-      [event.target.name]: event.target.value,
+      [name]: value,
     }));
   };
 
@@ -153,9 +178,7 @@ export default function AssessmentModal({
       if (data.success) {
         setSubmitted(true);
       } else {
-        setError(
-          "Something went wrong. Please try again."
-        );
+        setError("Something went wrong. Please try again.");
       }
     } catch {
       setError(
@@ -175,42 +198,55 @@ export default function AssessmentModal({
         inset-0
         z-[100]
 
-        flex
-        items-center
-        justify-center
+        h-[100dvh]
+        w-full
+
+        overflow-hidden
 
         bg-[#253026]/45
         backdrop-blur-[4px]
 
         overscroll-none
 
-        px-0
-        sm:px-6
+        touch-none
       "
       onClick={onClose}
+      onPointerDown={(event) => {
+        /*
+          This prevents pointer interaction from reaching
+          anything underneath the backdrop.
+        */
+        event.stopPropagation();
+      }}
       role="presentation"
     >
       {/* =====================================================
           MODAL
 
-          The modal has a stable viewport-based height.
+          IMPORTANT:
 
-          The CONTENT inside it scrolls.
+          The modal has its own scroll container.
 
-          Nothing changes its height when:
-          - a dropdown opens
-          - an input receives focus
-          - text is entered
-          - the keyboard appears
+          Its dimensions do NOT depend on:
+          - form values
+          - dropdown selection
+          - textarea content
+          - keyboard appearance
+
+          The heading scrolls together with the form.
           ===================================================== */}
 
       <div
         onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        onTouchStart={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="inquiry-modal-title"
         className="
           relative
+
+          mx-auto
 
           flex
           h-[100dvh]
@@ -223,9 +259,11 @@ export default function AssessmentModal({
 
           shadow-[0_24px_80px_rgba(40,55,42,0.22)]
 
+          sm:my-[4vh]
           sm:h-[92vh]
           sm:max-h-[92vh]
           sm:max-w-[680px]
+
           sm:rounded-[30px]
         "
       >
@@ -241,7 +279,7 @@ export default function AssessmentModal({
             absolute
             right-4
             top-4
-            z-30
+            z-50
 
             flex
             h-9
@@ -277,27 +315,25 @@ export default function AssessmentModal({
         </button>
 
         {/* ===================================================
-            SINGLE SCROLLABLE AREA
+            SINGLE SCROLL CONTAINER
 
-            The heading and form are intentionally inside the
-            SAME scrolling container.
+            The heading + form now scroll together.
 
-            This means the user can scroll naturally from:
-            heading → form → submit button
-
-            without the header consuming a permanently fixed
-            portion of the mobile viewport.
+            This is intentional for mobile. It means that if
+            the keyboard covers the lower portion of the form,
+            the user can simply scroll the modal content.
             =================================================== */}
 
         <div
           className="
-            h-full
-            w-full
+            min-h-0
+            flex-1
 
             overflow-y-auto
             overflow-x-hidden
 
             overscroll-contain
+
             touch-pan-y
 
             [-webkit-overflow-scrolling:touch]
@@ -307,930 +343,952 @@ export default function AssessmentModal({
           "
         >
           {!submitted ? (
-            <div
-              className="
-                px-5
-                pb-10
-                pt-7
-
-                sm:px-10
-                sm:pb-12
-                sm:pt-10
-              "
-            >
+            <>
               {/* =================================================
                   HEADER
                   ================================================= */}
 
               <div
                 className="
-                  flex
-                  items-start
-                  gap-2
+                  shrink-0
 
-                  pr-10
+                  px-5
+                  pb-5
+                  pt-7
 
-                  sm:gap-3
-                  sm:pr-12
+                  sm:px-10
+                  sm:pb-6
+                  sm:pt-10
                 "
               >
-                <Image
-                  src="/logo/hamkke-icon.svg"
-                  alt="Hamkke"
-                  width={48}
-                  height={48}
-                  priority
+                {/* Logo + Heading */}
+
+                <div
                   className="
-                    mt-1
+                    flex
+                    items-start
+                    gap-2
 
-                    h-10
-                    w-10
-                    shrink-0
+                    pr-10
 
-                    sm:h-12
-                    sm:w-12
+                    sm:gap-3
+                    sm:pr-12
                   "
-                />
-
-                <div className="min-w-0">
-                  <h2
-                    id="inquiry-modal-title"
+                >
+                  <Image
+                    src="/logo/hamkke-icon.svg"
+                    alt="Hamkke"
+                    width={48}
+                    height={48}
+                    priority
                     className="
                       mt-1
 
-                      max-w-full
+                      h-10
+                      w-10
+                      shrink-0
 
-                      text-[29px]
-                      leading-[1.08]
-                      tracking-[-0.01em]
-
-                      text-[#2B2B2B]
-
-                      [font-family:var(--font-cormorant)]
-
-                      sm:text-[40px]
-                      sm:leading-[1.05]
-                      sm:tracking-normal
-
-                      lg:text-[42px]
+                      sm:h-12
+                      sm:w-12
                     "
-                  >
-                    {heading}
-                  </h2>
-                </div>
-              </div>
-
-              {/* =================================================
-                  INTRO
-                  ================================================= */}
-
-              <p
-                className="
-                  mt-4
-
-                  max-w-[570px]
-
-                  text-[14px]
-                  leading-6
-
-                  text-[#686868]
-
-                  sm:ml-[60px]
-                  sm:mt-5
-                  sm:text-[16px]
-                  sm:leading-7
-                "
-              >
-                I&apos;d love to learn more about you and
-                what you&apos;d like to achieve with your
-                English.
-              </p>
-
-              {/* =================================================
-                  REASSURANCE
-                  ================================================= */}
-
-              <div
-                className="
-                  mt-4
-
-                  flex
-                  flex-wrap
-                  items-center
-
-                  gap-x-5
-                  gap-y-3
-
-                  sm:ml-[60px]
-                  sm:mt-5
-                "
-              >
-                <div className="flex items-center gap-2.5">
-                  <MessageCircle
-                    className={iconClass}
-                    strokeWidth={1.7}
                   />
 
-                  <span
-                    className="
-                      text-[11px]
-                      text-[#777]
+                  <div className="min-w-0">
+                    <h2
+                      id="inquiry-modal-title"
+                      className="
+                        mt-1
 
-                      sm:text-[13px]
-                    "
-                  >
-                    Personal reply within 24 hours
-                  </span>
+                        max-w-full
+
+                        text-[29px]
+                        leading-[1.08]
+                        tracking-[-0.01em]
+
+                        text-[#2B2B2B]
+
+                        [font-family:var(--font-cormorant)]
+
+                        sm:text-[40px]
+                        sm:leading-[1.05]
+                        sm:tracking-normal
+
+                        lg:text-[42px]
+                      "
+                    >
+                      {heading}
+                    </h2>
+                  </div>
                 </div>
 
-                <span
+                {/* Intro */}
+
+                <p
                   className="
-                    hidden
-                    h-5
-                    w-px
-                    bg-[#D9E2D6]
+                    mt-4
 
-                    sm:block
+                    max-w-[570px]
+
+                    text-[14px]
+                    leading-6
+
+                    text-[#686868]
+
+                    sm:ml-[60px]
+                    sm:mt-5
+                    sm:text-[16px]
+                    sm:leading-7
                   "
-                />
+                >
+                  I&apos;d love to learn more about you and
+                  what you&apos;d like to achieve with your
+                  English.
+                </p>
 
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck
-                    className={iconClass}
-                    strokeWidth={1.7}
-                  />
+                {/* Reassurance */}
+
+                <div
+                  className="
+                    mt-4
+
+                    flex
+                    flex-wrap
+                    items-center
+
+                    gap-x-5
+                    gap-y-3
+
+                    sm:ml-[60px]
+                    sm:mt-5
+                  "
+                >
+                  <div className="flex items-center gap-2.5">
+                    <MessageCircle
+                      className={iconClass}
+                      strokeWidth={1.7}
+                    />
+
+                    <span
+                      className="
+                        text-[11px]
+                        text-[#777]
+
+                        sm:text-[13px]
+                      "
+                    >
+                      Personal reply within 24 hours
+                    </span>
+                  </div>
 
                   <span
                     className="
-                      text-[11px]
-                      text-[#777]
+                      hidden
+                      h-5
+                      w-px
+                      bg-[#D9E2D6]
 
-                      sm:text-[13px]
+                      sm:block
                     "
-                  >
-                    Your information is safe with me
-                  </span>
+                  />
+
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck
+                      className={iconClass}
+                      strokeWidth={1.7}
+                    />
+
+                    <span
+                      className="
+                        text-[11px]
+                        text-[#777]
+
+                        sm:text-[13px]
+                      "
+                    >
+                      Your information is safe with me
+                    </span>
+                  </div>
                 </div>
               </div>
-
-              {/* =================================================
-                  SPACING BEFORE FORM
-                  ================================================= */}
-
-              <div className="mt-6 sm:mt-7" />
 
               {/* =================================================
                   FORM
                   ================================================= */}
 
-              <form
-                onSubmit={handleSubmit}
+              <div
                 className="
-                  space-y-3
+                  px-5
+                  pb-8
 
-                  sm:space-y-4
+                  sm:px-10
+                  sm:pb-10
                 "
               >
-                {/* =================================================
-                    NAME
-                    ================================================= */}
-
-                <div className="relative">
-                  <UserRound
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-4
-                      top-1/2
-                      z-10
-                      -translate-y-1/2
-
-                      text-[#6F8F72]
-
-                      sm:left-5
-                    "
-                    size={20}
-                    strokeWidth={1.6}
-                  />
-
-                  <input
-                    id="name"
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="What should I call you? (English name)"
-                    required
-                    className="
-                      h-[60px]
-                      w-full
-
-                      rounded-[15px]
-                      border
-                      border-[#DDE5D9]
-
-                      bg-white
-
-                      pl-12
-                      pr-10
-
-                      text-[14px]
-                      text-[#2B2B2B]
-
-                      placeholder:text-[#858585]
-
-                      outline-none
-
-                      transition
-                      duration-200
-
-                      focus:border-[#6F8F72]
-                      focus:ring-2
-                      focus:ring-[#6F8F72]/10
-
-                      sm:h-[72px]
-                      sm:pl-14
-                      sm:text-[16px]
-                    "
-                  />
-
-                  <span
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-5
-                      top-1/2
-                      -translate-y-1/2
-
-                      text-[#6F8F72]
-                    "
-                  >
-                    *
-                  </span>
-                </div>
-
-                {/* =================================================
-                    EMAIL
-                    ================================================= */}
-
-                <div className="relative">
-                  <Mail
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-4
-                      top-1/2
-                      -translate-y-1/2
-
-                      text-[#6F8F72]
-
-                      sm:left-5
-                    "
-                    size={20}
-                    strokeWidth={1.6}
-                  />
-
-                  <input
-                    id="email"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Email Address"
-                    required
-                    className="
-                      h-[60px]
-                      w-full
-
-                      rounded-[15px]
-                      border
-                      border-[#DDE5D9]
-
-                      bg-white
-
-                      pl-12
-                      pr-10
-
-                      text-[14px]
-                      text-[#2B2B2B]
-
-                      placeholder:text-[#858585]
-
-                      outline-none
-
-                      transition
-                      duration-200
-
-                      focus:border-[#6F8F72]
-                      focus:ring-2
-                      focus:ring-[#6F8F72]/10
-
-                      sm:h-[72px]
-                      sm:pl-14
-                      sm:text-[16px]
-                    "
-                  />
-
-                  <span
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-5
-                      top-1/2
-                      -translate-y-1/2
-
-                      text-[#6F8F72]
-                    "
-                  >
-                    *
-                  </span>
-                </div>
-
-                {/* =================================================
-                    CONTACT METHOD
-                    ================================================= */}
-
-                <div className="relative">
-                  <Phone
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-4
-                      top-1/2
-                      z-10
-                      -translate-y-1/2
-
-                      text-[#6F8F72]
-
-                      sm:left-5
-                    "
-                    size={20}
-                    strokeWidth={1.6}
-                  />
-
-                  <select
-                    id="contactMethod"
-                    name="contactMethod"
-                    value={formData.contactMethod}
-                    onChange={handleChange}
-                    className={`
-                      h-[60px]
-                      w-full
-                      appearance-none
-
-                      rounded-[15px]
-                      border
-                      border-[#DDE5D9]
-
-                      bg-white
-
-                      pl-12
-                      pr-16
-
-                      text-[14px]
-
-                      outline-none
-
-                      focus:border-[#6F8F72]
-                      focus:ring-2
-                      focus:ring-[#6F8F72]/10
-
-                      sm:h-[72px]
-                      sm:pl-14
-                      sm:text-[16px]
-
-                      ${
-                        formData.contactMethod
-                          ? "text-[#2B2B2B]"
-                          : "text-[#858585]"
-                      }
-                    `}
-                  >
-                    <option value="">
-                      How should I contact you?
-                    </option>
-
-                    <option value="KakaoTalk">
-                      KakaoTalk
-                    </option>
-
-                    <option value="WhatsApp">
-                      WhatsApp
-                    </option>
-
-                    <option value="WeChat">
-                      WeChat
-                    </option>
-                  </select>
-
-                  <ChevronDown
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-5
-                      top-1/2
-                      -translate-y-1/2
-
-                      text-[#777]
-                    "
-                    size={19}
-                    strokeWidth={1.7}
-                  />
-
-                  <span
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-10
-                      top-1/2
-                      -translate-y-1/2
-                      translate-x-8
-
-                      text-[#6F8F72]
-                    "
-                  >
-                    *
-                  </span>
-                </div>
-
-                {/* =================================================
-                    CONTACT ID
-                    ================================================= */}
-
-                <div className="relative">
-                  <ContactRound
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-4
-                      top-1/2
-                      -translate-y-1/2
-
-                      text-[#6F8F72]
-
-                      sm:left-5
-                    "
-                    size={20}
-                    strokeWidth={1.6}
-                  />
-
-                  <input
-                    id="contactId"
-                    type="text"
-                    name="contactId"
-                    value={formData.contactId}
-                    onChange={handleChange}
-                    placeholder="Your ID / Username / Phone Number"
-                    className="
-                      h-[60px]
-                      w-full
-
-                      rounded-[15px]
-                      border
-                      border-[#DDE5D9]
-
-                      bg-white
-
-                      pl-12
-                      pr-5
-
-                      text-[14px]
-                      text-[#2B2B2B]
-
-                      placeholder:text-[#858585]
-
-                      outline-none
-
-                      transition
-                      duration-200
-
-                      focus:border-[#6F8F72]
-                      focus:ring-2
-                      focus:ring-[#6F8F72]/10
-
-                      sm:h-[72px]
-                      sm:pl-14
-                      sm:text-[16px]
-                    "
-                  />
-                </div>
-
-                {/* =================================================
-                    LEVEL
-                    ================================================= */}
-
-                <div className="relative">
-                  <ChartNoAxesColumnIncreasing
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-4
-                      top-1/2
-                      z-10
-                      -translate-y-1/2
-
-                      text-[#6F8F72]
-
-                      sm:left-5
-                    "
-                    size={20}
-                    strokeWidth={1.6}
-                  />
-
-                  <select
-                    id="level"
-                    name="level"
-                    value={formData.level}
-                    onChange={handleChange}
-                    required
-                    className={`
-                      h-[60px]
-                      w-full
-                      appearance-none
-
-                      rounded-[15px]
-                      border
-                      border-[#DDE5D9]
-
-                      bg-white
-
-                      pl-12
-                      pr-16
-
-                      text-[14px]
-
-                      outline-none
-
-                      focus:border-[#6F8F72]
-                      focus:ring-2
-                      focus:ring-[#6F8F72]/10
-
-                      sm:h-[72px]
-                      sm:pl-14
-                      sm:text-[16px]
-
-                      ${
-                        formData.level
-                          ? "text-[#2B2B2B]"
-                          : "text-[#858585]"
-                      }
-                    `}
-                  >
-                    <option value="">
-                      How would you describe your English level?
-                    </option>
-
-                    <option value="Beginner">
-                      Beginner
-                    </option>
-
-                    <option value="Elementary">
-                      Elementary
-                    </option>
-
-                    <option value="Intermediate">
-                      Intermediate
-                    </option>
-
-                    <option value="Upper Intermediate">
-                      Upper Intermediate
-                    </option>
-
-                    <option value="Advanced">
-                      Advanced
-                    </option>
-
-                    <option value="Not sure">
-                      I&apos;m not sure
-                    </option>
-                  </select>
-
-                  <ChevronDown
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-5
-                      top-1/2
-                      -translate-y-1/2
-
-                      text-[#777]
-                    "
-                    size={19}
-                    strokeWidth={1.7}
-                  />
-
-                  <span
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-10
-                      top-1/2
-                      -translate-y-1/2
-                      translate-x-8
-
-                      text-[#6F8F72]
-                    "
-                  >
-                    *
-                  </span>
-                </div>
-
-                {/* =================================================
-                    GOAL
-                    ================================================= */}
-
-                <div className="relative">
-                  <Target
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-4
-                      top-1/2
-                      z-10
-                      -translate-y-1/2
-
-                      text-[#6F8F72]
-
-                      sm:left-5
-                    "
-                    size={20}
-                    strokeWidth={1.6}
-                  />
-
-                  <select
-                    id="goal"
-                    name="goal"
-                    value={formData.goal}
-                    onChange={handleChange}
-                    required
-                    className={`
-                      h-[60px]
-                      w-full
-                      appearance-none
-
-                      rounded-[15px]
-                      border
-                      border-[#DDE5D9]
-
-                      bg-white
-
-                      pl-12
-                      pr-16
-
-                      text-[14px]
-
-                      outline-none
-
-                      focus:border-[#6F8F72]
-                      focus:ring-2
-                      focus:ring-[#6F8F72]/10
-
-                      sm:h-[72px]
-                      sm:pl-14
-                      sm:text-[16px]
-
-                      ${
-                        formData.goal
-                          ? "text-[#2B2B2B]"
-                          : "text-[#858585]"
-                      }
-                    `}
-                  >
-                    <option value="">
-                      What would you like to focus on?
-                    </option>
-
-                    <option value="Everyday Conversation">
-                      Everyday Conversation
-                    </option>
-
-                    <option value="Business English">
-                      Business English
-                    </option>
-
-                    <option value="Travel English">
-                      Travel English
-                    </option>
-
-                    <option value="Interview Preparation">
-                      Interview Preparation
-                    </option>
-
-                    <option value="Pronunciation">
-                      Pronunciation
-                    </option>
-
-                    <option value="Grammar">
-                      Grammar
-                    </option>
-
-                    <option value="Vocabulary">
-                      Vocabulary
-                    </option>
-                  </select>
-
-                  <ChevronDown
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-5
-                      top-1/2
-                      -translate-y-1/2
-
-                      text-[#777]
-                    "
-                    size={19}
-                    strokeWidth={1.7}
-                  />
-
-                  <span
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-10
-                      top-1/2
-                      -translate-y-1/2
-                      translate-x-8
-
-                      text-[#6F8F72]
-                    "
-                  >
-                    *
-                  </span>
-                </div>
-
-                {/* =================================================
-                    MESSAGE
-                    ================================================= */}
-
-                <div className="relative">
-                  <Pencil
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-4
-                      top-5
-
-                      text-[#6F8F72]
-
-                      sm:left-5
-                    "
-                    size={20}
-                    strokeWidth={1.6}
-                  />
-
-                  <textarea
-                    id="message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    rows={4}
-                    placeholder="Anything else you&apos;d like me to know? (Optional)"
-                    className="
-                      min-h-[115px]
-                      w-full
-                      resize-y
-
-                      rounded-[15px]
-                      border
-                      border-[#DDE5D9]
-
-                      bg-white
-
-                      px-5
-                      py-5
-                      pl-12
-
-                      text-[14px]
-                      leading-6
-                      text-[#2B2B2B]
-
-                      placeholder:text-[#858585]
-
-                      outline-none
-
-                      focus:border-[#6F8F72]
-                      focus:ring-2
-                      focus:ring-[#6F8F72]/10
-
-                      sm:min-h-[135px]
-                      sm:pl-14
-                      sm:text-[16px]
-                    "
-                  />
-                </div>
-
-                {/* =================================================
-                    ERROR
-                    ================================================= */}
-
-                {error && (
-                  <p
-                    className="
-                      rounded-xl
-                      bg-[#FDF0F0]
-
-                      px-4
-                      py-3
-
-                      text-center
-                      text-sm
-                      text-[#B65A5A]
-                    "
-                  >
-                    {error}
-                  </p>
-                )}
-
-                {/* =================================================
-                    SUBMIT
-                    ================================================= */}
-
-                <button
-                  type="submit"
-                  disabled={loading}
+                <form
+                  onSubmit={handleSubmit}
                   className="
-                    mt-2
+                    space-y-3
 
-                    flex
-                    w-full
-                    items-center
-                    justify-center
-                    gap-3
-
-                    rounded-full
-
-                    bg-[#6F8F72]
-
-                    px-6
-                    py-4
-
-                    text-[15px]
-                    font-medium
-                    text-white
-
-                    shadow-[0_8px_24px_rgba(111,143,114,0.18)]
-
-                    transition-all
-                    duration-200
-
-                    hover:bg-[#5B7960]
-                    hover:shadow-[0_10px_28px_rgba(111,143,114,0.25)]
-
-                    active:scale-[0.99]
-
-                    disabled:cursor-not-allowed
-                    disabled:opacity-60
-
-                    sm:py-4.5
+                    sm:space-y-4
                   "
                 >
-                  {loading ? "Sending..." : "Send Inquiry"}
+                  {/* =================================================
+                      NAME
+                      ================================================= */}
 
-                  {!loading && (
-                    <Send
-                      size={18}
+                  <div className="relative">
+                    <UserRound
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        z-10
+                        -translate-y-1/2
+
+                        text-[#6F8F72]
+
+                        sm:left-5
+                      "
+                      size={20}
+                      strokeWidth={1.6}
+                    />
+
+                    <input
+                      id="name"
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="What should I call you? (English name)"
+                      required
+                      className="
+                        h-[60px]
+                        w-full
+
+                        rounded-[15px]
+                        border
+                        border-[#DDE5D9]
+
+                        bg-white
+
+                        pl-12
+                        pr-10
+
+                        text-[14px]
+                        text-[#2B2B2B]
+
+                        placeholder:text-[#858585]
+
+                        outline-none
+
+                        transition
+                        duration-200
+
+                        focus:border-[#6F8F72]
+                        focus:ring-2
+                        focus:ring-[#6F8F72]/10
+
+                        sm:h-[72px]
+                        sm:pl-14
+                        sm:text-[16px]
+                      "
+                    />
+
+                    <span
+                      className="
+                        pointer-events-none
+                        absolute
+                        right-5
+                        top-1/2
+                        -translate-y-1/2
+
+                        text-[#6F8F72]
+                      "
+                    >
+                      *
+                    </span>
+                  </div>
+
+                  {/* =================================================
+                      EMAIL
+                      ================================================= */}
+
+                  <div className="relative">
+                    <Mail
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        -translate-y-1/2
+
+                        text-[#6F8F72]
+
+                        sm:left-5
+                      "
+                      size={20}
+                      strokeWidth={1.6}
+                    />
+
+                    <input
+                      id="email"
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Email Address"
+                      required
+                      className="
+                        h-[60px]
+                        w-full
+
+                        rounded-[15px]
+                        border
+                        border-[#DDE5D9]
+
+                        bg-white
+
+                        pl-12
+                        pr-10
+
+                        text-[14px]
+                        text-[#2B2B2B]
+
+                        placeholder:text-[#858585]
+
+                        outline-none
+
+                        transition
+                        duration-200
+
+                        focus:border-[#6F8F72]
+                        focus:ring-2
+                        focus:ring-[#6F8F72]/10
+
+                        sm:h-[72px]
+                        sm:pl-14
+                        sm:text-[16px]
+                      "
+                    />
+
+                    <span
+                      className="
+                        pointer-events-none
+                        absolute
+                        right-5
+                        top-1/2
+                        -translate-y-1/2
+
+                        text-[#6F8F72]
+                      "
+                    >
+                      *
+                    </span>
+                  </div>
+
+                  {/* =================================================
+                      CONTACT METHOD
+                      ================================================= */}
+
+                  <div className="relative">
+                    <Phone
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        z-10
+                        -translate-y-1/2
+
+                        text-[#6F8F72]
+
+                        sm:left-5
+                      "
+                      size={20}
+                      strokeWidth={1.6}
+                    />
+
+                    <select
+                      id="contactMethod"
+                      name="contactMethod"
+                      value={formData.contactMethod}
+                      onChange={handleChange}
+                      className={`
+                        h-[60px]
+                        w-full
+
+                        appearance-none
+
+                        rounded-[15px]
+                        border
+                        border-[#DDE5D9]
+
+                        bg-white
+
+                        pl-12
+                        pr-16
+
+                        text-[14px]
+
+                        outline-none
+
+                        transition
+                        duration-200
+
+                        focus:border-[#6F8F72]
+                        focus:ring-2
+                        focus:ring-[#6F8F72]/10
+
+                        sm:h-[72px]
+                        sm:pl-14
+                        sm:text-[16px]
+
+                        ${
+                          formData.contactMethod
+                            ? "text-[#2B2B2B]"
+                            : "text-[#858585]"
+                        }
+                      `}
+                    >
+                      <option value="">
+                        How should I contact you?
+                      </option>
+
+                      <option value="KakaoTalk">
+                        KakaoTalk
+                      </option>
+
+                      <option value="WhatsApp">
+                        WhatsApp
+                      </option>
+
+                      <option value="WeChat">
+                        WeChat
+                      </option>
+                    </select>
+
+                    <ChevronDown
+                      className="
+                        pointer-events-none
+                        absolute
+                        right-5
+                        top-1/2
+                        -translate-y-1/2
+
+                        text-[#777]
+                      "
+                      size={19}
                       strokeWidth={1.7}
                     />
+
+                    <span
+                      className="
+                        pointer-events-none
+                        absolute
+                        right-10
+                        top-1/2
+                        -translate-y-1/2
+                        translate-x-8
+
+                        text-[#6F8F72]
+                      "
+                    >
+                      *
+                    </span>
+                  </div>
+
+                  {/* =================================================
+                      CONTACT ID
+                      ================================================= */}
+
+                  <div className="relative">
+                    <ContactRound
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        -translate-y-1/2
+
+                        text-[#6F8F72]
+
+                        sm:left-5
+                      "
+                      size={20}
+                      strokeWidth={1.6}
+                    />
+
+                    <input
+                      id="contactId"
+                      type="text"
+                      name="contactId"
+                      value={formData.contactId}
+                      onChange={handleChange}
+                      placeholder="Your ID / Username / Phone Number"
+                      className="
+                        h-[60px]
+                        w-full
+
+                        rounded-[15px]
+                        border
+                        border-[#DDE5D9]
+
+                        bg-white
+
+                        pl-12
+                        pr-5
+
+                        text-[14px]
+                        text-[#2B2B2B]
+
+                        placeholder:text-[#858585]
+
+                        outline-none
+
+                        transition
+                        duration-200
+
+                        focus:border-[#6F8F72]
+                        focus:ring-2
+                        focus:ring-[#6F8F72]/10
+
+                        sm:h-[72px]
+                        sm:pl-14
+                        sm:text-[16px]
+                      "
+                    />
+                  </div>
+
+                  {/* =================================================
+                      LEVEL
+                      ================================================= */}
+
+                  <div className="relative">
+                    <ChartNoAxesColumnIncreasing
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        z-10
+                        -translate-y-1/2
+
+                        text-[#6F8F72]
+
+                        sm:left-5
+                      "
+                      size={20}
+                      strokeWidth={1.6}
+                    />
+
+                    <select
+                      id="level"
+                      name="level"
+                      value={formData.level}
+                      onChange={handleChange}
+                      required
+                      className={`
+                        h-[60px]
+                        w-full
+
+                        appearance-none
+
+                        rounded-[15px]
+                        border
+                        border-[#DDE5D9]
+
+                        bg-white
+
+                        pl-12
+                        pr-16
+
+                        text-[14px]
+
+                        outline-none
+
+                        transition
+                        duration-200
+
+                        focus:border-[#6F8F72]
+                        focus:ring-2
+                        focus:ring-[#6F8F72]/10
+
+                        sm:h-[72px]
+                        sm:pl-14
+                        sm:text-[16px]
+
+                        ${
+                          formData.level
+                            ? "text-[#2B2B2B]"
+                            : "text-[#858585]"
+                        }
+                      `}
+                    >
+                      <option value="">
+                        How would you describe your English level?
+                      </option>
+
+                      <option value="Beginner">
+                        Beginner
+                      </option>
+
+                      <option value="Elementary">
+                        Elementary
+                      </option>
+
+                      <option value="Intermediate">
+                        Intermediate
+                      </option>
+
+                      <option value="Upper Intermediate">
+                        Upper Intermediate
+                      </option>
+
+                      <option value="Advanced">
+                        Advanced
+                      </option>
+
+                      <option value="Not sure">
+                        I&apos;m not sure
+                      </option>
+                    </select>
+
+                    <ChevronDown
+                      className="
+                        pointer-events-none
+                        absolute
+                        right-5
+                        top-1/2
+                        -translate-y-1/2
+
+                        text-[#777]
+                      "
+                      size={19}
+                      strokeWidth={1.7}
+                    />
+
+                    <span
+                      className="
+                        pointer-events-none
+                        absolute
+                        right-10
+                        top-1/2
+                        -translate-y-1/2
+                        translate-x-8
+
+                        text-[#6F8F72]
+                      "
+                    >
+                      *
+                    </span>
+                  </div>
+
+                  {/* =================================================
+                      GOAL
+                      ================================================= */}
+
+                  <div className="relative">
+                    <Target
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        z-10
+                        -translate-y-1/2
+
+                        text-[#6F8F72]
+
+                        sm:left-5
+                      "
+                      size={20}
+                      strokeWidth={1.6}
+                    />
+
+                    <select
+                      id="goal"
+                      name="goal"
+                      value={formData.goal}
+                      onChange={handleChange}
+                      required
+                      className={`
+                        h-[60px]
+                        w-full
+
+                        appearance-none
+
+                        rounded-[15px]
+                        border
+                        border-[#DDE5D9]
+
+                        bg-white
+
+                        pl-12
+                        pr-16
+
+                        text-[14px]
+
+                        outline-none
+
+                        transition
+                        duration-200
+
+                        focus:border-[#6F8F72]
+                        focus:ring-2
+                        focus:ring-[#6F8F72]/10
+
+                        sm:h-[72px]
+                        sm:pl-14
+                        sm:text-[16px]
+
+                        ${
+                          formData.goal
+                            ? "text-[#2B2B2B]"
+                            : "text-[#858585]"
+                        }
+                      `}
+                    >
+                      <option value="">
+                        What would you like to focus on?
+                      </option>
+
+                      <option value="Everyday Conversation">
+                        Everyday Conversation
+                      </option>
+
+                      <option value="Business English">
+                        Business English
+                      </option>
+
+                      <option value="Travel English">
+                        Travel English
+                      </option>
+
+                      <option value="Interview Preparation">
+                        Interview Preparation
+                      </option>
+
+                      <option value="Pronunciation">
+                        Pronunciation
+                      </option>
+
+                      <option value="Grammar">
+                        Grammar
+                      </option>
+
+                      <option value="Vocabulary">
+                        Vocabulary
+                      </option>
+                    </select>
+
+                    <ChevronDown
+                      className="
+                        pointer-events-none
+                        absolute
+                        right-5
+                        top-1/2
+                        -translate-y-1/2
+
+                        text-[#777]
+                      "
+                      size={19}
+                      strokeWidth={1.7}
+                    />
+
+                    <span
+                      className="
+                        pointer-events-none
+                        absolute
+                        right-10
+                        top-1/2
+                        -translate-y-1/2
+                        translate-x-8
+
+                        text-[#6F8F72]
+                      "
+                    >
+                      *
+                    </span>
+                  </div>
+
+                  {/* =================================================
+                      MESSAGE
+                      ================================================= */}
+
+                  <div className="relative">
+                    <Pencil
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-5
+
+                        text-[#6F8F72]
+
+                        sm:left-5
+                      "
+                      size={20}
+                      strokeWidth={1.6}
+                    />
+
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
+                      rows={4}
+                      placeholder="Anything else you&apos;d like me to know? (Optional)"
+                      className="
+                        min-h-[115px]
+                        w-full
+
+                        resize-y
+
+                        rounded-[15px]
+                        border
+                        border-[#DDE5D9]
+
+                        bg-white
+
+                        px-5
+                        py-5
+                        pl-12
+
+                        text-[14px]
+                        leading-6
+                        text-[#2B2B2B]
+
+                        placeholder:text-[#858585]
+
+                        outline-none
+
+                        transition
+                        duration-200
+
+                        focus:border-[#6F8F72]
+                        focus:ring-2
+                        focus:ring-[#6F8F72]/10
+
+                        sm:min-h-[135px]
+                        sm:pl-14
+                        sm:text-[16px]
+                      "
+                    />
+                  </div>
+
+                  {/* =================================================
+                      ERROR
+                      ================================================= */}
+
+                  {error && (
+                    <p
+                      className="
+                        rounded-xl
+                        bg-[#FDF0F0]
+
+                        px-4
+                        py-3
+
+                        text-center
+                        text-sm
+                        text-[#B65A5A]
+                      "
+                    >
+                      {error}
+                    </p>
                   )}
-                </button>
 
-                {/* =================================================
-                    PRIVACY
-                    ================================================= */}
+                  {/* =================================================
+                      SUBMIT
+                      ================================================= */}
 
-                <div
-                  className="
-                    flex
-                    items-center
-                    justify-center
-                    gap-2
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="
+                      mt-2
 
-                    px-4
-                    pt-2
-                    pb-2
+                      flex
+                      w-full
+                      items-center
+                      justify-center
+                      gap-3
 
-                    text-center
-                    text-[11px]
-                    leading-5
-                    text-[#929292]
+                      rounded-full
 
-                    sm:text-[12px]
-                  "
-                >
-                  <LockKeyhole
-                    size={15}
-                    strokeWidth={1.6}
-                    className="shrink-0"
-                  />
+                      bg-[#6F8F72]
 
-                  <span>
-                    I respect your privacy and will never
-                    share your information.
-                  </span>
-                </div>
-              </form>
-            </div>
+                      px-6
+                      py-4
+
+                      text-[15px]
+                      font-medium
+                      text-white
+
+                      shadow-[0_8px_24px_rgba(111,143,114,0.18)]
+
+                      transition-all
+                      duration-200
+
+                      hover:bg-[#5B7960]
+                      hover:shadow-[0_10px_28px_rgba(111,143,114,0.25)]
+
+                      active:scale-[0.99]
+
+                      disabled:cursor-not-allowed
+                      disabled:opacity-60
+
+                      sm:py-4.5
+                    "
+                  >
+                    {loading ? "Sending..." : "Send Inquiry"}
+
+                    {!loading && (
+                      <Send
+                        size={18}
+                        strokeWidth={1.7}
+                      />
+                    )}
+                  </button>
+
+                  {/* =================================================
+                      PRIVACY
+                      ================================================= */}
+
+                  <div
+                    className="
+                      flex
+                      items-center
+                      justify-center
+                      gap-2
+
+                      px-4
+                      pt-2
+                      pb-2
+
+                      text-center
+                      text-[11px]
+                      leading-5
+                      text-[#929292]
+
+                      sm:text-[12px]
+                    "
+                  >
+                    <LockKeyhole
+                      size={15}
+                      strokeWidth={1.6}
+                      className="shrink-0"
+                    />
+
+                    <span>
+                      I respect your privacy and will never
+                      share your information.
+                    </span>
+                  </div>
+                </form>
+              </div>
+            </>
           ) : (
             /* ===================================================
                SUCCESS
@@ -1238,93 +1296,86 @@ export default function AssessmentModal({
 
             <div
               className="
-                flex
-                min-h-full
-                items-center
-                justify-center
-
                 px-5
                 py-12
-
                 text-center
 
                 sm:px-10
+                sm:py-16
               "
             >
-              <div>
-                <div
-                  className="
-                    mx-auto
+              <div
+                className="
+                  mx-auto
 
-                    flex
-                    h-16
-                    w-16
-                    items-center
-                    justify-center
+                  flex
+                  h-16
+                  w-16
+                  items-center
+                  justify-center
 
-                    rounded-full
+                  rounded-full
 
-                    bg-[#E7EEE5]
+                  bg-[#E7EEE5]
 
-                    text-[#6F8F72]
-                  "
-                >
-                  <CheckCircle2
-                    size={32}
-                    strokeWidth={1.5}
-                  />
-                </div>
-
-                <h2
-                  className="
-                    mt-6
-
-                    text-[40px]
-                    leading-tight
-
-                    text-[#2B2B2B]
-
-                    [font-family:var(--font-cormorant)]
-
-                    sm:text-[46px]
-                  "
-                >
-                  Thank you.
-                </h2>
-
-                <p
-                  className="
-                    mx-auto
-                    mt-5
-                    max-w-md
-
-                    text-[15px]
-                    leading-8
-
-                    text-[#5B5B5B]
-                  "
-                >
-                  I&apos;ve received your message and I&apos;ll
-                  personally get back to you within 24 hours.
-                  I look forward to learning more about you and
-                  helping you on your English journey.
-                </p>
-
-                <p
-                  className="
-                    mt-7
-
-                    text-xl
-                    italic
-
-                    text-[#6F8F72]
-
-                    [font-family:var(--font-cormorant)]
-                  "
-                >
-                  See you soon.
-                </p>
+                  text-[#6F8F72]
+                "
+              >
+                <CheckCircle2
+                  size={32}
+                  strokeWidth={1.5}
+                />
               </div>
+
+              <h2
+                className="
+                  mt-6
+
+                  text-[40px]
+                  leading-tight
+
+                  text-[#2B2B2B]
+
+                  [font-family:var(--font-cormorant)]
+
+                  sm:text-[46px]
+                "
+              >
+                Thank you.
+              </h2>
+
+              <p
+                className="
+                  mx-auto
+                  mt-5
+                  max-w-md
+
+                  text-[15px]
+                  leading-8
+
+                  text-[#5B5B5B]
+                "
+              >
+                I&apos;ve received your message and I&apos;ll
+                personally get back to you within 24 hours.
+                I look forward to learning more about you and
+                helping you on your English journey.
+              </p>
+
+              <p
+                className="
+                  mt-7
+
+                  text-xl
+                  italic
+
+                  text-[#6F8F72]
+
+                  [font-family:var(--font-cormorant)]
+                "
+              >
+                See you soon.
+              </p>
             </div>
           )}
         </div>
