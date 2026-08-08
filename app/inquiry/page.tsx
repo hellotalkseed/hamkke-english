@@ -1,10 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  ArrowLeft,
-  X,
-} from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import InquiryForm, {
   InquirySource,
 } from "@/components/InquiryForm";
@@ -16,7 +14,7 @@ const validSources: InquirySource[] = [
   "start-a-conversation",
 ];
 
-export default function InquiryPage() {
+function InquiryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -29,12 +27,6 @@ export default function InquiryPage() {
     : "get-in-touch";
 
   const handleBack = () => {
-    /*
-     * Go back to the page the student came from.
-     *
-     * This is better than hard-coding "/" because the student
-     * may have opened the inquiry form from another page.
-     */
     if (window.history.length > 1) {
       router.back();
     } else {
@@ -189,5 +181,22 @@ export default function InquiryPage() {
         <InquiryForm source={source} />
       </div>
     </main>
+  );
+}
+
+export default function InquiryPage() {
+  return (
+    <Suspense
+      fallback={
+        <main
+          className="
+            min-h-screen
+            bg-[#FAF9F6]
+          "
+        />
+      }
+    >
+      <InquiryPageContent />
+    </Suspense>
   );
 }
