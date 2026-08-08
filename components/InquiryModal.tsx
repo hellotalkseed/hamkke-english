@@ -39,7 +39,7 @@ const inquiryHeadings: Record<InquirySource, string> = {
 };
 
 const iconClass =
-  "h-[20px] w-[20px] text-[#6F8F72] shrink-0";
+  "h-[20px] w-[20px] shrink-0 text-[#6F8F72]";
 
 export default function AssessmentModal({
   isOpen,
@@ -62,20 +62,31 @@ export default function AssessmentModal({
 
   const heading = inquiryHeadings[source];
 
-  /* Prevent background scrolling */
+  /* =========================================================
+     PREVENT BACKGROUND SCROLLING
+     ========================================================= */
+
   useEffect(() => {
     if (!isOpen) return;
 
-    const originalOverflow = document.body.style.overflow;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalBodyTouchAction =
+      document.body.style.touchAction;
 
     document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
 
     return () => {
-      document.body.style.overflow = originalOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.touchAction =
+        originalBodyTouchAction;
     };
   }, [isOpen]);
 
-  /* Escape key */
+  /* =========================================================
+     ESCAPE KEY
+     ========================================================= */
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -92,13 +103,20 @@ export default function AssessmentModal({
     };
   }, [isOpen, onClose]);
 
-  /* Reset success/error state when opening */
+  /* =========================================================
+     RESET STATE WHEN MODAL OPENS
+     ========================================================= */
+
   useEffect(() => {
     if (isOpen) {
       setSubmitted(false);
       setError("");
     }
   }, [isOpen, source]);
+
+  /* =========================================================
+     FORM CHANGE
+     ========================================================= */
 
   const handleChange = (
     event: React.ChangeEvent<
@@ -110,6 +128,10 @@ export default function AssessmentModal({
       [event.target.name]: event.target.value,
     }));
   };
+
+  /* =========================================================
+     FORM SUBMIT
+     ========================================================= */
 
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
@@ -136,10 +158,14 @@ export default function AssessmentModal({
       if (data.success) {
         setSubmitted(true);
       } else {
-        setError("Something went wrong. Please try again.");
+        setError(
+          "Something went wrong. Please try again."
+        );
       }
     } catch {
-      setError("Unable to send your message. Please try again.");
+      setError(
+        "Unable to send your message. Please try again."
+      );
     }
 
     setLoading(false);
@@ -159,10 +185,14 @@ export default function AssessmentModal({
         items-center
         justify-center
 
+        overflow-hidden
+
         bg-[#253026]/45
 
-        px-3
-        py-3
+        px-4
+        py-4
+
+        overscroll-none
 
         backdrop-blur-[4px]
 
@@ -170,6 +200,10 @@ export default function AssessmentModal({
         sm:py-6
       "
     >
+      {/* =====================================================
+          MODAL
+          ===================================================== */}
+
       <div
         onClick={(event) => event.stopPropagation()}
         role="dialog"
@@ -197,7 +231,9 @@ export default function AssessmentModal({
           sm:rounded-[30px]
         "
       >
-        {/* ================= CLOSE ================= */}
+        {/* ===================================================
+            CLOSE BUTTON
+            =================================================== */}
 
         <button
           type="button"
@@ -241,7 +277,9 @@ export default function AssessmentModal({
           />
         </button>
 
-        {/* ================= HEADER ================= */}
+        {/* ===================================================
+            HEADER
+            =================================================== */}
 
         <div
           className="
@@ -411,7 +449,9 @@ export default function AssessmentModal({
           )}
         </div>
 
-        {/* ================= SCROLL AREA ================= */}
+        {/* ===================================================
+            SCROLLABLE FORM AREA
+            =================================================== */}
 
         <div
           className="
@@ -420,6 +460,7 @@ export default function AssessmentModal({
 
             overflow-y-auto
             overscroll-contain
+            touch-pan-y
 
             px-5
             pb-7
@@ -440,7 +481,9 @@ export default function AssessmentModal({
                 sm:space-y-4
               "
             >
-              {/* ================= NAME ================= */}
+              {/* =================================================
+                  NAME
+                  ================================================= */}
 
               <div className="relative">
                 <UserRound
@@ -514,7 +557,9 @@ export default function AssessmentModal({
                 </span>
               </div>
 
-              {/* ================= EMAIL ================= */}
+              {/* =================================================
+                  EMAIL
+                  ================================================= */}
 
               <div className="relative">
                 <Mail
@@ -585,7 +630,9 @@ export default function AssessmentModal({
                 </span>
               </div>
 
-              {/* ================= CONTACT METHOD ================= */}
+              {/* =================================================
+                  CONTACT METHOD
+                  ================================================= */}
 
               <div className="relative">
                 <Phone
@@ -598,6 +645,8 @@ export default function AssessmentModal({
                     -translate-y-1/2
 
                     text-[#6F8F72]
+
+                    sm:left-5
                   "
                   size={20}
                   strokeWidth={1.6}
@@ -609,6 +658,7 @@ export default function AssessmentModal({
                   value={formData.contactMethod}
                   onChange={handleChange}
                   className={`
+
                     h-[60px]
                     w-full
                     appearance-none
@@ -690,7 +740,9 @@ export default function AssessmentModal({
                 </span>
               </div>
 
-              {/* ================= CONTACT ID ================= */}
+              {/* =================================================
+                  CONTACT ID
+                  ================================================= */}
 
               <div className="relative">
                 <ContactRound
@@ -701,6 +753,8 @@ export default function AssessmentModal({
                     -translate-y-1/2
 
                     text-[#6F8F72]
+
+                    sm:left-5
                   "
                   size={20}
                   strokeWidth={1.6}
@@ -747,7 +801,9 @@ export default function AssessmentModal({
                 />
               </div>
 
-              {/* ================= LEVEL ================= */}
+              {/* =================================================
+                  LEVEL
+                  ================================================= */}
 
               <div className="relative">
                 <ChartNoAxesColumnIncreasing
@@ -760,6 +816,8 @@ export default function AssessmentModal({
                     -translate-y-1/2
 
                     text-[#6F8F72]
+
+                    sm:left-5
                   "
                   size={20}
                   strokeWidth={1.6}
@@ -772,6 +830,7 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
+
                     h-[60px]
                     w-full
                     appearance-none
@@ -865,7 +924,9 @@ export default function AssessmentModal({
                 </span>
               </div>
 
-              {/* ================= GOAL ================= */}
+              {/* =================================================
+                  GOAL
+                  ================================================= */}
 
               <div className="relative">
                 <Target
@@ -878,6 +939,8 @@ export default function AssessmentModal({
                     -translate-y-1/2
 
                     text-[#6F8F72]
+
+                    sm:left-5
                   "
                   size={20}
                   strokeWidth={1.6}
@@ -890,6 +953,7 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
+
                     h-[60px]
                     w-full
                     appearance-none
@@ -987,7 +1051,9 @@ export default function AssessmentModal({
                 </span>
               </div>
 
-              {/* ================= MESSAGE ================= */}
+              {/* =================================================
+                  MESSAGE
+                  ================================================= */}
 
               <div className="relative">
                 <Pencil
@@ -997,6 +1063,8 @@ export default function AssessmentModal({
                     top-5
 
                     text-[#6F8F72]
+
+                    sm:left-5
                   "
                   size={20}
                   strokeWidth={1.6}
@@ -1046,7 +1114,9 @@ export default function AssessmentModal({
                 />
               </div>
 
-              {/* ================= ERROR ================= */}
+              {/* =================================================
+                  ERROR
+                  ================================================= */}
 
               {error && (
                 <p
@@ -1066,13 +1136,16 @@ export default function AssessmentModal({
                 </p>
               )}
 
-              {/* ================= SUBMIT ================= */}
+              {/* =================================================
+                  SUBMIT
+                  ================================================= */}
 
               <button
                 type="submit"
                 disabled={loading}
                 className="
                   mt-2
+
                   flex
                   w-full
                   items-center
@@ -1116,7 +1189,9 @@ export default function AssessmentModal({
                 )}
               </button>
 
-              {/* ================= PRIVACY ================= */}
+              {/* =================================================
+                  PRIVACY
+                  ================================================= */}
 
               <div
                 className="
@@ -1149,12 +1224,15 @@ export default function AssessmentModal({
               </div>
             </form>
           ) : (
-            /* ================= SUCCESS ================= */
+            /* ===================================================
+               SUCCESS
+               =================================================== */
 
             <div className="py-8 text-center sm:py-12">
               <div
                 className="
                   mx-auto
+
                   flex
                   h-16
                   w-16
