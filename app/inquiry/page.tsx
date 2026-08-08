@@ -119,35 +119,17 @@ function InquiryPageContent() {
     whitespace-nowrap
   "
 >
-  <span
+  <p
     className="
-      text-[22px]
-      font-semibold
-      text-[#2B2B2B]
-      [font-family:var(--font-cormorant)]
-    "
-  >
-    Hamkke
-  </span>
-
-  <span
-    className="
-      mx-1.5
-      text-[#A8BCA5]
-    "
-  >
-    │
-  </span>
-
-  <span
-    className="
-      text-[15px]
+      text-[11px]
       font-medium
+      uppercase
+      tracking-[0.28em]
       text-[#6F8F72]
     "
   >
-    함께
-  </span>
+    Hamkke │ 함께
+  </p>
 </div>
 
         {/* Close */}
