@@ -50,19 +50,6 @@ export default function AssessmentModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /*
-   * We keep the modal height in state on mobile.
-   *
-   * visualViewport is important because mobile browsers change
-   * the visual viewport when the keyboard opens.
-   *
-   * This prevents the modal from jumping or leaving a black
-   * area after the keyboard closes.
-   */
-  const [viewportHeight, setViewportHeight] = useState<number | null>(
-    null
-  );
-
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -76,121 +63,18 @@ export default function AssessmentModal({
   const heading = inquiryHeadings[source];
 
   /* =========================================================
-     MOBILE VISUAL VIEWPORT
+     LOCK BACKGROUND SCROLLING
      ========================================================= */
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const updateViewportHeight = () => {
-      if (window.visualViewport) {
-        setViewportHeight(window.visualViewport.height);
-      } else {
-        setViewportHeight(window.innerHeight);
-      }
-    };
+    const originalOverflow = document.body.style.overflow;
 
-    updateViewportHeight();
-
-    const visualViewport = window.visualViewport;
-
-    if (visualViewport) {
-      visualViewport.addEventListener(
-        "resize",
-        updateViewportHeight
-      );
-
-      visualViewport.addEventListener(
-        "scroll",
-        updateViewportHeight
-      );
-    }
-
-    window.addEventListener("resize", updateViewportHeight);
+    document.body.style.overflow = "hidden";
 
     return () => {
-      if (visualViewport) {
-        visualViewport.removeEventListener(
-          "resize",
-          updateViewportHeight
-        );
-
-        visualViewport.removeEventListener(
-          "scroll",
-          updateViewportHeight
-        );
-      }
-
-      window.removeEventListener(
-        "resize",
-        updateViewportHeight
-      );
-    };
-  }, [isOpen]);
-
-  /* =========================================================
-     LOCK BACKGROUND PAGE
-     ========================================================= */
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const body = document.body;
-    const html = document.documentElement;
-
-    const scrollY = window.scrollY;
-
-    const originalBodyPosition = body.style.position;
-    const originalBodyTop = body.style.top;
-    const originalBodyLeft = body.style.left;
-    const originalBodyRight = body.style.right;
-    const originalBodyWidth = body.style.width;
-    const originalBodyOverflow = body.style.overflow;
-    const originalBodyTouchAction = body.style.touchAction;
-
-    const originalHtmlOverflow = html.style.overflow;
-    const originalHtmlTouchAction = html.style.touchAction;
-
-    /*
-     * Lock the page itself.
-     *
-     * The modal has its own scrolling container, so the page
-     * underneath cannot move while the user interacts with it.
-     */
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
-    body.style.overflow = "hidden";
-    body.style.touchAction = "none";
-
-    html.style.overflow = "hidden";
-    html.style.touchAction = "none";
-
-    return () => {
-      body.style.position = originalBodyPosition;
-      body.style.top = originalBodyTop;
-      body.style.left = originalBodyLeft;
-      body.style.right = originalBodyRight;
-      body.style.width = originalBodyWidth;
-      body.style.overflow = originalBodyOverflow;
-      body.style.touchAction = originalBodyTouchAction;
-
-      html.style.overflow = originalHtmlOverflow;
-      html.style.touchAction = originalHtmlTouchAction;
-
-      /*
-       * Wait one frame before restoring the page position.
-       *
-       * This helps prevent the temporary black/blank area that
-       * can appear on mobile browsers after the keyboard closes.
-       */
-      requestAnimationFrame(() => {
-        window.scrollTo(0, scrollY);
-      });
-
-      setViewportHeight(null);
+      document.body.style.overflow = originalOverflow;
     };
   }, [isOpen]);
 
@@ -284,15 +168,6 @@ export default function AssessmentModal({
 
   if (!isOpen) return null;
 
-  /*
-   * Use the visual viewport when available.
-   *
-   * The fallback uses 100dvh.
-   */
-  const modalHeight = viewportHeight
-    ? `${viewportHeight}px`
-    : "100dvh";
-
   return (
     <div
       className="
@@ -300,12 +175,17 @@ export default function AssessmentModal({
         inset-0
         z-[100]
 
-        overflow-hidden
+        flex
+        items-center
+        justify-center
 
         bg-[#253026]/45
         backdrop-blur-[4px]
 
         overscroll-none
+
+        px-0
+        sm:px-6
       "
       onClick={onClose}
       role="presentation"
@@ -313,17 +193,15 @@ export default function AssessmentModal({
       {/* =====================================================
           MODAL
 
-          IMPORTANT:
-          The modal itself has a fixed height.
+          The modal has a stable viewport-based height.
 
           The CONTENT inside it scrolls.
 
-          This means:
-          - typing cannot make the modal taller
-          - dropdowns cannot make the modal taller
-          - the heading can scroll
-          - the form can scroll
-          - keyboard appearance does not change the layout
+          Nothing changes its height when:
+          - a dropdown opens
+          - an input receives focus
+          - text is entered
+          - the keyboard appears
           ===================================================== */}
 
       <div
@@ -331,16 +209,13 @@ export default function AssessmentModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="inquiry-modal-title"
-        style={{
-          height: modalHeight,
-          maxHeight: modalHeight,
-        }}
         className="
           relative
 
-          mx-auto
-
+          flex
+          h-[100dvh]
           w-full
+          flex-col
 
           overflow-hidden
 
@@ -348,11 +223,9 @@ export default function AssessmentModal({
 
           shadow-[0_24px_80px_rgba(40,55,42,0.22)]
 
-          sm:my-[4vh]
           sm:h-[92vh]
           sm:max-h-[92vh]
           sm:max-w-[680px]
-
           sm:rounded-[30px]
         "
       >
@@ -368,7 +241,7 @@ export default function AssessmentModal({
             absolute
             right-4
             top-4
-            z-50
+            z-30
 
             flex
             h-9
@@ -404,14 +277,16 @@ export default function AssessmentModal({
         </button>
 
         {/* ===================================================
-            ONE SINGLE SCROLL AREA
+            SINGLE SCROLLABLE AREA
 
-            The heading AND form scroll together.
+            The heading and form are intentionally inside the
+            SAME scrolling container.
 
-            This is intentional.
+            This means the user can scroll naturally from:
+            heading → form → submit button
 
-            Nothing inside this container is allowed to change
-            the height of the modal itself.
+            without the header consuming a permanently fixed
+            portion of the mobile viewport.
             =================================================== */}
 
         <div
@@ -419,8 +294,8 @@ export default function AssessmentModal({
             h-full
             w-full
 
-            overflow-x-hidden
             overflow-y-auto
+            overflow-x-hidden
 
             overscroll-contain
             touch-pan-y
@@ -449,174 +324,170 @@ export default function AssessmentModal({
 
               <div
                 className="
+                  flex
+                  items-start
+                  gap-2
+
                   pr-10
 
+                  sm:gap-3
                   sm:pr-12
                 "
               >
-                {/* Logo + Heading */}
-
-                <div
+                <Image
+                  src="/logo/hamkke-icon.svg"
+                  alt="Hamkke"
+                  width={48}
+                  height={48}
+                  priority
                   className="
-                    flex
-                    items-start
-                    gap-2
+                    mt-1
 
-                    sm:gap-3
+                    h-10
+                    w-10
+                    shrink-0
+
+                    sm:h-12
+                    sm:w-12
                   "
-                >
-                  <Image
-                    src="/logo/hamkke-icon.svg"
-                    alt="Hamkke"
-                    width={48}
-                    height={48}
-                    priority
+                />
+
+                <div className="min-w-0">
+                  <h2
+                    id="inquiry-modal-title"
                     className="
                       mt-1
 
-                      h-10
-                      w-10
-                      shrink-0
+                      max-w-full
 
-                      sm:h-12
-                      sm:w-12
+                      text-[29px]
+                      leading-[1.08]
+                      tracking-[-0.01em]
+
+                      text-[#2B2B2B]
+
+                      [font-family:var(--font-cormorant)]
+
+                      sm:text-[40px]
+                      sm:leading-[1.05]
+                      sm:tracking-normal
+
+                      lg:text-[42px]
                     "
-                  />
-
-                  <div className="min-w-0">
-                    <h2
-                      id="inquiry-modal-title"
-                      className="
-                        mt-1
-
-                        max-w-full
-
-                        text-[29px]
-                        leading-[1.08]
-                        tracking-[-0.01em]
-
-                        text-[#2B2B2B]
-
-                        [font-family:var(--font-cormorant)]
-
-                        sm:text-[40px]
-                        sm:leading-[1.05]
-                        sm:tracking-normal
-
-                        lg:text-[42px]
-                      "
-                    >
-                      {heading}
-                    </h2>
-                  </div>
-                </div>
-
-                {/* Intro */}
-
-                <p
-                  className="
-                    mt-4
-
-                    max-w-[570px]
-
-                    text-[14px]
-                    leading-6
-
-                    text-[#686868]
-
-                    sm:ml-[60px]
-                    sm:mt-5
-                    sm:text-[16px]
-                    sm:leading-7
-                  "
-                >
-                  I&apos;d love to learn more about you and
-                  what you&apos;d like to achieve with your
-                  English.
-                </p>
-
-                {/* Reassurance */}
-
-                <div
-                  className="
-                    mt-4
-
-                    flex
-                    flex-wrap
-                    items-center
-
-                    gap-x-5
-                    gap-y-3
-
-                    sm:ml-[60px]
-                    sm:mt-5
-                  "
-                >
-                  <div className="flex items-center gap-2.5">
-                    <MessageCircle
-                      className={iconClass}
-                      strokeWidth={1.7}
-                    />
-
-                    <span
-                      className="
-                        text-[11px]
-                        text-[#777]
-
-                        sm:text-[13px]
-                      "
-                    >
-                      Personal reply within 24 hours
-                    </span>
-                  </div>
-
-                  <span
-                    className="
-                      hidden
-                      h-5
-                      w-px
-                      bg-[#D9E2D6]
-
-                      sm:block
-                    "
-                  />
-
-                  <div className="flex items-center gap-2.5">
-                    <ShieldCheck
-                      className={iconClass}
-                      strokeWidth={1.7}
-                    />
-
-                    <span
-                      className="
-                        text-[11px]
-                        text-[#777]
-
-                        sm:text-[13px]
-                      "
-                    >
-                      Your information is safe with me
-                    </span>
-                  </div>
+                  >
+                    {heading}
+                  </h2>
                 </div>
               </div>
 
               {/* =================================================
-                  FORM
+                  INTRO
+                  ================================================= */}
 
-                  Fixed field heights mean filling a field,
-                  focusing a field, or opening a dropdown does
-                  not alter the modal's dimensions.
+              <p
+                className="
+                  mt-4
+
+                  max-w-[570px]
+
+                  text-[14px]
+                  leading-6
+
+                  text-[#686868]
+
+                  sm:ml-[60px]
+                  sm:mt-5
+                  sm:text-[16px]
+                  sm:leading-7
+                "
+              >
+                I&apos;d love to learn more about you and
+                what you&apos;d like to achieve with your
+                English.
+              </p>
+
+              {/* =================================================
+                  REASSURANCE
+                  ================================================= */}
+
+              <div
+                className="
+                  mt-4
+
+                  flex
+                  flex-wrap
+                  items-center
+
+                  gap-x-5
+                  gap-y-3
+
+                  sm:ml-[60px]
+                  sm:mt-5
+                "
+              >
+                <div className="flex items-center gap-2.5">
+                  <MessageCircle
+                    className={iconClass}
+                    strokeWidth={1.7}
+                  />
+
+                  <span
+                    className="
+                      text-[11px]
+                      text-[#777]
+
+                      sm:text-[13px]
+                    "
+                  >
+                    Personal reply within 24 hours
+                  </span>
+                </div>
+
+                <span
+                  className="
+                    hidden
+                    h-5
+                    w-px
+                    bg-[#D9E2D6]
+
+                    sm:block
+                  "
+                />
+
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck
+                    className={iconClass}
+                    strokeWidth={1.7}
+                  />
+
+                  <span
+                    className="
+                      text-[11px]
+                      text-[#777]
+
+                      sm:text-[13px]
+                    "
+                  >
+                    Your information is safe with me
+                  </span>
+                </div>
+              </div>
+
+              {/* =================================================
+                  SPACING BEFORE FORM
+                  ================================================= */}
+
+              <div className="mt-6 sm:mt-7" />
+
+              {/* =================================================
+                  FORM
                   ================================================= */}
 
               <form
                 onSubmit={handleSubmit}
                 className="
-                  mt-6
-
                   space-y-3
 
-                  sm:mt-7
                   sm:space-y-4
                 "
               >
@@ -650,9 +521,7 @@ export default function AssessmentModal({
                     onChange={handleChange}
                     placeholder="What should I call you? (English name)"
                     required
-                    autoComplete="name"
                     className="
-                      block
                       h-[60px]
                       w-full
 
@@ -711,7 +580,6 @@ export default function AssessmentModal({
                       absolute
                       left-4
                       top-1/2
-                      z-10
                       -translate-y-1/2
 
                       text-[#6F8F72]
@@ -730,9 +598,7 @@ export default function AssessmentModal({
                     onChange={handleChange}
                     placeholder="Email Address"
                     required
-                    autoComplete="email"
                     className="
-                      block
                       h-[60px]
                       w-full
 
@@ -808,7 +674,6 @@ export default function AssessmentModal({
                     value={formData.contactMethod}
                     onChange={handleChange}
                     className={`
-                      block
                       h-[60px]
                       w-full
                       appearance-none
@@ -916,9 +781,7 @@ export default function AssessmentModal({
                     value={formData.contactId}
                     onChange={handleChange}
                     placeholder="Your ID / Username / Phone Number"
-                    autoComplete="tel"
                     className="
-                      block
                       h-[60px]
                       w-full
 
@@ -981,7 +844,6 @@ export default function AssessmentModal({
                     onChange={handleChange}
                     required
                     className={`
-                      block
                       h-[60px]
                       w-full
                       appearance-none
@@ -1102,7 +964,6 @@ export default function AssessmentModal({
                     onChange={handleChange}
                     required
                     className={`
-                      block
                       h-[60px]
                       w-full
                       appearance-none
@@ -1226,7 +1087,6 @@ export default function AssessmentModal({
                     rows={4}
                     placeholder="Anything else you&apos;d like me to know? (Optional)"
                     className="
-                      block
                       min-h-[115px]
                       w-full
                       resize-y
@@ -1248,9 +1108,6 @@ export default function AssessmentModal({
                       placeholder:text-[#858585]
 
                       outline-none
-
-                      transition
-                      duration-200
 
                       focus:border-[#6F8F72]
                       focus:ring-2
@@ -1381,86 +1238,93 @@ export default function AssessmentModal({
 
             <div
               className="
+                flex
+                min-h-full
+                items-center
+                justify-center
+
                 px-5
-                py-10
+                py-12
+
                 text-center
 
                 sm:px-10
-                sm:py-16
               "
             >
-              <div
-                className="
-                  mx-auto
+              <div>
+                <div
+                  className="
+                    mx-auto
 
-                  flex
-                  h-16
-                  w-16
-                  items-center
-                  justify-center
+                    flex
+                    h-16
+                    w-16
+                    items-center
+                    justify-center
 
-                  rounded-full
+                    rounded-full
 
-                  bg-[#E7EEE5]
+                    bg-[#E7EEE5]
 
-                  text-[#6F8F72]
-                "
-              >
-                <CheckCircle2
-                  size={32}
-                  strokeWidth={1.5}
-                />
+                    text-[#6F8F72]
+                  "
+                >
+                  <CheckCircle2
+                    size={32}
+                    strokeWidth={1.5}
+                  />
+                </div>
+
+                <h2
+                  className="
+                    mt-6
+
+                    text-[40px]
+                    leading-tight
+
+                    text-[#2B2B2B]
+
+                    [font-family:var(--font-cormorant)]
+
+                    sm:text-[46px]
+                  "
+                >
+                  Thank you.
+                </h2>
+
+                <p
+                  className="
+                    mx-auto
+                    mt-5
+                    max-w-md
+
+                    text-[15px]
+                    leading-8
+
+                    text-[#5B5B5B]
+                  "
+                >
+                  I&apos;ve received your message and I&apos;ll
+                  personally get back to you within 24 hours.
+                  I look forward to learning more about you and
+                  helping you on your English journey.
+                </p>
+
+                <p
+                  className="
+                    mt-7
+
+                    text-xl
+                    italic
+
+                    text-[#6F8F72]
+
+                    [font-family:var(--font-cormorant)]
+                  "
+                >
+                  See you soon.
+                </p>
               </div>
-
-              <h2
-                className="
-                  mt-6
-
-                  text-[40px]
-                  leading-tight
-
-                  text-[#2B2B2B]
-
-                  [font-family:var(--font-cormorant)]
-
-                  sm:text-[46px]
-                "
-              >
-                Thank you.
-              </h2>
-
-              <p
-                className="
-                  mx-auto
-                  mt-5
-                  max-w-md
-
-                  text-[15px]
-                  leading-8
-
-                  text-[#5B5B5B]
-                "
-              >
-                I&apos;ve received your message and I&apos;ll
-                personally get back to you within 24 hours.
-                I look forward to learning more about you and
-                helping you on your English journey.
-              </p>
-
-              <p
-                className="
-                  mt-7
-
-                  text-xl
-                  italic
-
-                  text-[#6F8F72]
-
-                  [font-family:var(--font-cormorant)]
-                "
-              >
-                See you soon.
-              </p>
             </div>
           )}
         </div>
