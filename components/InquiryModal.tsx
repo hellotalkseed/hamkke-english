@@ -38,7 +38,8 @@ const inquiryHeadings: Record<InquirySource, string> = {
   "start-a-conversation": "Let’s start with a conversation.",
 };
 
-const iconClass = "h-[20px] w-[20px] text-[#6F8F72] shrink-0";
+const iconClass =
+  "h-[20px] w-[20px] text-[#6F8F72] shrink-0";
 
 export default function AssessmentModal({
   isOpen,
@@ -159,8 +160,9 @@ export default function AssessmentModal({
         justify-center
 
         bg-[#253026]/45
-        px-4
-        py-4
+
+        px-3
+        py-3
 
         backdrop-blur-[4px]
 
@@ -183,15 +185,16 @@ export default function AssessmentModal({
 
           overflow-hidden
 
-          rounded-[30px]
+          rounded-[26px]
 
           bg-[#FAF9F6]
 
           shadow-[0_24px_80px_rgba(40,55,42,0.22)]
 
-          max-h-[calc(100dvh-24px)]
+          max-h-[calc(100dvh-18px)]
 
           sm:max-h-[92vh]
+          sm:rounded-[30px]
         "
       >
         {/* ================= CLOSE ================= */}
@@ -202,13 +205,13 @@ export default function AssessmentModal({
           aria-label="Close inquiry form"
           className="
             absolute
-            right-5
-            top-5
+            right-4
+            top-4
             z-20
 
             flex
-            h-10
-            w-10
+            h-9
+            w-9
             items-center
             justify-center
 
@@ -228,9 +231,14 @@ export default function AssessmentModal({
 
             sm:right-7
             sm:top-7
+            sm:h-10
+            sm:w-10
           "
         >
-          <X size={20} strokeWidth={1.8} />
+          <X
+            size={19}
+            strokeWidth={1.8}
+          />
         </button>
 
         {/* ================= HEADER ================= */}
@@ -239,9 +247,9 @@ export default function AssessmentModal({
           className="
             shrink-0
 
-            px-7
+            px-5
             pb-5
-            pt-8
+            pt-7
 
             sm:px-10
             sm:pb-6
@@ -252,64 +260,84 @@ export default function AssessmentModal({
             <>
               {/* Logo + Heading */}
 
-<div className="flex items-start gap-2.5 pr-12 sm:gap-3">
-  <Image
-    src="/logo/hamkke-icon.svg"
-    alt="Hamkke"
-    width={48}
-    height={48}
-    priority
-    className="
-      mt-1
-      h-10
-      w-10
-      shrink-0
+              <div
+                className="
+                  flex
+                  items-start
 
-      sm:h-12
-      sm:w-12
-    "
-  />
+                  gap-2
 
-  <div>
-    <h2
-      id="inquiry-modal-title"
-      className="
-        mt-2
-        max-w-none
-        whitespace-nowrap
+                  pr-10
 
-        text-[31px]
-        leading-[1.05]
+                  sm:gap-3
+                  sm:pr-12
+                "
+              >
+                <Image
+                  src="/logo/hamkke-icon.svg"
+                  alt="Hamkke"
+                  width={48}
+                  height={48}
+                  priority
+                  className="
+                    mt-1
 
-        text-[#2B2B2B]
+                    h-10
+                    w-10
+                    shrink-0
 
-        [font-family:var(--font-cormorant)]
+                    sm:h-12
+                    sm:w-12
+                  "
+                />
 
-        sm:text-[40px]
-        lg:text-[42px]
-      "
-    >
-      {heading}
-    </h2>
-  </div>
-</div>
+                <div className="min-w-0">
+                  <h2
+                    id="inquiry-modal-title"
+                    className="
+                      mt-1
+
+                      max-w-full
+
+                      text-[29px]
+                      leading-[1.08]
+                      tracking-[-0.01em]
+
+                      text-[#2B2B2B]
+
+                      [font-family:var(--font-cormorant)]
+
+                      sm:text-[40px]
+                      sm:leading-[1.05]
+                      sm:tracking-normal
+
+                      lg:text-[42px]
+                    "
+                  >
+                    {heading}
+                  </h2>
+                </div>
+              </div>
 
               {/* Intro */}
 
               <p
-  className="
-    mt-5
-    max-w-[570px]
+                className="
+                  mt-4
 
-    text-[15px]
-    leading-7
+                  max-w-[570px]
 
-    text-[#686868]
+                  text-[14px]
+                  leading-6
 
-    sm:ml-[68px]
-    sm:text-[16px]
-  "
->
+                  text-[#686868]
+
+                  sm:ml-[60px]
+                  sm:mt-5
+                  sm:text-[16px]
+                  sm:leading-7
+                "
+              >
                 I&apos;d love to learn more about you and
                 what you&apos;d like to achieve with your
                 English.
@@ -319,15 +347,17 @@ export default function AssessmentModal({
 
               <div
                 className="
-                  mt-5
+                  mt-4
 
                   flex
                   flex-wrap
                   items-center
+
                   gap-x-5
                   gap-y-3
 
-                  sm:ml-[68px]
+                  sm:ml-[60px]
+                  sm:mt-5
                 "
               >
                 <div className="flex items-center gap-2.5">
@@ -338,8 +368,9 @@ export default function AssessmentModal({
 
                   <span
                     className="
-                      text-[12px]
+                      text-[11px]
                       text-[#777]
+
                       sm:text-[13px]
                     "
                   >
@@ -366,8 +397,9 @@ export default function AssessmentModal({
 
                   <span
                     className="
-                      text-[12px]
+                      text-[11px]
                       text-[#777]
+
                       sm:text-[13px]
                     "
                   >
@@ -389,8 +421,8 @@ export default function AssessmentModal({
             overflow-y-auto
             overscroll-contain
 
-            px-7
-            pb-8
+            px-5
+            pb-7
 
             sm:px-10
             sm:pb-10
@@ -403,7 +435,8 @@ export default function AssessmentModal({
             <form
               onSubmit={handleSubmit}
               className="
-                space-y-3.5
+                space-y-3
+
                 sm:space-y-4
               "
             >
@@ -435,7 +468,7 @@ export default function AssessmentModal({
                   placeholder="What should I call you? (English name)"
                   required
                   className="
-                    h-[64px]
+                    h-[60px]
                     w-full
 
                     rounded-[15px]
@@ -447,7 +480,7 @@ export default function AssessmentModal({
                     pl-12
                     pr-10
 
-                    text-[15px]
+                    text-[14px]
                     text-[#2B2B2B]
 
                     placeholder:text-[#858585]
@@ -506,7 +539,7 @@ export default function AssessmentModal({
                   placeholder="Email Address"
                   required
                   className="
-                    h-[64px]
+                    h-[60px]
                     w-full
 
                     rounded-[15px]
@@ -518,7 +551,7 @@ export default function AssessmentModal({
                     pl-12
                     pr-10
 
-                    text-[15px]
+                    text-[14px]
                     text-[#2B2B2B]
 
                     placeholder:text-[#858585]
@@ -576,7 +609,7 @@ export default function AssessmentModal({
                   value={formData.contactMethod}
                   onChange={handleChange}
                   className={`
-                    h-[64px]
+                    h-[60px]
                     w-full
                     appearance-none
 
@@ -589,7 +622,7 @@ export default function AssessmentModal({
                     pl-12
                     pr-16
 
-                    text-[15px]
+                    text-[14px]
 
                     outline-none
 
@@ -648,7 +681,6 @@ export default function AssessmentModal({
                     right-10
                     top-1/2
                     -translate-y-1/2
-
                     translate-x-8
 
                     text-[#6F8F72]
@@ -682,7 +714,7 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   placeholder="Your ID / Username / Phone Number"
                   className="
-                    h-[64px]
+                    h-[60px]
                     w-full
 
                     rounded-[15px]
@@ -694,7 +726,7 @@ export default function AssessmentModal({
                     pl-12
                     pr-5
 
-                    text-[15px]
+                    text-[14px]
                     text-[#2B2B2B]
 
                     placeholder:text-[#858585]
@@ -740,7 +772,7 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
-                    h-[64px]
+                    h-[60px]
                     w-full
                     appearance-none
 
@@ -753,7 +785,7 @@ export default function AssessmentModal({
                     pl-12
                     pr-16
 
-                    text-[15px]
+                    text-[14px]
 
                     outline-none
 
@@ -824,7 +856,6 @@ export default function AssessmentModal({
                     right-10
                     top-1/2
                     -translate-y-1/2
-
                     translate-x-8
 
                     text-[#6F8F72]
@@ -859,7 +890,7 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
-                    h-[64px]
+                    h-[60px]
                     w-full
                     appearance-none
 
@@ -872,7 +903,7 @@ export default function AssessmentModal({
                     pl-12
                     pr-16
 
-                    text-[15px]
+                    text-[14px]
 
                     outline-none
 
@@ -947,7 +978,6 @@ export default function AssessmentModal({
                     right-10
                     top-1/2
                     -translate-y-1/2
-
                     translate-x-8
 
                     text-[#6F8F72]
@@ -980,7 +1010,7 @@ export default function AssessmentModal({
                   rows={4}
                   placeholder="Anything else you&apos;d like me to know? (Optional)"
                   className="
-                    min-h-[120px]
+                    min-h-[115px]
                     w-full
                     resize-y
 
@@ -994,7 +1024,7 @@ export default function AssessmentModal({
                     py-5
                     pl-12
 
-                    text-[15px]
+                    text-[14px]
                     leading-6
                     text-[#2B2B2B]
 
