@@ -147,11 +147,9 @@ export default function AssessmentModal({
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    const { name, value } = event.target;
-
     setFormData((previous) => ({
       ...previous,
-      [name]: value,
+      [event.target.name]: event.target.value,
     }));
   };
 
@@ -215,10 +213,7 @@ export default function AssessmentModal({
 
         overscroll-none
 
-        p-0
-
         sm:items-center
-        sm:p-6
       "
       onClick={onClose}
       role="presentation"
@@ -226,16 +221,10 @@ export default function AssessmentModal({
       {/* =====================================================
           FIXED MODAL
 
-          IMPORTANT:
-          The modal itself NEVER grows or shrinks according
-          to the form contents.
+          The important change here is that the modal has an
+          explicit height rather than relying on max-height.
 
-          Mobile:
-          exactly 100dvh
-
-          Desktop:
-          exactly 92vh
-          max-width: 680px
+          Nothing inside the form can make this container grow.
           ===================================================== */}
 
       <div
@@ -245,16 +234,13 @@ export default function AssessmentModal({
         aria-labelledby="inquiry-modal-title"
         className="
           relative
-          isolate
+
+          mx-auto
 
           flex
           h-[100dvh]
-          max-h-[100dvh]
-
+          min-h-0
           w-full
-          min-w-0
-          max-w-none
-
           flex-col
 
           overflow-hidden
@@ -263,11 +249,11 @@ export default function AssessmentModal({
 
           shadow-[0_24px_80px_rgba(40,55,42,0.22)]
 
-          sm:h-[92vh]
-          sm:max-h-[92vh]
-          sm:w-[680px]
-          sm:max-w-[680px]
+          box-border
 
+          sm:h-[92dvh]
+          sm:max-h-[92dvh]
+          sm:max-w-[680px]
           sm:rounded-[30px]
         "
       >
@@ -289,7 +275,6 @@ export default function AssessmentModal({
             h-9
             w-9
             shrink-0
-
             items-center
             justify-center
 
@@ -299,7 +284,7 @@ export default function AssessmentModal({
 
             text-[#6F8F72]
 
-            transition-colors
+            transition-all
             duration-200
 
             hover:bg-[#E2EBDF]
@@ -320,22 +305,16 @@ export default function AssessmentModal({
         </button>
 
         {/* ===================================================
-            FIXED HEADER
+            HEADER
 
-            This never scrolls and never changes height
-            while the user fills in the form.
+            FIXED / NON-SCROLLING
             =================================================== */}
 
         {!submitted && (
           <div
             className="
-              relative
-              z-10
-
+              box-border
               shrink-0
-              grow-0
-
-              overflow-hidden
 
               px-5
               pb-5
@@ -351,15 +330,13 @@ export default function AssessmentModal({
             <div
               className="
                 flex
-                min-w-0
                 items-start
-
                 gap-2
 
-                pr-12
+                pr-10
 
                 sm:gap-3
-                sm:pr-14
+                sm:pr-12
               "
             >
               <Image
@@ -380,7 +357,7 @@ export default function AssessmentModal({
                 "
               />
 
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0">
                 <h2
                   id="inquiry-modal-title"
                   className="
@@ -502,26 +479,25 @@ export default function AssessmentModal({
         {/* ===================================================
             FIXED SCROLL VIEWPORT
 
-            This area gets a FIXED available height from
-            flexbox.
+            THIS IS THE CRITICAL PART.
 
-            Nothing inside this section can make the modal
-            itself grow.
+            h-0 + flex-1 + min-h-0 means:
 
-            Only this area scrolls.
+            "Take whatever space is left, but NEVER grow
+             the modal because the form is taller."
+
+            The form can therefore be 2000px tall while the
+            modal itself remains exactly the same height.
             =================================================== */}
 
         <div
           className="
+            h-0
             min-h-0
-            min-w-0
-
             flex-1
-            shrink
-            grow
 
-            overflow-y-auto
             overflow-x-hidden
+            overflow-y-auto
 
             overscroll-contain
 
@@ -541,7 +517,8 @@ export default function AssessmentModal({
             <form
               onSubmit={handleSubmit}
               className="
-                min-w-0
+                box-border
+                w-full
 
                 space-y-3
 
@@ -552,7 +529,7 @@ export default function AssessmentModal({
                   NAME
                   ================================================= */}
 
-              <div className="relative min-w-0">
+              <div className="relative box-border">
                 <UserRound
                   className="
                     pointer-events-none
@@ -560,7 +537,6 @@ export default function AssessmentModal({
                     left-4
                     top-1/2
                     z-10
-
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -580,11 +556,11 @@ export default function AssessmentModal({
                   placeholder="What should I call you? (English name)"
                   required
                   className="
-                    block
+                    box-border
+
                     h-[60px]
                     w-full
                     min-w-0
-                    shrink-0
 
                     rounded-[15px]
                     border
@@ -602,6 +578,9 @@ export default function AssessmentModal({
 
                     outline-none
 
+                    transition-colors
+                    duration-200
+
                     focus:border-[#6F8F72]
                     focus:ring-2
                     focus:ring-[#6F8F72]/10
@@ -618,7 +597,6 @@ export default function AssessmentModal({
                     absolute
                     right-5
                     top-1/2
-
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -632,14 +610,14 @@ export default function AssessmentModal({
                   EMAIL
                   ================================================= */}
 
-              <div className="relative min-w-0">
+              <div className="relative box-border">
                 <Mail
                   className="
                     pointer-events-none
                     absolute
                     left-4
                     top-1/2
-
+                    z-10
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -659,11 +637,11 @@ export default function AssessmentModal({
                   placeholder="Email Address"
                   required
                   className="
-                    block
+                    box-border
+
                     h-[60px]
                     w-full
                     min-w-0
-                    shrink-0
 
                     rounded-[15px]
                     border
@@ -681,6 +659,9 @@ export default function AssessmentModal({
 
                     outline-none
 
+                    transition-colors
+                    duration-200
+
                     focus:border-[#6F8F72]
                     focus:ring-2
                     focus:ring-[#6F8F72]/10
@@ -697,7 +678,6 @@ export default function AssessmentModal({
                     absolute
                     right-5
                     top-1/2
-
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -711,7 +691,7 @@ export default function AssessmentModal({
                   CONTACT METHOD
                   ================================================= */}
 
-              <div className="relative min-w-0">
+              <div className="relative box-border">
                 <Phone
                   className="
                     pointer-events-none
@@ -719,7 +699,6 @@ export default function AssessmentModal({
                     left-4
                     top-1/2
                     z-10
-
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -736,11 +715,13 @@ export default function AssessmentModal({
                   value={formData.contactMethod}
                   onChange={handleChange}
                   className={`
+                    box-border
+
                     block
+
                     h-[60px]
                     w-full
                     min-w-0
-                    shrink-0
 
                     appearance-none
 
@@ -756,6 +737,9 @@ export default function AssessmentModal({
                     text-[14px]
 
                     outline-none
+
+                    transition-colors
+                    duration-200
 
                     focus:border-[#6F8F72]
                     focus:ring-2
@@ -795,7 +779,6 @@ export default function AssessmentModal({
                     absolute
                     right-5
                     top-1/2
-
                     -translate-y-1/2
 
                     text-[#777]
@@ -808,10 +791,10 @@ export default function AssessmentModal({
                   className="
                     pointer-events-none
                     absolute
-                    right-3
+                    right-10
                     top-1/2
-
                     -translate-y-1/2
+                    translate-x-8
 
                     text-[#6F8F72]
                   "
@@ -824,14 +807,13 @@ export default function AssessmentModal({
                   CONTACT ID
                   ================================================= */}
 
-              <div className="relative min-w-0">
+              <div className="relative box-border">
                 <ContactRound
                   className="
                     pointer-events-none
                     absolute
                     left-4
                     top-1/2
-
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -850,11 +832,11 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   placeholder="Your ID / Username / Phone Number"
                   className="
-                    block
+                    box-border
+
                     h-[60px]
                     w-full
                     min-w-0
-                    shrink-0
 
                     rounded-[15px]
                     border
@@ -872,6 +854,9 @@ export default function AssessmentModal({
 
                     outline-none
 
+                    transition-colors
+                    duration-200
+
                     focus:border-[#6F8F72]
                     focus:ring-2
                     focus:ring-[#6F8F72]/10
@@ -887,7 +872,7 @@ export default function AssessmentModal({
                   LEVEL
                   ================================================= */}
 
-              <div className="relative min-w-0">
+              <div className="relative box-border">
                 <ChartNoAxesColumnIncreasing
                   className="
                     pointer-events-none
@@ -895,7 +880,6 @@ export default function AssessmentModal({
                     left-4
                     top-1/2
                     z-10
-
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -913,11 +897,13 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
+                    box-border
+
                     block
+
                     h-[60px]
                     w-full
                     min-w-0
-                    shrink-0
 
                     appearance-none
 
@@ -933,6 +919,9 @@ export default function AssessmentModal({
                     text-[14px]
 
                     outline-none
+
+                    transition-colors
+                    duration-200
 
                     focus:border-[#6F8F72]
                     focus:ring-2
@@ -984,7 +973,6 @@ export default function AssessmentModal({
                     absolute
                     right-5
                     top-1/2
-
                     -translate-y-1/2
 
                     text-[#777]
@@ -997,10 +985,10 @@ export default function AssessmentModal({
                   className="
                     pointer-events-none
                     absolute
-                    right-3
+                    right-10
                     top-1/2
-
                     -translate-y-1/2
+                    translate-x-8
 
                     text-[#6F8F72]
                   "
@@ -1013,7 +1001,7 @@ export default function AssessmentModal({
                   GOAL
                   ================================================= */}
 
-              <div className="relative min-w-0">
+              <div className="relative box-border">
                 <Target
                   className="
                     pointer-events-none
@@ -1021,7 +1009,6 @@ export default function AssessmentModal({
                     left-4
                     top-1/2
                     z-10
-
                     -translate-y-1/2
 
                     text-[#6F8F72]
@@ -1039,11 +1026,13 @@ export default function AssessmentModal({
                   onChange={handleChange}
                   required
                   className={`
+                    box-border
+
                     block
+
                     h-[60px]
                     w-full
                     min-w-0
-                    shrink-0
 
                     appearance-none
 
@@ -1059,6 +1048,9 @@ export default function AssessmentModal({
                     text-[14px]
 
                     outline-none
+
+                    transition-colors
+                    duration-200
 
                     focus:border-[#6F8F72]
                     focus:ring-2
@@ -1114,7 +1106,6 @@ export default function AssessmentModal({
                     absolute
                     right-5
                     top-1/2
-
                     -translate-y-1/2
 
                     text-[#777]
@@ -1127,10 +1118,10 @@ export default function AssessmentModal({
                   className="
                     pointer-events-none
                     absolute
-                    right-3
+                    right-10
                     top-1/2
-
                     -translate-y-1/2
+                    translate-x-8
 
                     text-[#6F8F72]
                   "
@@ -1143,7 +1134,7 @@ export default function AssessmentModal({
                   MESSAGE
                   ================================================= */}
 
-              <div className="relative min-w-0">
+              <div className="relative box-border">
                 <Pencil
                   className="
                     pointer-events-none
@@ -1167,13 +1158,16 @@ export default function AssessmentModal({
                   rows={4}
                   placeholder="Anything else you&apos;d like me to know? (Optional)"
                   className="
-                    block
+                    box-border
+
+                    h-[115px]
                     min-h-[115px]
+                    max-h-[115px]
+
                     w-full
                     min-w-0
-                    shrink-0
 
-                    resize-y
+                    resize-none
 
                     rounded-[15px]
                     border
@@ -1193,11 +1187,16 @@ export default function AssessmentModal({
 
                     outline-none
 
+                    transition-colors
+                    duration-200
+
                     focus:border-[#6F8F72]
                     focus:ring-2
                     focus:ring-[#6F8F72]/10
 
+                    sm:h-[135px]
                     sm:min-h-[135px]
+                    sm:max-h-[135px]
                     sm:pl-14
                     sm:text-[16px]
                   "
@@ -1211,7 +1210,7 @@ export default function AssessmentModal({
               {error && (
                 <p
                   className="
-                    shrink-0
+                    box-border
 
                     rounded-xl
                     bg-[#FDF0F0]
@@ -1236,10 +1235,12 @@ export default function AssessmentModal({
                 type="submit"
                 disabled={loading}
                 className="
+                  box-border
+
                   mt-2
 
                   flex
-                  min-h-[52px]
+                  h-[54px]
                   w-full
                   shrink-0
 
@@ -1252,7 +1253,6 @@ export default function AssessmentModal({
                   bg-[#6F8F72]
 
                   px-6
-                  py-4
 
                   text-[15px]
                   font-medium
@@ -1269,6 +1269,8 @@ export default function AssessmentModal({
 
                   disabled:cursor-not-allowed
                   disabled:opacity-60
+
+                  sm:h-[58px]
                 "
               >
                 {loading ? "Sending..." : "Send Inquiry"}
@@ -1287,16 +1289,16 @@ export default function AssessmentModal({
 
               <div
                 className="
-                  flex
-                  shrink-0
+                  box-border
 
+                  flex
                   items-center
                   justify-center
                   gap-2
 
                   px-4
-                  pb-2
                   pt-2
+                  pb-2
 
                   text-center
                   text-[11px]
@@ -1319,13 +1321,13 @@ export default function AssessmentModal({
               </div>
             </form>
           ) : (
-            /* =================================================
+            /* ===================================================
                SUCCESS
-               ================================================= */
+               =================================================== */
 
             <div
               className="
-                min-w-0
+                box-border
 
                 py-8
                 text-center
