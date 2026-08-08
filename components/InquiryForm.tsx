@@ -275,55 +275,56 @@ export default function InquiryForm({
 
           <div className="min-w-0">
             <h2
-              id="inquiry-modal-title"
-              className="
-                mt-1
+  id="inquiry-modal-title"
+  className="
+    mt-1
 
-                max-w-full
+    max-w-full
 
-                text-[29px]
-                leading-[1.08]
-                tracking-[-0.01em]
+    whitespace-normal
 
-                text-[#2B2B2B]
+    text-[29px]
+    leading-[1.08]
+    tracking-[-0.01em]
 
-                [font-family:var(--font-cormorant)]
+    text-[#2B2B2B]
 
-                sm:text-[40px]
-                sm:leading-[1.05]
-                sm:tracking-normal
+    [font-family:var(--font-cormorant)]
 
-                lg:text-[42px]
-              "
-            >
-              {heading}
-            </h2>
+    sm:whitespace-nowrap
+    sm:text-[36px]
+    sm:leading-[1.05]
+    sm:tracking-[-0.01em]
+
+    lg:text-[38px]
+  "
+>
+  {heading}
+</h2>
           </div>
         </div>
 
         {/* Intro */}
 
         <p
-          className="
-            mt-4
+  className="
+    mt-4
+    w-full
 
-            max-w-[570px]
+    text-center
 
-            text-[14px]
-            leading-6
+    text-[14px]
+    leading-6
 
-            text-[#686868]
+    text-[#686868]
 
-            sm:ml-[60px]
-            sm:mt-5
-            sm:text-[16px]
-            sm:leading-7
-          "
-        >
-          I&apos;d love to learn more about you and
-          what you&apos;d like to achieve with your
-          English.
-        </p>
+    sm:mt-5
+    sm:text-[16px]
+    sm:leading-7
+  "
+>
+  Tell me a little about you and what you&apos;d like to work on.
+</p>
 
         {/* Reassurance */}
 
@@ -332,57 +333,63 @@ export default function InquiryForm({
     mt-4
 
     flex
-    flex-nowrap
+    flex-wrap
     items-center
+    justify-center
 
     gap-x-5
+    gap-y-3
 
-    sm:ml-[60px]
     sm:mt-5
   "
 >
-          <div className="flex items-center gap-2.5">
-            <MessageCircle
-              className={iconClass}
-              strokeWidth={1.7}
-            />
+  <div className="flex items-center gap-2.5">
+    <MessageCircle
+      className={iconClass}
+      strokeWidth={1.7}
+    />
 
-            <span
-  className="
-    whitespace-nowrap
+    <span
+      className="
+        text-[11px]
+        text-[#777]
 
-    text-[11px]
-    text-[#777]
+        sm:text-[13px]
+      "
+    >
+      Personal reply within 24 hours
+    </span>
+  </div>
 
-    sm:text-[13px]
-  "
->
-  Personal reply within 24 hours
-</span>
-          </div>
+  <span
+    className="
+      hidden
+      h-5
+      w-px
+      bg-[#D9E2D6]
 
+      sm:block
+    "
+  />
 
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck
-              className={iconClass}
-              strokeWidth={1.7}
-            />
+  <div className="flex items-center gap-2.5">
+    <ShieldCheck
+      className={iconClass}
+      strokeWidth={1.7}
+    />
 
-            <span
-  className="
-    whitespace-nowrap
+    <span
+      className="
+        text-[11px]
+        text-[#777]
 
-    text-[11px]
-    text-[#777]
-
-    sm:text-[13px]
-  "
->
-  Your information is safe with me
-</span>
-
-          </div>
-        </div>
+        sm:text-[13px]
+      "
+    >
+      Your information is safe with me
+    </span>
+  </div>
+</div>
       </div>
 
       {/* =====================================================
