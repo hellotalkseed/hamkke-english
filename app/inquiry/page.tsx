@@ -112,21 +112,43 @@ function InquiryPageContent() {
         {/* Small logo / brand */}
 
         <div
-          className="
-            absolute
-            left-1/2
-            -translate-x-1/2
-          "
-        >
-          <img
-            src="/logo/hamkke-icon.svg"
-            alt="Hamkke"
-            className="
-              h-8
-              w-8
-            "
-          />
-        </div>
+  className="
+    absolute
+    left-1/2
+    -translate-x-1/2
+    whitespace-nowrap
+  "
+>
+  <span
+    className="
+      text-[22px]
+      font-semibold
+      text-[#2B2B2B]
+      [font-family:var(--font-cormorant)]
+    "
+  >
+    Hamkke
+  </span>
+
+  <span
+    className="
+      mx-1.5
+      text-[#A8BCA5]
+    "
+  >
+    │
+  </span>
+
+  <span
+    className="
+      text-[15px]
+      font-medium
+      text-[#6F8F72]
+    "
+  >
+    함께
+  </span>
+</div>
 
         {/* Close */}
 
