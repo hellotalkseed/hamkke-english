@@ -40,7 +40,7 @@ export default function WhatYouWontFindHere({
       className="
         relative
         overflow-hidden
-        bg-[#FAF8F5]
+        bg-white
         py-20
         sm:py-24
         lg:py-32
