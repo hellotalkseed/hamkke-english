@@ -35,7 +35,7 @@ export default function ReflectionCard({
         flex-shrink-0
         cursor-pointer
         rounded-[2rem]
-        bg-white
+        bg-[#DDE9D8]
         p-6
         shadow-md
         transition-all
@@ -65,7 +65,7 @@ export default function ReflectionCard({
           text-[16px]
           leading-7
           italic
-          text-[#555]
+          text-[#2B2B2B]
 
           sm:mt-6
           sm:text-[17px]

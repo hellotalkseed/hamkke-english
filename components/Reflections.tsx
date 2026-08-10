@@ -30,7 +30,7 @@ export default async function Reflections({
     <section
   id="student-stories"
   className="
-    bg-[#F3F7F1]
+  bg-#FAF8F5
     py-24
     lg:py-32
   "

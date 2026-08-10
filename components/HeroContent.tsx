@@ -20,6 +20,8 @@ export default function HeroContent({
       <div
         className="
           flex
+          min-w-0
+          w-full
           flex-col
           justify-center
         "
@@ -32,14 +34,15 @@ export default function HeroContent({
           <p
             className="
               mb-3
-
-              text-[12px]
+              text-[11px]
               font-medium
               uppercase
-              tracking-[0.35em]
+              tracking-[0.3em]
               text-[#6F8F72]
 
               sm:mb-4
+              sm:text-[12px]
+              sm:tracking-[0.35em]
             "
           >
             {t.hero.brand}
@@ -53,17 +56,23 @@ export default function HeroContent({
         <FadeUp delay={0.25}>
           <h1
             className="
+              min-w-0
+              w-full
               max-w-[620px]
 
-              text-[42px]
-              leading-[0.92]
+              text-[44px]
+              leading-[0.95]
+              break-words
 
               text-[#2B2B2B]
 
               [font-family:var(--font-cormorant)]
 
               sm:text-[52px]
+              sm:leading-[0.92]
+
               md:text-[60px]
+
               lg:text-[76px]
             "
           >
@@ -72,50 +81,64 @@ export default function HeroContent({
         </FadeUp>
 
         {/* =====================================================
-    SIGNATURE + DESCRIPTION
-    ===================================================== */}
+            SIGNATURE + DESCRIPTION
+            ===================================================== */}
 
-<div className="mt-1 w-full">
-  {/* Signature */}
+        <div
+          className="
+            mt-3
+            min-w-0
+            w-full
 
-  <FadeUp delay={0.32}>
-    <p
-      className="
-        whitespace-nowrap
-        text-[16px]
-        leading-7
-        italic
-        text-[#6F8F72]
-        [font-family:var(--font-cormorant)]
+            sm:mt-2
+          "
+        >
+          {/* Signature */}
 
-        sm:text-[18px]
-        sm:leading-8
-      "
-    >
-      {t.hero.signature}
-    </p>
-  </FadeUp>
+          <FadeUp delay={0.32}>
+            <p
+              className="
+                max-w-full
+                break-words
 
-  {/* Description */}
+                text-[17px]
+                leading-7
+                italic
+                text-[#6F8F72]
 
-  <FadeUp delay={0.39}>
-    <p
-      className="
-        mt-5
-        w-full
-        text-[17px]
-        leading-8
-        text-[#5B5B5B]
+                [font-family:var(--font-cormorant)]
 
-        sm:mt-6
-        sm:text-lg
-        sm:leading-9
-      "
-    >
-      {t.hero.description}
-    </p>
-  </FadeUp>
-</div>
+                sm:text-[18px]
+                sm:leading-8
+              "
+            >
+              {t.hero.signature}
+            </p>
+          </FadeUp>
+
+          {/* Description */}
+
+          <FadeUp delay={0.39}>
+            <p
+              className="
+                mt-5
+                min-w-0
+                w-full
+                max-w-[620px]
+
+                text-[16px]
+                leading-7
+                text-[#5B5B5B]
+
+                sm:mt-6
+                sm:text-lg
+                sm:leading-9
+              "
+            >
+              {t.hero.description}
+            </p>
+          </FadeUp>
+        </div>
 
         {/* =====================================================
             BUTTONS
@@ -126,28 +149,33 @@ export default function HeroContent({
             className="
               mt-8
               flex
+              w-full
               flex-col
-              gap-5
+              gap-4
 
               sm:mt-9
               sm:flex-row
+              sm:gap-5
 
               lg:mt-10
             "
           >
+            {/* Start a Conversation */}
+
             <button
               type="button"
               onClick={onStartConversation}
               className="
                 w-full
+                min-w-0
                 rounded-full
 
                 bg-[#6F8F72]
 
-                px-10
-                py-5
+                px-6
+                py-4
 
-                text-lg
+                text-base
                 font-medium
                 text-white
 
@@ -162,25 +190,36 @@ export default function HeroContent({
                 hover:shadow-xl
 
                 sm:w-auto
+                sm:px-8
+                sm:py-5
+                sm:text-lg
+
+                lg:px-10
               "
             >
               {t.hero.startConversation}
             </button>
 
+            {/* Explore Lessons */}
+
             <a
               href={`/${locale}#lessons`}
               className="
+                flex
                 w-full
+                min-w-0
+                items-center
+                justify-center
                 rounded-full
 
                 border
                 border-[#6F8F72]
 
-                px-10
-                py-5
+                px-6
+                py-4
 
                 text-center
-                text-lg
+                text-base
                 font-medium
                 text-[#6F8F72]
 
@@ -191,6 +230,11 @@ export default function HeroContent({
                 hover:bg-[#EEF5EE]
 
                 sm:w-auto
+                sm:px-8
+                sm:py-5
+                sm:text-lg
+
+                lg:px-10
               "
             >
               {t.hero.exploreLessons}

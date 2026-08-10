@@ -17,12 +17,14 @@ export default async function ReflectionsPage({
 }: ReflectionsPageProps) {
   const { locale } = await params;
 
+  // Make sure the locale is valid
   if (!isValidLocale(locale)) {
     notFound();
   }
 
   const t = getMessages(locale);
 
+  // Get approved student reflections
   const { data: reflections, error } = await supabase
     .from("reflections")
     .select("*")
@@ -36,73 +38,140 @@ export default async function ReflectionsPage({
   }
 
   return (
-    <main className="bg-[#FAF8F5] py-24">
-      <div className="mx-auto max-w-7xl px-6">
+    <main className="min-h-screen bg-[#FAF8F5]">
 
-        <div className="mx-auto max-w-3xl text-center">
+      {/* =====================================================
+          BACK BUTTON
+          ===================================================== */}
 
-          <p
-            className="
-              mb-5
-              text-[12px]
-              font-medium
-              uppercase
-              tracking-[0.35em]
-              text-[#6F8F72]
-            "
-          >
-            {t.reflections.brand}
-          </p>
-
-          <h1
-            className="
-              text-[54px]
-              leading-none
-              text-[#2B2B2B]
-              [font-family:var(--font-cormorant)]
-            "
-          >
-            {t.reflections.galleryTitleLineOne}
-            <br />
-            {t.reflections.galleryTitleLineTwo}
-          </h1>
-
-          <p
-            className="
-              mx-auto
-              mt-8
-              max-w-2xl
-              text-lg
-              leading-8
-              text-[#5B5B5B]
-            "
-          >
-            {t.reflections.galleryDescription}
-          </p>
-
-          <p
-            className="
-              mt-5
-              text-sm
-              uppercase
-              tracking-[0.25em]
-              text-[#8B8B8B]
-            "
-          >
-            {reflections?.length ?? 0}{" "}
-            {t.reflections.storiesShared}
-          </p>
-
-        </div>
-
-        <div className="mt-20">
-          <ReflectionsGallery
-            reflections={reflections ?? []}
-            locale={locale}
-          />
-        </div>
-
+      <div className="mx-auto max-w-7xl px-6 pt-8 lg:px-10">
+        <a
+          href={`/${locale}`}
+          className="
+            inline-flex
+            items-center
+            text-sm
+            text-[#6F8F72]
+            transition-colors
+            duration-300
+            hover:text-[#5B7960]
+          "
+        >
+          ← Back to Hamkke
+        </a>
       </div>
+
+      {/* =====================================================
+          PAGE INTRODUCTION
+          ===================================================== */}
+
+      <section
+        className="
+          mx-auto
+          max-w-4xl
+          px-6
+          pt-16
+          pb-16
+          text-center
+
+          sm:pt-18
+
+          lg:pt-20
+          lg:pb-20
+        "
+      >
+
+        {/* Brand */}
+
+        <p
+          className="
+            text-[12px]
+            font-medium
+            uppercase
+            tracking-[0.35em]
+            text-[#6F8F72]
+          "
+        >
+          {t.reflections.brand}
+        </p>
+
+        {/* Title */}
+
+        <h1
+          className="
+            mt-0
+            text-[48px]
+            leading-[0.95]
+            text-[#2B2B2B]
+            [font-family:var(--font-cormorant)]
+
+            sm:text-[58px]
+
+            lg:text-[64px]
+          "
+        >
+          {t.reflections.galleryTitleLineOne}
+          <br />
+          {t.reflections.galleryTitleLineTwo}
+        </h1>
+
+        {/* Description */}
+
+        <p
+          className="
+            mx-auto
+            mt-7
+            max-w-2xl
+            text-base
+            leading-7
+            text-[#5B5B5B]
+
+            sm:text-lg
+            sm:leading-8
+          "
+        >
+          {t.reflections.galleryDescription}
+        </p>
+
+        {/* Story Count */}
+
+        <p
+          className="
+            mt-5
+            text-[11px]
+            uppercase
+            tracking-[0.25em]
+            text-[#8B8B8B]
+
+            sm:text-xs
+          "
+        >
+          {reflections?.length ?? 0}{" "}
+          {t.reflections.storiesShared}
+        </p>
+
+      </section>
+
+      {/* =====================================================
+          REFLECTION GALLERY
+          ===================================================== */}
+
+      <section
+        className="
+          mx-auto
+          max-w-7xl
+          px-6
+          pb-24
+
+          lg:px-10
+        "
+      >
+        <ReflectionsGallery
+          reflections={reflections ?? []}
+          locale={locale}
+        />
+      </section>
+
     </main>
   );
 }
