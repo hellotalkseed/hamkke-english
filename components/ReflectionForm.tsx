@@ -461,6 +461,8 @@ export default function ReflectionForm({
             bg-white
             px-5
             py-3
+            text-[#2B2B2B]
+            placeholder:text-[#858585]
             outline-none
             transition
             focus:border-[#6F8F72]
@@ -592,6 +594,8 @@ export default function ReflectionForm({
             bg-white
             px-5
             py-3
+            text-[#2B2B2B]
+            placeholder:text-[#858585]
             outline-none
             transition
             focus:border-[#6F8F72]
@@ -630,6 +634,8 @@ export default function ReflectionForm({
             bg-white
             px-5
             py-4
+            text-[#2B2B2B]
+            placeholder:text-[#858585]
             leading-7
             outline-none
             transition
