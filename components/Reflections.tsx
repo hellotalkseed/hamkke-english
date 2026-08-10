@@ -2,7 +2,18 @@ import { supabase } from "@/lib/supabase";
 import FadeUp from "./animations/FadeUp";
 import ReflectionCarousel from "./ReflectionCarousel";
 
-export default async function Reflections() {
+import { getMessages } from "../lib/getMessages";
+import type { Locale } from "../lib/i18n";
+
+interface ReflectionsProps {
+  locale: Locale;
+}
+
+export default async function Reflections({
+  locale,
+}: ReflectionsProps) {
+  const t = getMessages(locale);
+
   const { data } = await supabase
     .from("reflections")
     .select("*")
@@ -26,106 +37,105 @@ export default async function Reflections() {
     >
       <div className="mx-auto max-w-7xl">
 
+        {/* =====================================================
+            INTRODUCTION
+            ===================================================== */}
+
         <FadeUp>
+  <div className="mb-16 px-6 lg:px-10">
 
-          <div className="mb-16 px-6 lg:px-10">
+    {/* Brand */}
 
-            <p
-              className="
-                text-xs
-                uppercase
-                tracking-[0.35em]
-                text-[#6F8F72]
-              "
-            >
-              Hamkke │ 함께
-            </p>
+    <p
+      className="
+        text-xs
+        uppercase
+        tracking-[0.35em]
+        text-[#6F8F72]
+      "
+    >
+      {t.reflections.brand}
+    </p>
 
-            <h2
-              className="
-                mt-5
-                text-[42px]
-                leading-tight
-                text-[#2B2B2B]
-                [font-family:var(--font-cormorant)]
+    {/* Title */}
 
-                sm:text-[54px]
-                lg:text-[62px]
-              "
-            >
-              Small steps.
-              <br />
-              Meaningful milestones.
-            </h2>
+    <h2
+      className="
+        mt-5
+        max-w-[760px]
+        text-[42px]
+        leading-[1.05]
+        text-[#2B2B2B]
+        [font-family:var(--font-cormorant)]
 
-            <p
-              className="
-                mt-8
-                max-w-2xl
-                text-lg
-                leading-8
-                text-[#5B5B5B]
-              "
-            >
-              Every learner begins somewhere different.
-              <br />
-              <br />
-              These reflections celebrate the quiet progress that happens through 
-              <br />meaningful conversations, 
-              consistent practice, and the courage to keep speaking.
-            </p>
+        sm:text-[54px]
+        lg:text-[62px]
+      "
+    >
+      {t.reflections.title}
+    </h2>
 
-          </div>
+    {/* Introduction */}
 
-        </FadeUp>
+    <div
+      className="
+        mt-8
+        max-w-2xl
+        text-lg
+        leading-8
+        text-[#5B5B5B]
+      "
+    >
+      <p>
+        {t.reflections.description.lineOne}
+      </p>
+
+      <p className="mt-2">
+        {t.reflections.description.lineTwo}
+      </p>
+    </div>
+
+  </div>
+</FadeUp>
+
+        {/* =====================================================
+            REFLECTION CARDS
+            ===================================================== */}
 
         <ReflectionCarousel
-          reflections={reflections}
-        />
+  reflections={reflections}
+  locale={locale}
+/>
+
+        {/* =====================================================
+            READ MORE
+            ===================================================== */}
 
         <div className="mt-20 text-center">
 
           <a
-  href="/reflections"
-  className="
-    inline-flex
-    items-center
-    justify-center
-
-    rounded-full
-
-    bg-[#6F8F72]
-    px-10
-    py-4
-
-    text-sm
-    font-medium
-    text-white
-
-    shadow-md
-
-    transition-all
-    duration-300
-
-    hover:bg-[#5F7F62]
-    hover:shadow-lg
-
-    active:scale-95
-  "
->
-  Read More Stories →
-</a>
-
-          <p
+            href={`/${locale}/reflections`}
             className="
-              mt-5
+              inline-flex
+              items-center
+              justify-center
+              rounded-full
+              bg-[#6F8F72]
+              px-10
+              py-4
               text-sm
-              italic
-              text-[#888]
+              font-medium
+              text-white
+              shadow-md
+              transition-all
+              duration-300
+              hover:bg-[#5F7F62]
+              hover:shadow-lg
+              active:scale-95
             "
           >
-            Because every milestone deserves to be remembered.
-          </p>
+            {t.reflections.readMore}
+          </a>
 
         </div>
 

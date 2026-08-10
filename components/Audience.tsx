@@ -1,64 +1,71 @@
+"use client";
+
 import {
-  Sprout,
   MessageCircle,
   Briefcase,
+  Mic,
   Plane,
-  GraduationCap,
-  Target,
+  Users,
 } from "lucide-react";
 
-import SectionHeader from "./SectionHeader";
 import StaggerContainer from "./animations/StaggerContainer";
 import StaggerItem from "./animations/StaggerItem";
 
-const audiences = [
-  {
-    title: "Beginners",
-    icon: Sprout,
-    text: "Develop confidence through everyday conversations, practical vocabulary, and a strong foundation that makes speaking English feel natural.",
-  },
-  {
-    title: "Everyday Conversation",
-    icon: MessageCircle,
-    text: "Express yourself more naturally through meaningful conversations that help you share your thoughts, opinions, and experiences with confidence.",
-  },
-  {
-    title: "Professionals",
-    icon: Briefcase,
-    text: "Strengthen your English for meetings, presentations, interviews, and workplace communication while building confidence in professional settings.",
-  },
-  {
-    title: "Travelers",
-    icon: Plane,
-    text: "Learn practical English for airports, hotels, restaurants, shopping, and everyday situations so you can travel with greater confidence.",
-  },
-  {
-    title: "Students",
-    icon: GraduationCap,
-    text: "Improve your communication skills for school, presentations, interviews, and future opportunities while building confidence that lasts beyond the classroom.",
-  },
-  {
-    title: "Goal-Focused Learners",
-    icon: Target,
-    text: "Prepare for specific goals, including aviation English, career opportunities, important interviews, or other personal milestones with lessons tailored to your journey.",
-  },
-];
+import { getMessages } from "../lib/getMessages";
+import type { Locale } from "../lib/i18n";
 
-export default function Audience() {
+interface AudienceProps {
+  locale: Locale;
+}
+
+export default function Audience({
+  locale,
+}: AudienceProps) {
+  const t = getMessages(locale);
+
+  const goals = [
+    {
+      title: t.audience.goals.everyday.title,
+      icon: MessageCircle,
+      text: t.audience.goals.everyday.text,
+    },
+    {
+      title: t.audience.goals.work.title,
+      icon: Briefcase,
+      text: t.audience.goals.work.text,
+    },
+    {
+      title: t.audience.goals.interview.title,
+      icon: Mic,
+      text: t.audience.goals.interview.text,
+    },
+    {
+      title: t.audience.goals.travel.title,
+      icon: Plane,
+      text: t.audience.goals.travel.text,
+    },
+    {
+      title: t.audience.goals.conversation.title,
+      icon: Users,
+      text: t.audience.goals.conversation.text,
+    },
+  ];
+
   return (
     <section
+      id="goals"
       className="
         relative
         overflow-hidden
         bg-white
         py-20
-
         sm:py-24
         lg:py-32
       "
     >
-
-      {/* Decorative Background */}
+      {/* =====================================================
+          DECORATIVE BACKGROUND
+          ===================================================== */}
 
       <div
         className="
@@ -78,6 +85,20 @@ export default function Audience() {
         "
       />
 
+      <div
+        className="
+          pointer-events-none
+          absolute
+          right-[-180px]
+          bottom-20
+          h-[300px]
+          w-[300px]
+          rounded-full
+          bg-[#F8EDE5]
+          opacity-30
+          blur-3xl
+        "
+      />
 
       <div
         className="
@@ -90,132 +111,188 @@ export default function Audience() {
           lg:px-10
         "
       >
+        {/* =====================================================
+            HEADING
+            ===================================================== */}
 
-        {/* Section Header */}
-
-        <SectionHeader
-          title="Different goals. One conversation at a time."
-          description="
-            Whether you're building confidence, preparing for new
-            opportunities, or simply looking to communicate more
-            naturally, your lessons are designed around your goals,
-            your pace, and the conversations that matter most to you.
-          "
-        />
-
-
-        {/* Closing Statement */}
+        {/* Brand */}
 
         <p
           className="
-            -mt-12
-            mb-16
-            text-xl
-            italic
+            text-xs
+            uppercase
+            tracking-[0.35em]
             text-[#6F8F72]
-            [font-family:var(--font-cormorant)]
-
-            sm:mb-20
           "
         >
-          Wherever you're starting, we'll meet you there.
+          {t.audience.brand}
         </p>
 
+        {/* Title */}
 
+        <h2
+          className="
+            mt-5
+            max-w-[760px]
+            text-[42px]
+            leading-[0.98]
+            text-[#2B2B2B]
+            [font-family:var(--font-cormorant)]
 
-        {/* Audience Cards */}
+            sm:text-[52px]
+            md:text-[60px]
+            lg:text-[68px]
+          "
+        >
+          {t.audience.title}
+        </h2>
+
+        {/* =====================================================
+            DESCRIPTION
+            ===================================================== */}
+
+        <p
+          className="
+            mt-6
+            max-w-[680px]
+            text-[17px]
+            leading-8
+            text-[#5B5B5B]
+
+            sm:mt-7
+            sm:text-lg
+            sm:leading-9
+          "
+        >
+          {t.audience.description}
+        </p>
+
+        {/* =====================================================
+            GOAL CARDS
+            ===================================================== */}
 
         <StaggerContainer
           className="
+            mt-12
             grid
-            gap-6
+            gap-5
+
+            sm:gap-6
 
             md:grid-cols-2
-            xl:grid-cols-3
-            md:gap-8
+
+            lg:mt-16
+            lg:grid-cols-6
+            lg:gap-7
           "
         >
-
-          {audiences.map((item) => {
-
+          {goals.map((item, index) => {
             const Icon = item.icon;
 
             return (
               <StaggerItem
                 key={item.title}
-              >
+                className={`
+                  lg:col-span-2
 
+                  ${
+                    index === 3
+                      ? "lg:col-start-2"
+                      : ""
+                  }
+
+                  ${
+                    index === 4
+                      ? "lg:col-start-4"
+                      : ""
+                  }
+                `}
+              >
                 <div
                   className="
+                    group
                     h-full
                     rounded-[2rem]
                     border
-                    border-white/70
+                    border-[#E8E8E4]
                     bg-[#FCFBF9]
-                    p-8
-                    shadow-[0_12px_35px_rgba(0,0,0,0.05)]
-                    backdrop-blur-sm
+                    p-7
+                    shadow-[0_10px_30px_rgba(0,0,0,0.035)]
                     transition-all
                     duration-500
 
                     hover:-translate-y-1
-                    hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]
+                    hover:border-[#DCE7DC]
+                    hover:shadow-[0_18px_45px_rgba(0,0,0,0.07)]
 
-                    sm:p-10
+                    sm:p-8
+                    lg:p-9
                   "
                 >
+                  {/* =================================================
+                      ICON + TITLE
+                      ================================================= */}
 
                   <div
                     className="
-                      mb-7
                       flex
-                      items-center
+                      items-start
                       gap-4
                     "
                   >
+                    {/* Icon */}
 
                     <div
                       className="
                         flex
-                        h-12
-                        w-12
+                        h-11
+                        w-11
                         shrink-0
                         items-center
                         justify-center
                         rounded-full
                         bg-[#EEF5EE]
+                        transition-transform
+                        duration-500
+
+                        group-hover:scale-105
                       "
                     >
-
                       <Icon
                         className="
-                          h-6
-                          w-6
+                          h-5
+                          w-5
                           text-[#6F8F72]
                         "
+                        strokeWidth={1.7}
                       />
-
                     </div>
 
+                    {/* Title */}
 
                     <h3
                       className="
-                        text-[24px]
-                        leading-tight
+                        max-w-[340px]
+                        pt-1
+                        text-[23px]
+                        leading-[1.08]
                         text-[#2B2B2B]
                         [font-family:var(--font-cormorant)]
 
-                        sm:text-[28px]
+                        sm:text-[26px]
                       "
                     >
                       {item.title}
                     </h3>
-
                   </div>
 
+                  {/* =================================================
+                      DESCRIPTION
+                      ================================================= */}
 
                   <p
                     className="
+                      mt-6
                       text-[15px]
                       leading-7
                       text-[#5B5B5B]
@@ -226,20 +303,56 @@ export default function Audience() {
                   >
                     {item.text}
                   </p>
-
-
                 </div>
-
               </StaggerItem>
             );
-
           })}
-
         </StaggerContainer>
 
+        {/* =====================================================
+            CLOSING STATEMENT
+            ===================================================== */}
 
+        <div
+          className="
+            mt-20
+            max-w-[760px]
+
+            sm:mt-24
+            lg:mt-28
+          "
+        >
+          <p
+            className="
+              text-[29px]
+              leading-[1.12]
+              text-[#2B2B2B]
+              [font-family:var(--font-cormorant)]
+
+              sm:text-[34px]
+              lg:text-[40px]
+            "
+          >
+            {t.audience.closing.lineOne}
+          </p>
+
+          <p
+            className="
+              mt-2
+              text-[29px]
+              leading-[1.12]
+              italic
+              text-[#6F8F72]
+              [font-family:var(--font-cormorant)]
+
+              sm:text-[34px]
+              lg:text-[40px]
+            "
+          >
+            {t.audience.closing.lineTwo}
+          </p>
+        </div>
       </div>
-
     </section>
   );
 }

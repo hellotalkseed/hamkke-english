@@ -1,12 +1,20 @@
+"use client";
+
 import FadeUp from "./animations/FadeUp";
+import { getMessages } from "../lib/getMessages";
+import type { Locale } from "../lib/i18n";
 
 interface HeroContentProps {
+  locale: Locale;
   onStartConversation: () => void;
 }
 
 export default function HeroContent({
+  locale,
   onStartConversation,
 }: HeroContentProps) {
+  const t = getMessages(locale);
+
   return (
     <FadeUp>
       <div
@@ -16,56 +24,42 @@ export default function HeroContent({
           justify-center
         "
       >
-
-        {/* Section Label */}
+        {/* =====================================================
+            BRAND
+            ===================================================== */}
 
         <FadeUp delay={0.1}>
           <p
             className="
-              mb-5
+              mb-3
+
               text-[12px]
               font-medium
               uppercase
               tracking-[0.35em]
               text-[#6F8F72]
 
-              sm:mb-6
+              sm:mb-4
             "
           >
-            Hamkke │ 함께
+            {t.hero.brand}
           </p>
         </FadeUp>
 
-
-        {/* Subtitle */}
-
-        <FadeUp delay={0.15}>
-          <p
-            className="
-              mb-5
-              text-[13px]
-              font-medium
-              uppercase
-              tracking-[0.28em]
-              text-[#6F8F72]
-
-              sm:text-sm
-            "
-          >
-            English Conversations That Matter
-          </p>
-        </FadeUp>
-
-
-        {/* Heading */}
+        {/* =====================================================
+            MAIN HEADING
+            ===================================================== */}
 
         <FadeUp delay={0.25}>
           <h1
             className="
               max-w-[620px]
+
               text-[42px]
-              leading-[0.98]
+              leading-[0.92]
+
               text-[#2B2B2B]
+
               [font-family:var(--font-cormorant)]
 
               sm:text-[52px]
@@ -73,37 +67,61 @@ export default function HeroContent({
               lg:text-[76px]
             "
           >
-            Every meaningful conversation starts somewhere.
+            {t.hero.title}
           </h1>
         </FadeUp>
 
+        {/* =====================================================
+    SIGNATURE + DESCRIPTION
+    ===================================================== */}
 
-        {/* Description */}
+<div className="mt-1 w-full">
+  {/* Signature */}
 
-        <FadeUp delay={0.35}>
-          <p
-            className="
-              mt-6
-              max-w-[560px]
-              text-[17px]
-              leading-8
-              text-[#5B5B5B]
+  <FadeUp delay={0.32}>
+    <p
+      className="
+        whitespace-nowrap
+        text-[16px]
+        leading-7
+        italic
+        text-[#6F8F72]
+        [font-family:var(--font-cormorant)]
 
-              sm:mt-7
-              sm:text-lg
-              sm:leading-9
-            "
-          >
-            Improve your English naturally through conversations
-            that grow from everyday topics into meaningful
-            discussions.
-          </p>
-        </FadeUp>
+        sm:text-[18px]
+        sm:leading-8
+      "
+    >
+      {t.hero.signature}
+    </p>
+  </FadeUp>
 
+  {/* Description */}
 
-        {/* Buttons */}
+  <FadeUp delay={0.39}>
+    <p
+      className="
+        mt-5
+        w-full
+        text-[17px]
+        leading-8
+        text-[#5B5B5B]
 
-        <FadeUp delay={0.45}>
+        sm:mt-6
+        sm:text-lg
+        sm:leading-9
+      "
+    >
+      {t.hero.description}
+    </p>
+  </FadeUp>
+</div>
+
+        {/* =====================================================
+            BUTTONS
+            ===================================================== */}
+
+        <FadeUp delay={0.48}>
           <div
             className="
               mt-8
@@ -117,22 +135,28 @@ export default function HeroContent({
               lg:mt-10
             "
           >
-
             <button
+              type="button"
               onClick={onStartConversation}
               className="
                 w-full
                 rounded-full
+
                 bg-[#6F8F72]
+
                 px-10
                 py-5
+
                 text-lg
                 font-medium
                 text-white
+
                 shadow-lg
                 shadow-[#6F8F72]/20
+
                 transition-all
                 duration-300
+
                 hover:-translate-y-1
                 hover:bg-[#5B7960]
                 hover:shadow-xl
@@ -140,38 +164,39 @@ export default function HeroContent({
                 sm:w-auto
               "
             >
-              Start a Conversation
+              {t.hero.startConversation}
             </button>
 
-
             <a
-              href="#lessons"
+              href={`/${locale}#lessons`}
               className="
                 w-full
                 rounded-full
+
                 border
                 border-[#6F8F72]
+
                 px-10
                 py-5
+
                 text-center
                 text-lg
                 font-medium
                 text-[#6F8F72]
+
                 transition-all
                 duration-300
+
                 hover:-translate-y-1
                 hover:bg-[#EEF5EE]
 
                 sm:w-auto
               "
             >
-              Explore Lessons
+              {t.hero.exploreLessons}
             </a>
-
           </div>
         </FadeUp>
-
-
       </div>
     </FadeUp>
   );

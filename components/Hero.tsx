@@ -1,51 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import HeroContent from "./HeroContent";
 import HeroImage from "./HeroImage";
-import VideoModal from "./VideoModal";
-import AssessmentModal from "./InquiryModal";
+import InquiryModal from "./InquiryModal";
 import Navbar from "./Navbar";
 
-export default function Hero() {
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
-  const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
+import type { Locale } from "../lib/i18n";
 
-  useEffect(() => {
-    document.body.style.overflow = isVideoOpen ? "hidden" : "";
+interface HeroProps {
+  locale: Locale;
+}
 
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isVideoOpen]);
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsVideoOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
+export default function Hero({
+  locale,
+}: HeroProps) {
+  const [isInquiryOpen, setIsInquiryOpen] =
+    useState(false);
 
   return (
     <>
       <Navbar />
 
       <main className="relative overflow-hidden bg-[#FAF8F5]">
-
         <section
           className="
             mx-auto
             grid
             max-w-[1400px]
+
             gap-10
+
             px-6
             pt-8
             pb-8
@@ -55,28 +41,33 @@ export default function Hero() {
             md:pb-20
 
             lg:min-h-[calc(100vh-88px)]
-            lg:grid-cols-2
+            lg:grid-cols-[1.12fr_0.88fr]
             lg:items-center
-            lg:gap-10
+            lg:gap-6
             lg:px-10
           "
         >
+          {/* =====================================================
+              HERO CONTENT
+              ===================================================== */}
 
           <HeroContent
+            locale={locale}
             onStartConversation={() =>
-              setIsAssessmentOpen(true)
+              setIsInquiryOpen(true)
             }
           />
 
-          <HeroImage
-            onOpenVideo={() =>
-              setIsVideoOpen(true)
-            }
-          />
+          {/* =====================================================
+              HERO PORTRAIT
+              ===================================================== */}
 
+          <HeroImage />
         </section>
 
-        {/* Soft background decoration */}
+        {/* =====================================================
+            SOFT BACKGROUND DECORATION
+            ===================================================== */}
 
         <div
           className="
@@ -84,32 +75,33 @@ export default function Hero() {
             absolute
             right-[-120px]
             top-28
+
             h-[420px]
             w-[420px]
+
             rounded-full
+
             bg-[#E8F0E5]
+
             opacity-40
+
             blur-3xl
           "
         />
-
       </main>
 
-      {/* Video Modal */}
+      {/* =====================================================
+          INQUIRY MODAL
+          ===================================================== */}
 
-      <VideoModal
-        isOpen={isVideoOpen}
-        onClose={() => setIsVideoOpen(false)}
-      />
-
-      {/* Inquiry Modal */}
-
-      <AssessmentModal
-        isOpen={isAssessmentOpen}
-        onClose={() => setIsAssessmentOpen(false)}
+      <InquiryModal
+        isOpen={isInquiryOpen}
+        onClose={() =>
+          setIsInquiryOpen(false)
+        }
         source="start-a-conversation"
+        locale={locale}
       />
-
     </>
   );
 }

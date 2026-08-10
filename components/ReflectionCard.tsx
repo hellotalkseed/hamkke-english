@@ -10,13 +10,17 @@ type Reflection = {
   photo_url: string | null;
 };
 
+interface ReflectionCardProps {
+  reflection: Reflection;
+  readMoreLabel: string;
+  onClick?: () => void;
+}
+
 export default function ReflectionCard({
   reflection,
+  readMoreLabel,
   onClick,
-}: {
-  reflection: Reflection;
-  onClick?: () => void;
-}) {
+}: ReflectionCardProps) {
   const preview =
     reflection.reflection.length > 180
       ? reflection.reflection.slice(0, 180) + "..."
@@ -28,27 +32,22 @@ export default function ReflectionCard({
       className="
         w-[88vw]
         max-w-[380px]
-
-        sm:w-[360px]
-        lg:w-[380px]
-
         flex-shrink-0
         cursor-pointer
-
         rounded-[2rem]
         bg-white
-
         p-6
-        sm:p-7
-        lg:p-8
-
         shadow-md
-
         transition-all
         duration-500
-
         hover:-translate-y-2
         hover:shadow-xl
+
+        sm:w-[360px]
+        sm:p-7
+
+        lg:w-[380px]
+        lg:p-8
       "
     >
       {/* Rating */}
@@ -62,12 +61,9 @@ export default function ReflectionCard({
       <blockquote
         className="
           mt-5
-
           line-clamp-5
-
           text-[16px]
           leading-7
-
           italic
           text-[#555]
 
@@ -82,20 +78,20 @@ export default function ReflectionCard({
       {/* Read More */}
 
       {onClick && (
-  <button
-    type="button"
-    className="
-      mt-6
-      text-sm
-      font-medium
-      text-[#6F8F72]
-      transition
-      hover:underline
-    "
-  >
-    Read More →
-  </button>
-)}
+        <button
+          type="button"
+          className="
+            mt-6
+            text-sm
+            font-medium
+            text-[#6F8F72]
+            transition
+            hover:underline
+          "
+        >
+          {readMoreLabel} →
+        </button>
+      )}
 
       {/* Profile */}
 
@@ -107,7 +103,6 @@ export default function ReflectionCard({
             className="
               h-12
               w-12
-
               rounded-full
               object-cover
 
@@ -119,19 +114,14 @@ export default function ReflectionCard({
           <div
             className="
               flex
-
               h-12
               w-12
-
               items-center
               justify-center
-
               rounded-full
-
               bg-[#EEF5EE]
-
-              text-[#6F8F72]
               font-medium
+              text-[#6F8F72]
 
               sm:h-14
               sm:w-14

@@ -116,59 +116,88 @@ export default function ReflectionModal({
 
             {/* Profile */}
 
-            <div className="mt-8 flex items-center gap-6">
+<div
+  className="
+    mt-7
+    flex
+    items-center
+    gap-4
 
-              {reflection.photo_url ? (
-                <img
-                  src={reflection.photo_url}
-                  alt={reflection.name}
-                  className="
-                    h-24
-                    w-24
-                    rounded-full
-                    object-cover
-                  "
-                />
-              ) : (
-                <div
-                  className="
-                    flex
-                    h-24
-                    w-24
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#EEF5EE]
-                    text-3xl
-                    text-[#6F8F72]
-                  "
-                >
-                  {reflection.name.charAt(0)}
-                </div>
-              )}
+    sm:mt-8
+    sm:gap-5
 
+    lg:gap-6
+  "
+>
+  {reflection.photo_url ? (
+    <img
+      src={reflection.photo_url}
+      alt={reflection.name}
+      className="
+        h-16
+        w-16
+        flex-shrink-0
+        rounded-full
+        object-cover
 
-              <div>
+        sm:h-20
+        sm:w-20
+      "
+    />
+  ) : (
+    <div
+      className="
+        flex
+        h-16
+        w-16
+        flex-shrink-0
+        items-center
+        justify-center
+        rounded-full
+        bg-[#EEF5EE]
+        text-2xl
+        text-[#6F8F72]
 
-                <h2
-                  className="
-                    text-4xl
-                    text-[#2B2B2B]
-                    [font-family:var(--font-cormorant)]
-                  "
-                >
-                  {reflection.name}
-                </h2>
+        sm:h-20
+        sm:w-20
+        sm:text-3xl
+      "
+    >
+      {reflection.name.charAt(0)}
+    </div>
+  )}
 
+  <div>
+    <h2
+      className="
+        text-[28px]
+        leading-tight
+        text-[#2B2B2B]
+        [font-family:var(--font-cormorant)]
 
-                <p className="mt-2 text-lg text-[#6F8F72]">
-                  {reflection.role}
-                  {reflection.country && ` • ${reflection.country}`}
-                </p>
+        sm:text-[30px]
 
-              </div>
+        lg:text-[32px]
+      "
+    >
+      {reflection.name}
+    </h2>
 
-            </div>
+    <p
+      className="
+        mt-1
+        text-sm
+        leading-5
+        text-[#6F8F72]
+
+        sm:text-[15px]
+      "
+    >
+      {reflection.role}
+      {reflection.country && ` • ${reflection.country}`}
+    </p>
+  </div>
+</div>
 
 
             {/* Divider */}

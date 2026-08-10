@@ -2,78 +2,68 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  X,
-} from "lucide-react";
+import { X } from "lucide-react";
+
 import InquiryForm, {
   InquirySource,
 } from "./InquiryForm";
 
-interface AssessmentModalProps {
+import type { Locale } from "../lib/i18n";
+
+interface InquiryModalProps {
   isOpen: boolean;
   onClose: () => void;
   source: InquirySource;
+  locale: Locale;
 }
 
 export default function InquiryModal({
   isOpen,
   onClose,
   source,
-}: AssessmentModalProps) {
+  locale,
+}: InquiryModalProps) {
   const router = useRouter();
 
   /*
    * =========================================================
    * MOBILE REDIRECT
-   *
-   * On mobile, we don't want to fight the browser keyboard
-   * inside a modal.
-   *
-   * Instead, the inquiry form gets its own page.
-   *
-   * Desktop continues using the modal below.
    * =========================================================
    */
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const redirectToMobilePage = () => {
-      const params = new URLSearchParams({
-        source,
-      });
-
-      router.push(`/inquiry?${params.toString()}`);
-    };
-
-    /*
-     * 768px is the breakpoint where we switch from the
-     * standalone mobile page to the desktop modal.
-     */
     const mediaQuery = window.matchMedia(
       "(max-width: 767px)"
     );
 
-    if (mediaQuery.matches) {
-      redirectToMobilePage();
-    }
+    if (!mediaQuery.matches) return;
 
-    return () => {
-      // Nothing needs to be restored.
-    };
-  }, [isOpen, source, router]);
+    const params = new URLSearchParams({
+      source,
+    });
+
+    router.push(
+      `/${locale}/inquiry?${params.toString()}`
+    );
+  }, [isOpen, source, locale, router]);
 
   /*
    * =========================================================
-   * DON'T RENDER ANYTHING ON MOBILE
-   *
-   * The redirect above handles the mobile experience.
-   * This extra check prevents the desktop modal from briefly
-   * appearing while the route is changing.
+   * DON'T RENDER WHILE CLOSED
    * =========================================================
    */
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
+
+  /*
+   * =========================================================
+   * DON'T RENDER DESKTOP MODAL ON MOBILE
+   * =========================================================
+   */
 
   if (
     typeof window !== "undefined" &&
@@ -134,9 +124,7 @@ export default function InquiryModal({
           event.stopPropagation();
         }}
       >
-        {/* ===================================================
-            CLOSE BUTTON
-            =================================================== */}
+        {/* CLOSE BUTTON */}
 
         <button
           type="button"
@@ -179,11 +167,7 @@ export default function InquiryModal({
           />
         </button>
 
-        {/* ===================================================
-            DESKTOP FORM SCROLL AREA
-
-            The entire form, including the heading, scrolls.
-            =================================================== */}
+        {/* FORM SCROLL AREA */}
 
         <div
           className="
@@ -212,13 +196,9 @@ export default function InquiryModal({
           >
             <InquiryForm
               source={source}
+              locale={locale}
               onSubmitted={() => {
-                /*
-                 * We intentionally don't close the modal here.
-                 *
-                 * This allows the desktop user to see the
-                 * success message.
-                 */
+                // Keep modal open so the success state is visible.
               }}
             />
           </div>

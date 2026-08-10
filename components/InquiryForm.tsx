@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import {
   MessageCircle,
   ShieldCheck,
@@ -18,31 +17,31 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+import { getMessages } from "../lib/getMessages";
+import type { Locale } from "../lib/i18n";
+
 export type InquirySource =
-  | "get-in-touch"
-  | "start-learning"
-  | "book-a-lesson"
+  | "experience"
+  | "goals"
+  | "stories"
   | "start-a-conversation";
 
 interface InquiryFormProps {
   source: InquirySource;
+  locale: Locale;
   onSubmitted?: () => void;
 }
-
-const inquiryHeadings: Record<InquirySource, string> = {
-  "get-in-touch": "Let’s get in touch.",
-  "start-learning": "Let’s start your English journey.",
-  "book-a-lesson": "Let’s find the right lesson for you.",
-  "start-a-conversation": "Let’s start with a conversation.",
-};
 
 const iconClass =
   "h-[20px] w-[20px] shrink-0 text-[#6F8F72]";
 
 export default function InquiryForm({
   source,
+  locale,
   onSubmitted,
 }: InquiryFormProps) {
+  const t = getMessages(locale);
+
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -57,20 +56,41 @@ export default function InquiryForm({
     message: "",
   });
 
-  const heading = inquiryHeadings[source];
+  /*
+   * =========================================================
+   * INQUIRY HEADING
+   * =========================================================
+   */
 
-  /* =========================================================
-     RESET WHEN SOURCE CHANGES
-     ========================================================= */
+  const headingBySource: Record<InquirySource, string> = {
+    experience: t.inquiry.headings.experience,
+
+    goals: t.inquiry.headings.goals,
+
+    stories: t.inquiry.headings.stories,
+
+    "start-a-conversation":
+      t.inquiry.headings.startAConversation,
+  };
+
+  const inquiryHeading = headingBySource[source];
+
+  /*
+   * =========================================================
+   * RESET WHEN SOURCE OR LOCALE CHANGES
+   * =========================================================
+   */
 
   useEffect(() => {
     setSubmitted(false);
     setError("");
-  }, [source]);
+  }, [source, locale]);
 
-  /* =========================================================
-     FORM CHANGE
-     ========================================================= */
+  /*
+   * =========================================================
+   * FORM CHANGE
+   * =========================================================
+   */
 
   const handleChange = (
     event: React.ChangeEvent<
@@ -85,9 +105,11 @@ export default function InquiryForm({
     }));
   };
 
-  /* =========================================================
-     FORM SUBMIT
-     ========================================================= */
+  /*
+   * =========================================================
+   * FORM SUBMIT
+   * =========================================================
+   */
 
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
@@ -115,22 +137,20 @@ export default function InquiryForm({
         setSubmitted(true);
         onSubmitted?.();
       } else {
-        setError(
-          "Something went wrong. Please try again."
-        );
+        setError(t.inquiry.errors.general);
       }
     } catch {
-      setError(
-        "Unable to send your message. Please try again."
-      );
+      setError(t.inquiry.errors.network);
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================================================
-     SUCCESS STATE
-     ========================================================= */
+  /*
+   * =========================================================
+   * SUCCESS STATE
+   * =========================================================
+   */
 
   if (submitted) {
     return (
@@ -147,17 +167,13 @@ export default function InquiryForm({
         <div
           className="
             mx-auto
-
             flex
             h-16
             w-16
             items-center
             justify-center
-
             rounded-full
-
             bg-[#E7EEE5]
-
             text-[#6F8F72]
           "
         >
@@ -170,18 +186,15 @@ export default function InquiryForm({
         <h2
           className="
             mt-6
-
             text-[40px]
             leading-tight
-
             text-[#2B2B2B]
-
             [font-family:var(--font-cormorant)]
 
             sm:text-[46px]
           "
         >
-          Thank you.
+          {t.inquiry.success.title}
         </h2>
 
         <p
@@ -189,46 +202,38 @@ export default function InquiryForm({
             mx-auto
             mt-5
             max-w-md
-
             text-[15px]
             leading-8
-
             text-[#5B5B5B]
           "
         >
-          I&apos;ve received your message and I&apos;ll
-          personally get back to you within 24 hours.
-          I look forward to learning more about you and
-          helping you on your English journey.
+          {t.inquiry.success.message}
         </p>
 
         <p
           className="
             mt-7
-
             text-xl
             italic
-
             text-[#6F8F72]
-
             [font-family:var(--font-cormorant)]
           "
         >
-          See you soon.
+          {t.inquiry.success.closing}
         </p>
       </div>
     );
   }
 
-  /* =========================================================
-     FORM
-     ========================================================= */
+  /*
+   * =========================================================
+   * FORM
+   * =========================================================
+   */
 
   return (
     <div className="w-full">
-      {/* =====================================================
-          HEADER
-          ===================================================== */}
+      {/* HEADER */}
 
       <div
         className="
@@ -236,186 +241,140 @@ export default function InquiryForm({
           pb-5
           pt-7
 
-          sm:px-10
           sm:pb-6
           sm:pt-10
         "
       >
-        {/* Logo + Heading */}
+        <p
+          className="
+            text-[11px]
+            font-medium
+            uppercase
+            tracking-[0.28em]
+            text-[#6F8F72]
+
+            sm:text-[12px]
+            sm:tracking-[0.32em]
+          "
+        >
+          {t.inquiry.brand}
+        </p>
+
+        <h2
+          id="inquiry-modal-title"
+          className="
+            mt-3
+            max-w-[620px]
+
+            text-[34px]
+            leading-[1.02]
+            tracking-[-0.015em]
+
+            text-[#2B2B2B]
+
+            [font-family:var(--font-cormorant)]
+
+            sm:mt-4
+            sm:text-[44px]
+            sm:leading-[1.02]
+
+            lg:text-[48px]
+          "
+        >
+          {inquiryHeading}
+        </h2>
 
         <div
           className="
+            mt-4
+
             flex
-            items-start
-            gap-2
+            flex-wrap
+            items-center
+            justify-center
 
-            pr-2
+            gap-x-5
+            gap-y-3
 
-            sm:gap-3
-            sm:pr-12
+            text-center
+
+            sm:mt-5
           "
         >
-          <Image
-            src="/logo/hamkke-icon.svg"
-            alt="Hamkke"
-            width={48}
-            height={48}
-            priority
+          <div className="flex items-center justify-center gap-2.5">
+            <MessageCircle
+              className={iconClass}
+              strokeWidth={1.7}
+            />
+
+            <span
+              className="
+                text-[11px]
+                text-[#777]
+
+                sm:text-[13px]
+              "
+            >
+              {t.inquiry.reassurance.personalReply}
+            </span>
+          </div>
+
+          <span
             className="
-              mt-1
+              hidden
+              h-5
+              w-px
+              bg-[#D9E2D6]
 
-              h-10
-              w-10
-              shrink-0
-
-              sm:h-12
-              sm:w-12
+              sm:block
             "
           />
 
-          <div className="min-w-0">
-            <h2
-  id="inquiry-modal-title"
-  className="
-    mt-1
+          <div className="flex items-center justify-center gap-2.5">
+            <ShieldCheck
+              className={iconClass}
+              strokeWidth={1.7}
+            />
 
-    max-w-full
+            <span
+              className="
+                text-[11px]
+                text-[#777]
 
-    whitespace-normal
-
-    text-[29px]
-    leading-[1.08]
-    tracking-[-0.01em]
-
-    text-[#2B2B2B]
-
-    [font-family:var(--font-cormorant)]
-
-    sm:whitespace-nowrap
-    sm:text-[36px]
-    sm:leading-[1.05]
-    sm:tracking-[-0.01em]
-
-    lg:text-[38px]
-  "
->
-  {heading}
-</h2>
+                sm:text-[13px]
+              "
+            >
+              {t.inquiry.reassurance.informationSafe}
+            </span>
           </div>
         </div>
 
-        {/* Intro */}
-
         <p
-  className="
-    mt-4
-    w-full
+          className="
+            mt-5
+            max-w-[620px]
 
-    text-center
+            text-[14px]
+            leading-6
 
-    text-[14px]
-    leading-6
+            text-[#686868]
 
-    text-[#686868]
-
-    sm:mt-5
-    sm:text-[16px]
-    sm:leading-7
-  "
->
-  Tell me a little about you and what you&apos;d like to work on.
-</p>
-
-        {/* Reassurance */}
-
-        <div
-  className="
-    mt-4
-
-    flex
-    flex-wrap
-    items-center
-    justify-center
-
-    gap-x-5
-    gap-y-3
-
-    sm:mt-5
-  "
->
-  <div className="flex items-center gap-2.5">
-    <MessageCircle
-      className={iconClass}
-      strokeWidth={1.7}
-    />
-
-    <span
-      className="
-        text-[11px]
-        text-[#777]
-
-        sm:text-[13px]
-      "
-    >
-      Personal reply within 24 hours
-    </span>
-  </div>
-
-  <span
-    className="
-      hidden
-      h-5
-      w-px
-      bg-[#D9E2D6]
-
-      sm:block
-    "
-  />
-
-  <div className="flex items-center gap-2.5">
-    <ShieldCheck
-      className={iconClass}
-      strokeWidth={1.7}
-    />
-
-    <span
-      className="
-        text-[11px]
-        text-[#777]
-
-        sm:text-[13px]
-      "
-    >
-      Your information is safe with me
-    </span>
-  </div>
-</div>
+            sm:mt-6
+            sm:text-[16px]
+            sm:leading-7
+          "
+        >
+          {t.inquiry.intro}
+        </p>
       </div>
 
-      {/* =====================================================
-          FORM CONTENT
-
-          IMPORTANT:
-          This component itself does NOT control height.
-          It does NOT use:
-          - fixed
-          - absolute
-          - h-screen
-          - h-dvh
-          - visualViewport
-          - keyboard calculations
-          - overflow-hidden
-
-          The parent decides whether this is displayed inside
-          a desktop modal or as a normal mobile page.
-          ===================================================== */}
+      {/* FORM CONTENT */}
 
       <div
         className="
           px-0
           pb-8
 
-          sm:px-10
           sm:pb-10
         "
       >
@@ -427,9 +386,7 @@ export default function InquiryForm({
             sm:space-y-4
           "
         >
-          {/* =================================================
-              NAME
-              ================================================= */}
+          {/* NAME */}
 
           <div className="relative">
             <UserRound
@@ -440,7 +397,6 @@ export default function InquiryForm({
                 top-1/2
                 z-10
                 -translate-y-1/2
-
                 text-[#6F8F72]
 
                 sm:left-5
@@ -455,31 +411,23 @@ export default function InquiryForm({
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="What should I call you? (English name)"
+              placeholder={t.inquiry.fields.name}
               required
               className="
                 h-[60px]
                 w-full
-
                 rounded-[15px]
                 border
                 border-[#DDE5D9]
-
                 bg-white
-
                 pl-12
                 pr-10
-
                 text-[14px]
                 text-[#2B2B2B]
-
                 placeholder:text-[#858585]
-
                 outline-none
-
                 transition
                 duration-200
-
                 focus:border-[#6F8F72]
                 focus:ring-2
                 focus:ring-[#6F8F72]/10
@@ -497,7 +445,6 @@ export default function InquiryForm({
                 right-5
                 top-1/2
                 -translate-y-1/2
-
                 text-[#6F8F72]
               "
             >
@@ -505,9 +452,7 @@ export default function InquiryForm({
             </span>
           </div>
 
-          {/* =================================================
-              EMAIL
-              ================================================= */}
+          {/* EMAIL */}
 
           <div className="relative">
             <Mail
@@ -517,7 +462,6 @@ export default function InquiryForm({
                 left-4
                 top-1/2
                 -translate-y-1/2
-
                 text-[#6F8F72]
 
                 sm:left-5
@@ -532,31 +476,23 @@ export default function InquiryForm({
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Email Address"
+              placeholder={t.inquiry.fields.email}
               required
               className="
                 h-[60px]
                 w-full
-
                 rounded-[15px]
                 border
                 border-[#DDE5D9]
-
                 bg-white
-
                 pl-12
                 pr-10
-
                 text-[14px]
                 text-[#2B2B2B]
-
                 placeholder:text-[#858585]
-
                 outline-none
-
                 transition
                 duration-200
-
                 focus:border-[#6F8F72]
                 focus:ring-2
                 focus:ring-[#6F8F72]/10
@@ -574,7 +510,6 @@ export default function InquiryForm({
                 right-5
                 top-1/2
                 -translate-y-1/2
-
                 text-[#6F8F72]
               "
             >
@@ -582,9 +517,7 @@ export default function InquiryForm({
             </span>
           </div>
 
-          {/* =================================================
-              CONTACT METHOD
-              ================================================= */}
+          {/* CONTACT METHOD */}
 
           <div className="relative">
             <Phone
@@ -595,7 +528,6 @@ export default function InquiryForm({
                 top-1/2
                 z-10
                 -translate-y-1/2
-
                 text-[#6F8F72]
 
                 sm:left-5
@@ -609,28 +541,21 @@ export default function InquiryForm({
               name="contactMethod"
               value={formData.contactMethod}
               onChange={handleChange}
+              required
               className={`
                 h-[60px]
                 w-full
-
                 appearance-none
-
                 rounded-[15px]
                 border
                 border-[#DDE5D9]
-
                 bg-white
-
                 pl-12
                 pr-16
-
                 text-[14px]
-
                 outline-none
-
                 transition
                 duration-200
-
                 focus:border-[#6F8F72]
                 focus:ring-2
                 focus:ring-[#6F8F72]/10
@@ -647,19 +572,19 @@ export default function InquiryForm({
               `}
             >
               <option value="">
-                How should I contact you?
+                {t.inquiry.fields.contactMethod}
               </option>
 
               <option value="KakaoTalk">
-                KakaoTalk
+                {t.inquiry.options.contactMethod.kakaoTalk}
               </option>
 
               <option value="WhatsApp">
-                WhatsApp
+                {t.inquiry.options.contactMethod.whatsApp}
               </option>
 
               <option value="WeChat">
-                WeChat
+                {t.inquiry.options.contactMethod.weChat}
               </option>
             </select>
 
@@ -670,7 +595,6 @@ export default function InquiryForm({
                 right-5
                 top-1/2
                 -translate-y-1/2
-
                 text-[#777]
               "
               size={19}
@@ -685,7 +609,6 @@ export default function InquiryForm({
                 top-1/2
                 -translate-y-1/2
                 translate-x-8
-
                 text-[#6F8F72]
               "
             >
@@ -693,9 +616,7 @@ export default function InquiryForm({
             </span>
           </div>
 
-          {/* =================================================
-              CONTACT ID
-              ================================================= */}
+          {/* CONTACT ID */}
 
           <div className="relative">
             <ContactRound
@@ -705,7 +626,6 @@ export default function InquiryForm({
                 left-4
                 top-1/2
                 -translate-y-1/2
-
                 text-[#6F8F72]
 
                 sm:left-5
@@ -720,30 +640,22 @@ export default function InquiryForm({
               name="contactId"
               value={formData.contactId}
               onChange={handleChange}
-              placeholder="Your ID / Username / Phone Number"
+              placeholder={t.inquiry.fields.contactId}
               className="
                 h-[60px]
                 w-full
-
                 rounded-[15px]
                 border
                 border-[#DDE5D9]
-
                 bg-white
-
                 pl-12
                 pr-5
-
                 text-[14px]
                 text-[#2B2B2B]
-
                 placeholder:text-[#858585]
-
                 outline-none
-
                 transition
                 duration-200
-
                 focus:border-[#6F8F72]
                 focus:ring-2
                 focus:ring-[#6F8F72]/10
@@ -755,9 +667,7 @@ export default function InquiryForm({
             />
           </div>
 
-          {/* =================================================
-              LEVEL
-              ================================================= */}
+          {/* ENGLISH COMFORT */}
 
           <div className="relative">
             <ChartNoAxesColumnIncreasing
@@ -768,7 +678,6 @@ export default function InquiryForm({
                 top-1/2
                 z-10
                 -translate-y-1/2
-
                 text-[#6F8F72]
 
                 sm:left-5
@@ -786,25 +695,17 @@ export default function InquiryForm({
               className={`
                 h-[60px]
                 w-full
-
                 appearance-none
-
                 rounded-[15px]
                 border
                 border-[#DDE5D9]
-
                 bg-white
-
                 pl-12
                 pr-16
-
                 text-[14px]
-
                 outline-none
-
                 transition
                 duration-200
-
                 focus:border-[#6F8F72]
                 focus:ring-2
                 focus:ring-[#6F8F72]/10
@@ -821,31 +722,27 @@ export default function InquiryForm({
               `}
             >
               <option value="">
-                How would you describe your English level?
+                {t.inquiry.fields.level}
               </option>
 
-              <option value="Beginner">
-                Beginner
+              <option value="Just getting started">
+                {t.inquiry.options.level.justGettingStarted}
               </option>
 
-              <option value="Elementary">
-                Elementary
+              <option value="Understanding but speaking is difficult">
+                {t.inquiry.options.level.understandingButSpeakingIsDifficult}
               </option>
 
-              <option value="Intermediate">
-                Intermediate
+              <option value="Simple conversations but hesitant">
+                {t.inquiry.options.level.simpleConversationsButStillHesitate}
               </option>
 
-              <option value="Upper Intermediate">
-                Upper Intermediate
+              <option value="Communicate well but want to speak naturally">
+                {t.inquiry.options.level.communicateWellButWantToSpeakMoreNaturally}
               </option>
 
-              <option value="Advanced">
-                Advanced
-              </option>
-
-              <option value="Not sure">
-                I&apos;m not sure
+              <option value="Comfortable speaking but want more fluency">
+                {t.inquiry.options.level.comfortableSpeakingButWantToBecomeMoreFluent}
               </option>
             </select>
 
@@ -856,7 +753,6 @@ export default function InquiryForm({
                 right-5
                 top-1/2
                 -translate-y-1/2
-
                 text-[#777]
               "
               size={19}
@@ -871,7 +767,6 @@ export default function InquiryForm({
                 top-1/2
                 -translate-y-1/2
                 translate-x-8
-
                 text-[#6F8F72]
               "
             >
@@ -879,9 +774,7 @@ export default function InquiryForm({
             </span>
           </div>
 
-          {/* =================================================
-              GOAL
-              ================================================= */}
+          {/* GOAL */}
 
           <div className="relative">
             <Target
@@ -892,7 +785,6 @@ export default function InquiryForm({
                 top-1/2
                 z-10
                 -translate-y-1/2
-
                 text-[#6F8F72]
 
                 sm:left-5
@@ -910,25 +802,17 @@ export default function InquiryForm({
               className={`
                 h-[60px]
                 w-full
-
                 appearance-none
-
                 rounded-[15px]
                 border
                 border-[#DDE5D9]
-
                 bg-white
-
                 pl-12
                 pr-16
-
                 text-[14px]
-
                 outline-none
-
                 transition
                 duration-200
-
                 focus:border-[#6F8F72]
                 focus:ring-2
                 focus:ring-[#6F8F72]/10
@@ -945,35 +829,35 @@ export default function InquiryForm({
               `}
             >
               <option value="">
-                What would you like to focus on?
+                {t.inquiry.fields.goal}
               </option>
 
-              <option value="Everyday Conversation">
-                Everyday Conversation
+              <option value="Speak more confidently">
+                {t.inquiry.options.goal.speakMoreConfidently}
               </option>
 
-              <option value="Business English">
-                Business English
+              <option value="Improve everyday conversation">
+                {t.inquiry.options.goal.improveEverydayConversation}
+              </option>
+
+              <option value="English for work">
+                {t.inquiry.options.goal.englishForWork}
+              </option>
+
+              <option value="Interview preparation">
+                {t.inquiry.options.goal.interviewPreparation}
               </option>
 
               <option value="Travel English">
-                Travel English
+                {t.inquiry.options.goal.travelMoreComfortably}
               </option>
 
-              <option value="Interview Preparation">
-                Interview Preparation
+              <option value="Overall English">
+                {t.inquiry.options.goal.improveOverallEnglish}
               </option>
 
-              <option value="Pronunciation">
-                Pronunciation
-              </option>
-
-              <option value="Grammar">
-                Grammar
-              </option>
-
-              <option value="Vocabulary">
-                Vocabulary
+              <option value="Something else">
+                {t.inquiry.options.goal.somethingElse}
               </option>
             </select>
 
@@ -984,7 +868,6 @@ export default function InquiryForm({
                 right-5
                 top-1/2
                 -translate-y-1/2
-
                 text-[#777]
               "
               size={19}
@@ -999,7 +882,6 @@ export default function InquiryForm({
                 top-1/2
                 -translate-y-1/2
                 translate-x-8
-
                 text-[#6F8F72]
               "
             >
@@ -1007,9 +889,7 @@ export default function InquiryForm({
             </span>
           </div>
 
-          {/* =================================================
-              MESSAGE
-              ================================================= */}
+          {/* MESSAGE */}
 
           <div className="relative">
             <Pencil
@@ -1018,7 +898,6 @@ export default function InquiryForm({
                 absolute
                 left-4
                 top-5
-
                 text-[#6F8F72]
 
                 sm:left-5
@@ -1033,34 +912,25 @@ export default function InquiryForm({
               value={formData.message}
               onChange={handleChange}
               rows={4}
-              placeholder="Anything else you&apos;d like me to know? (Optional)"
+              placeholder={t.inquiry.fields.message}
               className="
                 min-h-[115px]
                 w-full
-
                 resize-y
-
                 rounded-[15px]
                 border
                 border-[#DDE5D9]
-
                 bg-white
-
                 px-5
                 py-5
                 pl-12
-
                 text-[14px]
                 leading-6
                 text-[#2B2B2B]
-
                 placeholder:text-[#858585]
-
                 outline-none
-
                 transition
                 duration-200
-
                 focus:border-[#6F8F72]
                 focus:ring-2
                 focus:ring-[#6F8F72]/10
@@ -1072,19 +942,15 @@ export default function InquiryForm({
             />
           </div>
 
-          {/* =================================================
-              ERROR
-              ================================================= */}
+          {/* ERROR */}
 
           {error && (
             <p
               className="
                 rounded-xl
                 bg-[#FDF0F0]
-
                 px-4
                 py-3
-
                 text-center
                 text-sm
                 text-[#B65A5A]
@@ -1094,50 +960,40 @@ export default function InquiryForm({
             </p>
           )}
 
-          {/* =================================================
-              SUBMIT
-              ================================================= */}
+          {/* SUBMIT */}
 
           <button
             type="submit"
             disabled={loading}
             className="
               mt-2
-
               flex
               w-full
               items-center
               justify-center
               gap-3
-
               rounded-full
-
               bg-[#6F8F72]
-
               px-6
               py-4
-
               text-[15px]
               font-medium
               text-white
-
               shadow-[0_8px_24px_rgba(111,143,114,0.18)]
-
               transition-all
               duration-200
-
               hover:bg-[#5B7960]
               hover:shadow-[0_10px_28px_rgba(111,143,114,0.25)]
-
               active:scale-[0.99]
-
               disabled:cursor-not-allowed
               disabled:opacity-60
 
               sm:py-4.5
             "
           >
-            {loading ? "Sending..." : "Send Inquiry"}
+            {loading
+              ? t.inquiry.sending
+              : t.inquiry.submit}
 
             {!loading && (
               <Send
@@ -1147,9 +1003,7 @@ export default function InquiryForm({
             )}
           </button>
 
-          {/* =================================================
-              PRIVACY
-              ================================================= */}
+          {/* PRIVACY */}
 
           <div
             className="
@@ -1157,11 +1011,9 @@ export default function InquiryForm({
               items-center
               justify-center
               gap-2
-
               px-4
               pt-2
               pb-2
-
               text-center
               text-[11px]
               leading-5
@@ -1177,8 +1029,7 @@ export default function InquiryForm({
             />
 
             <span>
-              I respect your privacy and will never
-              share your information.
+              {t.inquiry.privacy}
             </span>
           </div>
         </form>

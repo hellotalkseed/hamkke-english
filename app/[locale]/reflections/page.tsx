@@ -1,16 +1,42 @@
+import { notFound } from "next/navigation";
+
 import { supabase } from "@/lib/supabase";
 import ReflectionsGallery from "@/components/ReflectionsGallery";
 
-export default async function ReflectionsPage() {
-  const { data: reflections } = await supabase
+import { getMessages } from "../../../lib/getMessages";
+import { isValidLocale } from "../../../lib/i18n";
+
+interface ReflectionsPageProps {
+  params: Promise<{
+    locale: string;
+  }>;
+}
+
+export default async function ReflectionsPage({
+  params,
+}: ReflectionsPageProps) {
+  const { locale } = await params;
+
+  if (!isValidLocale(locale)) {
+    notFound();
+  }
+
+  const t = getMessages(locale);
+
+  const { data: reflections, error } = await supabase
     .from("reflections")
     .select("*")
     .eq("approved", true)
-    .order("created_at", { ascending: false });
+    .order("created_at", {
+      ascending: false,
+    });
+
+  if (error) {
+    console.error("Error fetching reflections:", error);
+  }
 
   return (
     <main className="bg-[#FAF8F5] py-24">
-
       <div className="mx-auto max-w-7xl px-6">
 
         <div className="mx-auto max-w-3xl text-center">
@@ -25,7 +51,7 @@ export default async function ReflectionsPage() {
               text-[#6F8F72]
             "
           >
-            Hamkke │ 함께
+            {t.reflections.brand}
           </p>
 
           <h1
@@ -36,9 +62,9 @@ export default async function ReflectionsPage() {
               [font-family:var(--font-cormorant)]
             "
           >
-            Stories From
+            {t.reflections.galleryTitleLineOne}
             <br />
-            Our Conversations
+            {t.reflections.galleryTitleLineTwo}
           </h1>
 
           <p
@@ -51,8 +77,7 @@ export default async function ReflectionsPage() {
               text-[#5B5B5B]
             "
           >
-            Every reflection here was written by a student or parent who
-            chose to share part of their English journey with Hamkke.
+            {t.reflections.galleryDescription}
           </p>
 
           <p
@@ -64,21 +89,20 @@ export default async function ReflectionsPage() {
               text-[#8B8B8B]
             "
           >
-            {reflections?.length ?? 0} Stories Shared
+            {reflections?.length ?? 0}{" "}
+            {t.reflections.storiesShared}
           </p>
 
         </div>
 
         <div className="mt-20">
-
-  <ReflectionsGallery
-    reflections={reflections ?? []}
-  />
-
-</div>
+          <ReflectionsGallery
+            reflections={reflections ?? []}
+            locale={locale}
+          />
+        </div>
 
       </div>
-
     </main>
   );
 }

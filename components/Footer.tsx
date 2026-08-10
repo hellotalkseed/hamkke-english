@@ -1,19 +1,33 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
+
 import AssessmentModal from "./InquiryModal";
+import { getMessages } from "../lib/getMessages";
+import type { Locale } from "../lib/i18n";
 
 export default function Footer() {
-  const [isInquiryOpen, setIsInquiryOpen] = useState(false);
+  const params = useParams();
+
+  const locale: Locale =
+    params.locale === "ko" || params.locale === "zh"
+      ? params.locale
+      : "en";
+
+  const t = getMessages(locale);
+
+  const [isInquiryOpen, setIsInquiryOpen] =
+    useState(false);
 
   return (
     <>
       <footer
         className="
           bg-[#2B2B2B]
-          py-12
+          py-4
 
-          sm:py-14
+          sm:py-5
         "
       >
         <div
@@ -32,14 +46,15 @@ export default function Footer() {
               flex-col
               items-center
               justify-between
-              gap-8
+              gap-3
 
               md:flex-row
-              md:items-start
+              md:items-center
             "
           >
-
-            {/* Brand */}
+            {/* =====================================================
+                BRAND
+                ===================================================== */}
 
             <div
               className="
@@ -50,99 +65,101 @@ export default function Footer() {
             >
               <h3
                 className="
-                  text-[28px]
+                  text-[21px]
+                  leading-none
                   text-white
                   [font-family:var(--font-cormorant)]
                 "
               >
-                Hamkke │ 함께
+                {t.footer.brand}
               </h3>
 
               <p
                 className="
-                  mt-2
-                  text-sm
+                  mt-1
+                  text-[10px]
                   tracking-wide
-                  text-white/60
+                  text-white/50
                 "
               >
-                From Small Talk to Big Ideas
+                {t.footer.tagline}
               </p>
             </div>
 
-            {/* Navigation */}
+            {/* =====================================================
+                COPYRIGHT
+                ===================================================== */}
+
+            <p
+              className="
+                text-center
+                text-[10px]
+                text-white/30
+
+                md:flex-1
+              "
+            >
+              {t.footer.copyright}
+            </p>
+
+            {/* =====================================================
+                NAVIGATION
+                ===================================================== */}
 
             <nav
               className="
                 flex
                 flex-wrap
                 justify-center
-                gap-x-6
-                gap-y-3
-                text-sm
-                text-white/70
+                gap-x-4
+                text-[11px]
+                text-white/60
 
                 md:justify-end
               "
             >
               <a
-                href="#about"
+                href={`/${locale}#experience`}
                 className="transition hover:text-white"
               >
-                About
+                {t.footer.experience}
               </a>
 
               <a
-                href="#lessons"
+                href={`/${locale}#goals`}
                 className="transition hover:text-white"
               >
-                Lessons
+                {t.footer.goals}
               </a>
 
               <a
-                href="#student-stories"
+                href={`/${locale}#student-stories`}
                 className="transition hover:text-white"
               >
-                Stories
+                {t.footer.stories}
               </a>
 
               <button
                 type="button"
                 onClick={() => setIsInquiryOpen(true)}
-                className="
-                  transition
-                  hover:text-white
-                "
+                className="transition hover:text-white"
               >
-                Contact
+                {t.footer.contact}
               </button>
             </nav>
-          </div>
-
-          {/* Copyright */}
-
-          <div
-            className="
-              mt-10
-              border-t
-              border-white/10
-              pt-6
-              text-center
-              text-xs
-              text-white/40
-            "
-          >
-            © 2026 Hamkke │ 함께. All rights reserved.
           </div>
         </div>
       </footer>
 
-      {/* Inquiry Modal */}
+      {/* =====================================================
+          INQUIRY MODAL
+          ===================================================== */}
 
       <AssessmentModal
         isOpen={isInquiryOpen}
         onClose={() => setIsInquiryOpen(false)}
-        source="get-in-touch"
+        source="start-a-conversation"
+        locale={locale}
       />
     </>
   );

@@ -1,11 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import {
-  useParams,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 
 import InquiryForm, {
@@ -93,7 +89,6 @@ function InquiryPageContent() {
             gap-2
 
             rounded-full
-
             px-2
 
             text-[#6F8F72]
@@ -122,7 +117,9 @@ function InquiryPageContent() {
           </span>
         </button>
 
-        {/* Small logo / brand */}
+        {/* ===================================================
+            BRAND
+            =================================================== */}
 
         <div
           className="

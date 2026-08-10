@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 
 import Hero from "../../components/Hero";
-import About from "../../components/About";
+import StudentProblem from "../../components/StudentProblem";
+import LessonExperience from "../../components/LessonExperience";
 import Audience from "../../components/Audience";
-import Process from "../../components/Process";
-import WhyHamkke from "../../components/WhyHamkke";
 import Reflections from "../../components/Reflections";
+import WhatYouWontFindHere from "../../components/WhatYouWontFindHere";
+import MeetYourCoach from "@/components/MeetYourCoach";
 import CTA from "../../components/CTA";
 import Footer from "../../components/Footer";
 
@@ -28,17 +29,19 @@ export default async function Home({
 
   return (
     <>
-      <Hero />
+      <Hero locale={locale} />
 
-      <About />
+      <StudentProblem locale={locale} />
 
-      <Audience />
+      <LessonExperience locale={locale} />
 
-      <Process />
+      <Audience locale={locale} />
 
-      <WhyHamkke />
+      <Reflections locale={locale} />
 
-      <Reflections />
+<WhatYouWontFindHere locale={locale} />
+
+<MeetYourCoach />
 
       <CTA />
 

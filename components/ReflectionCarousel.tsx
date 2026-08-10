@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
+
 import ReflectionCard from "./ReflectionCard";
+
+import { getMessages } from "../lib/getMessages";
+import type { Locale } from "../lib/i18n";
 
 type Reflection = {
   id: string;
@@ -14,14 +18,19 @@ type Reflection = {
   photo_url: string | null;
 };
 
+interface ReflectionCarouselProps {
+  reflections: Reflection[];
+  locale: Locale;
+}
+
 export default function ReflectionCarousel({
   reflections,
-}: {
-  reflections: Reflection[];
-}) {
+  locale,
+}: ReflectionCarouselProps) {
   const [paused, setPaused] = useState(false);
-
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const t = getMessages(locale);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
@@ -29,15 +38,11 @@ export default function ReflectionCarousel({
     containScroll: false,
   });
 
-
-  // Sync dots with carousel
   useEffect(() => {
     if (!emblaApi) return;
 
     const onSelect = () => {
-      setCurrentIndex(
-        emblaApi.selectedScrollSnap()
-      );
+      setCurrentIndex(emblaApi.selectedScrollSnap());
     };
 
     emblaApi.on("select", onSelect);
@@ -49,13 +54,10 @@ export default function ReflectionCarousel({
     };
   }, [emblaApi]);
 
-
-  // Desktop infinite loop
   const desktopItems = [
     ...reflections,
     ...reflections,
   ];
-
 
   return (
     <>
@@ -63,40 +65,35 @@ export default function ReflectionCarousel({
 
       <div
         className="
-          lg:hidden
           overflow-hidden
           px-2
+          lg:hidden
         "
       >
-
         <div ref={emblaRef}>
-
           <div
             className="
               flex
               gap-5
             "
           >
-
             {reflections.map((item) => (
               <div
                 key={item.id}
                 className="
-                  flex-[0_0_100%]
                   flex
+                  flex-[0_0_100%]
                   justify-center
                 "
               >
                 <ReflectionCard
                   reflection={item}
+                  readMoreLabel={t.reflections.readMoreCard}
                 />
               </div>
             ))}
-
           </div>
-
         </div>
-
 
         {/* Dots */}
 
@@ -108,14 +105,11 @@ export default function ReflectionCarousel({
             gap-3
           "
         >
-
           {reflections.map((_, index) => (
-
             <button
               key={index}
-              onClick={() =>
-                emblaApi?.scrollTo(index)
-              }
+              type="button"
+              onClick={() => emblaApi?.scrollTo(index)}
               aria-label={`Go to reflection ${index + 1}`}
               className={`
                 rounded-full
@@ -129,13 +123,9 @@ export default function ReflectionCarousel({
                 }
               `}
             />
-
           ))}
-
         </div>
-
       </div>
-
 
       {/* ================= DESKTOP ================= */}
 
@@ -146,14 +136,9 @@ export default function ReflectionCarousel({
           overflow-hidden
           lg:block
         "
-        onMouseEnter={() =>
-          setPaused(true)
-        }
-        onMouseLeave={() =>
-          setPaused(false)
-        }
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
       >
-
         {/* Left Fade */}
 
         <div
@@ -164,14 +149,14 @@ export default function ReflectionCarousel({
             left-0
             z-10
             w-6
-            sm:w-10
-            lg:w-20
             bg-gradient-to-r
             from-white
             to-transparent
+
+            sm:w-10
+            lg:w-20
           "
         />
-
 
         {/* Right Fade */}
 
@@ -183,14 +168,14 @@ export default function ReflectionCarousel({
             right-0
             z-10
             w-6
-            sm:w-10
-            lg:w-20
             bg-gradient-to-l
             from-white
             to-transparent
+
+            sm:w-10
+            lg:w-20
           "
         />
-
 
         {/* Marquee */}
 
@@ -199,8 +184,8 @@ export default function ReflectionCarousel({
             flex
             w-max
             gap-5
-            lg:gap-8
             animate-marquee
+            lg:gap-8
           "
           style={{
             animationPlayState: paused
@@ -208,20 +193,15 @@ export default function ReflectionCarousel({
               : "running",
           }}
         >
-
           {desktopItems.map((item, index) => (
-
             <ReflectionCard
               key={`${item.id}-${index}`}
               reflection={item}
+              readMoreLabel={t.reflections.readMoreCard}
             />
-
           ))}
-
         </div>
-
       </div>
-
     </>
   );
 }
