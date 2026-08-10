@@ -36,15 +36,9 @@ export default function ReflectionModal({
             flex
             items-center
             justify-center
-
-            bg-[#FAF8F5]/90
-            backdrop-blur-sm
-
-            px-4
-            py-6
-
-            sm:px-6
-            sm:py-8
+            bg-black/30
+            p-4
+            sm:p-6
           "
           onClick={onClose}
           initial={{ opacity: 0 }}
@@ -52,38 +46,26 @@ export default function ReflectionModal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
         >
-          {/* =====================================================
-              MODAL
-              ===================================================== */}
-
           <motion.div
             className="
               relative
-
-              max-h-[90vh]
+              max-h-[85vh]
               w-full
-              max-w-2xl
-
+              max-w-xl
               overflow-y-auto
-
               rounded-[2rem]
-
-              bg-[#E4EDDF]
-
+              bg-[#E6F0E2]
               p-6
-
               shadow-2xl
 
-              sm:rounded-[2.5rem]
               sm:p-8
-
-              lg:p-10
+              sm:rounded-[2.25rem]
             "
             onClick={(e) => e.stopPropagation()}
             initial={{
               opacity: 0,
-              scale: 0.96,
-              y: 20,
+              scale: 0.97,
+              y: 15,
             }}
             animate={{
               opacity: 1,
@@ -92,68 +74,55 @@ export default function ReflectionModal({
             }}
             exit={{
               opacity: 0,
-              scale: 0.96,
-              y: 20,
+              scale: 0.97,
+              y: 15,
             }}
             transition={{
               duration: 0.3,
               ease: "easeOut",
             }}
           >
-            {/* =====================================================
-                CLOSE BUTTON
-                ===================================================== */}
+            {/* ================= CLOSE BUTTON ================= */}
 
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close story"
+              aria-label="Close reflection"
               className="
                 absolute
                 right-5
                 top-5
-
                 flex
-                h-10
-                w-10
+                h-9
+                w-9
                 items-center
                 justify-center
-
                 rounded-full
-
-                bg-white/70
-
-                text-2xl
+                bg-[#F5F8F3]
+                text-xl
                 leading-none
                 text-[#6F8F72]
-
-                transition-all
-                duration-300
-
+                transition
                 hover:bg-white
-                hover:scale-105
 
-                sm:right-7
-                sm:top-7
+                sm:right-6
+                sm:top-6
               "
             >
               ×
             </button>
 
-            {/* =====================================================
-                RATING
-                ===================================================== */}
+            {/* ================= RATING ================= */}
 
             <div
               className="
                 flex
                 gap-1
+                text-base
+                text-[#D9A441]
 
-                text-lg
-                text-[#D8A437]
-
-                sm:gap-2
-                sm:text-xl
+                sm:gap-1.5
+                sm:text-lg
               "
             >
               {Array.from({
@@ -163,18 +132,16 @@ export default function ReflectionModal({
               ))}
             </div>
 
-            {/* =====================================================
-                PROFILE
-                ===================================================== */}
+            {/* ================= PROFILE ================= */}
 
             <div
               className="
-                mt-7
+                mt-6
                 flex
                 items-center
                 gap-4
 
-                sm:mt-8
+                sm:mt-7
                 sm:gap-5
               "
             >
@@ -186,13 +153,11 @@ export default function ReflectionModal({
                     h-14
                     w-14
                     flex-shrink-0
-
                     rounded-full
-
                     object-cover
 
-                    sm:h-20
-                    sm:w-20
+                    sm:h-16
+                    sm:w-16
                   "
                 />
               ) : (
@@ -202,37 +167,31 @@ export default function ReflectionModal({
                     h-14
                     w-14
                     flex-shrink-0
-
                     items-center
                     justify-center
-
                     rounded-full
-
-                    bg-white/70
-
+                    bg-[#F5F8F3]
                     text-xl
                     text-[#6F8F72]
 
-                    sm:h-20
-                    sm:w-20
-                    sm:text-3xl
+                    sm:h-16
+                    sm:w-16
+                    sm:text-2xl
                   "
                 >
                   {reflection.name.charAt(0)}
                 </div>
               )}
 
-              <div className="min-w-0">
+              <div>
                 <h2
                   className="
-                    text-[25px]
+                    text-[24px]
                     leading-tight
                     text-[#2B2B2B]
-
                     [font-family:var(--font-cormorant)]
 
-                    sm:text-[30px]
-                    lg:text-[32px]
+                    sm:text-[27px]
                   "
                 >
                   {reflection.name}
@@ -241,12 +200,11 @@ export default function ReflectionModal({
                 <p
                   className="
                     mt-1
-
-                    text-sm
+                    text-xs
                     leading-5
                     text-[#6F8F72]
 
-                    sm:text-[15px]
+                    sm:text-sm
                   "
                 >
                   {reflection.role}
@@ -256,85 +214,61 @@ export default function ReflectionModal({
               </div>
             </div>
 
-            {/* =====================================================
-                DIVIDER
-                ===================================================== */}
+            {/* ================= DIVIDER ================= */}
+
+            <div className="mt-6 h-px bg-[#CBD9C7] sm:mt-7" />
+
+            {/* ================= QUOTE MARK ================= */}
 
             <div
               className="
-                mt-7
-                h-px
-                bg-[#C8D7C3]
-
-                sm:mt-8
-              "
-            />
-
-            {/* =====================================================
-                QUOTE DECORATION
-                ===================================================== */}
-
-            <div
-              className="
-                mt-6
-
-                text-6xl
+                mt-5
+                text-5xl
                 leading-none
-                text-[#B8CBB3]
-
+                text-[#BFD2BA]
                 [font-family:var(--font-cormorant)]
 
-                sm:mt-8
-                sm:text-7xl
+                sm:mt-6
+                sm:text-6xl
               "
             >
               "
             </div>
 
-            {/* =====================================================
-                REFLECTION
-                ===================================================== */}
+            {/* ================= REFLECTION ================= */}
 
             <blockquote
               className="
-                -mt-3
-
+                -mt-2
                 whitespace-pre-line
-
-                text-[21px]
-                leading-[1.7]
-
+                text-[19px]
+                leading-[1.65]
                 italic
-                text-[#3F443F]
-
+                text-[#4A4A4A]
                 [font-family:var(--font-cormorant)]
 
-                sm:text-[25px]
-                sm:leading-[1.8]
+                sm:-mt-3
+                sm:text-[22px]
+                sm:leading-[1.7]
               "
             >
               “{reflection.reflection}”
             </blockquote>
 
-            {/* =====================================================
-                NAVIGATION
-                ===================================================== */}
+            {/* ================= NAVIGATION ================= */}
 
             <div
               className="
-                mt-10
-
+                mt-8
                 flex
                 items-center
                 justify-between
-
                 border-t
-                border-[#C8D7C3]
+                border-[#CBD9C7]
+                pt-5
 
-                pt-6
-
-                sm:mt-14
-                sm:pt-8
+                sm:mt-10
+                sm:pt-6
               "
             >
               <button
@@ -343,15 +277,13 @@ export default function ReflectionModal({
                 className="
                   text-sm
                   text-[#6F8F72]
-
                   transition
-
                   hover:underline
 
                   sm:text-base
                 "
               >
-                ← Previous Story
+                ← Previous
               </button>
 
               <button
@@ -360,15 +292,13 @@ export default function ReflectionModal({
                 className="
                   text-sm
                   text-[#6F8F72]
-
                   transition
-
                   hover:underline
 
                   sm:text-base
                 "
               >
-                Next Story →
+                Next →
               </button>
             </div>
           </motion.div>
