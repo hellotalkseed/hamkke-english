@@ -3,8 +3,16 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
-import { ChevronDown, Menu, X } from "lucide-react";
+import {
+  useParams,
+  usePathname,
+  useRouter,
+} from "next/navigation";
+import {
+  ChevronDown,
+  Menu,
+  X,
+} from "lucide-react";
 
 import InquiryModal from "./InquiryModal";
 import type { InquirySource } from "./InquiryForm";
@@ -40,12 +48,21 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
 
+  /* =====================================================
+     CURRENT LOCALE
+     ===================================================== */
+
   const locale: Locale =
-    params.locale === "ko" || params.locale === "zh"
+    params.locale === "ko" ||
+    params.locale === "zh"
       ? params.locale
       : "en";
 
   const t = translations[locale];
+
+  /* =====================================================
+     STATE
+     ===================================================== */
 
   const [isInquiryOpen, setIsInquiryOpen] =
     useState(false);
@@ -60,7 +77,13 @@ export default function Navbar() {
     useState(false);
 
   const [inquirySource, setInquirySource] =
-    useState<InquirySource>("start-a-conversation");
+    useState<InquirySource>(
+      "start-a-conversation"
+    );
+
+  /* =====================================================
+     NAVIGATION LINKS
+     ===================================================== */
 
   const navLinks = [
     {
@@ -77,28 +100,51 @@ export default function Navbar() {
     },
   ];
 
+  /* =====================================================
+     INQUIRY
+     ===================================================== */
+
   const openInquiry = (
-    source: InquirySource = "start-a-conversation"
+    source: InquirySource =
+      "start-a-conversation"
   ) => {
     setInquirySource(source);
     setIsInquiryOpen(true);
+
     setIsMobileMenuOpen(false);
+    setIsMobileLanguageOpen(false);
   };
 
-  /*
-   * Change only the locale portion of the current URL.
-   *
-   * Examples:
-   * /en              -> /ko
-   * /en/reflections  -> /ko/reflections
-   * /en/share        -> /ko/share
-   * /en/inquiry      -> /ko/inquiry
-   */
-  const changeLanguage = (newLocale: Locale) => {
-    const pathWithoutLocale = pathname.replace(
-      /^\/(en|ko|zh)(?=\/|$)/,
-      ""
-    );
+  /* =====================================================
+     LANGUAGE SWITCHING
+     ===================================================== */
+
+  const changeLanguage = (
+    newLocale: Locale
+  ) => {
+    /*
+     * Remove the current locale from the URL.
+     *
+     * Examples:
+     *
+     * /en
+     * /ko
+     * /zh
+     *
+     * /en/reflections
+     * /ko/reflections
+     * /zh/reflections
+     *
+     * /en/share
+     * /ko/share
+     * /zh/share
+     */
+
+    const pathWithoutLocale =
+      pathname.replace(
+        /^\/(en|ko|zh)(?=\/|$)/,
+        ""
+      );
 
     const newPath =
       pathWithoutLocale === ""
@@ -112,13 +158,22 @@ export default function Navbar() {
     router.push(newPath);
   };
 
+  /* =====================================================
+     CURRENT LANGUAGE
+     ===================================================== */
+
   const currentLanguage =
     languages.find(
-      (language) => language.locale === locale
+      (language) =>
+        language.locale === locale
     ) ?? languages[0];
 
   return (
     <>
+      {/* =====================================================
+          NAVBAR
+          ===================================================== */}
+
       <header
         className="
           fade-up
@@ -139,13 +194,18 @@ export default function Navbar() {
             justify-between
             px-6
             py-3
+
             sm:px-8
             sm:py-4
+
             lg:px-10
             xl:px-12
           "
         >
-          {/* ================= LOGO ================= */}
+
+          {/* =====================================================
+              LOGO
+              ===================================================== */}
 
           <Link
             href={`/${locale}`}
@@ -165,6 +225,7 @@ export default function Navbar() {
               className="
                 h-[52px]
                 w-[52px]
+
                 sm:h-[56px]
                 sm:w-[56px]
               "
@@ -186,11 +247,14 @@ export default function Navbar() {
                   font-semibold
                   text-[#2B2B2B]
                   [font-family:var(--font-cormorant)]
+
                   sm:text-[1.9rem]
                   md:text-[2rem]
                 "
               >
-                <span>Hamkke</span>
+                <span>
+                  Hamkke
+                </span>
 
                 <span
                   className="
@@ -223,8 +287,10 @@ export default function Navbar() {
                   uppercase
                   tracking-[0.22em]
                   text-[#6F8F72]
+
                   sm:text-[9px]
                   sm:tracking-[0.25em]
+
                   md:text-[10px]
                   md:tracking-[0.34em]
                 "
@@ -234,7 +300,9 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* ================= DESKTOP NAVIGATION ================= */}
+          {/* =====================================================
+              DESKTOP NAVIGATION
+              ===================================================== */}
 
           <nav
             className="
@@ -244,6 +312,9 @@ export default function Navbar() {
               md:flex
             "
           >
+
+            {/* Navigation Links */}
+
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -273,9 +344,12 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* ================= LANGUAGE DROPDOWN ================= */}
+            {/* =================================================
+                DESKTOP LANGUAGE DROPDOWN
+                ================================================= */}
 
             <div className="relative">
+
               <button
                 type="button"
                 onClick={() =>
@@ -284,7 +358,9 @@ export default function Navbar() {
                   )
                 }
                 aria-haspopup="true"
-                aria-expanded={isLanguageOpen}
+                aria-expanded={
+                  isLanguageOpen
+                }
                 className="
                   flex
                   items-center
@@ -297,13 +373,19 @@ export default function Navbar() {
                   hover:text-[#6F8F72]
                 "
               >
-                {currentLanguage.label}
+
+                {/* Current language */}
+
+                <span>
+                  {currentLanguage.label}
+                </span>
 
                 <ChevronDown
                   size={15}
                   className={`
                     transition-transform
                     duration-200
+
                     ${
                       isLanguageOpen
                         ? "rotate-180"
@@ -311,7 +393,10 @@ export default function Navbar() {
                     }
                   `}
                 />
+
               </button>
+
+              {/* Dropdown */}
 
               {isLanguageOpen && (
                 <div
@@ -330,41 +415,51 @@ export default function Navbar() {
                     shadow-lg
                   "
                 >
-                  {languages.map((language) => (
-                    <button
-                      key={language.locale}
-                      type="button"
-                      onClick={() =>
-                        changeLanguage(
+
+                  {languages.map(
+                    (language) => (
+                      <button
+                        key={
                           language.locale
-                        )
-                      }
-                      className={`
-                        flex
-                        w-full
-                        items-center
-                        px-5
-                        py-2.5
-                        text-left
-                        text-sm
-                        transition-colors
-                        duration-200
-                        ${
-                          language.locale ===
-                          locale
-                            ? "bg-[#EEF5EE] font-medium text-[#6F8F72]"
-                            : "text-[#555] hover:bg-[#F1ECE5] hover:text-[#6F8F72]"
                         }
-                      `}
-                    >
-                      {language.label}
-                    </button>
-                  ))}
+                        type="button"
+                        onClick={() =>
+                          changeLanguage(
+                            language.locale
+                          )
+                        }
+                        className={`
+                          flex
+                          w-full
+                          items-center
+                          px-5
+                          py-2.5
+                          text-left
+                          text-sm
+                          transition-colors
+                          duration-200
+
+                          ${
+                            language.locale ===
+                            locale
+                              ? "bg-[#EEF5EE] font-medium text-[#6F8F72]"
+                              : "text-[#555] hover:bg-[#F1ECE5] hover:text-[#6F8F72]"
+                          }
+                        `}
+                      >
+                        {language.label}
+                      </button>
+                    )
+                  )}
+
                 </div>
               )}
+
             </div>
 
-            {/* ================= START CONVERSATION ================= */}
+            {/* =================================================
+                START CONVERSATION
+                ================================================= */}
 
             <button
               type="button"
@@ -392,9 +487,12 @@ export default function Navbar() {
             >
               {t.nav.startConversation}
             </button>
+
           </nav>
 
-          {/* ================= MOBILE MENU BUTTON ================= */}
+          {/* =====================================================
+              MOBILE MENU BUTTON
+              ===================================================== */}
 
           <button
             type="button"
@@ -404,7 +502,9 @@ export default function Navbar() {
               )
             }
             aria-label="Toggle navigation"
-            aria-expanded={isMobileMenuOpen}
+            aria-expanded={
+              isMobileMenuOpen
+            }
             className="
               flex
               h-11
@@ -426,9 +526,12 @@ export default function Navbar() {
               <Menu size={26} />
             )}
           </button>
+
         </div>
 
-        {/* ================= MOBILE MENU ================= */}
+        {/* =====================================================
+            MOBILE MENU
+            ===================================================== */}
 
         <div
           className={`
@@ -445,6 +548,7 @@ export default function Navbar() {
             }
           `}
         >
+
           <nav
             className="
               bg-[#FAF8F5]
@@ -452,16 +556,27 @@ export default function Navbar() {
               py-6
             "
           >
-            <div className="flex flex-col gap-5">
 
-              {/* Navigation Links */}
+            <div
+              className="
+                flex
+                flex-col
+                gap-5
+              "
+            >
+
+              {/* =================================================
+                  MOBILE NAVIGATION LINKS
+                  ================================================= */}
 
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={() =>
-                    setIsMobileMenuOpen(false)
+                    setIsMobileMenuOpen(
+                      false
+                    )
                   }
                   className="
                     text-lg
@@ -476,15 +591,23 @@ export default function Navbar() {
                 </Link>
               ))}
 
-              {/* ================= MOBILE LANGUAGE ================= */}
+              {/* =================================================
+                  MOBILE LANGUAGE DROPDOWN
+                  ================================================= */}
 
               <div className="pt-1">
+
                 <button
                   type="button"
                   onClick={() =>
                     setIsMobileLanguageOpen(
-                      (previous) => !previous
+                      (previous) =>
+                        !previous
                     )
+                  }
+                  aria-haspopup="true"
+                  aria-expanded={
+                    isMobileLanguageOpen
                   }
                   className="
                     flex
@@ -499,8 +622,11 @@ export default function Navbar() {
                     hover:text-[#6F8F72]
                   "
                 >
+
+                  {/* Current language */}
+
                   <span>
-                    Language
+                    {currentLanguage.label}
                   </span>
 
                   <ChevronDown
@@ -508,6 +634,7 @@ export default function Navbar() {
                     className={`
                       transition-transform
                       duration-200
+
                       ${
                         isMobileLanguageOpen
                           ? "rotate-180"
@@ -515,13 +642,17 @@ export default function Navbar() {
                       }
                     `}
                   />
+
                 </button>
+
+                {/* Language Options */}
 
                 <div
                   className={`
                     overflow-hidden
                     transition-all
                     duration-300
+
                     ${
                       isMobileLanguageOpen
                         ? "mt-3 max-h-40"
@@ -529,7 +660,16 @@ export default function Navbar() {
                     }
                   `}
                 >
-                  <div className="ml-1 flex flex-col gap-1">
+
+                  <div
+                    className="
+                      ml-1
+                      flex
+                      flex-col
+                      gap-1
+                    "
+                  >
+
                     {languages.map(
                       (language) => (
                         <button
@@ -550,6 +690,7 @@ export default function Navbar() {
                             text-base
                             transition-colors
                             duration-200
+
                             ${
                               language.locale ===
                               locale
@@ -558,17 +699,20 @@ export default function Navbar() {
                             }
                           `}
                         >
-                          {
-                            language.label
-                          }
+                          {language.label}
                         </button>
                       )
                     )}
+
                   </div>
+
                 </div>
+
               </div>
 
-              {/* ================= START CONVERSATION ================= */}
+              {/* =================================================
+                  MOBILE START CONVERSATION
+                  ================================================= */}
 
               <button
                 type="button"
@@ -591,12 +735,18 @@ export default function Navbar() {
               >
                 {t.nav.startConversation}
               </button>
+
             </div>
+
           </nav>
+
         </div>
+
       </header>
 
-      {/* ================= INQUIRY MODAL ================= */}
+      {/* =====================================================
+          INQUIRY MODAL
+          ===================================================== */}
 
       <InquiryModal
         isOpen={isInquiryOpen}
