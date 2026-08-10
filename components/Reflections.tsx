@@ -28,13 +28,13 @@ export default async function Reflections({
 
   return (
     <section
-      id="student-stories"
-      className="
-        bg-white
-        py-24
-        lg:py-32
-      "
-    >
+  id="student-stories"
+  className="
+    bg-[#F3F7F1]
+    py-24
+    lg:py-32
+  "
+>
       <div className="mx-auto max-w-7xl">
 
         {/* =====================================================
