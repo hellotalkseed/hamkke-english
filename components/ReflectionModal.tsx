@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 type Reflection = {
@@ -25,6 +26,22 @@ export default function ReflectionModal({
   onPrevious: () => void;
   onNext: () => void;
 }) {
+  /*
+   * Lock the background page while the modal is open.
+   * The reflection card itself remains scrollable.
+   */
+  useEffect(() => {
+    if (!open) return;
+
+    const originalOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open && reflection && (
@@ -46,20 +63,29 @@ export default function ReflectionModal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
         >
+          {/* ================= MODAL CARD ================= */}
+
           <motion.div
             className="
               relative
+
               max-h-[85vh]
               w-full
               max-w-xl
+
               overflow-y-auto
+              overscroll-contain
+
               rounded-[2rem]
+
               bg-[#E6F0E2]
+
               p-6
+
               shadow-2xl
 
-              sm:p-8
               sm:rounded-[2.25rem]
+              sm:p-8
             "
             onClick={(e) => e.stopPropagation()}
             initial={{
@@ -92,16 +118,21 @@ export default function ReflectionModal({
                 absolute
                 right-5
                 top-5
+
                 flex
                 h-9
                 w-9
                 items-center
                 justify-center
+
                 rounded-full
+
                 bg-[#F5F8F3]
+
                 text-xl
                 leading-none
                 text-[#6F8F72]
+
                 transition
                 hover:bg-white
 
@@ -118,6 +149,7 @@ export default function ReflectionModal({
               className="
                 flex
                 gap-1
+
                 text-base
                 text-[#D9A441]
 
@@ -137,6 +169,7 @@ export default function ReflectionModal({
             <div
               className="
                 mt-6
+
                 flex
                 items-center
                 gap-4
@@ -153,7 +186,9 @@ export default function ReflectionModal({
                     h-14
                     w-14
                     flex-shrink-0
+
                     rounded-full
+
                     object-cover
 
                     sm:h-16
@@ -167,10 +202,14 @@ export default function ReflectionModal({
                     h-14
                     w-14
                     flex-shrink-0
+
                     items-center
                     justify-center
+
                     rounded-full
+
                     bg-[#F5F8F3]
+
                     text-xl
                     text-[#6F8F72]
 
@@ -188,7 +227,9 @@ export default function ReflectionModal({
                   className="
                     text-[24px]
                     leading-tight
+
                     text-[#2B2B2B]
+
                     [font-family:var(--font-cormorant)]
 
                     sm:text-[27px]
@@ -200,8 +241,10 @@ export default function ReflectionModal({
                 <p
                   className="
                     mt-1
+
                     text-xs
                     leading-5
+
                     text-[#6F8F72]
 
                     sm:text-sm
@@ -216,16 +259,27 @@ export default function ReflectionModal({
 
             {/* ================= DIVIDER ================= */}
 
-            <div className="mt-6 h-px bg-[#CBD9C7] sm:mt-7" />
+            <div
+              className="
+                mt-6
+                h-px
+                bg-[#CBD9C7]
+
+                sm:mt-7
+              "
+            />
 
             {/* ================= QUOTE MARK ================= */}
 
             <div
               className="
                 mt-5
+
                 text-5xl
                 leading-none
+
                 text-[#BFD2BA]
+
                 [font-family:var(--font-cormorant)]
 
                 sm:mt-6
@@ -240,11 +294,16 @@ export default function ReflectionModal({
             <blockquote
               className="
                 -mt-2
+
                 whitespace-pre-line
+
                 text-[19px]
                 leading-[1.65]
+
                 italic
+
                 text-[#4A4A4A]
+
                 [font-family:var(--font-cormorant)]
 
                 sm:-mt-3
@@ -260,11 +319,14 @@ export default function ReflectionModal({
             <div
               className="
                 mt-8
+
                 flex
                 items-center
                 justify-between
+
                 border-t
                 border-[#CBD9C7]
+
                 pt-5
 
                 sm:mt-10
@@ -277,7 +339,9 @@ export default function ReflectionModal({
                 className="
                   text-sm
                   text-[#6F8F72]
+
                   transition
+
                   hover:underline
 
                   sm:text-base
@@ -292,7 +356,9 @@ export default function ReflectionModal({
                 className="
                   text-sm
                   text-[#6F8F72]
+
                   transition
+
                   hover:underline
 
                   sm:text-base
