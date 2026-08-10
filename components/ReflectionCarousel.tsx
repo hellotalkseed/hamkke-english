@@ -150,7 +150,7 @@ export default function ReflectionCarousel({
             z-10
             w-6
             bg-gradient-to-r
-            from-white
+            from-[#FAF8F5]
             to-transparent
 
             sm:w-10
