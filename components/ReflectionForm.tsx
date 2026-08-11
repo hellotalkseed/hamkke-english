@@ -11,8 +11,10 @@ interface ReflectionFormProps {
 
 const translations = {
   en: {
-    ratingTitle: "⭐ How would you rate your learning experience?",
-    ratingRequired: "Select a rating",
+    ratingTitle:
+      "⭐ How would you rate your learning experience?",
+    ratingRequired:
+      "Select a rating",
     ratingLabels: {
       1: "Needs Improvement",
       2: "Fair",
@@ -24,7 +26,8 @@ const translations = {
     name: "Name",
     nameHelp:
       "Use your real name, English name, nickname, or initials. This is how your name will appear on the website.",
-    namePlaceholder: "Enter your name",
+    namePlaceholder:
+      "Enter your name",
 
     role: "I am a...",
     student: "Student",
@@ -32,40 +35,48 @@ const translations = {
 
     country: "Country / Region",
     optional: "Optional",
-    countryPlaceholder: "Country or region",
+    countryPlaceholder:
+      "Country or region",
 
-    reflection: "Share your reflection",
+    reflection: "Share your story",
     reflectionPlaceholder:
-      "Share anything you'd like about your learning journey. You can talk about your progress, your favorite part of the lessons, or something you're now able to do that you couldn't do before.",
+      "Tell us a little about your English journey. You can talk about your progress, a part of the lessons you enjoyed, or something you can do now that you couldn't do before.",
 
     photo: "Photo",
     photoOptional: "(Optional)",
     photoHelp:
-      "If you'd like your photo to appear with your reflection, you can upload one here.",
+      "If you'd like your photo to appear with your story, you can upload one here.",
 
     permission:
-      "I give Hamkke permission to publish my reflection and uploaded photo (if provided) on the website.",
+      "I give Hamkke permission to publish my story and uploaded photo (if provided) on the website.",
 
-    submit: "Share My Reflection",
+    submit: "Share My Story",
     sending: "Sending...",
 
     thankYou: "Thank you!",
     thankYouMessage:
-      "Thank you for taking the time to share your experience with Hamkke. Your reflection may encourage someone else to begin their own English journey, and I'm truly grateful you've chosen to share your story.",
-    closing: "See you in our next conversation.",
+      "Thank you for taking the time to share your experience with Hamkke. Your story may encourage someone else to begin their own English journey, and I'm truly grateful you've chosen to share it with us.",
+
+    closing:
+      "See you in our next conversation.",
+
     return: "Return to Hamkke",
 
     requiredFields:
       "Please complete all required fields before submitting.",
+
     permissionRequired:
-      "Please give permission for your reflection to be published before submitting.",
+      "Please give permission for your story to be published before submitting.",
+
     submissionError:
-      "Something went wrong while submitting your reflection. Please try again.",
+      "Something went wrong while submitting your story. Please try again.",
   },
 
   ko: {
-    ratingTitle: "⭐ 영어 학습 경험을 어떻게 평가하시나요?",
-    ratingRequired: "별점을 선택해 주세요",
+    ratingTitle:
+      "⭐ 영어 학습 경험은 어떠셨나요?",
+    ratingRequired:
+      "별점을 선택해 주세요",
     ratingLabels: {
       1: "개선이 필요해요",
       2: "괜찮아요",
@@ -77,48 +88,57 @@ const translations = {
     name: "이름",
     nameHelp:
       "실명, 영어 이름, 별명 또는 이니셜을 사용해 주세요. 웹사이트에 표시될 이름입니다.",
-    namePlaceholder: "이름을 입력해 주세요",
+    namePlaceholder:
+      "이름을 입력해 주세요",
 
-    role: "나는...",
+    role: "저는...",
     student: "학생",
     parent: "학부모 / 보호자",
 
     country: "국가 / 지역",
     optional: "선택 사항",
-    countryPlaceholder: "국가 또는 지역",
+    countryPlaceholder:
+      "국가 또는 지역",
 
     reflection: "여러분의 이야기를 들려주세요",
     reflectionPlaceholder:
-      "영어를 배우면서 어떤 변화가 있었는지, 수업에서 가장 좋았던 점은 무엇인지, 또는 예전에는 할 수 없었지만 지금은 할 수 있게 된 것 등을 자유롭게 적어 주세요.",
+      "영어를 배우면서 어떤 변화가 있었는지, 수업에서 좋았던 점은 무엇인지, 또는 예전에는 할 수 없었지만 지금은 할 수 있게 된 것이 무엇인지 편하게 들려주세요.",
 
     photo: "사진",
     photoOptional: "(선택 사항)",
     photoHelp:
-      "여러분의 이야기에 사진을 함께 표시하고 싶다면 사진을 업로드해 주세요.",
+      "여러분의 이야기와 함께 사진을 소개하고 싶다면 사진을 업로드해 주세요.",
 
     permission:
-      "Hamkke가 제가 작성한 이야기와 업로드한 사진(있는 경우)을 웹사이트에 게시하는 것에 동의합니다.",
+      "제가 작성한 이야기와 업로드한 사진(있는 경우)을 Hamkke 웹사이트에 게시하는 것에 동의합니다.",
 
-    submit: "내 이야기 보내기",
+    submit: "내 이야기 들려주기",
     sending: "보내는 중...",
 
     thankYou: "감사합니다.",
     thankYouMessage:
-      "소중한 시간을 내어 Hamkke와 함께한 경험을 나누어 주셔서 감사합니다. 여러분의 이야기가 다른 누군가가 자신의 영어 여정을 시작하는 데 작은 용기가 될 수 있습니다. 여러분의 이야기를 함께 나눠 주셔서 진심으로 감사합니다.",
-    closing: "다음 대화에서 다시 만나요.",
+      "소중한 시간을 내어 Hamkke와 함께한 경험을 나누어 주셔서 감사합니다. 여러분의 이야기가 다른 누군가가 자신의 영어 여정을 시작하는 데 작은 용기가 될 수 있습니다. 함께 이야기를 나눠 주셔서 진심으로 감사합니다.",
+
+    closing:
+      "다음 대화에서 다시 만나요.",
+
     return: "Hamkke로 돌아가기",
 
     requiredFields:
       "필수 항목을 모두 작성한 후 제출해 주세요.",
+
     permissionRequired:
       "제출하기 전에 이야기를 웹사이트에 게시하는 것에 동의해 주세요.",
+
     submissionError:
       "이야기를 보내는 중 문제가 발생했습니다. 다시 시도해 주세요.",
   },
 
   zh: {
-    ratingTitle: "⭐ 你会如何评价自己的英语学习体验？",
-    ratingRequired: "请选择评分",
+    ratingTitle:
+      "⭐ 你会如何评价自己的英语学习体验？",
+    ratingRequired:
+      "请选择评分",
     ratingLabels: {
       1: "需要改进",
       2: "还不错",
@@ -130,7 +150,8 @@ const translations = {
     name: "姓名",
     nameHelp:
       "你可以填写真实姓名、英文名、昵称或姓名首字母。这是之后显示在网站上的名字。",
-    namePlaceholder: "请输入你的名字",
+    namePlaceholder:
+      "请输入你的名字",
 
     role: "我是...",
     student: "学生",
@@ -138,11 +159,12 @@ const translations = {
 
     country: "国家 / 地区",
     optional: "选填",
-    countryPlaceholder: "国家或地区",
+    countryPlaceholder:
+      "国家或地区",
 
-    reflection: "分享你的学习故事",
+    reflection: "分享你的故事",
     reflectionPlaceholder:
-      "欢迎分享任何与你的英语学习经历有关的事情。你可以谈谈自己的进步、最喜欢的课程部分，或者一些以前做不到、现在已经能够做到的事情。",
+      "欢迎分享一些与你的英语学习经历有关的事情。你可以谈谈自己的进步、喜欢的课程部分，或者一些以前做不到、现在已经能够做到的事情。",
 
     photo: "照片",
     photoOptional: "（选填）",
@@ -150,7 +172,7 @@ const translations = {
       "如果你希望照片和你的故事一起出现在网站上，可以在这里上传。",
 
     permission:
-      "我同意 Hamkke 在网站上发布我的学习故事，以及我上传的照片（如果有）。",
+      "我同意 Hamkke 在网站上发布我的故事，以及我上传的照片（如果有）。",
 
     submit: "分享我的故事",
     sending: "发送中...",
@@ -158,13 +180,18 @@ const translations = {
     thankYou: "谢谢你。",
     thankYouMessage:
       "谢谢你愿意花时间分享与 Hamkke 一起学习英语的经历。你的故事也许会鼓励另一个人开始自己的英语学习旅程。真的很感谢你愿意与我们分享。",
-    closing: "期待在下一次交流中与你见面。",
+
+    closing:
+      "期待在下一次交流中与你见面。",
+
     return: "返回 Hamkke",
 
     requiredFields:
       "请填写所有必填项目后再提交。",
+
     permissionRequired:
       "提交前，请先同意将你的故事发布在网站上。",
+
     submissionError:
       "提交故事时出现了一些问题，请再试一次。",
   },
@@ -355,7 +382,10 @@ export default function ReflectionForm({
           "
         >
           {t.ratingTitle}
-          <span className="text-red-500"> *</span>
+          <span className="text-red-500">
+            {" "}
+            *
+          </span>
         </label>
 
         <div
@@ -376,8 +406,12 @@ export default function ReflectionForm({
                 type="button"
                 aria-label={`${star} stars`}
                 onClick={() => setRating(star)}
-                onMouseEnter={() => setHover(star)}
-                onMouseLeave={() => setHover(0)}
+                onMouseEnter={() =>
+                  setHover(star)
+                }
+                onMouseLeave={() =>
+                  setHover(0)
+                }
                 className="
                   cursor-pointer
                   text-[1.9rem]
@@ -412,7 +446,13 @@ export default function ReflectionForm({
           >
             {hover || rating
               ? t.ratingLabels[
-                  (hover || rating) as 1 | 2 | 3 | 4 | 5
+                  (hover ||
+                    rating) as
+                    | 1
+                    | 2
+                    | 3
+                    | 4
+                    | 5
                 ]
               : t.ratingRequired}
           </span>
@@ -433,7 +473,9 @@ export default function ReflectionForm({
           "
         >
           {t.name}{" "}
-          <span className="text-red-500">*</span>
+          <span className="text-red-500">
+            *
+          </span>
         </label>
 
         <p
@@ -451,7 +493,9 @@ export default function ReflectionForm({
           type="text"
           placeholder={t.namePlaceholder}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) =>
+            setName(e.target.value)
+          }
           className="
             mt-4
             w-full
@@ -484,7 +528,9 @@ export default function ReflectionForm({
           "
         >
           {t.role}{" "}
-          <span className="text-red-500">*</span>
+          <span className="text-red-500">
+            *
+          </span>
         </label>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -511,7 +557,9 @@ export default function ReflectionForm({
               name="role"
               value="Student"
               checked={role === "Student"}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) =>
+                setRole(e.target.value)
+              }
               className="accent-[#6F8F72]"
             />
 
@@ -542,8 +590,12 @@ export default function ReflectionForm({
               type="radio"
               name="role"
               value="Parent / Guardian"
-              checked={role === "Parent / Guardian"}
-              onChange={(e) => setRole(e.target.value)}
+              checked={
+                role === "Parent / Guardian"
+              }
+              onChange={(e) =>
+                setRole(e.target.value)
+              }
               className="accent-[#6F8F72]"
             />
 
@@ -584,7 +636,9 @@ export default function ReflectionForm({
           type="text"
           placeholder={t.countryPlaceholder}
           value={country}
-          onChange={(e) => setCountry(e.target.value)}
+          onChange={(e) =>
+            setCountry(e.target.value)
+          }
           className="
             mt-4
             w-full
@@ -617,14 +671,18 @@ export default function ReflectionForm({
           "
         >
           {t.reflection}{" "}
-          <span className="text-red-500">*</span>
+          <span className="text-red-500">
+            *
+          </span>
         </label>
 
         <textarea
           rows={8}
           placeholder={t.reflectionPlaceholder}
           value={reflection}
-          onChange={(e) => setReflection(e.target.value)}
+          onChange={(e) =>
+            setReflection(e.target.value)
+          }
           className="
             mt-4
             w-full
@@ -727,7 +785,9 @@ export default function ReflectionForm({
             type="checkbox"
             checked={permission}
             onChange={(e) =>
-              setPermission(e.target.checked)
+              setPermission(
+                e.target.checked
+              )
             }
             className="
               mt-1
@@ -767,7 +827,9 @@ export default function ReflectionForm({
           disabled:opacity-50
         "
       >
-        {loading ? t.sending : t.submit}
+        {loading
+          ? t.sending
+          : t.submit}
       </button>
     </section>
   );

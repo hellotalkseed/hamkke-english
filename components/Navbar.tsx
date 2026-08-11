@@ -35,11 +35,11 @@ const languages = [
   },
   {
     locale: "ko" as Locale,
-    label: "KR",
+    label: "한국어",
   },
   {
     locale: "zh" as Locale,
-    label: "ZH",
+    label: "中文",
   },
 ];
 

@@ -67,15 +67,15 @@ export default async function SharePage({
           {/* BRAND */}
 
           <div
-  className="
-    text-sm
-    font-medium
-    text-[#6F8F72]
-    sm:text-base
-  "
->
-  Hamkke │ 함께
-</div>
+            className="
+              text-sm
+              font-medium
+              text-[#6F8F72]
+              sm:text-base
+            "
+          >
+            Hamkke │ 함께
+          </div>
 
           {/* LANGUAGE SELECTOR */}
 
@@ -137,10 +137,6 @@ export default async function SharePage({
           pb-16
           pt-0
           text-center
-
-          sm:pt-12
-
-          lg:pt-14
         "
       >
 
@@ -152,7 +148,6 @@ export default async function SharePage({
             leading-tight
             text-[#2B2B2B]
             [font-family:var(--font-cormorant)]
-
             md:text-6xl
           "
         >
@@ -175,25 +170,6 @@ export default async function SharePage({
           "
         >
           {t.reflections.galleryDescription}
-        </p>
-
-        {/* Personal invitation */}
-
-        <p
-          className="
-            mt-6
-            text-center
-            text-2xl
-            italic
-            text-[#6F8F72]
-            [font-family:var(--font-cormorant)]
-          "
-        >
-          {locale === "ko"
-            ? "여러분의 이야기도 들려주세요."
-            : locale === "zh"
-              ? "也很期待听听你的故事。"
-              : "We'd love to hear yours."}
         </p>
 
       </section>
