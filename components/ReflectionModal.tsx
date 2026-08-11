@@ -27,53 +27,53 @@ export default function ReflectionModal({
   onNext: () => void;
 }) {
   /*
-   * Lock the background page while the modal is open.
+   * =====================================================
+   * LOCK BACKGROUND SCROLL
+   * =====================================================
    *
-   * Both the html element and body are locked because
-   * mobile browsers can otherwise continue scrolling
-   * the page behind a fixed modal.
+   * This prevents the page behind the modal from scrolling,
+   * especially on mobile / iOS.
    */
+
   useEffect(() => {
     if (!open) return;
 
-    const html = document.documentElement;
-    const body = document.body;
+    const scrollY = window.scrollY;
 
-    const originalHtmlOverflow = html.style.overflow;
-    const originalBodyOverflow = body.style.overflow;
-    const originalBodyOverscrollBehavior =
-      body.style.overscrollBehavior;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalBodyPosition = document.body.style.position;
+    const originalBodyTop = document.body.style.top;
+    const originalBodyWidth = document.body.style.width;
 
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    body.style.overscrollBehavior = "none";
+    const originalHtmlOverflow =
+      document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
 
     return () => {
-      html.style.overflow = originalHtmlOverflow;
-      body.style.overflow = originalBodyOverflow;
-      body.style.overscrollBehavior =
-        originalBodyOverscrollBehavior;
+      document.documentElement.style.overflow =
+        originalHtmlOverflow;
+
+      document.body.style.overflow =
+        originalBodyOverflow;
+
+      document.body.style.position =
+        originalBodyPosition;
+
+      document.body.style.top =
+        originalBodyTop;
+
+      document.body.style.width =
+        originalBodyWidth;
+
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
-
-  /*
-   * Close the modal with the Escape key.
-   */
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, onClose]);
 
   return (
     <AnimatePresence>
@@ -88,8 +88,6 @@ export default function ReflectionModal({
             items-center
             justify-center
 
-            overflow-hidden
-
             bg-black/30
 
             px-4
@@ -98,14 +96,17 @@ export default function ReflectionModal({
             sm:px-6
             sm:py-8
 
-            md:px-8
-            md:py-10
+            lg:px-8
           "
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
+          style={{
+            overscrollBehavior: "contain",
+            touchAction: "none",
+          }}
         >
           {/* =================================================
               MODAL CARD
@@ -115,37 +116,45 @@ export default function ReflectionModal({
             className="
               relative
 
-              w-[92vw]
-              max-w-5xl
+              w-full
 
-              max-h-[82dvh]
+              max-w-[92vw]
+              sm:max-w-2xl
+              lg:max-w-5xl
+              xl:max-w-6xl
+
+              max-h-[84vh]
+              sm:max-h-[86vh]
+              lg:max-h-[88vh]
 
               overflow-y-auto
               overscroll-contain
 
               rounded-[2rem]
+              sm:rounded-[2.25rem]
+              lg:rounded-[2.5rem]
 
               bg-[#E6F0E2]
 
-              p-6
+              px-6
+              py-7
+
+              sm:px-8
+              sm:py-9
+
+              lg:px-10
+              lg:py-10
 
               shadow-2xl
 
-              sm:max-h-[84dvh]
-              sm:rounded-[2.25rem]
-              sm:p-8
-
-              md:max-h-[86dvh]
-              md:p-10
-
-              lg:p-10
+              [scrollbar-width:thin]
             "
             onClick={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             initial={{
               opacity: 0,
               scale: 0.97,
-              y: 15,
+              y: 12,
             }}
             animate={{
               opacity: 1,
@@ -155,11 +164,16 @@ export default function ReflectionModal({
             exit={{
               opacity: 0,
               scale: 0.97,
-              y: 15,
+              y: 12,
             }}
             transition={{
               duration: 0.3,
               ease: "easeOut",
+            }}
+            style={{
+              overscrollBehavior: "contain",
+              WebkitOverflowScrolling: "touch",
+              touchAction: "pan-y",
             }}
           >
             {/* =================================================
@@ -174,7 +188,6 @@ export default function ReflectionModal({
                 absolute
                 right-4
                 top-4
-                z-10
 
                 flex
                 h-10
@@ -186,19 +199,23 @@ export default function ReflectionModal({
 
                 bg-[#F5F8F3]
 
-                text-2xl
+                text-[22px]
+                font-light
                 leading-none
+
                 text-[#6F8F72]
 
                 transition
+                duration-200
 
                 hover:bg-white
+                hover:scale-105
 
-                sm:right-6
-                sm:top-6
+                sm:right-5
+                sm:top-5
 
-                sm:h-11
-                sm:w-11
+                lg:right-7
+                lg:top-7
               "
             >
               ×
@@ -213,11 +230,10 @@ export default function ReflectionModal({
                 flex
                 gap-1
 
-                text-base
+                text-[17px]
                 text-[#D9A441]
 
-                sm:gap-1.5
-                sm:text-lg
+                sm:text-[18px]
               "
             >
               {Array.from({
@@ -233,18 +249,16 @@ export default function ReflectionModal({
 
             <div
               className="
-                mt-5
+                mt-6
 
                 flex
                 items-center
                 gap-4
 
-                pr-12
-
-                sm:mt-6
+                sm:mt-7
                 sm:gap-5
 
-                md:mt-7
+                lg:mt-6
               "
             >
               {reflection.photo_url ? (
@@ -254,7 +268,7 @@ export default function ReflectionModal({
                   className="
                     h-14
                     w-14
-                    flex-shrink-0
+                    shrink-0
 
                     rounded-full
 
@@ -263,8 +277,8 @@ export default function ReflectionModal({
                     sm:h-16
                     sm:w-16
 
-                    md:h-[72px]
-                    md:w-[72px]
+                    lg:h-[68px]
+                    lg:w-[68px]
                   "
                 />
               ) : (
@@ -273,7 +287,7 @@ export default function ReflectionModal({
                     flex
                     h-14
                     w-14
-                    flex-shrink-0
+                    shrink-0
 
                     items-center
                     justify-center
@@ -283,14 +297,16 @@ export default function ReflectionModal({
                     bg-[#F5F8F3]
 
                     text-xl
+                    font-medium
+
                     text-[#6F8F72]
 
                     sm:h-16
                     sm:w-16
                     sm:text-2xl
 
-                    md:h-[72px]
-                    md:w-[72px]
+                    lg:h-[68px]
+                    lg:w-[68px]
                   "
                 >
                   {reflection.name.charAt(0)}
@@ -300,16 +316,17 @@ export default function ReflectionModal({
               <div>
                 <h2
                   className="
-                    text-[24px]
+                    text-[25px]
+                    font-medium
                     leading-tight
+
+                    tracking-[-0.02em]
 
                     text-[#2B2B2B]
 
-                    [font-family:var(--font-cormorant)]
+                    sm:text-[28px]
 
-                    sm:text-[27px]
-
-                    md:text-[30px]
+                    lg:text-[30px]
                   "
                 >
                   {reflection.name}
@@ -319,14 +336,12 @@ export default function ReflectionModal({
                   className="
                     mt-1
 
-                    text-xs
+                    text-[13px]
                     leading-5
 
                     text-[#6F8F72]
 
                     sm:text-sm
-
-                    md:text-[15px]
                   "
                 >
                   {reflection.role}
@@ -348,7 +363,7 @@ export default function ReflectionModal({
 
                 sm:mt-7
 
-                md:mt-8
+                lg:mt-8
               "
             />
 
@@ -360,18 +375,14 @@ export default function ReflectionModal({
               className="
                 mt-5
 
-                text-5xl
+                text-[48px]
+                font-serif
                 leading-none
 
                 text-[#BFD2BA]
 
-                [font-family:var(--font-cormorant)]
-
                 sm:mt-6
-                sm:text-6xl
-
-                md:mt-7
-                md:text-6xl
+                sm:text-[54px]
               "
             >
               "
@@ -379,10 +390,6 @@ export default function ReflectionModal({
 
             {/* =================================================
                 REFLECTION
-
-                Same Cormorant font on mobile and desktop.
-                Only the size/line-height adjusts slightly
-                for readability.
                 ================================================= */}
 
             <blockquote
@@ -391,24 +398,23 @@ export default function ReflectionModal({
 
                 whitespace-pre-line
 
-                text-[19px]
-                leading-[1.65]
+                text-[17px]
+                font-normal
+                leading-[1.75]
 
-                italic
+                tracking-[-0.005em]
 
-                text-[#4A4A4A]
-
-                [font-family:var(--font-cormorant)]
+                text-[#3F4540]
 
                 sm:-mt-3
-                sm:text-[22px]
-                sm:leading-[1.7]
+                sm:text-[18px]
+                sm:leading-[1.8]
 
-                md:text-[22px]
-                md:leading-[1.7]
+                lg:text-[19px]
+                lg:leading-[1.8]
 
-                lg:text-[23px]
-                lg:leading-[1.7]
+                xl:text-[20px]
+                xl:leading-[1.8]
               "
             >
               “{reflection.reflection}”
@@ -431,25 +437,30 @@ export default function ReflectionModal({
 
                 pt-5
 
-                sm:mt-10
+                sm:mt-9
                 sm:pt-6
 
-                md:mt-10
-                md:pt-6
+                lg:mt-10
+                lg:pt-7
               "
             >
               <button
                 type="button"
                 onClick={onPrevious}
                 className="
-                  text-sm
+                  text-[14px]
+                  font-medium
+
                   text-[#6F8F72]
 
                   transition
+                  duration-200
 
                   hover:underline
 
-                  sm:text-base
+                  sm:text-[15px]
+
+                  lg:text-base
                 "
               >
                 ← Previous
@@ -459,14 +470,19 @@ export default function ReflectionModal({
                 type="button"
                 onClick={onNext}
                 className="
-                  text-sm
+                  text-[14px]
+                  font-medium
+
                   text-[#6F8F72]
 
                   transition
+                  duration-200
 
                   hover:underline
 
-                  sm:text-base
+                  sm:text-[15px]
+
+                  lg:text-base
                 "
               >
                 Next →
