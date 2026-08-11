@@ -7,17 +7,14 @@ const zh = {
 },
 
   hero: {
-    brand: "Hamkke │ 함께",
-    title: "每一次有意义的交流，都始于一句话。",
-    signature:
-      '有时候，只是一句“今天过得怎么样？”有时候，一次交流，也可能打开一扇通往更多可能的门。',
-    description:
-      "当你真正能够使用英语时，英语才会变得更加有用。Hamkke 帮助你建立表达的自信，让你能够更自然地说出自己的想法，在一次次交流中逐渐成长。",
-    startConversation: "开始交流",
-    exploreLessons: "了解课程",
-    watchIntroduction: "观看介绍视频",
-    meetYourCoach: "认识你的老师",
-  },
+  brand: "Hamkke │ 함께",
+  title: "每一次有意义的交流，都始于一句话。",
+  signature:
+    '有时候，只是一句“今天过得怎么样？”这样简单的问候。又或者，一次交流，会让我们聊到更多、更深的话题。',
+  description:
+    "当你真正能够用英语表达自己时，英语才会变得更加有意义。Hamkke希望帮助你建立表达的自信，让你能够更自然地说出自己的想法，在一次次交流中慢慢成长。",
+  startConversation: "开始交流",
+},
 
   studentProblem: {
     brand: "Hamkke │ 함께",

@@ -7,17 +7,14 @@ const en = {
 },
 
   hero: {
-    brand: "Hamkke │ 함께",
-    title: "Every meaningful conversation starts somewhere.",
-    signature:
-      'Sometimes it\'s a simple "How was your day?" Other times, it opens the door to something more.',
-    description:
-      "English becomes more useful when you can actually use it. Hamkke helps you build the confidence to express your thoughts naturally, one conversation at a time.",
-    startConversation: "Start a Conversation",
-    exploreLessons: "Explore Lessons",
-    watchIntroduction: "Watch Introduction",
-    meetYourCoach: "Meet Your Coach",
-  },
+  brand: "Hamkke │ 함께",
+  title: "Every meaningful conversation starts somewhere.",
+  signature:
+    'Sometimes it\'s a simple "How was your day?" Other times, it opens the door to something more.',
+  description:
+    "English becomes more useful when you can actually use it. Hamkke helps you build the confidence to express your thoughts naturally, one conversation at a time.",
+  startConversation: "Start a Conversation",
+},
 
   studentProblem: {
     brand: "Hamkke │ 함께",

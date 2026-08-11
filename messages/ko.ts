@@ -7,17 +7,14 @@ const ko = {
 },
 
   hero: {
-    brand: "Hamkke │ 함께",
-    title: "모든 의미 있는 대화는 작은 한마디에서 시작됩니다.",
-    signature:
-      '때로는 간단한 "오늘 하루 어땠어요?"일 수도 있습니다. 또 어떤 대화는 새로운 생각의 문을 열기도 합니다.',
-    description:
-      "영어는 실제로 사용할 때 더욱 의미 있어집니다. Hamkke는 한 번의 대화에서 시작해 자신의 생각을 자연스럽게 표현할 수 있는 자신감을 키워드립니다.",
-    startConversation: "대화 시작하기",
-    exploreLessons: "수업 알아보기",
-    watchIntroduction: "소개 영상 보기",
-    meetYourCoach: "선생님 만나보기",
-  },
+  brand: "Hamkke │ 함께",
+  title: "의미 있는 대화는 언제나 작은 한마디에서 시작됩니다.",
+  signature:
+    '때로는 "오늘 하루 어땠어요?"라는 짧은 한마디일 수도 있습니다. 또 어떤 대화는 그보다 더 깊은 이야기로 이어지기도 합니다.',
+  description:
+    "영어는 실제로 사용할 때 더 의미 있어집니다. Hamkke는 대화를 통해 자신의 생각을 자연스럽게 표현하고, 영어로 소통하는 자신감을 키워갈 수 있도록 돕습니다.",
+  startConversation: "대화 시작하기",
+},
 
   studentProblem: {
     brand: "Hamkke │ 함께",
