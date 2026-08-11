@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 
 import ReflectionCard from "./ReflectionCard";
+import ReflectionModal from "./ReflectionModal";
 
 import { getMessages } from "../lib/getMessages";
 import type { Locale } from "../lib/i18n";
@@ -30,13 +31,30 @@ export default function ReflectionCarousel({
   const [paused, setPaused] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  /* =====================================================
+     MODAL STATE
+     ===================================================== */
+
+  const [selectedReflection, setSelectedReflection] =
+    useState<Reflection | null>(null);
+
+  const [modalOpen, setModalOpen] = useState(false);
+
   const t = getMessages(locale);
+
+  /* =====================================================
+     EMBLA
+     ===================================================== */
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     align: "center",
     containScroll: false,
   });
+
+  /* =====================================================
+     TRACK CURRENT SLIDE
+     ===================================================== */
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -54,6 +72,77 @@ export default function ReflectionCarousel({
     };
   }, [emblaApi]);
 
+  /* =====================================================
+     OPEN MODAL
+     ===================================================== */
+
+  const openReflection = (reflection: Reflection) => {
+    setSelectedReflection(reflection);
+    setModalOpen(true);
+  };
+
+  /* =====================================================
+     CLOSE MODAL
+     ===================================================== */
+
+  const closeReflection = () => {
+    setModalOpen(false);
+  };
+
+  /* =====================================================
+     PREVIOUS REFLECTION
+     ===================================================== */
+
+  const handlePrevious = () => {
+    if (!selectedReflection || reflections.length === 0) {
+      return;
+    }
+
+    const currentReflectionIndex = reflections.findIndex(
+      (item) => item.id === selectedReflection.id
+    );
+
+    if (currentReflectionIndex === -1) {
+      return;
+    }
+
+    const previousIndex =
+      currentReflectionIndex === 0
+        ? reflections.length - 1
+        : currentReflectionIndex - 1;
+
+    setSelectedReflection(reflections[previousIndex]);
+  };
+
+  /* =====================================================
+     NEXT REFLECTION
+     ===================================================== */
+
+  const handleNext = () => {
+    if (!selectedReflection || reflections.length === 0) {
+      return;
+    }
+
+    const currentReflectionIndex = reflections.findIndex(
+      (item) => item.id === selectedReflection.id
+    );
+
+    if (currentReflectionIndex === -1) {
+      return;
+    }
+
+    const nextIndex =
+      currentReflectionIndex === reflections.length - 1
+        ? 0
+        : currentReflectionIndex + 1;
+
+    setSelectedReflection(reflections[nextIndex]);
+  };
+
+  /* =====================================================
+     DESKTOP ITEMS
+     ===================================================== */
+
   const desktopItems = [
     ...reflections,
     ...reflections,
@@ -61,7 +150,9 @@ export default function ReflectionCarousel({
 
   return (
     <>
-      {/* ================= MOBILE ================= */}
+      {/* =================================================
+          MOBILE
+          ================================================= */}
 
       <div
         className="
@@ -88,14 +179,21 @@ export default function ReflectionCarousel({
               >
                 <ReflectionCard
                   reflection={item}
-                  readMoreLabel={t.reflections.readMoreCard}
+                  readMoreLabel={
+                    t.reflections.readMoreCard
+                  }
+                  onClick={() =>
+                    openReflection(item)
+                  }
                 />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Dots */}
+        {/* =================================================
+            DOTS
+            ================================================= */}
 
         <div
           className="
@@ -109,8 +207,12 @@ export default function ReflectionCarousel({
             <button
               key={index}
               type="button"
-              onClick={() => emblaApi?.scrollTo(index)}
-              aria-label={`Go to reflection ${index + 1}`}
+              onClick={() =>
+                emblaApi?.scrollTo(index)
+              }
+              aria-label={`Go to reflection ${
+                index + 1
+              }`}
               className={`
                 rounded-full
                 transition-all
@@ -127,7 +229,9 @@ export default function ReflectionCarousel({
         </div>
       </div>
 
-      {/* ================= DESKTOP ================= */}
+      {/* =================================================
+          DESKTOP
+          ================================================= */}
 
       <div
         className="
@@ -139,7 +243,9 @@ export default function ReflectionCarousel({
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        {/* Left Fade */}
+        {/* =================================================
+            LEFT FADE
+            ================================================= */}
 
         <div
           className="
@@ -158,7 +264,9 @@ export default function ReflectionCarousel({
           "
         />
 
-        {/* Right Fade */}
+        {/* =================================================
+            RIGHT FADE
+            ================================================= */}
 
         <div
           className="
@@ -177,7 +285,9 @@ export default function ReflectionCarousel({
           "
         />
 
-        {/* Marquee */}
+        {/* =================================================
+            MARQUEE
+            ================================================= */}
 
         <div
           className="
@@ -197,11 +307,28 @@ export default function ReflectionCarousel({
             <ReflectionCard
               key={`${item.id}-${index}`}
               reflection={item}
-              readMoreLabel={t.reflections.readMoreCard}
+              readMoreLabel={
+                t.reflections.readMoreCard
+              }
+              onClick={() =>
+                openReflection(item)
+              }
             />
           ))}
         </div>
       </div>
+
+      {/* =================================================
+          REFLECTION MODAL
+          ================================================= */}
+
+      <ReflectionModal
+        reflection={selectedReflection}
+        open={modalOpen}
+        onClose={closeReflection}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+      />
     </>
   );
 }
