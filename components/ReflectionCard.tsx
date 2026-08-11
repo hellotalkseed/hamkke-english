@@ -21,12 +21,26 @@ export default function ReflectionCard({
   readMoreLabel,
   onClick,
 }: ReflectionCardProps) {
+  const MAX_PREVIEW_LENGTH = 180;
+
   const isLongReflection =
-    reflection.reflection.length > 180;
+    reflection.reflection.length > MAX_PREVIEW_LENGTH;
 
   const preview = isLongReflection
-    ? reflection.reflection.slice(0, 180).trimEnd() + "..."
+    ? reflection.reflection
+        .slice(0, MAX_PREVIEW_LENGTH)
+        .trimEnd() + "..."
     : reflection.reflection;
+
+  const handleReadMore = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    event.stopPropagation();
+
+    if (onClick) {
+      onClick();
+    }
+  };
 
   return (
     <article
@@ -39,7 +53,6 @@ export default function ReflectionCard({
         cursor-pointer
 
         rounded-[2rem]
-
         bg-[#DDE9D8]
 
         p-6
@@ -74,7 +87,7 @@ export default function ReflectionCard({
       </div>
 
       {/* =====================================================
-          REFLECTION PREVIEW
+          REFLECTION
           ===================================================== */}
 
       <blockquote
@@ -83,7 +96,6 @@ export default function ReflectionCard({
 
           text-[16px]
           leading-7
-
           italic
 
           text-[#4A4A4A]
@@ -102,15 +114,15 @@ export default function ReflectionCard({
           READ MORE
           ===================================================== */}
 
-      {onClick && isLongReflection && (
+      {isLongReflection && onClick && (
         <button
           type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onClick();
-          }}
+          onClick={handleReadMore}
           className="
             mt-5
+
+            inline-flex
+            items-center
 
             text-sm
             font-medium
@@ -141,8 +153,6 @@ export default function ReflectionCard({
           gap-4
         "
       >
-        {/* Profile Image */}
-
         {reflection.photo_url ? (
           <img
             src={reflection.photo_url}
@@ -153,7 +163,6 @@ export default function ReflectionCard({
               flex-shrink-0
 
               rounded-full
-
               object-cover
 
               sm:h-14
@@ -177,7 +186,6 @@ export default function ReflectionCard({
 
               text-base
               font-medium
-
               text-[#6F8F72]
 
               sm:h-14
@@ -189,14 +197,11 @@ export default function ReflectionCard({
           </div>
         )}
 
-        {/* Profile Information */}
-
         <div className="min-w-0">
           <h3
             className="
               text-[17px]
               font-medium
-
               text-[#2B2B2B]
 
               sm:text-[18px]
@@ -208,9 +213,7 @@ export default function ReflectionCard({
           <p
             className="
               mt-1
-
               text-sm
-
               text-[#6B6B6B]
             "
           >
