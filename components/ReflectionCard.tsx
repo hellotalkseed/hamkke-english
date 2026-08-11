@@ -21,7 +21,19 @@ export default function ReflectionCard({
   readMoreLabel,
   onClick,
 }: ReflectionCardProps) {
-  const MAX_PREVIEW_LENGTH = 180;
+  /*
+   * Different languages use different amounts of visual space.
+   * Korean and Chinese therefore use a shorter character limit
+   * so the cards remain visually consistent with English cards.
+   */
+  const isKorean =
+    /[\uAC00-\uD7AF]/.test(reflection.reflection);
+
+  const isChinese =
+    /[\u4E00-\u9FFF]/.test(reflection.reflection);
+
+  const MAX_PREVIEW_LENGTH =
+    isKorean || isChinese ? 95 : 180;
 
   const isLongReflection =
     reflection.reflection.length > MAX_PREVIEW_LENGTH;
@@ -46,17 +58,18 @@ export default function ReflectionCard({
     <article
       onClick={onClick}
       className="
+        flex
+        h-[360px]
         w-[88vw]
         max-w-[380px]
         flex-shrink-0
-
         cursor-pointer
+        flex-col
 
         rounded-[2rem]
         bg-[#DDE9D8]
 
         p-6
-
         shadow-md
 
         transition-all
@@ -78,6 +91,7 @@ export default function ReflectionCard({
 
       <div
         className="
+          shrink-0
           text-lg
           tracking-wide
           text-[#D8A437]
@@ -93,6 +107,9 @@ export default function ReflectionCard({
       <blockquote
         className="
           mt-5
+          h-[140px]
+          shrink-0
+          overflow-hidden
 
           text-[16px]
           leading-7
@@ -103,6 +120,7 @@ export default function ReflectionCard({
           [font-family:var(--font-cormorant)]
 
           sm:mt-6
+          sm:h-[150px]
           sm:text-[17px]
           sm:leading-8
         "
@@ -114,31 +132,31 @@ export default function ReflectionCard({
           READ MORE
           ===================================================== */}
 
-      {isLongReflection && onClick && (
-        <button
-          type="button"
-          onClick={handleReadMore}
-          className="
-            mt-5
+      <div className="mt-4 h-6 shrink-0">
+        {isLongReflection && onClick && (
+          <button
+            type="button"
+            onClick={handleReadMore}
+            className="
+              inline-flex
+              items-center
 
-            inline-flex
-            items-center
+              text-sm
+              font-medium
 
-            text-sm
-            font-medium
+              text-[#6F8F72]
 
-            text-[#6F8F72]
+              transition-colors
+              duration-300
 
-            transition-colors
-            duration-300
-
-            hover:text-[#5B7960]
-            hover:underline
-          "
-        >
-          {readMoreLabel} →
-        </button>
-      )}
+              hover:text-[#5B7960]
+              hover:underline
+            "
+          >
+            {readMoreLabel} →
+          </button>
+        )}
+      </div>
 
       {/* =====================================================
           PROFILE
@@ -146,9 +164,9 @@ export default function ReflectionCard({
 
       <div
         className="
-          mt-8
-
+          mt-4
           flex
+          min-h-[56px]
           items-center
           gap-4
         "
