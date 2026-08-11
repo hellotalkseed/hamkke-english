@@ -40,88 +40,112 @@ export default async function SharePage({
       >
         <div
           className="
-            grid
-            grid-cols-[1fr_auto_1fr]
-            items-center
+            relative
+            flex
+            flex-col
+            sm:grid
+            sm:grid-cols-[1fr_auto_1fr]
+            sm:items-center
           "
         >
-
-          {/* BACK */}
-
-          <div className="justify-self-start">
-            <a
-              href={`/${locale}`}
-              className="
-                text-sm
-                text-[#6B6B6B]
-                transition-colors
-                duration-200
-                hover:text-[#6F8F72]
-                sm:text-base
-              "
-            >
-              ← Go to Hamkke
-            </a>
-          </div>
-
-          {/* BRAND */}
-
-          <div
-            className="
-              text-sm
-              font-medium
-              text-[#6F8F72]
-              sm:text-base
-            "
-          >
-            Hamkke │ 함께
-          </div>
-
-          {/* LANGUAGE SELECTOR */}
+          {/* =================================================
+              TOP ROW
+              ================================================= */}
 
           <div
             className="
               flex
               items-center
-              justify-self-end
-              gap-3
-              text-sm
+              justify-between
+              sm:contents
             "
           >
-            <a
-              href="/en/share"
-              className={
-                locale === "en"
-                  ? "font-medium text-[#6F8F72]"
-                  : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
-              }
-            >
-              EN
-            </a>
+            {/* BACK */}
 
-            <a
-              href="/ko/share"
-              className={
-                locale === "ko"
-                  ? "font-medium text-[#6F8F72]"
-                  : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
-              }
-            >
-              한국어
-            </a>
+            <div className="sm:justify-self-start">
+              <a
+                href={`/${locale}`}
+                className="
+                  text-sm
+                  text-[#6B6B6B]
+                  transition-colors
+                  duration-200
+                  hover:text-[#6F8F72]
+                  sm:text-base
+                "
+              >
+                ← Go to Hamkke
+              </a>
+            </div>
 
-            <a
-              href="/zh/share"
-              className={
-                locale === "zh"
-                  ? "font-medium text-[#6F8F72]"
-                  : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
-              }
+            {/* LANGUAGE SELECTOR */}
+
+            <div
+              className="
+                flex
+                items-center
+                gap-3
+                text-sm
+                sm:col-start-3
+                sm:row-start-1
+                sm:justify-self-end
+              "
             >
-              中文
-            </a>
+              <a
+                href="/en/share"
+                className={
+                  locale === "en"
+                    ? "font-medium text-[#6F8F72]"
+                    : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
+                }
+              >
+                EN
+              </a>
+
+              <a
+                href="/ko/share"
+                className={
+                  locale === "ko"
+                    ? "font-medium text-[#6F8F72]"
+                    : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
+                }
+              >
+                한국어
+              </a>
+
+              <a
+                href="/zh/share"
+                className={
+                  locale === "zh"
+                    ? "font-medium text-[#6F8F72]"
+                    : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
+                }
+              >
+                中文
+              </a>
+            </div>
           </div>
 
+          {/* =================================================
+              BRAND
+              ================================================= */}
+
+          <div
+            className="
+              mt-5
+              text-center
+              text-sm
+              font-medium
+              text-[#6F8F72]
+              sm:col-start-2
+              sm:row-start-1
+              sm:mt-0
+              sm:text-left
+              sm:text-base
+            "
+          >
+            Hamkke │ 함께
+          </div>
         </div>
       </div>
 
@@ -135,12 +159,12 @@ export default async function SharePage({
           max-w-2xl
           px-6
           pb-16
-          pt-0
+          pt-8
           text-center
+          sm:pt-0
         "
       >
-
-        {/* Title */}
+        {/* TITLE */}
 
         <h1
           className="
@@ -156,7 +180,7 @@ export default async function SharePage({
           {t.reflections.galleryTitleLineTwo}
         </h1>
 
-        {/* Introduction */}
+        {/* INTRODUCTION */}
 
         <p
           className="
@@ -171,7 +195,6 @@ export default async function SharePage({
         >
           {t.reflections.galleryDescription}
         </p>
-
       </section>
 
       {/* =====================================================
