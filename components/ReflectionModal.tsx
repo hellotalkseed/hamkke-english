@@ -27,27 +27,19 @@ export default function ReflectionModal({
   onNext: () => void;
 }) {
   /*
-   * =====================================================
-   * LOCK BACKGROUND SCROLL
-   * =====================================================
-   *
-   * When the modal is open, prevent the page behind it
-   * from scrolling.
+   * Lock the background page while the modal is open.
+   * The modal remains scrollable on smaller screens when
+   * a reflection is longer than the available height.
    */
-
   useEffect(() => {
     if (!open) return;
 
     const originalOverflow = document.body.style.overflow;
-    const originalTouchAction =
-      document.body.style.touchAction;
 
     document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
 
     return () => {
       document.body.style.overflow = originalOverflow;
-      document.body.style.touchAction = originalTouchAction;
     };
   }, [open]);
 
@@ -66,9 +58,9 @@ export default function ReflectionModal({
 
             bg-black/30
 
-            p-0
-
+            p-4
             sm:p-6
+            lg:p-8
           "
           onClick={onClose}
           initial={{ opacity: 0 }}
@@ -76,19 +68,24 @@ export default function ReflectionModal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
         >
-          {/* =================================================
-              MODAL CARD
-              ================================================= */}
+          {/* ================= MODAL CARD ================= */}
 
           <motion.div
             className="
               relative
 
-              h-full
               w-full
+
+              /*
+               * MOBILE
+               */
+              max-h-[85vh]
+              max-w-xl
 
               overflow-y-auto
               overscroll-contain
+
+              rounded-[2rem]
 
               bg-[#E6F0E2]
 
@@ -96,11 +93,32 @@ export default function ReflectionModal({
 
               shadow-2xl
 
-              sm:h-auto
-              sm:max-h-[85vh]
-              sm:max-w-xl
+              /*
+               * TABLET
+               */
+              sm:max-h-[88vh]
               sm:rounded-[2.25rem]
               sm:p-8
+
+              /*
+               * DESKTOP
+               *
+               * Much wider so longer reflections
+               * don't become unnecessarily tall.
+               */
+              lg:max-h-[90vh]
+              lg:max-w-[900px]
+              lg:overflow-y-visible
+              lg:rounded-[2.5rem]
+              lg:px-10
+              lg:py-9
+
+              /*
+               * LARGE DESKTOP
+               */
+              xl:max-w-[960px]
+              xl:px-12
+              xl:py-10
             "
             onClick={(e) => e.stopPropagation()}
             initial={{
@@ -123,9 +141,7 @@ export default function ReflectionModal({
               ease: "easeOut",
             }}
           >
-            {/* =================================================
-                CLOSE BUTTON
-                ================================================= */}
+            {/* ================= CLOSE BUTTON ================= */}
 
             <button
               type="button"
@@ -133,10 +149,9 @@ export default function ReflectionModal({
               aria-label="Close reflection"
               className="
                 absolute
+
                 right-5
                 top-5
-
-                z-10
 
                 flex
                 h-9
@@ -153,270 +168,258 @@ export default function ReflectionModal({
                 text-[#6F8F72]
 
                 transition
-
                 hover:bg-white
 
                 sm:right-6
                 sm:top-6
+
+                lg:right-8
+                lg:top-7
               "
             >
               ×
             </button>
 
-            {/* =================================================
-                CONTENT
-                ================================================= */}
+            {/* ================= RATING ================= */}
 
             <div
               className="
-                mx-auto
-                w-full
-                max-w-2xl
+                flex
+                gap-1
+
+                text-base
+                text-[#D9A441]
+
+                sm:gap-1.5
+                sm:text-lg
               "
             >
-              {/* =================================================
-                  RATING
-                  ================================================= */}
+              {Array.from({
+                length: reflection.rating,
+              }).map((_, i) => (
+                <span key={i}>★</span>
+              ))}
+            </div>
 
-              <div
-                className="
-                  flex
-                  gap-1
+            {/* ================= PROFILE ================= */}
 
-                  text-base
-                  text-[#D9A441]
+            <div
+              className="
+                mt-6
 
-                  sm:gap-1.5
-                  sm:text-lg
-                "
-              >
-                {Array.from({
-                  length: reflection.rating,
-                }).map((_, i) => (
-                  <span key={i}>★</span>
-                ))}
-              </div>
+                flex
+                items-center
+                gap-4
 
-              {/* =================================================
-                  PROFILE
-                  ================================================= */}
+                sm:mt-7
+                sm:gap-5
 
-              <div
-                className="
-                  mt-6
+                lg:mt-5
+                lg:gap-5
+              "
+            >
+              {reflection.photo_url ? (
+                <img
+                  src={reflection.photo_url}
+                  alt={reflection.name}
+                  className="
+                    h-14
+                    w-14
+                    flex-shrink-0
 
-                  flex
-                  items-center
-                  gap-4
+                    rounded-full
 
-                  sm:mt-7
-                  sm:gap-5
-                "
-              >
-                {reflection.photo_url ? (
-                  <img
-                    src={reflection.photo_url}
-                    alt={reflection.name}
-                    className="
-                      h-14
-                      w-14
-                      flex-shrink-0
+                    object-cover
 
-                      rounded-full
+                    sm:h-16
+                    sm:w-16
+                  "
+                />
+              ) : (
+                <div
+                  className="
+                    flex
+                    h-14
+                    w-14
+                    flex-shrink-0
 
-                      object-cover
+                    items-center
+                    justify-center
 
-                      sm:h-16
-                      sm:w-16
-                    "
-                  />
-                ) : (
-                  <div
-                    className="
-                      flex
-                      h-14
-                      w-14
-                      flex-shrink-0
+                    rounded-full
 
-                      items-center
-                      justify-center
+                    bg-[#F5F8F3]
 
-                      rounded-full
+                    text-xl
+                    text-[#6F8F72]
 
-                      bg-[#F5F8F3]
-
-                      text-xl
-                      text-[#6F8F72]
-
-                      sm:h-16
-                      sm:w-16
-                      sm:text-2xl
-                    "
-                  >
-                    {reflection.name.charAt(0)}
-                  </div>
-                )}
-
-                <div className="min-w-0">
-                  <h2
-                    className="
-                      text-[24px]
-                      leading-tight
-
-                      text-[#2B2B2B]
-
-                      [font-family:var(--font-cormorant)]
-
-                      sm:text-[27px]
-                    "
-                  >
-                    {reflection.name}
-                  </h2>
-
-                  <p
-                    className="
-                      mt-1
-
-                      text-xs
-                      leading-5
-
-                      text-[#6F8F72]
-
-                      sm:text-sm
-                    "
-                  >
-                    {reflection.role}
-
-                    {reflection.country &&
-                      ` • ${reflection.country}`}
-                  </p>
+                    sm:h-16
+                    sm:w-16
+                    sm:text-2xl
+                  "
+                >
+                  {reflection.name.charAt(0)}
                 </div>
-              </div>
+              )}
 
-              {/* =================================================
-                  DIVIDER
-                  ================================================= */}
-
-              <div
-                className="
-                  mt-6
-                  h-px
-                  bg-[#CBD9C7]
-
-                  sm:mt-7
-                "
-              />
-
-              {/* =================================================
-                  QUOTE MARK
-                  ================================================= */}
-
-              <div
-                className="
-                  mt-5
-
-                  text-5xl
-                  leading-none
-
-                  text-[#BFD2BA]
-
-                  [font-family:var(--font-cormorant)]
-
-                  sm:mt-6
-                  sm:text-6xl
-                "
-              >
-                "
-              </div>
-
-              {/* =================================================
-                  REFLECTION
-                  ================================================= */}
-
-              <blockquote
-                className="
-                  -mt-2
-
-                  whitespace-pre-line
-
-                  text-[19px]
-                  leading-[1.65]
-
-                  italic
-
-                  text-[#4A4A4A]
-
-                  [font-family:var(--font-cormorant)]
-
-                  sm:-mt-3
-                  sm:text-[22px]
-                  sm:leading-[1.7]
-                "
-              >
-                “{reflection.reflection}”
-              </blockquote>
-
-              {/* =================================================
-                  NAVIGATION
-                  ================================================= */}
-
-              <div
-                className="
-                  mt-8
-
-                  flex
-                  items-center
-                  justify-between
-
-                  border-t
-                  border-[#CBD9C7]
-
-                  pt-5
-
-                  sm:mt-10
-                  sm:pt-6
-                "
-              >
-                <button
-                  type="button"
-                  onClick={onPrevious}
+              <div>
+                <h2
                   className="
-                    text-sm
-                    text-[#6F8F72]
+                    text-[24px]
+                    leading-tight
 
-                    transition
+                    text-[#2B2B2B]
 
-                    hover:underline
+                    [font-family:var(--font-cormorant)]
 
-                    sm:text-base
+                    sm:text-[27px]
+
+                    lg:text-[28px]
                   "
                 >
-                  ← Previous
-                </button>
+                  {reflection.name}
+                </h2>
 
-                <button
-                  type="button"
-                  onClick={onNext}
+                <p
                   className="
-                    text-sm
+                    mt-1
+
+                    text-xs
+                    leading-5
+
                     text-[#6F8F72]
 
-                    transition
-
-                    hover:underline
-
-                    sm:text-base
+                    sm:text-sm
                   "
                 >
-                  Next →
-                </button>
+                  {reflection.role}
+                  {reflection.country &&
+                    ` • ${reflection.country}`}
+                </p>
               </div>
+            </div>
 
-              {/* =================================================
-                  MOBILE BOTTOM SPACE
-                  ================================================= */}
+            {/* ================= DIVIDER ================= */}
 
-              <div className="h-6 sm:hidden" />
+            <div
+              className="
+                mt-6
+                h-px
+                bg-[#CBD9C7]
+
+                sm:mt-7
+
+                lg:mt-6
+              "
+            />
+
+            {/* ================= QUOTE MARK ================= */}
+
+            <div
+              className="
+                mt-5
+
+                text-5xl
+                leading-none
+
+                text-[#BFD2BA]
+
+                sm:mt-6
+                sm:text-6xl
+
+                lg:mt-5
+                lg:text-5xl
+              "
+            >
+              "
+            </div>
+
+            {/* ================= REFLECTION ================= */}
+
+            <blockquote
+              className="
+                -mt-2
+
+                whitespace-pre-line
+
+                text-[17px]
+                leading-[1.8]
+
+                font-normal
+                tracking-[0.01em]
+
+                text-[#3F443F]
+
+                sm:-mt-3
+                sm:text-[18px]
+                sm:leading-[1.85]
+
+                lg:-mt-2
+                lg:text-[17px]
+                lg:leading-[1.75]
+
+                xl:text-[18px]
+                xl:leading-[1.8]
+              "
+            >
+              “{reflection.reflection}”
+            </blockquote>
+
+            {/* ================= NAVIGATION ================= */}
+
+            <div
+              className="
+                mt-8
+
+                flex
+                items-center
+                justify-between
+
+                border-t
+                border-[#CBD9C7]
+
+                pt-5
+
+                sm:mt-10
+                sm:pt-6
+
+                lg:mt-7
+                lg:pt-5
+              "
+            >
+              <button
+                type="button"
+                onClick={onPrevious}
+                className="
+                  text-sm
+                  text-[#6F8F72]
+
+                  transition
+
+                  hover:underline
+
+                  sm:text-base
+                "
+              >
+                ← Previous
+              </button>
+
+              <button
+                type="button"
+                onClick={onNext}
+                className="
+                  text-sm
+                  text-[#6F8F72]
+
+                  transition
+
+                  hover:underline
+
+                  sm:text-base
+                "
+              >
+                Next →
+              </button>
             </div>
           </motion.div>
         </motion.div>
