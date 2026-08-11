@@ -199,46 +199,6 @@ export default function HeroContent({
             >
               {t.hero.startConversation}
             </button>
-
-            {/* Explore Lessons */}
-
-            <a
-              href={`/${locale}#lessons`}
-              className="
-                flex
-                w-full
-                min-w-0
-                items-center
-                justify-center
-                rounded-full
-
-                border
-                border-[#6F8F72]
-
-                px-6
-                py-4
-
-                text-center
-                text-base
-                font-medium
-                text-[#6F8F72]
-
-                transition-all
-                duration-300
-
-                hover:-translate-y-1
-                hover:bg-[#EEF5EE]
-
-                sm:w-auto
-                sm:px-8
-                sm:py-5
-                sm:text-lg
-
-                lg:px-10
-              "
-            >
-              {t.hero.exploreLessons}
-            </a>
           </div>
         </FadeUp>
       </div>
