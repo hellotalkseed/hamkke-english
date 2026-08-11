@@ -26,6 +26,106 @@ export default async function SharePage({
     <main className="min-h-screen bg-[#FAF8F5]">
 
       {/* =====================================================
+          TOP NAVIGATION
+          ===================================================== */}
+
+      <div
+        className="
+          mx-auto
+          max-w-7xl
+          px-6
+          pt-8
+          lg:px-10
+        "
+      >
+        <div
+          className="
+            grid
+            grid-cols-[1fr_auto_1fr]
+            items-center
+          "
+        >
+
+          {/* BACK */}
+
+          <div className="justify-self-start">
+            <a
+              href={`/${locale}`}
+              className="
+                text-sm
+                text-[#6B6B6B]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-base
+              "
+            >
+              ← Go to Hamkke
+            </a>
+          </div>
+
+          {/* BRAND */}
+
+          <div
+  className="
+    text-sm
+    font-medium
+    text-[#6F8F72]
+    sm:text-base
+  "
+>
+  Hamkke │ 함께
+</div>
+
+          {/* LANGUAGE SELECTOR */}
+
+          <div
+            className="
+              flex
+              items-center
+              justify-self-end
+              gap-3
+              text-sm
+            "
+          >
+            <a
+              href="/en/share"
+              className={
+                locale === "en"
+                  ? "font-medium text-[#6F8F72]"
+                  : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
+              }
+            >
+              EN
+            </a>
+
+            <a
+              href="/ko/share"
+              className={
+                locale === "ko"
+                  ? "font-medium text-[#6F8F72]"
+                  : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
+              }
+            >
+              한국어
+            </a>
+
+            <a
+              href="/zh/share"
+              className={
+                locale === "zh"
+                  ? "font-medium text-[#6F8F72]"
+                  : "text-[#6B6B6B] transition-colors hover:text-[#6F8F72]"
+              }
+            >
+              中文
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      {/* =====================================================
           HERO
           ===================================================== */}
 
@@ -35,33 +135,24 @@ export default async function SharePage({
           max-w-2xl
           px-6
           pb-16
-          pt-28
+          pt-0
           text-center
+
+          sm:pt-12
+
+          lg:pt-14
         "
       >
-        {/* Brand */}
-
-        <p
-          className="
-            text-sm
-            font-medium
-            uppercase
-            tracking-[0.3em]
-            text-[#6F8F72]
-          "
-        >
-          {t.reflections.brand}
-        </p>
 
         {/* Title */}
 
         <h1
           className="
-            mt-6
             text-5xl
             leading-tight
             text-[#2B2B2B]
             [font-family:var(--font-cormorant)]
+
             md:text-6xl
           "
         >
@@ -77,6 +168,7 @@ export default async function SharePage({
             mx-auto
             mt-6
             max-w-xl
+            text-center
             text-lg
             leading-8
             text-[#5B5B5B]
@@ -90,6 +182,7 @@ export default async function SharePage({
         <p
           className="
             mt-6
+            text-center
             text-2xl
             italic
             text-[#6F8F72]
@@ -102,6 +195,7 @@ export default async function SharePage({
               ? "也很期待听听你的故事。"
               : "We'd love to hear yours."}
         </p>
+
       </section>
 
       {/* =====================================================
