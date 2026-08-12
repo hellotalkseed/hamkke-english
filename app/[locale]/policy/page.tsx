@@ -620,24 +620,24 @@ export default async function PolicyPage({
         {/* PAGE TITLE */}
 
         <h1
-          className="
-            text-center
+  className="
+    text-center
 
-            font-serif
-            text-[52px]
-            font-normal
-            leading-[1.05]
-            tracking-[-0.035em]
+    font-serif
+    text-[52px]
+    font-normal
+    leading-[1.05]
+    tracking-[-0.035em]
 
-            text-[#292929]
+    text-[#292929]
 
-            sm:text-[62px]
+    sm:text-[62px]
 
-            lg:text-[70px]
-          "
-        >
-          Lesson Policy
-        </h1>
+    lg:text-[70px]
+  "
+>
+  {t.policy.title}
+</h1>
 
         {/* INTRO */}
 

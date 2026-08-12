@@ -62,7 +62,7 @@ export default function PolicyAccordion({
                   w-full
                   items-center
                   justify-between
-                  gap-5
+                  gap-4
 
                   px-2
                   py-6
@@ -73,18 +73,21 @@ export default function PolicyAccordion({
                   duration-200
                   hover:opacity-70
 
+                  sm:gap-5
                   sm:px-4
                   sm:py-7
 
                   lg:px-6
                 "
               >
+                {/* LEFT SIDE */}
+
                 <div
                   className="
                     flex
                     min-w-0
                     items-center
-                    gap-4
+                    gap-3
 
                     sm:gap-6
                   "
@@ -137,10 +140,11 @@ export default function PolicyAccordion({
 
                   <span
                     className="
+                      min-w-0
                       whitespace-nowrap
 
                       font-serif
-                      text-[20px]
+                      text-[17px]
                       font-normal
                       leading-tight
                       tracking-[-0.01em]
@@ -168,11 +172,13 @@ export default function PolicyAccordion({
                     justify-center
 
                     font-sans
-                    text-[21px]
+                    text-[20px]
                     font-light
                     leading-none
 
                     text-[#6F8F72]
+
+                    sm:text-[21px]
                   "
                   aria-hidden="true"
                 >
