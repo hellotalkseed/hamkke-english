@@ -3,7 +3,120 @@ const en = {
   experience: "Experience",
   goals: "Goals",
   stories: "Stories",
+  policy: "Policy",
   startConversation: "Start a Conversation",
+},
+
+policy: {
+  title: "Policy",
+
+  intro:
+    "Each lesson is reserved especially for you, so a few simple guidelines help keep scheduling fair and comfortable for everyone.",
+
+  cancellation: {
+    title: "Cancellation & Rescheduling",
+
+    intro:
+      "Plans can change, and I understand that. If you need to cancel or reschedule, please let me know at least 2 hours before your scheduled lesson.",
+
+    notice: {
+      title: "With 2+ hours' notice",
+      text:
+        "You may reschedule your lesson or receive credit for a future session.",
+    },
+
+    lateNotice: {
+      title: "With less than 2 hours' notice",
+      text:
+        "The lesson will be counted as completed.",
+    },
+
+    noShow: {
+      title: "No-show without notice",
+      text:
+        "The lesson will be counted as completed.",
+    },
+
+    note:
+      "If something unexpected comes up, please let me know as soon as you can. I'll do my best to accommodate you when possible.",
+  },
+
+  unexpected: {
+    title: "Unexpected Circumstances",
+
+    intro:
+      "Not everything is within our control.",
+
+    text:
+      "Power outages, internet or connection problems, emergencies, and other unexpected circumstances may occasionally make it difficult to attend a lesson.",
+
+    action:
+      "If something like this happens, please let me know as soon as possible.",
+
+    resolution:
+      "I'll do my best to find a reasonable solution, such as rescheduling the lesson or providing credit.",
+
+    teacher:
+      "This also applies if an unexpected issue on my side prevents us from having the lesson as planned.",
+  },
+
+  lateArrivals: {
+    title: "Late Arrivals",
+
+    intro:
+      "If you're running late, just let me know when you can.",
+
+    rule:
+      "Your lesson will still end at its originally scheduled time.",
+
+    example:
+      "For example, if your lesson is scheduled from 8:00–8:25 PM and you join at 8:10 PM, the lesson will run from 8:10–8:25 PM.",
+
+    noContact:
+      "If you don't join within 10 minutes and haven't contacted me, the lesson will be considered a no-show and counted as completed.",
+  },
+
+  teacherCancellations: {
+    title: "Teacher Cancellations",
+
+    intro:
+      "Sometimes I may need to cancel a lesson too.",
+
+    text:
+      "If I ever need to cancel a lesson, I'll let you know as soon as possible.",
+
+    resolution:
+      "You will receive either a replacement lesson or full credit for the missed session.",
+  },
+
+  repeatedCancellations: {
+    title: "Repeated Cancellations",
+
+    intro:
+      "Life doesn't always go according to plan.",
+
+    rule:
+      "There is no fixed limit on cancellations. I understand that unexpected things happen.",
+
+    text:
+      "However, if frequent cancellations or rescheduling begin to affect lesson availability, I may reach out to discuss your regular schedule and find an arrangement that works better for both of us.",
+
+    note:
+      "The goal isn't to make things difficult. It's simply to make sure that reserved lesson times remain useful and fair for everyone.",
+  },
+
+  closing: {
+    title: "A final note",
+
+    text:
+      "These guidelines aren't meant to make things complicated.",
+
+    textTwo:
+      "They're simply here to help keep our lessons predictable, respectful, and comfortable for both of us.",
+
+    thankYou:
+      "Thank you for respecting the time we've set aside for each conversation.",
+  },
 },
 
   hero: {

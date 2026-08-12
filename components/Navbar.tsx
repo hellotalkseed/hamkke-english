@@ -86,19 +86,23 @@ export default function Navbar() {
      ===================================================== */
 
   const navLinks = [
-    {
-      href: `/${locale}#experience`,
-      label: t.nav.experience,
-    },
-    {
-      href: `/${locale}#goals`,
-      label: t.nav.goals,
-    },
-    {
-      href: `/${locale}#student-stories`,
-      label: t.nav.stories,
-    },
-  ];
+  {
+    href: `/${locale}#experience`,
+    label: t.nav.experience,
+  },
+  {
+    href: `/${locale}#goals`,
+    label: t.nav.goals,
+  },
+  {
+    href: `/${locale}#student-stories`,
+    label: t.nav.stories,
+  },
+  {
+    href: `/${locale}/policy`,
+    label: t.nav.policy,
+  },
+];
 
   /* =====================================================
      INQUIRY
