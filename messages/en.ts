@@ -8,7 +8,7 @@ const en = {
 },
 
 policy: {
-  title: "Policy",
+  title: "Lesson Policy",
 
   intro:
     "Each lesson is reserved especially for you, so a few simple guidelines help keep scheduling fair and comfortable for everyone.",
