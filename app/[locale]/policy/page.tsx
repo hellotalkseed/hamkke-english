@@ -500,7 +500,7 @@ export default async function PolicyPage({
             ← Hamkke
           </a>
 
-          {/* BRAND */}
+          {/* DESKTOP BRAND */}
 
           <div
             className="
@@ -509,11 +509,14 @@ export default async function PolicyPage({
               -translate-x-1/2
               whitespace-nowrap
 
+              hidden
+
               font-sans
               text-[15px]
               font-medium
               text-[#6F8F72]
 
+              sm:block
               sm:text-[16px]
             "
           >
@@ -584,7 +587,7 @@ export default async function PolicyPage({
           max-w-[1040px]
           px-6
           pb-12
-          pt-16
+          pt-10
 
           sm:px-8
           sm:pb-14
@@ -595,6 +598,27 @@ export default async function PolicyPage({
           lg:pt-24
         "
       >
+        {/* MOBILE BRAND EYEBROW */}
+
+        <div
+          className="
+            mb-0
+            text-center
+
+            font-sans
+            text-[14px]
+            font-medium
+            tracking-[0.02em]
+            text-[#6F8F72]
+
+            sm:hidden
+          "
+        >
+          Hamkke │ 함께
+        </div>
+
+        {/* PAGE TITLE */}
+
         <h1
           className="
             text-center
@@ -614,6 +638,8 @@ export default async function PolicyPage({
         >
           Lesson Policy
         </h1>
+
+        {/* INTRO */}
 
         <p
           className="
@@ -731,25 +757,25 @@ export default async function PolicyPage({
           {/* BODY TEXT */}
 
           <div
-  className="
-    mt-8
-    w-full
+            className="
+              mt-8
+              w-full
 
-    font-serif
-    text-[21px]
-    font-normal
-    leading-8
+              font-serif
+              text-[21px]
+              font-normal
+              leading-8
 
-    text-[#4A4A4A]
+              text-[#4A4A4A]
 
-    sm:mt-9
-    sm:text-[23px]
-    sm:leading-9
+              sm:mt-9
+              sm:text-[23px]
+              sm:leading-9
 
-    lg:text-[25px]
-    lg:leading-10
-  "
->
+              lg:text-[25px]
+              lg:leading-10
+            "
+          >
             <p>
               {t.policy.closing.text}
             </p>
