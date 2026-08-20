@@ -7,6 +7,15 @@ const en = {
   startConversation: "Start a Conversation",
 },
 
+  info: {
+    title: "Info",
+    pricing: "Pricing",
+    howItWorks: "How It Works",
+    platform: "Platform",
+    policy: "Policy",
+    faq: "FAQ",
+  },
+
 policy: {
   title: "Lesson Policy",
 
@@ -116,6 +125,198 @@ policy: {
 
     thankYou:
       "Thank you for respecting the time we've set aside for each conversation.",
+  },
+},
+
+pricing: {
+  title: "Pricing",
+
+  intro:
+    "Simple pricing for thoughtful, one-on-one English lessons.",
+
+  privateLessons: {
+    title: "Private 1:1 English",
+    price: "₩120,000",
+    package: "20 lessons · 25 minutes each",
+
+    description:
+      "A private space to speak, think, make mistakes, and gradually become more comfortable in English.",
+  },
+
+  waysToLearn: {
+    title: "Two ways to learn",
+
+    subtitle: "The goal comes first.",
+
+    description:
+      "Some students want to become more comfortable speaking English in everyday life. Others have a particular situation they want to prepare for. Both are welcome at Hamkke.",
+
+    general: {
+      title: "General English",
+
+      subtitle: "For everyday conversations.",
+
+      description:
+        "Build the confidence to speak more naturally about the things that matter to you.",
+
+      points: [
+        "Everyday conversation",
+        "Speaking more naturally",
+        "Vocabulary and expressions",
+        "Expressing your thoughts",
+        "Building speaking confidence",
+        "Grammar through real conversation",
+      ],
+    },
+
+    specialized: {
+      title: "Specialized English",
+
+      subtitle: "For something specific.",
+
+      description:
+        "Shape your lessons around a particular situation, goal, or communication challenge.",
+
+      points: [
+        "Job interviews",
+        "Workplace communication",
+        "Presentations",
+        "Travel English",
+        "Academic discussions",
+        "Other specific communication goals",
+      ],
+    },
+  },
+
+  lessonFlow: {
+    title: "What happens in a lesson",
+
+    intro: "We don't just study English.",
+
+    introHighlight: "We use it.",
+
+    steps: {
+      conversation: {
+        number: "01",
+        title: "Conversation",
+        text:
+          "We talk about things that are relevant to you.",
+      },
+
+      feedback: {
+        number: "02",
+        title: "Feedback",
+        text:
+          "I'll help you notice grammar, vocabulary, pronunciation, and expressions.",
+      },
+
+      refinement: {
+        number: "03",
+        title: "Refinement",
+        text:
+          "We find clearer and more natural ways to express what you mean.",
+      },
+
+      practice: {
+        number: "04",
+        title: "Practice",
+        text:
+          "Then you use those expressions again until they start feeling like your own.",
+      },
+    },
+  },
+
+  practical: {
+    title: "The practical side",
+
+    intro: "Simple from the beginning.",
+
+    details: {
+      lessonLength: {
+        label: "Lesson length",
+        value: "25 minutes",
+      },
+
+      package: {
+        label: "Package",
+        value: "20 private lessons",
+      },
+
+      format: {
+        label: "Format",
+        value: "Online · 1:1",
+      },
+
+      tuition: {
+        label: "Tuition",
+        value: "₩120,000",
+      },
+    },
+
+    policy: "Lesson Policy",
+  },
+},
+
+platform: {
+  title: "Online lessons, your way",
+
+  intro:
+    "Choose the platform that feels most comfortable for you. The lesson stays the same, wherever we meet.",
+
+  available: {
+    title: "Available platforms",
+
+    subtitle: "Meet where you're comfortable.",
+
+    description:
+      "Hamkke lessons are available across several familiar platforms, so you can choose the one that works best for you.",
+  },
+
+  note:
+    "You don't need to worry about having the perfect setup. As long as you have a stable internet connection, a microphone, and a quiet place to speak, you're ready.",
+
+  beforeLesson: {
+    title: "Before your lesson",
+
+    subtitle: "A few simple things are enough.",
+
+    description:
+      "You don't need complicated equipment or a special study space. Just prepare a few basics so we can spend our time actually speaking English.",
+
+    items: [
+      {
+        number: "01",
+        title: "A device",
+        text:
+          "A computer, tablet, or smartphone that can connect to your chosen platform.",
+      },
+
+      {
+        number: "02",
+        title: "Internet",
+        text:
+          "A stable internet connection so we can have a smooth conversation.",
+      },
+
+      {
+        number: "03",
+        title: "A microphone",
+        text:
+          "Built-in earphones or a microphone that lets us hear each other clearly.",
+      },
+
+      {
+        number: "04",
+        title: "A quiet space",
+        text:
+          "Somewhere you can speak comfortably without too many distractions.",
+      },
+    ],
+  },
+
+  closing: {
+    text:
+      "The platform is just where we meet. What matters is the conversation we have there.",
   },
 },
 
