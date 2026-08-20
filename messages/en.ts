@@ -423,6 +423,71 @@ faq: {
     "If you still have a question, feel free to reach out.",
 },
 
+howItWorks: {
+  title: "How It Works",
+
+  intro:
+    "A simple process from your first inquiry to your first lesson.",
+
+  steps: {
+    inquire: {
+      number: "01",
+      title: "Inquire",
+      text:
+        "Tell me a little about yourself, what you'd like to improve, and what you're hoping to get from your lessons.",
+    },
+
+    assessment: {
+      number: "02",
+      title: "Schedule an Assessment",
+      text:
+        "We'll arrange a short assessment so I can understand your current English level, speaking habits, and learning needs.",
+    },
+
+    decide: {
+      number: "03",
+      title: "Decide Together",
+      text:
+        "We'll talk about what you need and whether my lessons are a good fit for you. There's no pressure to continue.",
+    },
+
+    details: {
+      number: "04",
+      title: "Go Over the Details",
+      text:
+        "If we decide to work together, we'll go over the lesson format, schedule, tuition, payment, and other practical details.",
+    },
+
+    contract: {
+      number: "05",
+      title: "Contract",
+      text:
+        "Once everything is clear, we'll confirm the agreement and your lesson schedule.",
+    },
+
+    payment: {
+      number: "06",
+      title: "Payment",
+      text:
+        "Payment is made before your package begins. Once payment is confirmed, your lessons are ready to begin.",
+    },
+
+    begin: {
+      number: "07",
+      title: "Begin Your Lessons",
+      text:
+        "Then we start talking. We'll use English, work toward your goals, and gradually build your confidence through real conversation.",
+    },
+  },
+
+  closing: {
+    title: "No complicated process.",
+
+    text:
+      "Just a clear conversation about where you are, where you'd like to go, and whether Hamkke is the right place to get there.",
+  },
+},
+
   hero: {
   brand: "Hamkke │ 함께",
   title: "Every meaningful conversation starts somewhere.",
