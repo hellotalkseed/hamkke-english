@@ -5,6 +5,7 @@ import {
   Clock3,
   HeartHandshake,
   RefreshCw,
+  WalletCards,
   Zap,
 } from "lucide-react";
 
@@ -444,6 +445,77 @@ export default async function PolicyPage({
         </div>
       ),
     },
+
+    {
+      id: "refunds",
+      number: "06",
+      title: t.policy.refunds.title,
+      icon: (
+        <WalletCards
+          size={22}
+          strokeWidth={1.5}
+        />
+      ),
+
+      content: (
+        <div className="space-y-7">
+          <p>{t.policy.refunds.intro}</p>
+
+          <div
+            className="
+              flex
+              gap-4
+              rounded-2xl
+              bg-[#F0F4ED]
+              p-5
+            "
+          >
+            <div
+              className="
+                flex
+                h-9
+                w-9
+                shrink-0
+                items-center
+                justify-center
+                rounded-full
+                bg-[#E2EBDD]
+                text-[#6F8F72]
+              "
+            >
+              <WalletCards
+                size={17}
+                strokeWidth={1.6}
+              />
+            </div>
+
+            <p>
+              {t.policy.refunds.rule}
+            </p>
+          </div>
+
+          <p>
+            {t.policy.refunds.transfer}
+          </p>
+
+          <p>
+            {t.policy.refunds.exception}
+          </p>
+
+          <p
+            className="
+              border-l-2
+              border-[#6F8F72]
+              pl-5
+              italic
+              text-[#6F8F72]
+            "
+          >
+            {t.policy.refunds.note}
+          </p>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -620,24 +692,24 @@ export default async function PolicyPage({
         {/* PAGE TITLE */}
 
         <h1
-  className="
-    text-center
+          className="
+            text-center
 
-    font-serif
-    text-[52px]
-    font-normal
-    leading-[1.05]
-    tracking-[-0.035em]
+            font-serif
+            text-[52px]
+            font-normal
+            leading-[1.05]
+            tracking-[-0.035em]
 
-    text-[#292929]
+            text-[#292929]
 
-    sm:text-[62px]
+            sm:text-[62px]
 
-    lg:text-[70px]
-  "
->
-  {t.policy.title}
-</h1>
+            lg:text-[70px]
+          "
+        >
+          {t.policy.title}
+        </h1>
 
         {/* INTRO */}
 

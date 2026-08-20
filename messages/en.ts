@@ -114,6 +114,25 @@ policy: {
       "The goal isn't to make things difficult. It's simply to make sure that reserved lesson times remain useful and fair for everyone.",
   },
 
+  refunds: {
+  title: "Refunds & Transfers",
+
+  intro:
+    "Because lessons are purchased as a package, refunds are generally not available once a package has been paid for.",
+
+  rule:
+    "If you are unable to continue your lessons, you may request to transfer your remaining unused lessons instead of receiving a refund.",
+
+  transfer:
+    "Lesson transfers are considered for unused lessons only and should be discussed before the package ends. The new arrangement will depend on the circumstances and availability.",
+
+  exception:
+    "In exceptional circumstances, a refund may be considered at Hamkke's discretion.",
+
+  note:
+    "If something unexpected comes up, please talk to me first. I'll always try to find a fair and reasonable way forward.",
+},
+
   closing: {
     title: "A final note",
 
@@ -318,6 +337,90 @@ platform: {
     text:
       "The platform is just where we meet. What matters is the conversation we have there.",
   },
+},
+
+faq: {
+  title: "Frequently Asked Questions",
+
+  intro:
+    "A few things you might be wondering before your first lesson.",
+
+  questions: [
+    {
+      question:
+        "What if I'm nervous or not confident in English?",
+
+      answer:
+        "That's completely okay. You don't need to speak perfectly to begin. I'll guide the conversation, give you time to think, and help you express yourself more comfortably as we go.",
+    },
+
+    {
+      question:
+        "Can I ask questions during the lesson?",
+
+      answer:
+        "Of course. Questions are always welcome. If there's something you don't understand, want to express differently, or simply want to know more about, just ask.",
+    },
+
+    {
+      question:
+        "Do I need to buy books or materials?",
+
+      answer:
+        "No. You don't need to purchase a textbook or other materials for regular lessons. I'll prepare what we need based on the lesson and your goals.",
+    },
+
+    {
+      question:
+        "Do I need to prepare anything before class?",
+
+      answer:
+        "Usually, no. You can simply come to class and start talking. If there's something specific I'd like you to prepare beforehand, I'll let you know.",
+    },
+
+    {
+      question:
+        "Can I use my own materials or topics?",
+
+      answer:
+        "Yes. If there's a topic, article, video, presentation, or other material you'd like to work with, feel free to bring it to class. We can use it as part of our conversation and practice.",
+    },
+
+    {
+      question:
+        "How do I pay?",
+
+      answer:
+        "Payment details will be provided when we arrange your lessons. If you're unsure about the payment process, just ask and I'll guide you through it.",
+    },
+
+    {
+      question:
+        "Is the fee refundable?",
+
+      answer:
+        "Refunds and lesson transfers are handled according to the Lesson Policy. Please review the policy for the full details.",
+    },
+
+    {
+      question:
+        "When do I need to pay for the next term?",
+
+      answer:
+        "Payment for the next package is arranged before your current package ends. I'll let you know when it's time to renew.",
+    },
+
+    {
+      question:
+        "What happens if I need to cancel or miss a lesson?",
+
+      answer:
+        "Please refer to the Lesson Policy for the rules regarding cancellations, missed lessons, and rescheduling.",
+    },
+  ],
+
+  closing:
+    "If you still have a question, feel free to reach out.",
 },
 
   hero: {
