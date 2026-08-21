@@ -155,7 +155,7 @@ pricing: {
 
   privateLessons: {
     title: "Private 1:1 English",
-    price: "₩120,000",
+    price: "US$95",
     package: "20 lessons · 25 minutes each",
 
     description:
@@ -268,7 +268,7 @@ pricing: {
 
       tuition: {
         label: "Tuition",
-        value: "₩120,000",
+        value: "US$95",
       },
     },
 

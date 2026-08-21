@@ -155,7 +155,7 @@ pricing: {
 
   privateLessons: {
     title: "1对1私人英语课程",
-    price: "₩120,000",
+    price: "¥680",
     package: "20节课 · 每节25分钟",
 
     description:
@@ -268,7 +268,7 @@ pricing: {
 
       tuition: {
         label: "课程费用",
-        value: "₩120,000",
+        value: "¥680",
       },
     },
 
