@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
 import ReflectionActions from "@/components/ReflectionActions";
@@ -61,7 +61,7 @@ export default async function ReflectionsAdminPage({
               text-[#6F8F72]
             "
           >
-            Hamkke │ 함께
+            Hamkke Γöé φò¿Ω╗ÿ
           </p>
 
           <h1
@@ -139,7 +139,7 @@ export default async function ReflectionsAdminPage({
                   >
                     {item.role}
                     {item.country
-                      ? ` · ${item.country}`
+                      ? ` ┬╖ ${item.country}`
                       : ""}
                   </p>
                 </div>
@@ -151,7 +151,7 @@ export default async function ReflectionsAdminPage({
                     text-[#6F8F72]
                   "
                 >
-                  ⭐ {item.rating}/5
+                  Γ¡É {item.rating}/5
                 </div>
 
               </div>
