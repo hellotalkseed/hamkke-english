@@ -77,10 +77,8 @@ export default function NewPaymentPage() {
       }
 
       /*
-       * Supabase may return the related student as an array
-       * even though each enrollment belongs to one student.
-       *
-       * Normalize the response into the shape our component uses.
+       * Supabase may return the related student as an array.
+       * Normalize it into the shape used by this component.
        */
 
       const normalizedEnrollments: Enrollment[] =
@@ -126,7 +124,12 @@ export default function NewPaymentPage() {
     );
 
     if (!selected) {
-      updateField("enrollmentId", "");
+      setForm((current) => ({
+        ...current,
+        enrollmentId: "",
+        amount: "",
+      }));
+
       return;
     }
 
@@ -159,6 +162,11 @@ export default function NewPaymentPage() {
     }
 
     try {
+      /*
+       * STEP 1
+       * Record the payment.
+       */
+
       const { error: paymentError } =
         await supabase
           .from("payments")
@@ -170,9 +178,9 @@ export default function NewPaymentPage() {
             payment_method: form.paymentMethod,
             status: form.status,
             reference:
-              form.reference || null,
+              form.reference.trim() || null,
             notes:
-              form.notes || null,
+              form.notes.trim() || null,
           });
 
       if (paymentError) {
@@ -180,6 +188,70 @@ export default function NewPaymentPage() {
           `Could not record payment: ${paymentError.message}`
         );
       }
+
+      /*
+       * STEP 2
+       *
+       * Only when payment is confirmed as PAID:
+       *
+       * - Generate the lessons
+       * - Activate the enrollment
+       */
+
+      if (form.status === "paid") {
+        /*
+         * Generate lessons from the enrollment details.
+         *
+         * The Supabase function reads:
+         *
+         * number_of_lessons
+         * lesson_duration
+         * lessons_per_week
+         * start_date
+         *
+         * and creates the lesson records.
+         */
+
+        const { error: lessonError } =
+          await supabase.rpc(
+            "create_lessons_for_paid_enrollment",
+            {
+              p_enrollment_id:
+                form.enrollmentId,
+            }
+          );
+
+        if (lessonError) {
+          throw new Error(
+            `Payment was recorded, but lessons could not be generated: ${lessonError.message}`
+          );
+        }
+
+        /*
+         * Activate the enrollment after
+         * successful lesson generation.
+         */
+
+        const {
+          error: enrollmentError,
+        } = await supabase
+          .from("enrollments")
+          .update({
+            status: "active",
+          })
+          .eq("id", form.enrollmentId);
+
+        if (enrollmentError) {
+          throw new Error(
+            `Payment was recorded and lessons were generated, but the enrollment could not be activated: ${enrollmentError.message}`
+          );
+        }
+      }
+
+      /*
+       * STEP 3
+       * Return to Payments.
+       */
 
       router.push("/en/admin/payments");
       router.refresh();
@@ -407,6 +479,9 @@ export default function NewPaymentPage() {
               sm:grid-cols-2
             "
           >
+
+            {/* AMOUNT */}
+
             <div>
               <label
                 htmlFor="amount"
@@ -452,6 +527,8 @@ export default function NewPaymentPage() {
               />
             </div>
 
+            {/* CURRENCY */}
+
             <div>
               <label
                 htmlFor="currency"
@@ -495,14 +572,18 @@ export default function NewPaymentPage() {
                 <option value="KRW">
                   KRW
                 </option>
+
                 <option value="PHP">
                   PHP
                 </option>
+
                 <option value="USD">
                   USD
                 </option>
               </select>
             </div>
+
+            {/* PAYMENT DATE */}
 
             <div>
               <label
@@ -547,6 +628,8 @@ export default function NewPaymentPage() {
               />
             </div>
 
+            {/* PAYMENT METHOD */}
+
             <div>
               <label
                 htmlFor="paymentMethod"
@@ -590,20 +673,26 @@ export default function NewPaymentPage() {
                 <option value="Bank Transfer">
                   Bank Transfer
                 </option>
+
                 <option value="PayPal">
                   PayPal
                 </option>
+
                 <option value="GCash">
                   GCash
                 </option>
+
                 <option value="Cash">
                   Cash
                 </option>
+
                 <option value="Other">
                   Other
                 </option>
               </select>
             </div>
+
+            {/* STATUS */}
 
             <div>
               <label
@@ -648,17 +737,22 @@ export default function NewPaymentPage() {
                 <option value="paid">
                   Paid
                 </option>
+
                 <option value="pending">
                   Pending
                 </option>
+
                 <option value="partial">
                   Partial
                 </option>
+
                 <option value="refunded">
                   Refunded
                 </option>
               </select>
             </div>
+
+            {/* REFERENCE */}
 
             <div>
               <label
@@ -753,6 +847,50 @@ export default function NewPaymentPage() {
             />
           </div>
 
+          {/* PAYMENT CONFIRMATION NOTICE */}
+
+          {form.status === "paid" && (
+            <div
+              className="
+                mt-6
+                rounded-2xl
+                border
+                border-[#DCE6D9]
+                bg-[#F4F7F2]
+                px-5
+                py-4
+              "
+            >
+              <p
+                className="
+                  font-sans
+                  text-[12px]
+                  font-medium
+                  uppercase
+                  tracking-[0.12em]
+                  text-[#5F7F63]
+                "
+              >
+                Payment confirmed
+              </p>
+
+              <p
+                className="
+                  mt-1.5
+                  font-sans
+                  text-[13px]
+                  leading-6
+                  text-[#666]
+                "
+              >
+                Once this payment is recorded, the
+                enrollment will become active and the
+                student's lessons will be generated
+                automatically.
+              </p>
+            </div>
+          )}
+
           {/* ACTIONS */}
 
           <div
@@ -814,7 +952,9 @@ export default function NewPaymentPage() {
             >
               {loading
                 ? "Recording..."
-                : "Record Payment"}
+                : form.status === "paid"
+                  ? "Confirm Payment & Generate Lessons"
+                  : "Record Payment"}
             </button>
           </div>
         </form>

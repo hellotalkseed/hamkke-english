@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
@@ -43,27 +44,6 @@ const DAYS = [
   },
 ];
 
-type FormState = {
-  fullName: string;
-  preferredName: string;
-  email: string;
-  contactMethod: string;
-  country: string;
-  preferredLanguage: string;
-  timezone: string;
-
-  packageName: string;
-  numberOfLessons: string;
-  lessonDuration: string;
-
-  tuitionAmount: string;
-  currency: string;
-
-  startDate: string;
-  scheduleDays: string[];
-  scheduleTime: string;
-};
-
 export default function NewEnrollmentPage() {
   const router = useRouter();
   const params = useParams();
@@ -78,7 +58,7 @@ export default function NewEnrollmentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState<FormState>({
+  const [form, setForm] = useState({
     fullName: "",
     preferredName: "",
     email: "",
@@ -95,16 +75,12 @@ export default function NewEnrollmentPage() {
     currency: "KRW",
 
     startDate: "",
-    scheduleDays: [],
+    scheduleDays: [] as string[],
     scheduleTime: "",
   });
 
-  /* ---------------------------------------------------------------------- */
-  /* FORM HELPERS                                                            */
-  /* ---------------------------------------------------------------------- */
-
   function updateField(
-    field: keyof FormState,
+    field: keyof typeof form,
     value: string
   ) {
     setForm((current) => ({
@@ -129,15 +105,23 @@ export default function NewEnrollmentPage() {
     });
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* LESSON DATE GENERATION                                                  */
-  /* ---------------------------------------------------------------------- */
-
+  /*
+   * Generate recurring lesson dates.
+   *
+   * Example:
+   * Start date: Monday
+   * Selected days: Monday + Wednesday
+   * Number of lessons: 20
+   *
+   * The function will generate the next 20
+   * Mondays and Wednesdays starting from the
+   * selected start date.
+   */
   function generateLessonDates(
     startDate: string,
     scheduleDays: string[],
     numberOfLessons: number
-  ): string[] {
+  ) {
     const selectedDayNumbers = scheduleDays
       .map(
         (day) =>
@@ -161,11 +145,8 @@ export default function NewEnrollmentPage() {
     const dates: string[] = [];
 
     /*
-     * UTC is used deliberately here.
-     *
-     * We are generating calendar dates, not
-     * timestamps. This prevents the browser's
-     * local timezone from shifting the date.
+     * Use UTC so the generated YYYY-MM-DD values
+     * do not shift because of the browser's timezone.
      */
     const currentDate = new Date(
       `${startDate}T00:00:00Z`
@@ -176,9 +157,7 @@ export default function NewEnrollmentPage() {
         currentDate.getUTCDay();
 
       if (
-        selectedDayNumbers.includes(
-          currentDay
-        )
+        selectedDayNumbers.includes(currentDay)
       ) {
         const year =
           currentDate.getUTCFullYear();
@@ -204,93 +183,110 @@ export default function NewEnrollmentPage() {
     return dates;
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* DERIVED VALUES                                                          */
-  /* ---------------------------------------------------------------------- */
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
 
-  const numberOfLessons = Number(
-    form.numberOfLessons
-  );
-
-  const lessonDuration = Number(
-    form.lessonDuration
-  );
-
-  const tuitionAmount = Number(
-    form.tuitionAmount
-  );
-
-  const lessonDates = useMemo(() => {
-    if (
-      !form.startDate ||
-      form.scheduleDays.length === 0 ||
-      !Number.isInteger(numberOfLessons) ||
-      numberOfLessons <= 0
-    ) {
-      return [];
+    if (loading) {
+      return;
     }
 
-    return generateLessonDates(
-      form.startDate,
-      form.scheduleDays,
-      numberOfLessons
-    );
-  }, [
-    form.startDate,
-    form.scheduleDays,
-    numberOfLessons,
-  ]);
+    setError("");
+    setLoading(true);
 
-  /* ---------------------------------------------------------------------- */
-  /* VALIDATION                                                              */
-  /* ---------------------------------------------------------------------- */
+    /*
+     * BASIC VALIDATION
+     */
 
-  function validateForm(): string | null {
     if (!form.fullName.trim()) {
-      return "Please enter the student's full name.";
+      setError(
+        "Please enter the student's full name."
+      );
+      setLoading(false);
+      return;
     }
 
-    if (!form.packageName.trim()) {
-      return "Please enter a package name.";
+    if (form.scheduleDays.length === 0) {
+      setError(
+        "Please select at least one lesson day."
+      );
+      setLoading(false);
+      return;
     }
+
+    if (!form.scheduleTime) {
+      setError(
+        "Please select a lesson time."
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (!form.startDate) {
+      setError(
+        "Please select a start date."
+      );
+      setLoading(false);
+      return;
+    }
+
+    /*
+     * NUMBER VALIDATION
+     */
+
+    const numberOfLessons = Number(
+      form.numberOfLessons
+    );
+
+    const lessonDuration = Number(
+      form.lessonDuration
+    );
+
+    const tuitionAmount = Number(
+      form.tuitionAmount
+    );
 
     if (
       !Number.isInteger(numberOfLessons) ||
       numberOfLessons <= 0
     ) {
-      return "Number of lessons must be greater than zero.";
+      setError(
+        "Number of lessons must be greater than zero."
+      );
+      setLoading(false);
+      return;
     }
 
     if (
       !Number.isInteger(lessonDuration) ||
       lessonDuration <= 0
     ) {
-      return "Lesson duration must be greater than zero.";
+      setError(
+        "Lesson duration must be greater than zero."
+      );
+      setLoading(false);
+      return;
     }
 
     if (
       Number.isNaN(tuitionAmount) ||
       tuitionAmount < 0
     ) {
-      return "Please enter a valid tuition amount.";
-    }
-
-    if (form.scheduleDays.length === 0) {
-      return "Please select at least one lesson day.";
-    }
-
-    if (!form.scheduleTime) {
-      return "Please select a lesson time.";
-    }
-
-    if (!form.startDate) {
-      return "Please select a start date.";
+      setError(
+        "Please enter a valid tuition amount."
+      );
+      setLoading(false);
+      return;
     }
 
     /*
+     * VALIDATE START DATE
+     *
      * The start date must be one of the selected
      * recurring lesson days.
      */
+
     const startDateObject = new Date(
       `${form.startDate}T00:00:00Z`
     );
@@ -309,54 +305,40 @@ export default function NewEnrollmentPage() {
         startDay.value
       )
     ) {
-      return (
+      setError(
         "The start date must fall on one of the selected lesson days."
       );
+      setLoading(false);
+      return;
     }
+
+    /*
+     * GENERATE THE COMPLETE SCHEDULE BEFORE
+     * CREATING DATABASE RECORDS.
+     */
+
+    const lessonDates =
+      generateLessonDates(
+        form.startDate,
+        form.scheduleDays,
+        numberOfLessons
+      );
 
     if (
       lessonDates.length !== numberOfLessons
     ) {
-      return (
+      setError(
         "Could not generate the complete lesson schedule."
       );
-    }
-
-    return null;
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* SUBMIT                                                                  */
-  /* ---------------------------------------------------------------------- */
-
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
-
-    if (loading) {
+      setLoading(false);
       return;
     }
-
-    setError("");
-
-    const validationError =
-      validateForm();
-
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setLoading(true);
-
-    let studentId: string | null = null;
-    let enrollmentId: string | null = null;
 
     try {
-      /* ------------------------------------------------------------------ */
-      /* STEP 1: CREATE STUDENT                                              */
-      /* ------------------------------------------------------------------ */
+      /*
+       * STEP 1
+       * CREATE STUDENT
+       */
 
       const {
         data: student,
@@ -380,8 +362,7 @@ export default function NewEnrollmentPage() {
             form.country.trim() || null,
 
           preferred_language:
-            form.preferredLanguage.trim() ||
-            null,
+            form.preferredLanguage.trim() || null,
 
           timezone:
             form.timezone.trim() || null,
@@ -401,23 +382,11 @@ export default function NewEnrollmentPage() {
         );
       }
 
-      studentId = student.id;
-
-      /* ------------------------------------------------------------------ */
-      /* STEP 2: CREATE ENROLLMENT                                           */
-      /* ------------------------------------------------------------------ */
-
       /*
-       * IMPORTANT:
-       *
-       * Enrollment status describes the package/enrollment
-       * state. It does NOT describe whether individual
-       * lessons have been completed.
-       *
-       * A new enrollment therefore starts as "pending".
-       * Payment or enrollment confirmation can move it
-       * to the appropriate active state later.
+       * STEP 2
+       * CREATE ACTIVE ENROLLMENT
        */
+
       const {
         data: enrollment,
         error: enrollmentError,
@@ -455,14 +424,14 @@ export default function NewEnrollmentPage() {
             form.startDate,
 
           status:
-            "pending",
+            "active",
         })
         .select("id")
         .single();
 
       if (enrollmentError) {
         throw new Error(
-          `The student was created, but the enrollment could not be created: ${enrollmentError.message}`
+          `Student was created, but the enrollment could not be created: ${enrollmentError.message}`
         );
       }
 
@@ -472,21 +441,16 @@ export default function NewEnrollmentPage() {
         );
       }
 
-      enrollmentId = enrollment.id;
-
-      /* ------------------------------------------------------------------ */
-      /* STEP 3: CREATE LESSON SCHEDULE                                      */
-      /* ------------------------------------------------------------------ */
-
       /*
-       * Every lesson is initially scheduled.
+       * STEP 3
+       * CREATE ALL LESSON RECORDS
        *
-       * Nothing here determines whether a lesson is
-       * completed, rescheduled, cancelled, etc.
+       * Every lesson starts as "scheduled".
        *
-       * Those outcomes are recorded later on the
-       * individual lesson record.
+       * You do NOT need to manually create lessons
+       * after this enrollment is submitted.
        */
+
       const lessons = lessonDates.map(
         (lessonDate, index) => ({
           enrollment_id:
@@ -516,13 +480,13 @@ export default function NewEnrollmentPage() {
 
       if (lessonsError) {
         throw new Error(
-          `The enrollment was created, but the lesson schedule could not be created: ${lessonsError.message}`
+          `Enrollment was created, but the lesson schedule could not be created: ${lessonsError.message}`
         );
       }
 
-      /* ------------------------------------------------------------------ */
-      /* SUCCESS                                                              */
-      /* ------------------------------------------------------------------ */
+      /*
+       * SUCCESS
+       */
 
       router.push(
         `/${locale}/admin/students/${student.id}`
@@ -530,33 +494,6 @@ export default function NewEnrollmentPage() {
 
       router.refresh();
     } catch (err) {
-      /*
-       * Supabase client-side inserts are not transactional.
-       *
-       * If a later step fails, clean up anything that
-       * was successfully created during this submission.
-       */
-      try {
-        if (enrollmentId) {
-          await supabase
-            .from("enrollments")
-            .delete()
-            .eq("id", enrollmentId);
-        }
-
-        if (studentId) {
-          await supabase
-            .from("students")
-            .delete()
-            .eq("id", studentId);
-        }
-      } catch (cleanupError) {
-        console.error(
-          "CLEANUP ERROR:",
-          cleanupError
-        );
-      }
-
       setError(
         err instanceof Error
           ? err.message
@@ -566,10 +503,6 @@ export default function NewEnrollmentPage() {
       setLoading(false);
     }
   }
-
-  /* ---------------------------------------------------------------------- */
-  /* RENDER                                                                  */
-  /* ---------------------------------------------------------------------- */
 
   return (
     <main
@@ -589,9 +522,7 @@ export default function NewEnrollmentPage() {
     >
       <div className="mx-auto max-w-4xl">
 
-        {/* ---------------------------------------------------------------- */}
-        {/* HEADER                                                            */}
-        {/* ---------------------------------------------------------------- */}
+        {/* HEADER */}
 
         <div>
           <button
@@ -659,9 +590,7 @@ export default function NewEnrollmentPage() {
           className="mt-12 space-y-8"
         >
 
-          {/* ============================================================ */}
-          {/* 01 STUDENT INFORMATION                                       */}
-          {/* ============================================================ */}
+          {/* STUDENT INFORMATION */}
 
           <section
             className="
@@ -674,9 +603,18 @@ export default function NewEnrollmentPage() {
               sm:p-9
             "
           >
-            <SectionNumber>
+            <p
+              className="
+                font-sans
+                text-[11px]
+                font-medium
+                uppercase
+                tracking-[0.14em]
+                text-[#6F8F72]
+              "
+            >
               01
-            </SectionNumber>
+            </p>
 
             <h2
               className="
@@ -699,8 +637,7 @@ export default function NewEnrollmentPage() {
               "
             >
               Enter the student's information once.
-              It will be connected to their
-              enrollment.
+              It will be connected to their enrollment.
             </p>
 
             <div
@@ -786,9 +723,7 @@ export default function NewEnrollmentPage() {
               <Field label="Preferred language">
                 <input
                   placeholder="Korean, Chinese, etc."
-                  value={
-                    form.preferredLanguage
-                  }
+                  value={form.preferredLanguage}
                   onChange={(event) =>
                     updateField(
                       "preferredLanguage",
@@ -815,9 +750,7 @@ export default function NewEnrollmentPage() {
             </div>
           </section>
 
-          {/* ============================================================ */}
-          {/* 02 ENROLLMENT DETAILS                                        */}
-          {/* ============================================================ */}
+          {/* ENROLLMENT DETAILS */}
 
           <section
             className="
@@ -830,9 +763,18 @@ export default function NewEnrollmentPage() {
               sm:p-9
             "
           >
-            <SectionNumber>
+            <p
+              className="
+                font-sans
+                text-[11px]
+                font-medium
+                uppercase
+                tracking-[0.14em]
+                text-[#6F8F72]
+              "
+            >
               02
-            </SectionNumber>
+            </p>
 
             <h2
               className="
@@ -854,8 +796,8 @@ export default function NewEnrollmentPage() {
                 text-[#666]
               "
             >
-              Set the student's current lesson
-              package and recurring schedule.
+              Set the student's current lesson package
+              and recurring schedule.
             </p>
 
             <div
@@ -867,8 +809,6 @@ export default function NewEnrollmentPage() {
                 sm:grid-cols-2
               "
             >
-              {/* PACKAGE */}
-
               <Field
                 label="Package"
                 required
@@ -886,8 +826,6 @@ export default function NewEnrollmentPage() {
                 />
               </Field>
 
-              {/* NUMBER OF LESSONS */}
-
               <Field
                 label="Number of lessons"
                 required
@@ -896,7 +834,6 @@ export default function NewEnrollmentPage() {
                   required
                   type="number"
                   min="1"
-                  step="1"
                   value={form.numberOfLessons}
                   onChange={(event) =>
                     updateField(
@@ -908,8 +845,6 @@ export default function NewEnrollmentPage() {
                 />
               </Field>
 
-              {/* DURATION */}
-
               <Field
                 label="Lesson duration (minutes)"
                 required
@@ -918,7 +853,6 @@ export default function NewEnrollmentPage() {
                   required
                   type="number"
                   min="1"
-                  step="1"
                   value={form.lessonDuration}
                   onChange={(event) =>
                     updateField(
@@ -944,7 +878,6 @@ export default function NewEnrollmentPage() {
                   "
                 >
                   Lesson Days
-
                   <span className="ml-1 text-[#A66A5B]">
                     *
                   </span>
@@ -994,9 +927,7 @@ export default function NewEnrollmentPage() {
                           type="checkbox"
                           checked={selected}
                           onChange={() =>
-                            toggleDay(
-                              day.value
-                            )
+                            toggleDay(day.value)
                           }
                           className="sr-only"
                         />
@@ -1015,9 +946,8 @@ export default function NewEnrollmentPage() {
                     text-[#888]
                   "
                 >
-                  These days are used to
-                  automatically generate the
-                  recurring lesson schedule.
+                  These days are used to automatically
+                  generate the recurring lesson schedule.
                 </p>
               </div>
 
@@ -1046,9 +976,7 @@ export default function NewEnrollmentPage() {
               <Field label="Lessons per week">
                 <input
                   type="number"
-                  value={
-                    form.scheduleDays.length
-                  }
+                  value={form.scheduleDays.length}
                   readOnly
                   className={`
                     ${inputClass}
@@ -1139,26 +1067,23 @@ export default function NewEnrollmentPage() {
                     text-[#888]
                   "
                 >
-                  The start date must fall on
-                  one of the selected lesson
-                  days.
+                  The start date must fall on one of
+                  the selected lesson days.
                 </p>
               </Field>
             </div>
 
-            {/* ---------------------------------------------------------- */}
-            {/* ENROLLMENT STATUS                                           */}
-            {/* ---------------------------------------------------------- */}
+            {/* ENROLLMENT STATUS */}
 
             <div
               className="
                 mt-8
                 rounded-2xl
                 border
-                border-[#E7DDD1]
-                bg-[#FAF8F5]
+                border-[#D8E2D4]
+                bg-[#F4F7F2]
                 px-5
-                py-5
+                py-4
               "
             >
               <p
@@ -1168,7 +1093,7 @@ export default function NewEnrollmentPage() {
                   font-medium
                   uppercase
                   tracking-[0.12em]
-                  text-[#999]
+                  text-[#6F8F72]
                 "
               >
                 Enrollment Status
@@ -1176,13 +1101,13 @@ export default function NewEnrollmentPage() {
 
               <p
                 className="
-                  mt-2
+                  mt-1
                   font-serif
                   text-[22px]
-                  text-[#444]
+                  text-[#292929]
                 "
               >
-                Pending
+                Active
               </p>
 
               <p
@@ -1194,16 +1119,14 @@ export default function NewEnrollmentPage() {
                   text-[#777]
                 "
               >
-                New enrollments begin as pending.
-                This status describes the
-                enrollment or package state, not
-                individual lesson attendance.
+                New enrollments are automatically marked
+                active. The enrollment status describes
+                the package, while individual lesson
+                outcomes are recorded separately.
               </p>
             </div>
 
-            {/* ---------------------------------------------------------- */}
-            {/* AUTOMATION                                                   */}
-            {/* ---------------------------------------------------------- */}
+            {/* AUTOMATION */}
 
             <div
               className="
@@ -1224,8 +1147,8 @@ export default function NewEnrollmentPage() {
                   text-[#5F7F63]
                 "
               >
-                Your lesson schedule will be
-                created automatically.
+                Your lesson schedule will be created
+                automatically.
               </p>
 
               <p
@@ -1237,35 +1160,16 @@ export default function NewEnrollmentPage() {
                   text-[#777]
                 "
               >
-                {form.numberOfLessons ||
-                  "The selected number of"}{" "}
-                lesson records will be generated
-                from the selected days and start
-                date. Every lesson begins as
-                scheduled.
+                When you create this enrollment, all{" "}
+                {form.numberOfLessons || "scheduled"}{" "}
+                lesson records will be generated from
+                the selected days and start date.
+                Every lesson starts as scheduled.
               </p>
-
-              {lessonDates.length > 0 && (
-                <p
-                  className="
-                    mt-3
-                    font-sans
-                    text-[12px]
-                    font-medium
-                    text-[#5F7F63]
-                  "
-                >
-                  Schedule ready:{" "}
-                  {lessonDates.length} lessons
-                  will be created.
-                </p>
-              )}
             </div>
           </section>
 
-          {/* ============================================================ */}
-          {/* POLICY REFERENCE                                              */}
-          {/* ============================================================ */}
+          {/* POLICY REFERENCE */}
 
           <section
             className="
@@ -1278,9 +1182,18 @@ export default function NewEnrollmentPage() {
               sm:p-9
             "
           >
-            <SectionLabel>
+            <p
+              className="
+                font-sans
+                text-[11px]
+                font-medium
+                uppercase
+                tracking-[0.14em]
+                text-[#6F8F72]
+              "
+            >
               Policy Reference
-            </SectionLabel>
+            </p>
 
             <h2
               className="
@@ -1290,8 +1203,7 @@ export default function NewEnrollmentPage() {
                 font-normal
               "
             >
-              Lesson status follows the Hamkke
-              policy
+              Lesson status follows the Hamkke policy
             </h2>
 
             <div className="mt-5 overflow-x-auto">
@@ -1321,36 +1233,75 @@ export default function NewEnrollmentPage() {
                 </thead>
 
                 <tbody>
-                  <PolicyRow
-                    situation="2+ hours' notice"
-                    outcome="Rescheduled"
-                    credit="Preserved"
-                  />
+                  <tr className="border-b border-[#EEE7DF]">
+                    <td className="px-3 py-3 text-[#666]">
+                      2+ hours' notice
+                    </td>
 
-                  <PolicyRow
-                    situation="Less than 2 hours' notice"
-                    outcome="Completed"
-                    credit="Used"
-                  />
+                    <td className="px-3 py-3 text-[#444]">
+                      Rescheduled
+                    </td>
 
-                  <PolicyRow
-                    situation="No-show without notice"
-                    outcome="Completed"
-                    credit="Used"
-                  />
+                    <td className="px-3 py-3 text-[#666]">
+                      Preserved
+                    </td>
+                  </tr>
 
-                  <PolicyRow
-                    situation="Unexpected circumstance"
-                    outcome="Review / Reschedule"
-                    credit="Case-by-case"
-                  />
+                  <tr className="border-b border-[#EEE7DF]">
+                    <td className="px-3 py-3 text-[#666]">
+                      Less than 2 hours' notice
+                    </td>
 
-                  <PolicyRow
-                    situation="Teacher cancellation"
-                    outcome="Replacement / Credit"
-                    credit="Preserved"
-                    last
-                  />
+                    <td className="px-3 py-3 text-[#444]">
+                      Completed
+                    </td>
+
+                    <td className="px-3 py-3 text-[#666]">
+                      Used
+                    </td>
+                  </tr>
+
+                  <tr className="border-b border-[#EEE7DF]">
+                    <td className="px-3 py-3 text-[#666]">
+                      No-show without notice
+                    </td>
+
+                    <td className="px-3 py-3 text-[#444]">
+                      Completed
+                    </td>
+
+                    <td className="px-3 py-3 text-[#666]">
+                      Used
+                    </td>
+                  </tr>
+
+                  <tr className="border-b border-[#EEE7DF]">
+                    <td className="px-3 py-3 text-[#666]">
+                      Unexpected circumstance
+                    </td>
+
+                    <td className="px-3 py-3 text-[#444]">
+                      Review / Reschedule
+                    </td>
+
+                    <td className="px-3 py-3 text-[#666]">
+                      Case-by-case
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td className="px-3 py-3 text-[#666]">
+                      Teacher cancellation
+                    </td>
+
+                    <td className="px-3 py-3 text-[#444]">
+                      Replacement / Credit
+                    </td>
+
+                    <td className="px-3 py-3 text-[#666]">
+                      Preserved
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1365,16 +1316,13 @@ export default function NewEnrollmentPage() {
               "
             >
               This reference reflects the current
-              Hamkke Lesson Policy. It is
-              informational here. The actual lesson
-              outcome should be recorded when the
-              lesson is handled.
+              Hamkke Lesson Policy. It is informational
+              here. The actual lesson outcome should be
+              recorded when the lesson is handled.
             </p>
           </section>
 
-          {/* ============================================================ */}
-          {/* ERROR                                                          */}
-          {/* ============================================================ */}
+          {/* ERROR */}
 
           {error && (
             <div
@@ -1395,9 +1343,7 @@ export default function NewEnrollmentPage() {
             </div>
           )}
 
-          {/* ============================================================ */}
-          {/* SUBMIT                                                        */}
-          {/* ============================================================ */}
+          {/* SUBMIT */}
 
           <div
             className="
@@ -1419,9 +1365,9 @@ export default function NewEnrollmentPage() {
                 text-[#777]
               "
             >
-              This will create the student,
-              pending enrollment, and complete
-              lesson schedule together.
+              This will create the student, active
+              enrollment, and complete lesson schedule
+              together.
             </p>
 
             <button
@@ -1452,60 +1398,6 @@ export default function NewEnrollmentPage() {
     </main>
   );
 }
-
-/* ========================================================================= */
-/* SECTION NUMBER                                                            */
-/* ========================================================================= */
-
-function SectionNumber({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <p
-      className="
-        font-sans
-        text-[11px]
-        font-medium
-        uppercase
-        tracking-[0.14em]
-        text-[#6F8F72]
-      "
-    >
-      {children}
-    </p>
-  );
-}
-
-/* ========================================================================= */
-/* SECTION LABEL                                                             */
-/* ========================================================================= */
-
-function SectionLabel({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <p
-      className="
-        font-sans
-        text-[11px]
-        font-medium
-        uppercase
-        tracking-[0.14em]
-        text-[#6F8F72]
-      "
-    >
-      {children}
-    </p>
-  );
-}
-
-/* ========================================================================= */
-/* FIELD                                                                      */
-/* ========================================================================= */
 
 function Field({
   label,
@@ -1543,48 +1435,6 @@ function Field({
     </div>
   );
 }
-
-/* ========================================================================= */
-/* POLICY ROW                                                                */
-/* ========================================================================= */
-
-function PolicyRow({
-  situation,
-  outcome,
-  credit,
-  last = false,
-}: {
-  situation: string;
-  outcome: string;
-  credit: string;
-  last?: boolean;
-}) {
-  return (
-    <tr
-      className={
-        last
-          ? ""
-          : "border-b border-[#EEE7DF]"
-      }
-    >
-      <td className="px-3 py-3 text-[#666]">
-        {situation}
-      </td>
-
-      <td className="px-3 py-3 text-[#444]">
-        {outcome}
-      </td>
-
-      <td className="px-3 py-3 text-[#666]">
-        {credit}
-      </td>
-    </tr>
-  );
-}
-
-/* ========================================================================= */
-/* INPUT CLASS                                                               */
-/* ========================================================================= */
 
 const inputClass = `
   w-full
