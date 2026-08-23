@@ -1,0 +1,31 @@
+﻿"use client";
+
+import { Printer } from "lucide-react";
+
+export default function PrintButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.print()}
+      className="
+        inline-flex
+        items-center
+        gap-2
+        rounded-full
+        border
+        border-[#CFCBC4]
+        px-5
+        py-2.5
+        font-sans
+        text-sm
+        text-[#5F655F]
+        transition-colors
+        hover:border-[#6F8F72]
+        hover:text-[#6F8F72]
+      "
+    >
+      <Printer size={15} strokeWidth={1.5} />
+      Print Contract
+    </button>
+  );
+}
