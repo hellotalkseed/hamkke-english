@@ -15,7 +15,6 @@ export async function POST(
   const { id, enrollmentId } = await params;
 
   const supabase = await createClient();
-
   const formData = await request.formData();
 
   const locale = String(
@@ -28,7 +27,7 @@ export async function POST(
    * VERIFY ENROLLMENT
    * --------------------------------------------------------------------------
    *
-   * Make sure this enrollment actually belongs to this student.
+   * Make sure this enrollment belongs to this student.
    */
 
   const {
@@ -51,10 +50,13 @@ export async function POST(
   /*
    * --------------------------------------------------------------------------
    * STEP 2
-   * FIND PAYMENT
+   * FIND THE PAYMENT FOR THIS ENROLLMENT
    * --------------------------------------------------------------------------
    *
-   * Every enrollment should have a payment record.
+   * The renewal form already creates the payment record.
+   *
+   * This route does NOT create a new payment.
+   * It only confirms the existing one.
    */
 
   const {
@@ -123,18 +125,19 @@ Message: ${
   /*
    * --------------------------------------------------------------------------
    * STEP 4
-   * READ PAYMENT DETAILS FROM FORM
+   * READ OPTIONAL PAYMENT DETAILS
    * --------------------------------------------------------------------------
    *
-   * These values come from the payment form.
+   * Normally the renewal form has already stored these values.
    *
-   * If a field is not submitted, we preserve the existing
-   * value already stored in the payment record.
+   * If they are not submitted here, preserve the existing values.
    */
 
-  const amountValue = formData.get("amount");
+  const amountValue =
+    formData.get("amount");
 
-  const currencyValue = formData.get("currency");
+  const currencyValue =
+    formData.get("currency");
 
   const paymentDateValue =
     formData.get("payment_date");
@@ -195,8 +198,6 @@ Message: ${
    * --------------------------------------------------------------------------
    * PAYMENT DATE
    * --------------------------------------------------------------------------
-   *
-   * If the form does not provide a date, use today.
    */
 
   const today = new Date()
@@ -213,13 +214,29 @@ Message: ${
    * --------------------------------------------------------------------------
    * PAYMENT METHOD
    * --------------------------------------------------------------------------
+   *
+   * "pending" is a payment STATUS.
+   * It should never be stored as a payment method.
    */
 
-  const paymentMethod =
+  let paymentMethod =
+    payment.payment_method || null;
+
+  if (
     paymentMethodValue !== null &&
     String(paymentMethodValue).trim() !== ""
-      ? String(paymentMethodValue).trim()
-      : payment.payment_method || null;
+  ) {
+    const submittedPaymentMethod =
+      String(paymentMethodValue).trim();
+
+    if (
+      submittedPaymentMethod.toLowerCase() !==
+      "pending"
+    ) {
+      paymentMethod =
+        submittedPaymentMethod;
+    }
+  }
 
   /*
    * --------------------------------------------------------------------------
@@ -246,20 +263,18 @@ Message: ${
   /*
    * --------------------------------------------------------------------------
    * STEP 5
-   * UPDATE PAYMENT
+   * CONFIRM PAYMENT
    * --------------------------------------------------------------------------
    *
-   * Setting status to "paid" is what activates the enrollment.
+   * The important change is:
    *
-   * The database trigger:
+   * status: "paid"
    *
-   * payment_paid_activation
+   * Your existing database trigger should then handle:
    *
-   * should continue to handle:
-   *
-   * - enrollment activation
-   * - contract activation
-   * - lesson generation
+   * - activating the enrollment
+   * - activating the contract
+   * - generating lessons
    */
 
   const {

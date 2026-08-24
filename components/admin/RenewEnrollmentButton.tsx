@@ -12,6 +12,8 @@ export default function RenewEnrollmentButton({
   lessonsPerWeek,
   scheduleDays,
   scheduleTime,
+  tuitionAmount,
+  currency,
 }: {
   studentId: string;
   enrollmentId: string;
@@ -22,6 +24,8 @@ export default function RenewEnrollmentButton({
   lessonsPerWeek: number | null;
   scheduleDays: string[] | null;
   scheduleTime: string | null;
+  tuitionAmount: number;
+  currency: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -479,21 +483,176 @@ export default function RenewEnrollmentButton({
               </p>
             </div>
 
-            {/* PAYMENT NOTE */}
-            <div
-              className="
-                rounded-xl
-                bg-[#F0F4ED]
-                px-4
-                py-4
-                font-sans
-                text-[12px]
-                leading-5
-                text-[#777771]
-              "
-            >
-              Payment details will be entered separately when
-              payment is confirmed for this renewal.
+            {/* PAYMENT */}
+            <div>
+              <p
+                className="
+                  font-sans
+                  text-[11px]
+                  font-medium
+                  uppercase
+                  tracking-[0.12em]
+                  text-[#6F8F72]
+                "
+              >
+                Payment
+              </p>
+
+              <div className="mt-4 grid gap-6 sm:grid-cols-2">
+                {/* TUITION AMOUNT */}
+                <div>
+                  <label
+                    htmlFor="tuition_amount"
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.12em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Tuition amount
+                  </label>
+
+                  <input
+                    id="tuition_amount"
+                    name="tuition_amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    defaultValue={tuitionAmount}
+                    className="
+                      mt-2
+                      w-full
+                      rounded-xl
+                      border
+                      border-[#DCD8D2]
+                      bg-[#FAF8F5]
+                      px-4
+                      py-3
+                      font-sans
+                      text-sm
+                      outline-none
+                      focus:border-[#6F8F72]
+                    "
+                  />
+                </div>
+
+                {/* CURRENCY */}
+                <div>
+                  <label
+                    htmlFor="currency"
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.12em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Currency
+                  </label>
+
+                  <select
+                    id="currency"
+                    name="currency"
+                    required
+                    defaultValue={currency}
+                    className="
+                      mt-2
+                      w-full
+                      rounded-xl
+                      border
+                      border-[#DCD8D2]
+                      bg-[#FAF8F5]
+                      px-4
+                      py-3
+                      font-sans
+                      text-sm
+                      outline-none
+                      focus:border-[#6F8F72]
+                    "
+                  >
+                    <option value="KRW">KRW</option>
+                    <option value="PHP">PHP</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
+
+                {/* PAYMENT METHOD */}
+                <div>
+                  <label
+                    htmlFor="payment_method"
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.12em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Payment method
+                  </label>
+
+                  <select
+                    id="payment_method"
+                    name="payment_method"
+                    required
+                    defaultValue=""
+                    className="
+                      mt-2
+                      w-full
+                      rounded-xl
+                      border
+                      border-[#DCD8D2]
+                      bg-[#FAF8F5]
+                      px-4
+                      py-3
+                      font-sans
+                      text-sm
+                      outline-none
+                      focus:border-[#6F8F72]
+                    "
+                  >
+                    <option value="" disabled>
+                      Select payment method
+                    </option>
+
+                    <option value="bank_transfer">
+                      Bank Transfer
+                    </option>
+
+                    <option value="paypal">
+                      PayPal
+                    </option>
+
+                    <option value="gcash">
+                      GCash
+                    </option>
+
+                    <option value="other">
+                      Other
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <p
+                className="
+                  mt-3
+                  font-sans
+                  text-[12px]
+                  leading-5
+                  text-[#8A8A84]
+                "
+              >
+                Payment remains pending until you confirm that
+                the student&apos;s payment has been received.
+              </p>
             </div>
 
             {/* ACTIONS */}

@@ -39,6 +39,19 @@ interface Lesson {
   resolution: string | null;
 }
 
+interface Payment {
+  id: string;
+  enrollment_id: string;
+  amount: number | null;
+  currency: string | null;
+  payment_date: string | null;
+  payment_method: string | null;
+  reference: string | null;
+  notes: string | null;
+  status: string;
+  created_at?: string | null;
+}
+
 interface Enrollment {
   id: string;
   package_name: string;
@@ -51,6 +64,7 @@ interface Enrollment {
   schedule_time: string | null;
   renewal_of: string | null;
   lessons: Lesson[];
+  payments: Payment[];
 }
 
 export default async function StudentPage({
@@ -96,6 +110,18 @@ export default async function StudentPage({
           rescheduled_at,
           consumes_lesson,
           resolution
+        ),
+        payments (
+          id,
+          enrollment_id,
+          amount,
+          currency,
+          payment_date,
+          payment_method,
+          reference,
+          notes,
+          status,
+          created_at
         )
       )
     `)
@@ -131,12 +157,6 @@ export default async function StudentPage({
    * ------------------------------------------------------------------------
    * SELECT ENROLLMENT
    * ------------------------------------------------------------------------
-   *
-   * If ?enrollmentId= exists, show that exact enrollment.
-   *
-   * Otherwise:
-   * 1. Prefer an active enrollment.
-   * 2. Fall back to the newest enrollment.
    */
 
   const selectedEnrollment = enrollmentId
@@ -173,12 +193,61 @@ export default async function StudentPage({
   );
 
   /*
+   * ------------------------------------------------------------------------
+   * CURRENT ENROLLMENT PAYMENT
+   * ------------------------------------------------------------------------
+   *
+   * Every enrollment has its own payment record.
+   *
+   * If there are multiple payment records for an enrollment,
+   * use the newest one for the current enrollment display.
+   */
+
+  const currentEnrollmentPayments = [
+    ...(currentEnrollment?.payments ?? []),
+  ].sort(comparePayments);
+
+  const currentPayment =
+    currentEnrollmentPayments[0] ?? null;
+
+  /*
+   * ------------------------------------------------------------------------
+   * PAYMENT HISTORY
+   * ------------------------------------------------------------------------
+   *
+   * Flatten every payment from every enrollment.
+   *
+   * This keeps payment history independent from enrollment history.
+   *
+   * Example:
+   *
+   * Enrollment 1
+   *   └── Payment 1
+   *
+   * Enrollment 2 / Renewal
+   *   └── Payment 2
+   *
+   * Enrollment 3 / Renewal
+   *   └── Payment 3
+   *
+   * All three remain visible here.
+   */
+
+  const paymentHistory = enrollments
+    .flatMap((enrollment) =>
+      (enrollment.payments ?? []).map(
+        (payment) => ({
+          ...payment,
+          enrollment,
+        })
+      )
+    )
+    .sort(comparePaymentHistory);
+
+  /*
+   * ------------------------------------------------------------------------
    * ATTENDANCE
-   *
-   * Completed, no-show, and late cancellation are
-   * consumed lessons when consumes_lesson = true.
-   *
-   * Scheduled lessons have not been consumed yet.
+   * ------------------------------------------------------------------------
    */
 
   const completedLessons = lessons.filter(
@@ -218,15 +287,6 @@ export default async function StudentPage({
    * ------------------------------------------------------------------------
    * ENROLLMENT LIFECYCLE
    * ------------------------------------------------------------------------
-   *
-   * pending
-   * contract_review
-   * payment_pending
-   * active
-   * completed
-   *
-   * Active means the contract is currently active.
-   * Completed means the enrollment has finished.
    */
 
   const enrollmentIsActive =
@@ -242,13 +302,27 @@ export default async function StudentPage({
     enrollmentIsCompleted;
 
   const paymentIsPending =
-    !!currentEnrollment &&
-    !enrollmentIsConfirmed &&
-    [
-      "pending",
-      "contract_review",
-      "payment_pending",
-    ].includes(currentEnrollment.status);
+    !!currentPayment &&
+    currentPayment.status === "pending";
+
+  const paymentIsPaid =
+    !!currentPayment &&
+    currentPayment.status === "paid";
+
+  /*
+   * ------------------------------------------------------------------------
+   * CURRENT TUITION
+   * ------------------------------------------------------------------------
+   *
+   * Passed into RenewEnrollmentButton so the renewal form
+   * can pre-fill the previous payment amount and currency.
+   */
+
+  const currentTuitionAmount =
+    currentPayment?.amount ?? 0;
+
+  const currentCurrency =
+    currentPayment?.currency ?? "KRW";
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
@@ -494,6 +568,10 @@ export default async function StudentPage({
                 scheduleTime={
                   currentEnrollment.schedule_time
                 }
+                tuitionAmount={
+                  currentTuitionAmount
+                }
+                currency={currentCurrency}
               />
             ) : (
               <Link
@@ -899,7 +977,7 @@ export default async function StudentPage({
           </div>
         </section>
 
-        {/* PAYMENT */}
+        {/* CURRENT PAYMENT */}
         <section className="border-t border-[#DCD8D2] py-10">
           <div className="flex items-center justify-between gap-6">
             <SectionHeading
@@ -912,7 +990,8 @@ export default async function StudentPage({
               title="Payment"
             />
 
-            {paymentIsPending &&
+            {currentPayment &&
+              paymentIsPending &&
               currentEnrollment && (
                 <form
                   method="POST"
@@ -947,56 +1026,238 @@ export default async function StudentPage({
               )}
           </div>
 
-          <div
-            className="
-              mt-8
-              rounded-2xl
-              border
-              border-[#DCD8D2]
-              bg-white/40
-              p-6
-              sm:p-8
-            "
-          >
-            <p
+          {!currentEnrollment ? (
+            <EmptyPaymentState
+              title="No payment yet"
+              description="Payment details will appear once an enrollment has been created."
+            />
+          ) : !currentPayment ? (
+            <EmptyPaymentState
+              title="No payment record"
+              description="This enrollment does not have a payment record yet."
+            />
+          ) : (
+            <div
               className="
-                font-sans
-                text-[11px]
-                font-medium
-                uppercase
-                tracking-[0.14em]
-                text-[#6F8F72]
+                mt-8
+                rounded-2xl
+                border
+                border-[#DCD8D2]
+                bg-white/40
+                p-6
+                sm:p-8
               "
             >
-              Status
-            </p>
+              <div
+                className="
+                  flex
+                  flex-col
+                  gap-6
+                  sm:flex-row
+                  sm:items-start
+                  sm:justify-between
+                "
+              >
+                <div>
+                  <p
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Payment Details
+                  </p>
 
-            <p className="mt-2 font-serif text-[21px]">
-              {!currentEnrollment
-                ? "No payment yet"
-                : paymentIsPending
-                  ? "Payment Pending"
-                  : "Paid"}
-            </p>
+                  <p className="mt-2 font-serif text-[28px]">
+                    {formatCurrency(
+                      currentPayment.amount,
+                      currentPayment.currency
+                    )}
+                  </p>
+                </div>
 
-            {paymentIsPending &&
-              currentEnrollment && (
-                <p
+                <PaymentStatusBadge
+                  status={currentPayment.status}
+                />
+              </div>
+
+              <div
+                className="
+                  mt-8
+                  grid
+                  gap-x-8
+                  gap-y-7
+                  border-t
+                  border-[#E2DED7]
+                  pt-7
+                  sm:grid-cols-2
+                  lg:grid-cols-3
+                "
+              >
+                <PaymentDetail
+                  label="Amount"
+                  value={formatCurrency(
+                    currentPayment.amount,
+                    currentPayment.currency
+                  )}
+                />
+
+                <PaymentDetail
+                  label="Payment Date"
+                  value={formatDate(
+                    currentPayment.payment_date
+                  )}
+                />
+
+                <PaymentDetail
+                  label="Payment Method"
+                  value={formatPaymentMethod(
+                    currentPayment.payment_method
+                  )}
+                />
+
+                <PaymentDetail
+                  label="Reference"
+                  value={
+                    currentPayment.reference ||
+                    "Not provided"
+                  }
+                />
+
+                <PaymentDetail
+                  label="Status"
+                  value={
+                    paymentIsPaid
+                      ? "Paid"
+                      : "Pending confirmation"
+                  }
+                />
+              </div>
+
+              {currentPayment.notes && (
+                <div
                   className="
-                    mt-3
-                    max-w-[500px]
-                    font-sans
-                    text-[12px]
-                    leading-[1.6]
-                    text-[#8A8A84]
+                    mt-7
+                    border-t
+                    border-[#E2DED7]
+                    pt-6
                   "
                 >
-                  Confirm payment once the student's
-                  payment has been received.
-                </p>
+                  <p
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.12em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Notes
+                  </p>
+
+                  <p
+                    className="
+                      mt-2
+                      font-sans
+                      text-[13px]
+                      leading-6
+                      text-[#777771]
+                    "
+                  >
+                    {currentPayment.notes}
+                  </p>
+                </div>
               )}
-          </div>
+
+              {paymentIsPending && (
+                <div
+                  className="
+                    mt-7
+                    border-t
+                    border-[#E2DED7]
+                    pt-6
+                  "
+                >
+                  <p
+                    className="
+                      max-w-[560px]
+                      font-sans
+                      text-[12px]
+                      leading-[1.7]
+                      text-[#8A8A84]
+                    "
+                  >
+                    The payment details were submitted
+                    with this enrollment. Confirm the
+                    payment once the student&apos;s payment
+                    has been received. Confirmation will
+                    activate this enrollment.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
+
+        {/* PAYMENT HISTORY */}
+        {paymentHistory.length > 0 && (
+          <section className="border-t border-[#DCD8D2] py-10">
+            <div className="flex items-center justify-between gap-6">
+              <SectionHeading
+                icon={
+                  <CreditCard
+                    size={17}
+                    strokeWidth={1.5}
+                  />
+                }
+                title="Payment History"
+              />
+
+              <span
+                className="
+                  font-sans
+                  text-[12px]
+                  text-[#8A8A84]
+                "
+              >
+                {paymentHistory.length}{" "}
+                {paymentHistory.length === 1
+                  ? "payment"
+                  : "payments"}
+              </span>
+            </div>
+
+            <div className="mt-8 space-y-3">
+              {paymentHistory.map(
+                ({
+                  id: paymentId,
+                  enrollment,
+                  ...payment
+                }) => (
+                  <PaymentHistoryRow
+                    key={paymentId}
+                    payment={{
+                      id: paymentId,
+                      ...payment,
+                    }}
+                    enrollment={enrollment}
+                    locale={locale}
+                    studentId={student.id}
+                    isCurrent={
+                      enrollment.id ===
+                      currentEnrollment?.id
+                    }
+                  />
+                )
+              )}
+            </div>
+          </section>
+        )}
 
         {/* ATTENDANCE & LESSONS */}
         <section
@@ -1141,6 +1402,148 @@ export default async function StudentPage({
         </section>
       </section>
     </main>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* PAYMENT HISTORY ROW                                                        */
+/* -------------------------------------------------------------------------- */
+
+function PaymentHistoryRow({
+  payment,
+  enrollment,
+  locale,
+  studentId,
+  isCurrent,
+}: {
+  payment: Payment;
+  enrollment: Enrollment;
+  locale: string;
+  studentId: string;
+  isCurrent: boolean;
+}) {
+  return (
+    <Link
+      href={`/${locale}/admin/students/${studentId}?enrollmentId=${enrollment.id}`}
+      className="
+        block
+        rounded-2xl
+        border
+        border-[#DCD8D2]
+        bg-white/40
+        p-5
+        transition-colors
+        hover:border-[#BFCDBA]
+        hover:bg-[#F5F7F3]
+        sm:p-6
+      "
+    >
+      <div
+        className="
+          flex
+          flex-col
+          gap-5
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+        "
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h4
+              className="
+                font-serif
+                text-[20px]
+                font-normal
+              "
+            >
+              {formatCurrency(
+                payment.amount,
+                payment.currency
+              )}
+            </h4>
+
+            <PaymentStatusBadge
+              status={payment.status}
+            />
+
+            {isCurrent && (
+              <span
+                className="
+                  rounded-full
+                  bg-[#E2EBDD]
+                  px-3
+                  py-1
+                  font-sans
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.08em]
+                  text-[#6F8F72]
+                "
+              >
+                Current
+              </span>
+            )}
+          </div>
+
+          <p
+            className="
+              mt-2
+              font-sans
+              text-[12px]
+              text-[#777771]
+            "
+          >
+            {enrollment.package_name}
+            {enrollment.renewal_of
+              ? " · Renewal"
+              : ""}
+          </p>
+
+          <div
+            className="
+              mt-3
+              flex
+              flex-wrap
+              gap-x-5
+              gap-y-2
+              font-sans
+              text-[12px]
+              text-[#8A8A84]
+            "
+          >
+            <span>
+              {formatDate(payment.payment_date)}
+            </span>
+
+            <span>
+              {formatPaymentMethod(
+                payment.payment_method
+              )}
+            </span>
+
+            {payment.reference && (
+              <span>
+                Ref. {payment.reference}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="shrink-0">
+          <span
+            className="
+              font-sans
+              text-[12px]
+              text-[#8A8A84]
+            "
+          >
+            View enrollment →
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -1500,6 +1903,48 @@ function SectionHeading({
 }
 
 /* -------------------------------------------------------------------------- */
+/* EMPTY PAYMENT STATE                                                        */
+/* -------------------------------------------------------------------------- */
+
+function EmptyPaymentState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div
+      className="
+        mt-8
+        rounded-2xl
+        border
+        border-dashed
+        border-[#CFCBC4]
+        px-6
+        py-10
+        text-center
+      "
+    >
+      <p className="font-serif text-[20px]">
+        {title}
+      </p>
+
+      <p
+        className="
+          mt-2
+          font-sans
+          text-[13px]
+          text-[#8A8A84]
+        "
+      >
+        {description}
+      </p>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* INFO                                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -1586,6 +2031,46 @@ function DetailItem({
 }
 
 /* -------------------------------------------------------------------------- */
+/* PAYMENT DETAIL                                                             */
+/* -------------------------------------------------------------------------- */
+
+function PaymentDetail({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <p
+        className="
+          font-sans
+          text-[11px]
+          font-medium
+          uppercase
+          tracking-[0.12em]
+          text-[#6F8F72]
+        "
+      >
+        {label}
+      </p>
+
+      <p
+        className="
+          mt-2
+          font-serif
+          text-[17px]
+          text-[#292929]
+        "
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* STAT                                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -1628,6 +2113,42 @@ function Stat({
         {suffix}
       </p>
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* PAYMENT STATUS                                                             */
+/* -------------------------------------------------------------------------- */
+
+function PaymentStatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+  const isPaid = status === "paid";
+
+  return (
+    <span
+      className={`
+        inline-flex
+        w-fit
+        rounded-full
+        px-4
+        py-2
+        font-sans
+        text-[11px]
+        font-medium
+        uppercase
+        tracking-[0.12em]
+        ${
+          isPaid
+            ? "bg-[#E2EBDD] text-[#6F8F72]"
+            : "bg-[#F4EBDD] text-[#9A7650]"
+        }
+      `}
+    >
+      {isPaid ? "Paid" : "Payment Pending"}
+    </span>
   );
 }
 
@@ -1692,6 +2213,122 @@ function formatEnrollmentStatus(
   };
 
   return labels[status] ?? status;
+}
+
+/* -------------------------------------------------------------------------- */
+/* PAYMENT METHOD                                                             */
+/* -------------------------------------------------------------------------- */
+
+function formatPaymentMethod(
+  paymentMethod: string | null
+) {
+  if (!paymentMethod) {
+    return "Not provided";
+  }
+
+  const normalized =
+    paymentMethod.trim().toLowerCase();
+
+  /*
+   * "pending" is a payment STATUS, not a payment method.
+   *
+   * Do not show it as a method even if an older record
+   * accidentally contains it.
+   */
+
+  if (normalized === "pending") {
+    return "Not provided";
+  }
+
+  const labels: Record<string, string> = {
+    bank_transfer: "Bank transfer",
+    paypal: "PayPal",
+    gcash: "GCash",
+    cash: "Cash",
+    card: "Card",
+  };
+
+  return (
+    labels[normalized] ??
+    paymentMethod
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* PAYMENT FORMAT                                                             */
+/* -------------------------------------------------------------------------- */
+
+function formatCurrency(
+  amount: number | null,
+  currency: string | null
+) {
+  if (amount === null || amount === undefined) {
+    return "Not provided";
+  }
+
+  const currencyCode =
+    currency || "KRW";
+
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+      maximumFractionDigits:
+        currencyCode === "KRW" ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return `${currencyCode} ${amount.toLocaleString()}`;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* PAYMENT SORTING                                                            */
+/* -------------------------------------------------------------------------- */
+
+function comparePayments(
+  a: Payment,
+  b: Payment
+) {
+  const dateA = getPaymentTimestamp(a);
+  const dateB = getPaymentTimestamp(b);
+
+  return dateB - dateA;
+}
+
+function comparePaymentHistory(
+  a: Payment & { enrollment: Enrollment },
+  b: Payment & { enrollment: Enrollment }
+) {
+  const dateA = getPaymentTimestamp(a);
+  const dateB = getPaymentTimestamp(b);
+
+  return dateB - dateA;
+}
+
+function getPaymentTimestamp(
+  payment: Payment
+) {
+  if (payment.payment_date) {
+    const timestamp = new Date(
+      `${payment.payment_date}T00:00:00`
+    ).getTime();
+
+    if (Number.isFinite(timestamp)) {
+      return timestamp;
+    }
+  }
+
+  if (payment.created_at) {
+    const timestamp = new Date(
+      payment.created_at
+    ).getTime();
+
+    if (Number.isFinite(timestamp)) {
+      return timestamp;
+    }
+  }
+
+  return 0;
 }
 
 /* -------------------------------------------------------------------------- */

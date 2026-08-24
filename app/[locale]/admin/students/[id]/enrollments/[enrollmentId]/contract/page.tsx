@@ -21,7 +21,7 @@ export default async function ContractPage({
 
   const { data: student, error: studentError } = await supabase
     .from("students")
-    .select("id, full_name, preferred_name, timezone")
+    .select("id, full_name, timezone")
     .eq("id", id)
     .single();
 
@@ -41,8 +41,7 @@ export default async function ContractPage({
       tuition_amount,
       currency,
       schedule_days,
-      schedule_time,
-      status
+      schedule_time
     `)
     .eq("id", enrollmentId)
     .eq("student_id", id)
@@ -52,15 +51,14 @@ export default async function ContractPage({
     notFound();
   }
 
-  const studentName =
-    student.preferred_name || student.full_name;
+  // Always use the student's full legal/account name.
+  const studentName = student.full_name;
 
   const { data: contract, error: contractError } = await supabase
     .from("contracts")
     .select(`
       id,
       contract_number,
-      status,
       agreement_date
     `)
     .eq("enrollment_id", enrollmentId)
@@ -160,21 +158,14 @@ export default async function ContractPage({
     Number(enrollment.tuition_amount || 0)
   );
 
-  const status =
-    contract.status === "draft"
-      ? "Draft"
-      : contract.status === "for_review"
-        ? "Contract for Review"
-        : contract.status === "active"
-          ? "Active"
-          : "Void";
-
   return (
-    <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      <div className="mx-auto w-full max-w-[900px] px-6 py-8 sm:px-8 lg:px-10">
+    <main className="min-h-screen bg-[#F4F2EE] text-[#292929] print:bg-white">
+      {/* ------------------------------------------------------------------ */}
+      {/* ADMIN NAV                                                          */}
+      {/* ------------------------------------------------------------------ */}
 
-        {/* TOP NAV */}
-        <div className="mb-10 flex items-center justify-between print:hidden">
+      <div className="mx-auto w-full max-w-[960px] px-5 py-6 sm:px-8 sm:py-8 print:hidden">
+        <div className="flex items-center justify-between">
           <Link
             href={`/${locale}/admin/students/${student.id}`}
             className="
@@ -182,507 +173,639 @@ export default async function ContractPage({
               items-center
               gap-2
               font-sans
-              text-sm
-              text-[#5F655F]
+              text-[13px]
+              text-[#666A65]
               transition-colors
               hover:text-[#6F8F72]
             "
           >
-            <ArrowLeft size={16} strokeWidth={1.5} />
-            Student
+            <ArrowLeft
+              size={15}
+              strokeWidth={1.5}
+            />
+            Back to Student
           </Link>
 
           <PrintButton />
         </div>
+      </div>
 
-        {/* CONTRACT */}
-        <article className="bg-white px-7 py-10 shadow-sm sm:px-12 sm:py-14 lg:px-16">
+      {/* ------------------------------------------------------------------ */}
+      {/* DOCUMENT                                                           */}
+      {/* ------------------------------------------------------------------ */}
 
-          {/* BRAND HEADER */}
-          <header className="border-b border-[#DCD8D2] pb-10 text-center">
-            <div
-              className="
-                font-serif
-                text-[26px]
-                font-normal
-                tracking-[-0.02em]
-                text-[#6F8F72]
-              "
+      <div className="mx-auto w-full max-w-[960px] px-0 pb-16 sm:px-5 sm:pb-20 lg:px-8 print:p-0">
+        <article
+          className="
+            bg-white
+            shadow-[0_8px_35px_rgba(41,41,41,0.05)]
+            print:shadow-none
+          "
+        >
+          {/* DOCUMENT ACCENT */}
+          <div className="h-[3px] bg-[#6F8F72]" />
+
+          <div className="px-7 py-10 sm:px-12 sm:py-14 lg:px-[82px] lg:py-[68px] print:px-0 print:py-0">
+
+            {/* ============================================================ */}
+            {/* HEADER                                                       */}
+            {/* ============================================================ */}
+
+            <header className="border-b border-[#D8D5CF] pb-9 sm:pb-11">
+              <div className="flex items-start justify-between gap-8">
+
+                {/* LEFT */}
+                <div>
+                  <div
+                    className="
+                      font-serif
+                      text-[26px]
+                      leading-none
+                      tracking-[-0.025em]
+                      text-[#526D57]
+                      sm:text-[29px]
+                    "
+                  >
+                    Hamkke │ 함께
+                  </div>
+
+                  <p
+                    className="
+                      mt-2
+                      font-sans
+                      text-[10px]
+                      uppercase
+                      tracking-[0.18em]
+                      text-[#96968F]
+                      sm:text-[11px]
+                    "
+                  >
+                    From Small Talk to Big Ideas
+                  </p>
+                </div>
+
+                {/* RIGHT */}
+                <div className="text-right">
+                  <p
+                    className="
+                      font-sans
+                      text-[10px]
+                      font-medium
+                      uppercase
+                      tracking-[0.17em]
+                      text-[#777771]
+                      sm:text-[11px]
+                    "
+                  >
+                    Private English Lessons
+                  </p>
+
+                  <p
+                    className="
+                      mt-1.5
+                      font-serif
+                      text-[16px]
+                      leading-none
+                      text-[#292929]
+                      sm:text-[18px]
+                    "
+                  >
+                    Lesson Agreement
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            {/* ============================================================ */}
+            {/* AGREEMENT INFORMATION                                        */}
+            {/* ============================================================ */}
+
+            <section className="border-b border-[#D8D5CF] py-8 sm:py-9">
+              <div className="grid sm:grid-cols-2">
+
+                <SummaryItem
+                  label="Student"
+                  value={studentName}
+                  className="border-b pb-6 sm:border-b-0 sm:border-r sm:pr-10"
+                />
+
+                <SummaryItem
+                  label="Agreement Date"
+                  value={agreementDate}
+                  className="pt-6 sm:pl-10 sm:pt-0"
+                />
+
+              </div>
+            </section>
+
+            {/* ============================================================ */}
+            {/* 01                                                            */}
+            {/* ============================================================ */}
+
+            <Section
+              number="01"
+              title="Agreement Overview"
             >
-              Hamkke │ 함께
-            </div>
+              <p>
+                This Lesson Agreement sets out the terms and
+                policies applicable to the private English
+                lessons arranged between Hamkke and the
+                student named above.
+              </p>
 
-            <p
-              className="
-                mt-2
-                font-sans
-                text-[12px]
-                tracking-[0.08em]
-                text-[#777771]
-              "
+              <p>
+                The lesson package, schedule, tuition, and
+                policies described in this agreement apply to
+                the enrollment identified below.
+              </p>
+
+              <p>
+                This agreement is provided digitally before
+                payment. By proceeding with payment for the
+                lesson package, the student confirms that they
+                have had the opportunity to review this
+                agreement and agree to the terms and lesson
+                policies contained herein.
+              </p>
+            </Section>
+
+            {/* ============================================================ */}
+            {/* 02                                                            */}
+            {/* ============================================================ */}
+
+            <Section
+              number="02"
+              title="Enrollment Details"
             >
-              From Small Talk to Big Ideas
-            </p>
+              <div className="border-y border-[#E0DDD7]">
+                <DetailRow
+                  label="Package"
+                  value={enrollment.package_name}
+                  strong
+                />
 
-            <p
-              className="
-                mt-5
-                font-sans
-                text-[11px]
-                font-medium
-                uppercase
-                tracking-[0.16em]
-                text-[#8A8A84]
-              "
+                <DetailRow
+                  label="Number of Lessons"
+                  value={`${enrollment.number_of_lessons} lessons`}
+                />
+
+                <DetailRow
+                  label="Lesson Duration"
+                  value={`${enrollment.lesson_duration} minutes`}
+                />
+
+                <DetailRow
+                  label="Lessons Per Week"
+                  value={`${enrollment.lessons_per_week}`}
+                />
+
+                <DetailRow
+                  label="Start Date"
+                  value={startDate}
+                />
+
+                <DetailRow
+                  label="Lesson Days"
+                  value={scheduleDays}
+                />
+
+                <DetailRow
+                  label="Lesson Time"
+                  value={scheduleTime}
+                />
+
+                <DetailRow
+                  label="Student Timezone"
+                  value={student.timezone || "To be confirmed"}
+                />
+
+                <DetailRow
+                  label="Tuition"
+                  value={`${currency} ${tuition}`}
+                  strong
+                  last
+                />
+              </div>
+            </Section>
+
+            {/* ============================================================ */}
+            {/* 03                                                            */}
+            {/* ============================================================ */}
+
+            <Section
+              number="03"
+              title="Tuition & Payment"
             >
-              Private English Lessons
-            </p>
+              <p>
+                The tuition for the enrollment is{" "}
+                {currency} {tuition} for the lesson package
+                described above.
+              </p>
 
-            <h1
-              className="
-                mt-8
-                font-serif
-                text-[38px]
-                font-normal
-                tracking-[-0.03em]
-                sm:text-[44px]
-              "
+              <p>
+                The lesson package is reserved for the
+                student upon payment. Payment confirms the
+                student's acceptance of this agreement and
+                the lesson policies set out below.
+              </p>
+
+              <p>
+                Because lessons are purchased as a package,
+                refunds are generally not available once a
+                package has been paid for, subject to the
+                exceptions described in the Refunds & Transfers
+                section of this agreement.
+              </p>
+            </Section>
+
+            {/* ============================================================ */}
+            {/* 04                                                            */}
+            {/* ============================================================ */}
+
+            <Section
+              number="04"
+              title="Cancellation & Rescheduling"
             >
-              Lesson Agreement
-            </h1>
-          </header>
+              <p>
+                Each lesson is reserved specifically for the
+                student. If the student needs to cancel or
+                reschedule a lesson, notice should be provided
+                at least 2 hours before the scheduled lesson.
+              </p>
 
-          {/* SUMMARY */}
-          <section className="border-b border-[#DCD8D2] py-8">
-            <div className="grid gap-7 sm:grid-cols-3">
-              <Info
-                label="Student"
-                value={studentName}
-              />
+              <div className="my-7 border-y border-[#E0DDD7]">
+                <Policy
+                  title="With 2+ hours' notice"
+                  text="The student may reschedule the lesson or receive credit for a future session."
+                />
 
-              <Info
-                label="Agreement Date"
-                value={agreementDate}
-              />
+                <Policy
+                  title="With less than 2 hours' notice"
+                  text="The lesson will be counted as completed."
+                />
 
-              <Info
-                label="Status"
-                value={status}
-              />
-            </div>
-          </section>
+                <Policy
+                  title="No-show without notice"
+                  text="The lesson will be counted as completed."
+                  last
+                />
+              </div>
 
-          {/* 01 */}
-          <Section
-            number="01"
-            title="Agreement Overview"
-          >
-            <p>
-              This Lesson Agreement sets out the terms and
-              policies applicable to the private English
-              lessons arranged between Hamkke and the
-              student named above.
-            </p>
+              <p>
+                If something unexpected comes up, the student
+                is encouraged to communicate as soon as
+                reasonably possible. Hamkke will do its best
+                to accommodate reasonable circumstances when
+                possible.
+              </p>
+            </Section>
 
-            <p>
-              The lesson package, schedule, tuition, and
-              policies described in this agreement apply to
-              the enrollment identified below.
-            </p>
+            {/* ============================================================ */}
+            {/* 05                                                            */}
+            {/* ============================================================ */}
 
-            <p>
-              This agreement is provided digitally before
-              payment. By proceeding with payment for the
-              lesson package, the student confirms that they
-              have had the opportunity to review this
-              agreement and agree to the terms and lesson
-              policies contained herein.
-            </p>
-          </Section>
+            <Section
+              number="05"
+              title="Unexpected Circumstances"
+            >
+              <p>
+                Not everything is within either party's
+                control. Power outages, internet or connection
+                problems, emergencies, and other unexpected
+                circumstances may occasionally make it
+                difficult to attend a lesson.
+              </p>
 
-          {/* 02 */}
-          <Section
-            number="02"
-            title="Enrollment Details"
-          >
-            <DetailGrid>
-              <Info
-                label="Package"
-                value={enrollment.package_name}
-              />
+              <p>
+                If an unexpected circumstance occurs, the
+                affected party should communicate as soon as
+                reasonably possible.
+              </p>
 
-              <Info
-                label="Number of Lessons"
-                value={`${enrollment.number_of_lessons} lessons`}
-              />
+              <p>
+                Depending on the circumstances, Hamkke may
+                provide a reasonable solution such as
+                rescheduling the lesson or providing lesson
+                credit.
+              </p>
 
-              <Info
-                label="Lesson Duration"
-                value={`${enrollment.lesson_duration} minutes`}
-              />
+              <p>
+                This also applies when an unexpected issue on
+                Hamkke's side prevents a lesson from taking
+                place as planned.
+              </p>
+            </Section>
 
-              <Info
-                label="Lessons Per Week"
-                value={`${enrollment.lessons_per_week}`}
-              />
+            {/* ============================================================ */}
+            {/* 06                                                            */}
+            {/* ============================================================ */}
 
-              <Info
-                label="Start Date"
-                value={startDate}
-              />
+            <Section
+              number="06"
+              title="Late Arrivals"
+            >
+              <p>
+                If the student is running late, they should
+                let Hamkke know when they can.
+              </p>
 
-              <Info
-                label="Lesson Days"
-                value={scheduleDays}
-              />
+              <p>
+                A late arrival does not extend the scheduled
+                lesson. The lesson will still end at its
+                originally scheduled time.
+              </p>
 
-              <Info
-                label="Lesson Time"
-                value={scheduleTime}
-              />
+              <p>
+                Example: If a lesson is scheduled from
+                8:00–8:25 PM and the student joins at
+                8:10 PM, the lesson will run from 8:10–8:25
+                PM.
+              </p>
 
-              <Info
-                label="Student Timezone"
-                value={student.timezone || "To be confirmed"}
-              />
+              <p>
+                If the student does not join within 10 minutes
+                and has not contacted Hamkke, the lesson will
+                be considered a no-show and counted as
+                completed.
+              </p>
+            </Section>
 
-              <Info
-                label="Tuition"
-                value={`${currency} ${tuition}`}
-              />
-            </DetailGrid>
-          </Section>
+            {/* ============================================================ */}
+            {/* 07                                                            */}
+            {/* ============================================================ */}
 
-          {/* 03 */}
-          <Section
-            number="03"
-            title="Tuition & Payment"
-          >
-            <p>
-              The tuition for the enrollment is{" "}
-              {currency} {tuition} for the lesson package
-              described above.
-            </p>
+            <Section
+              number="07"
+              title="Teacher Cancellations"
+            >
+              <p>
+                Sometimes Hamkke may need to cancel a lesson.
+              </p>
 
-            <p>
-              The lesson package is reserved for the
-              student upon payment. Payment confirms the
-              student's acceptance of this agreement and
-              the lesson policies set out below.
-            </p>
+              <p>
+                If this happens, Hamkke will communicate the
+                cancellation as soon as possible.
+              </p>
 
-            <p>
-              Because lessons are purchased as a package,
-              refunds are generally not available once a
-              package has been paid for, subject to the
-              exceptions described in the Refunds & Transfers
-              section of this agreement.
-            </p>
-          </Section>
+              <p>
+                The student will receive either a replacement
+                lesson or full credit for the missed session.
+              </p>
+            </Section>
 
-          {/* 04 */}
-          <Section
-            number="04"
-            title="Cancellation & Rescheduling"
-          >
-            <p>
-              Each lesson is reserved specifically for the
-              student. If the student needs to cancel or
-              reschedule a lesson, notice should be provided
-              at least 2 hours before the scheduled lesson.
-            </p>
+            {/* ============================================================ */}
+            {/* 08                                                            */}
+            {/* ============================================================ */}
 
-            <Policy
-              title="With 2+ hours' notice"
-              text="The student may reschedule the lesson or receive credit for a future session."
-            />
+            <Section
+              number="08"
+              title="Repeated Cancellations"
+            >
+              <p>
+                There is no fixed limit on cancellations.
+                Hamkke understands that unexpected situations
+                can happen.
+              </p>
 
-            <Policy
-              title="With less than 2 hours' notice"
-              text="The lesson will be counted as completed."
-            />
+              <p>
+                However, if frequent cancellations or
+                rescheduling begin to affect lesson
+                availability, Hamkke may contact the student
+                to discuss the regular schedule and find an
+                arrangement that works better for both parties.
+              </p>
 
-            <Policy
-              title="No-show without notice"
-              text="The lesson will be counted as completed."
-            />
+              <p>
+                The purpose of this provision is to keep
+                reserved lesson times useful and fair for
+                everyone.
+              </p>
+            </Section>
 
-            <p>
-              If something unexpected comes up, the student
-              is encouraged to communicate as soon as
-              reasonably possible. Hamkke will do its best
-              to accommodate reasonable circumstances when
-              possible.
-            </p>
-          </Section>
+            {/* ============================================================ */}
+            {/* 09                                                            */}
+            {/* ============================================================ */}
 
-          {/* 05 */}
-          <Section
-            number="05"
-            title="Unexpected Circumstances"
-          >
-            <p>
-              Not everything is within either party's
-              control. Power outages, internet or connection
-              problems, emergencies, and other unexpected
-              circumstances may occasionally make it
-              difficult to attend a lesson.
-            </p>
+            <Section
+              number="09"
+              title="Refunds & Transfers"
+            >
+              <p>
+                Because lessons are purchased as a package,
+                refunds are generally not available once a
+                package has been paid for.
+              </p>
 
-            <p>
-              If an unexpected circumstance occurs, the
-              affected party should communicate as soon as
-              reasonably possible.
-            </p>
+              <p>
+                If the student is unable to continue their
+                lessons, they may request to transfer their
+                remaining unused lessons instead of receiving
+                a refund.
+              </p>
 
-            <p>
-              Depending on the circumstances, Hamkke may
-              provide a reasonable solution such as
-              rescheduling the lesson or providing lesson
-              credit.
-            </p>
+              <p>
+                Lesson transfers apply only to unused lessons
+                and should be discussed before the package
+                ends. Any new arrangement will depend on the
+                circumstances and availability.
+              </p>
 
-            <p>
-              This also applies when an unexpected issue on
-              Hamkke's side prevents a lesson from taking
-              place as planned.
-            </p>
-          </Section>
+              <p>
+                In exceptional circumstances, a refund may be
+                considered at Hamkke's discretion.
+              </p>
 
-          {/* 06 */}
-          <Section
-            number="06"
-            title="Late Arrivals"
-          >
-            <p>
-              If the student is running late, they should
-              let Hamkke know when they can.
-            </p>
+              <p>
+                If an unexpected situation arises, the student
+                is encouraged to communicate with Hamkke first
+                so that a fair and reasonable solution can be
+                considered.
+              </p>
+            </Section>
 
-            <p>
-              A late arrival does not extend the scheduled
-              lesson. The lesson will still end at its
-              originally scheduled time.
-            </p>
+            {/* ============================================================ */}
+            {/* 10                                                            */}
+            {/* ============================================================ */}
 
-            <p>
-              Example: If a lesson is scheduled from
-              8:00–8:25 PM and the student joins at
-              8:10 PM, the lesson will run from 8:10–8:25
-              PM.
-            </p>
+            <Section
+              number="10"
+              title="Communication"
+            >
+              <p>
+                Students are encouraged to communicate
+                scheduling changes, technical issues,
+                emergencies, and other circumstances as soon
+                as possible.
+              </p>
 
-            <p>
-              If the student does not join within 10 minutes
-              and has not contacted Hamkke, the lesson will
-              be considered a no-show and counted as
-              completed.
-            </p>
-          </Section>
+              <p>
+                Clear and timely communication helps both
+                parties manage reserved lesson times fairly
+                and avoid unnecessary misunderstandings.
+              </p>
+            </Section>
 
-          {/* 07 */}
-          <Section
-            number="07"
-            title="Teacher Cancellations"
-          >
-            <p>
-              Sometimes Hamkke may need to cancel a lesson.
-            </p>
+            {/* ============================================================ */}
+            {/* 11                                                            */}
+            {/* ============================================================ */}
 
-            <p>
-              If this happens, Hamkke will communicate the
-              cancellation as soon as possible.
-            </p>
+            <Section
+              number="11"
+              title="Agreement & Acceptance"
+            >
+              <p>
+                This agreement is provided to the student
+                before payment so that the student may review
+                the lesson package and applicable policies in
+                advance.
+              </p>
 
-            <p>
-              The student will receive either a replacement
-              lesson or full credit for the missed session.
-            </p>
-          </Section>
+              <p>
+                By proceeding with payment for this enrollment,
+                the student confirms that they have read and
+                understood the agreement and agree to the
+                lesson package details and policies described
+                herein.
+              </p>
 
-          {/* 08 */}
-          <Section
-            number="08"
-            title="Repeated Cancellations"
-          >
-            <p>
-              There is no fixed limit on cancellations.
-              Hamkke understands that unexpected situations
-              can happen.
-            </p>
+              <p>
+                No handwritten signature is required for this
+                digital agreement. The payment associated with
+                this enrollment serves as confirmation of
+                acceptance of these terms.
+              </p>
+            </Section>
 
-            <p>
-              However, if frequent cancellations or
-              rescheduling begin to affect lesson
-              availability, Hamkke may contact the student
-              to discuss the regular schedule and find an
-              arrangement that works better for both parties.
-            </p>
+            {/* ============================================================ */}
+            {/* AGREEMENT RECORD                                              */}
+            {/* ============================================================ */}
 
-            <p>
-              The purpose of this provision is to keep
-              reserved lesson times useful and fair for
-              everyone.
-            </p>
-          </Section>
+            <section className="border-b border-[#D8D5CF] py-12 sm:py-14">
+              <div className="border border-[#D4D2CC]">
+                <div className="border-b border-[#D4D2CC] bg-[#F8F7F3] px-6 py-6 sm:px-8">
+                  <p
+                    className="
+                      font-sans
+                      text-[9px]
+                      font-medium
+                      uppercase
+                      tracking-[0.19em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Digital Agreement
+                  </p>
 
-          {/* 09 */}
-          <Section
-            number="09"
-            title="Refunds & Transfers"
-          >
-            <p>
-              Because lessons are purchased as a package,
-              refunds are generally not available once a
-              package has been paid for.
-            </p>
+                  <h2
+                    className="
+                      mt-3
+                      font-serif
+                      text-[26px]
+                      font-normal
+                      tracking-[-0.025em]
+                      text-[#292929]
+                      sm:text-[29px]
+                    "
+                  >
+                    Payment constitutes acceptance
+                  </h2>
 
-            <p>
-              If the student is unable to continue their
-              lessons, they may request to transfer their
-              remaining unused lessons instead of receiving
-              a refund.
-            </p>
+                  <p
+                    className="
+                      mt-2
+                      font-sans
+                      text-[12px]
+                      text-[#777771]
+                    "
+                  >
+                    of this Lesson Agreement.
+                  </p>
+                </div>
 
-            <p>
-              Lesson transfers apply only to unused lessons
-              and should be discussed before the package
-              ends. Any new arrangement will depend on the
-              circumstances and availability.
-            </p>
+                <div className="grid sm:grid-cols-2">
+                  <div className="border-b border-[#D4D2CC] px-6 py-6 sm:border-b-0 sm:border-r sm:px-8">
+                    <Info
+                      label="Student"
+                      value={studentName}
+                    />
+                  </div>
 
-            <p>
-              In exceptional circumstances, a refund may be
-              considered at Hamkke's discretion.
-            </p>
+                  <div className="px-6 py-6 sm:px-8">
+                    <Info
+                      label="Agreement Date"
+                      value={agreementDate}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
 
-            <p>
-              If an unexpected situation arises, the student
-              is encouraged to communicate with Hamkke first
-              so that a fair and reasonable solution can be
-              considered.
-            </p>
-          </Section>
+            {/* ============================================================ */}
+            {/* FOOTER                                                        */}
+            {/* ============================================================ */}
 
-          {/* 10 */}
-          <Section
-            number="10"
-            title="Communication"
-          >
-            <p>
-              Students are encouraged to communicate
-              scheduling changes, technical issues,
-              emergencies, and other circumstances as soon
-              as possible.
-            </p>
+            <footer className="pt-10 text-center sm:pt-12">
+              <div
+                className="
+                  font-serif
+                  text-[20px]
+                  tracking-[-0.02em]
+                  text-[#526D57]
+                "
+              >
+                Hamkke │ 함께
+              </div>
 
-            <p>
-              Clear and timely communication helps both
-              parties manage reserved lesson times fairly
-              and avoid unnecessary misunderstandings.
-            </p>
-          </Section>
-
-          {/* 11 */}
-          <Section
-            number="11"
-            title="Agreement & Acceptance"
-          >
-            <p>
-              This agreement is provided to the student
-              before payment so that the student may review
-              the lesson package and applicable policies in
-              advance.
-            </p>
-
-            <p>
-              By proceeding with payment for this enrollment,
-              the student confirms that they have read and
-              understood the agreement and agree to the
-              lesson package details and policies described
-              herein.
-            </p>
-
-            <p>
-              No handwritten signature is required for this
-              digital agreement. The payment associated with
-              this enrollment serves as confirmation of
-              acceptance of these terms.
-            </p>
-          </Section>
-
-          {/* DIGITAL AGREEMENT */}
-          <section className="mt-4 border-t border-[#DCD8D2] pt-10">
-            <div className="text-center">
               <p
                 className="
+                  mx-auto
+                  mt-5
+                  max-w-[570px]
                   font-sans
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.16em]
-                  text-[#6F8F72]
+                  text-[10.5px]
+                  leading-[1.8]
+                  text-[#8C8C85]
                 "
               >
-                Digital Agreement
+                These guidelines are here to help keep lessons
+                predictable, respectful, and comfortable for both sides.
               </p>
 
-              <h2
+              <p
                 className="
-                  mt-3
-                  font-serif
-                  text-[28px]
-                  font-normal
+                  mt-2
+                  font-sans
+                  text-[10.5px]
+                  leading-[1.8]
+                  text-[#8C8C85]
                 "
               >
-                Payment constitutes acceptance
-              </h2>
-
-              <p className="mt-3 font-sans text-sm text-[#777771]">
-                of this Lesson Agreement.
+                Thank you for respecting the time we've set aside for each conversation.
               </p>
-            </div>
-
-            <div className="mt-10 grid gap-8 border-t border-[#DCD8D2] pt-8 sm:grid-cols-2">
-              <Info
-                label="Student"
-                value={studentName}
-              />
-
-              <Info
-                label="Agreement Date"
-                value={agreementDate}
-              />
-            </div>
-          </section>
-
-          {/* FOOTER */}
-          <footer className="mt-14 border-t border-[#DCD8D2] pt-8 text-center">
-            <div className="font-serif text-[20px] text-[#6F8F72]">
-              Hamkke │ 함께
-            </div>
-
-            <p className="mt-3 font-sans text-[11px] leading-[1.7] text-[#8A8A84]">
-              These guidelines are here to help keep lessons
-              predictable, respectful, and comfortable for both sides.
-            </p>
-
-            <p className="mt-2 font-sans text-[11px] leading-[1.7] text-[#8A8A84]">
-              Thank you for respecting the time we've set aside for each conversation.
-            </p>
-          </footer>
+            </footer>
+          </div>
         </article>
       </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* PRINT STYLES                                                       */}
+      {/* ------------------------------------------------------------------ */}
 
       <style>{`
         @media print {
           @page {
             size: A4;
-            margin: 14mm;
+            margin: 13mm 15mm 15mm;
+          }
+
+          html,
+          body {
+            background: white !important;
           }
 
           body {
-            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
 
           main {
@@ -691,18 +814,42 @@ export default async function ContractPage({
           }
 
           article {
+            width: 100% !important;
+            max-width: none !important;
             box-shadow: none !important;
-            padding: 0 !important;
           }
 
           section {
+            break-inside: auto;
+          }
+
+          h1,
+          h2,
+          h3 {
+            break-after: avoid;
+          }
+
+          .policy-row {
             break-inside: avoid;
+          }
+
+          footer {
+            break-inside: avoid;
+          }
+
+          a {
+            color: inherit !important;
+            text-decoration: none !important;
           }
         }
       `}</style>
     </main>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* SECTION                                                                    */
+/* -------------------------------------------------------------------------- */
 
 function Section({
   number,
@@ -714,48 +861,155 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-b border-[#DCD8D2] py-10">
-      <div className="flex items-baseline gap-5">
-        <span
+    <section className="border-b border-[#D8D5CF] py-10 sm:py-12">
+      <div className="grid grid-cols-[42px_minmax(0,1fr)] gap-4 sm:grid-cols-[48px_minmax(0,1fr)] sm:gap-5">
+        <div
           className="
-            shrink-0
+            pt-[4px]
             font-sans
-            text-[11px]
+            text-[10px]
             font-medium
-            tracking-[0.12em]
+            tracking-[0.1em]
             text-[#6F8F72]
           "
         >
           {number}
-        </span>
+        </div>
 
-        <h2
-          className="
-            font-serif
-            text-[25px]
-            font-normal
-            tracking-[-0.02em]
-          "
-        >
-          {title}
-        </h2>
-      </div>
+        <div>
+          <h2
+            className="
+              font-serif
+              text-[25px]
+              font-normal
+              leading-[1.2]
+              tracking-[-0.025em]
+              text-[#292929]
+              sm:text-[28px]
+            "
+          >
+            {title}
+          </h2>
 
-      <div
-        className="
-          mt-6
-          space-y-5
-          font-sans
-          text-[14px]
-          leading-[1.8]
-          text-[#555550]
-        "
-      >
-        {children}
+          <div
+            className="
+              mt-6
+              max-w-[720px]
+              space-y-5
+              font-sans
+              text-[13.5px]
+              leading-[1.85]
+              text-[#555550]
+              sm:text-[14px]
+            "
+          >
+            {children}
+          </div>
+        </div>
       </div>
     </section>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* SUMMARY                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function SummaryItem({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <p
+        className="
+          font-sans
+          text-[9px]
+          font-medium
+          uppercase
+          tracking-[0.17em]
+          text-[#6F8F72]
+        "
+      >
+        {label}
+      </p>
+
+      <p
+        className="
+          mt-2
+          font-serif
+          text-[17px]
+          leading-[1.4]
+          text-[#292929]
+        "
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* DETAIL ROW                                                                 */
+/* -------------------------------------------------------------------------- */
+
+function DetailRow({
+  label,
+  value,
+  strong = false,
+  last = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`
+        grid
+        gap-2
+        py-5
+        sm:grid-cols-[190px_minmax(0,1fr)]
+        sm:gap-8
+        ${!last ? "border-b border-[#E4E1DB]" : ""}
+      `}
+    >
+      <p
+        className="
+          font-sans
+          text-[9px]
+          font-medium
+          uppercase
+          tracking-[0.15em]
+          text-[#6F8F72]
+        "
+      >
+        {label}
+      </p>
+
+      <p
+        className={`
+          font-serif
+          leading-[1.4]
+          text-[#292929]
+          ${strong ? "text-[18px]" : "text-[16px]"}
+        `}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* INFO                                                                       */
+/* -------------------------------------------------------------------------- */
 
 function Info({
   label,
@@ -769,10 +1023,10 @@ function Info({
       <p
         className="
           font-sans
-          text-[10px]
+          text-[9px]
           font-medium
           uppercase
-          tracking-[0.14em]
+          tracking-[0.16em]
           text-[#6F8F72]
         "
       >
@@ -786,37 +1040,59 @@ function Info({
   );
 }
 
-function DetailGrid({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mt-7 grid gap-x-10 gap-y-8 sm:grid-cols-2">
-      {children}
-    </div>
-  );
-}
+/* -------------------------------------------------------------------------- */
+/* POLICY                                                                     */
+/* -------------------------------------------------------------------------- */
 
 function Policy({
   title,
   text,
+  last = false,
 }: {
   title: string;
   text: string;
+  last?: boolean;
 }) {
   return (
-    <div className="border-l-2 border-[#E2EBDD] pl-5">
-      <p className="font-sans text-[12px] font-medium text-[#292929]">
-        {title}
-      </p>
+    <div
+      className={`
+        policy-row
+        py-5
+        ${!last ? "border-b border-[#E4E1DB]" : ""}
+      `}
+    >
+      <div className="grid gap-2 sm:grid-cols-[190px_minmax(0,1fr)] sm:gap-8">
+        <p
+          className="
+            font-sans
+            text-[10px]
+            font-medium
+            uppercase
+            tracking-[0.13em]
+            text-[#555550]
+          "
+        >
+          {title}
+        </p>
 
-      <p className="mt-1 font-sans text-[14px] leading-[1.7] text-[#777771]">
-        {text}
-      </p>
+        <p
+          className="
+            font-sans
+            text-[13px]
+            leading-[1.75]
+            text-[#777771]
+          "
+        >
+          {text}
+        </p>
+      </div>
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* TIME FORMAT                                                                */
+/* -------------------------------------------------------------------------- */
 
 function formatTime(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
