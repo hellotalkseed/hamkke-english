@@ -19,6 +19,10 @@ export default async function ContractPage({
 
   const supabase = await createClient();
 
+  /* ---------------------------------------------------------------------- */
+  /* STUDENT                                                                 */
+  /* ---------------------------------------------------------------------- */
+
   const { data: student, error: studentError } = await supabase
     .from("students")
     .select("id, full_name, timezone")
@@ -28,6 +32,10 @@ export default async function ContractPage({
   if (studentError || !student) {
     notFound();
   }
+
+  /* ---------------------------------------------------------------------- */
+  /* ENROLLMENT                                                              */
+  /* ---------------------------------------------------------------------- */
 
   const { data: enrollment, error: enrollmentError } =
     await supabase
@@ -52,8 +60,9 @@ export default async function ContractPage({
     notFound();
   }
 
-  // Always use the student's full legal/account name.
-  const studentName = student.full_name;
+  /* ---------------------------------------------------------------------- */
+  /* CONTRACT                                                                */
+  /* ---------------------------------------------------------------------- */
 
   const { data: contract, error: contractError } =
     await supabase
@@ -69,6 +78,16 @@ export default async function ContractPage({
   if (contractError || !contract) {
     notFound();
   }
+
+  /* ---------------------------------------------------------------------- */
+  /* BASIC VALUES                                                            */
+  /* ---------------------------------------------------------------------- */
+
+  // Always use the student's full legal/account name.
+  const studentName = student.full_name;
+
+  const contractNumber =
+    contract.contract_number || "To be confirmed";
 
   const agreementDate = new Date(
     `${contract.agreement_date}T00:00:00`
@@ -88,16 +107,10 @@ export default async function ContractPage({
       })
     : "To be confirmed";
 
-  /*
-   * Normalize lesson days.
-   *
-   * Handles:
-   * ["mon", "wed", "fri"]
-   * ["Monday", "Wednesday", "Friday"]
-   * ["Monday · Wednesday · Friday"]
-   * accidental "Â·" encoding
-   * duplicate days
-   */
+  /* ---------------------------------------------------------------------- */
+  /* SCHEDULE DAYS                                                           */
+  /* ---------------------------------------------------------------------- */
+
   const dayNames: Record<string, string> = {
     mon: "Monday",
     monday: "Monday",
@@ -150,9 +163,17 @@ export default async function ContractPage({
       ? normalizedScheduleDays.join(" · ")
       : "To be confirmed";
 
+  /* ---------------------------------------------------------------------- */
+  /* SCHEDULE TIME                                                           */
+  /* ---------------------------------------------------------------------- */
+
   const scheduleTime = enrollment.schedule_time
     ? formatTime(enrollment.schedule_time)
     : "To be confirmed";
+
+  /* ---------------------------------------------------------------------- */
+  /* TUITION                                                                 */
+  /* ---------------------------------------------------------------------- */
 
   const currency = enrollment.currency || "KRW";
 
@@ -160,9 +181,17 @@ export default async function ContractPage({
     Number(enrollment.tuition_amount || 0)
   );
 
+  /* ---------------------------------------------------------------------- */
+  /* RENDER                                                                  */
+  /* ---------------------------------------------------------------------- */
+
   return (
     <main className="min-h-screen bg-[#F3F3F1] text-[#222] print:min-h-0 print:bg-white">
-      {/* ADMIN NAVIGATION */}
+
+      {/* ================================================================== */}
+      {/* ADMIN NAVIGATION                                                    */}
+      {/* ================================================================== */}
+
       <div className="mx-auto w-full max-w-[794px] px-5 py-5 print:hidden">
         <div className="flex items-center justify-between">
           <Link
@@ -181,6 +210,7 @@ export default async function ContractPage({
               size={15}
               strokeWidth={1.5}
             />
+
             Back to Student
           </Link>
 
@@ -188,7 +218,10 @@ export default async function ContractPage({
         </div>
       </div>
 
-      {/* A4 DOCUMENT */}
+      {/* ================================================================== */}
+      {/* A4 DOCUMENT                                                         */}
+      {/* ================================================================== */}
+
       <div
         className="
           mx-auto
@@ -211,12 +244,14 @@ export default async function ContractPage({
             print:py-0
           "
         >
+
           {/* ============================================================ */}
-          {/* HEADER                                                       */}
+          {/* HEADER                                                        */}
           {/* ============================================================ */}
 
           <header className="contract-header border-b border-[#CFCFCB] pb-6">
             <div className="flex items-start justify-between gap-8">
+
               <div>
                 <div
                   className="
@@ -270,31 +305,48 @@ export default async function ContractPage({
                   Lesson Agreement
                 </p>
               </div>
+
             </div>
           </header>
 
           {/* ============================================================ */}
-          {/* AGREEMENT INFORMATION                                        */}
+          {/* AGREEMENT INFORMATION                                         */}
           {/* ============================================================ */}
 
           <section className="contract-summary border-b border-[#CFCFCB] py-5">
-            <div className="grid grid-cols-2">
+            <div className="grid grid-cols-3">
+
               <SummaryItem
                 label="Student"
                 value={studentName}
-                className="border-r border-[#D5D5D1] pr-8"
+                className="
+                  border-r
+                  border-[#D5D5D1]
+                  pr-6
+                "
+              />
+
+              <SummaryItem
+                label="Contract Number"
+                value={contractNumber}
+                className="
+                  border-r
+                  border-[#D5D5D1]
+                  px-6
+                "
               />
 
               <SummaryItem
                 label="Agreement Date"
                 value={agreementDate}
-                className="pl-8"
+                className="pl-6"
               />
+
             </div>
           </section>
 
           {/* ============================================================ */}
-          {/* 01                                                            */}
+          {/* 01                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -325,7 +377,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 02                                                            */}
+          {/* 02                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -333,6 +385,7 @@ export default async function ContractPage({
             title="Enrollment Details"
           >
             <div className="detail-table">
+
               <DetailRow
                 label="Package"
                 value={enrollment.package_name}
@@ -380,11 +433,12 @@ export default async function ContractPage({
                 strong
                 last
               />
+
             </div>
           </Section>
 
           {/* ============================================================ */}
-          {/* 03                                                            */}
+          {/* 03                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -414,7 +468,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 04                                                            */}
+          {/* 04                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -429,6 +483,7 @@ export default async function ContractPage({
             </p>
 
             <div className="policy-table">
+
               <Policy
                 title="With 2+ hours' notice"
                 text="The student may reschedule the lesson or receive credit for a future session."
@@ -444,6 +499,7 @@ export default async function ContractPage({
                 text="The lesson will be counted as completed."
                 last
               />
+
             </div>
 
             <p>
@@ -456,7 +512,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 05                                                            */}
+          {/* 05                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -492,7 +548,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 06                                                            */}
+          {/* 06                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -526,7 +582,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 07                                                            */}
+          {/* 07                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -549,7 +605,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 08                                                            */}
+          {/* 08                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -578,7 +634,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 09                                                            */}
+          {/* 09                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -619,7 +675,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 10                                                            */}
+          {/* 10                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -641,7 +697,7 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* 11                                                            */}
+          {/* 11                                                             */}
           {/* ============================================================ */}
 
           <Section
@@ -672,11 +728,12 @@ export default async function ContractPage({
           </Section>
 
           {/* ============================================================ */}
-          {/* AGREEMENT RECORD                                              */}
+          {/* AGREEMENT RECORD                                               */}
           {/* ============================================================ */}
 
           <section className="agreement-record border-b border-[#CFCFCB] py-7">
             <div className="border border-[#C8C8C4]">
+
               <div className="border-b border-[#C8C8C4] px-5 py-4">
                 <p
                   className="
@@ -715,11 +772,21 @@ export default async function ContractPage({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2">
+              {/* AGREEMENT RECORD DETAILS */}
+
+              <div className="grid grid-cols-3">
+
                 <div className="border-r border-[#C8C8C4] px-5 py-4">
                   <Info
                     label="Student"
                     value={studentName}
+                  />
+                </div>
+
+                <div className="border-r border-[#C8C8C4] px-5 py-4">
+                  <Info
+                    label="Contract Number"
+                    value={contractNumber}
                   />
                 </div>
 
@@ -729,6 +796,7 @@ export default async function ContractPage({
                     value={agreementDate}
                   />
                 </div>
+
               </div>
             </div>
           </section>
@@ -738,6 +806,7 @@ export default async function ContractPage({
           {/* ============================================================ */}
 
           <footer className="pt-6 text-center">
+
             <div
               className="
                 font-serif
@@ -774,13 +843,15 @@ export default async function ContractPage({
             >
               Thank you for respecting the time we've set aside for each conversation.
             </p>
+
           </footer>
+
         </article>
       </div>
 
-      {/* ================================================================ */}
-      {/* PRINT STYLES                                                     */}
-      {/* ================================================================ */}
+      {/* ================================================================== */}
+      {/* PRINT STYLES                                                        */}
+      {/* ================================================================== */}
 
       <style>{`
         @media print {
@@ -821,6 +892,7 @@ export default async function ContractPage({
           /*
            * Keep the document header and summary together.
            */
+
           .contract-header {
             break-after: avoid;
             page-break-after: avoid;
@@ -833,14 +905,8 @@ export default async function ContractPage({
 
           /*
            * Keep each numbered contract section together.
-           *
-           * This prevents sections such as:
-           * 03 Tuition & Payment
-           * 07 Teacher Cancellations
-           *
-           * from having their heading/paragraphs split
-           * across two printed pages.
            */
+
           .contract-section {
             break-inside: avoid-page !important;
             page-break-inside: avoid !important;
@@ -854,6 +920,7 @@ export default async function ContractPage({
           /*
            * Keep tables and individual rows together.
            */
+
           .detail-table {
             break-inside: avoid;
             page-break-inside: avoid;
@@ -877,6 +944,7 @@ export default async function ContractPage({
           /*
            * Keep the digital agreement record together.
            */
+
           .agreement-record {
             break-inside: avoid;
             page-break-inside: avoid;
@@ -885,6 +953,7 @@ export default async function ContractPage({
           /*
            * Keep the footer together.
            */
+
           footer {
             break-inside: avoid;
             page-break-inside: avoid;
@@ -893,6 +962,7 @@ export default async function ContractPage({
           /*
            * Keep headings with the content immediately following them.
            */
+
           h1,
           h2,
           h3 {
@@ -904,6 +974,7 @@ export default async function ContractPage({
            * Prevent awkward single lines at the top or bottom
            * of printed pages.
            */
+
           p {
             orphans: 3;
             widows: 3;
@@ -912,6 +983,7 @@ export default async function ContractPage({
           /*
            * Remove link styling in the printed agreement.
            */
+
           a {
             color: inherit !important;
             text-decoration: none !important;
@@ -945,6 +1017,7 @@ function Section({
       "
     >
       <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
+
         <div
           className="
             pt-[3px]
@@ -985,6 +1058,7 @@ function Section({
             {children}
           </div>
         </div>
+
       </div>
     </section>
   );
@@ -1005,6 +1079,7 @@ function SummaryItem({
 }) {
   return (
     <div className={className}>
+
       <p
         className="
           font-sans
@@ -1029,6 +1104,7 @@ function SummaryItem({
       >
         {value}
       </p>
+
     </div>
   );
 }
@@ -1100,6 +1176,7 @@ function Info({
 }) {
   return (
     <div>
+
       <p
         className="
           font-sans
@@ -1124,6 +1201,7 @@ function Info({
       >
         {value}
       </p>
+
     </div>
   );
 }
@@ -1150,6 +1228,7 @@ function Policy({
       `}
     >
       <div className="grid grid-cols-[155px_minmax(0,1fr)] gap-6">
+
         <p
           className="
             font-sans
@@ -1173,6 +1252,7 @@ function Policy({
         >
           {text}
         </p>
+
       </div>
     </div>
   );

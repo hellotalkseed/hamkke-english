@@ -15,6 +15,7 @@ import LessonActions from "@/components/admin/LessonActions";
 import PrintAttendanceButton from "@/components/admin/PrintAttendanceButton";
 import PrintableAttendance from "@/components/admin/PrintableAttendance";
 import RenewEnrollmentButton from "@/components/admin/RenewEnrollmentButton";
+import type { ReactNode } from "react";
 
 interface StudentPageProps {
   params: Promise<{
@@ -52,6 +53,14 @@ interface Payment {
   created_at?: string | null;
 }
 
+interface Contract {
+  id: string;
+  contract_number: string | null;
+  status: string | null;
+  agreement_date: string | null;
+  created_at: string | null;
+}
+
 interface Enrollment {
   id: string;
   package_name: string;
@@ -63,6 +72,17 @@ interface Enrollment {
   schedule_days: string[] | null;
   schedule_time: string | null;
   renewal_of: string | null;
+
+  /*
+   * Supabase can return a relationship as:
+   * - an object
+   * - an array
+   * - null
+   *
+   * We normalize it everywhere before using it.
+   */
+  contracts: Contract | Contract[] | null;
+
   lessons: Lesson[];
   payments: Payment[];
 }
@@ -99,6 +119,15 @@ export default async function StudentPage({
         schedule_days,
         schedule_time,
         renewal_of,
+
+        contracts (
+          id,
+          contract_number,
+          status,
+          agreement_date,
+          created_at
+        ),
+
         lessons (
           id,
           lesson_number,
@@ -111,6 +140,7 @@ export default async function StudentPage({
           consumes_lesson,
           resolution
         ),
+
         payments (
           id,
           enrollment_id,
@@ -196,11 +226,6 @@ export default async function StudentPage({
    * ------------------------------------------------------------------------
    * CURRENT ENROLLMENT PAYMENT
    * ------------------------------------------------------------------------
-   *
-   * Every enrollment has its own payment record.
-   *
-   * If there are multiple payment records for an enrollment,
-   * use the newest one for the current enrollment display.
    */
 
   const currentEnrollmentPayments = [
@@ -214,35 +239,57 @@ export default async function StudentPage({
    * ------------------------------------------------------------------------
    * PAYMENT HISTORY
    * ------------------------------------------------------------------------
-   *
-   * Flatten every payment from every enrollment.
-   *
-   * This keeps payment history independent from enrollment history.
-   *
-   * Example:
-   *
-   * Enrollment 1
-   *   └── Payment 1
-   *
-   * Enrollment 2 / Renewal
-   *   └── Payment 2
-   *
-   * Enrollment 3 / Renewal
-   *   └── Payment 3
-   *
-   * All three remain visible here.
    */
 
   const paymentHistory = enrollments
     .flatMap((enrollment) =>
-      (enrollment.payments ?? []).map(
-        (payment) => ({
-          ...payment,
-          enrollment,
-        })
-      )
+      Array.isArray(enrollment.payments)
+        ? enrollment.payments.map((payment) => ({
+            ...payment,
+            enrollment,
+          }))
+        : []
     )
     .sort(comparePaymentHistory);
+
+  /*
+   * ------------------------------------------------------------------------
+   * CONTRACT HISTORY
+   * ------------------------------------------------------------------------
+   *
+   * IMPORTANT:
+   *
+   * Do not call:
+   *
+   * (enrollment.contracts ?? []).map(...)
+   *
+   * because Supabase may return a single object instead of an array.
+   *
+   * We normalize the relationship first.
+   */
+
+  const contractHistory = enrollments
+    .flatMap((enrollment) => {
+      const contracts = normalizeContracts(
+        enrollment.contracts
+      );
+
+      return contracts.map((contract) => ({
+        ...contract,
+        enrollment,
+      }));
+    })
+    .sort(compareContractHistory);
+
+  /*
+   * ------------------------------------------------------------------------
+   * CURRENT ENROLLMENT CONTRACT
+   * ------------------------------------------------------------------------
+   */
+
+  const currentEnrollmentContract = currentEnrollment
+    ? getEnrollmentContract(currentEnrollment)
+    : null;
 
   /*
    * ------------------------------------------------------------------------
@@ -313,9 +360,6 @@ export default async function StudentPage({
    * ------------------------------------------------------------------------
    * CURRENT TUITION
    * ------------------------------------------------------------------------
-   *
-   * Passed into RenewEnrollmentButton so the renewal form
-   * can pre-fill the previous payment amount and currency.
    */
 
   const currentTuitionAmount =
@@ -323,6 +367,25 @@ export default async function StudentPage({
 
   const currentCurrency =
     currentPayment?.currency ?? "KRW";
+
+  /*
+   * ------------------------------------------------------------------------
+   * CURRENT CONTRACT STATUS
+   * ------------------------------------------------------------------------
+   *
+   * A completed enrollment means its contract is completed as well.
+   *
+   * This changes the displayed status without performing a database
+   * mutation while rendering the page.
+   */
+
+  const currentContractDisplayStatus =
+    currentEnrollment && currentEnrollmentContract
+      ? getEffectiveContractStatus(
+          currentEnrollmentContract,
+          currentEnrollment
+        )
+      : null;
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
@@ -925,56 +988,224 @@ export default async function StudentPage({
             )}
           </div>
 
-          <div
-            className="
-              mt-8
-              rounded-2xl
-              border
-              border-[#DCD8D2]
-              bg-white/40
-              p-6
-              sm:p-8
-            "
-          >
-            <p
+          {currentEnrollment ? (
+            <div
               className="
-                font-sans
-                text-[11px]
-                font-medium
-                uppercase
-                tracking-[0.14em]
-                text-[#6F8F72]
+                mt-8
+                rounded-2xl
+                border
+                border-[#DCD8D2]
+                bg-white/40
+                p-6
+                sm:p-8
               "
             >
-              Status
-            </p>
+              <div
+                className="
+                  flex
+                  flex-col
+                  gap-6
+                  sm:flex-row
+                  sm:items-start
+                  sm:justify-between
+                "
+              >
+                <div>
+                  <p
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Contract
+                  </p>
 
-            <p className="mt-2 font-serif text-[21px]">
-              {!currentEnrollment
-                ? "Not created"
-                : enrollmentIsCompleted
-                  ? "Completed"
-                  : enrollmentIsActive
-                    ? "Active"
-                    : "Contract for Review"}
-            </p>
+                  <p className="mt-2 font-serif text-[21px]">
+                    {currentEnrollmentContract
+                      ?.contract_number ||
+                      "Contract not numbered"}
+                  </p>
 
-            {!currentEnrollment && (
+                  <p
+                    className="
+                      mt-2
+                      font-sans
+                      text-[12px]
+                      text-[#777771]
+                    "
+                  >
+                    {currentEnrollmentContract
+                      ?.agreement_date
+                      ? `Agreement date: ${formatDate(
+                          currentEnrollmentContract.agreement_date
+                        )}`
+                      : "Agreement date not set"}
+                  </p>
+                </div>
+
+                <span
+                  className="
+                    inline-flex
+                    w-fit
+                    rounded-full
+                    bg-[#F0F4ED]
+                    px-4
+                    py-2
+                    font-sans
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.12em]
+                    text-[#6F8F72]
+                  "
+                >
+                  {currentContractDisplayStatus
+                    ? formatContractStatus(
+                        currentContractDisplayStatus
+                      )
+                    : "Not created"}
+                </span>
+              </div>
+
+              {enrollmentIsCompleted &&
+                currentEnrollmentContract && (
+                  <div
+                    className="
+                      mt-6
+                      border-t
+                      border-[#E2DED7]
+                      pt-5
+                    "
+                  >
+                    <p
+                      className="
+                        font-sans
+                        text-[12px]
+                        leading-6
+                        text-[#777771]
+                      "
+                    >
+                      This contract is marked as completed
+                      because the associated enrollment has
+                      been completed.
+                    </p>
+                  </div>
+                )}
+            </div>
+          ) : (
+            <div
+              className="
+                mt-8
+                rounded-2xl
+                border
+                border-dashed
+                border-[#CFCBC4]
+                px-6
+                py-12
+                text-center
+              "
+            >
+              <p className="font-serif text-[21px]">
+                No contract yet
+              </p>
+
               <p
                 className="
-                  mt-3
+                  mx-auto
+                  mt-2
                   max-w-[500px]
                   font-sans
-                  text-[12px]
-                  leading-[1.6]
+                  text-[13px]
+                  leading-6
                   text-[#8A8A84]
                 "
               >
                 A contract will become available once
                 an enrollment has been created.
               </p>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* CONTRACT HISTORY */}
+          {contractHistory.length > 0 && (
+            <div className="mt-12 border-t border-[#DCD8D2] pt-10">
+              <div className="flex items-center justify-between gap-6">
+                <div>
+                  <p
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    History
+                  </p>
+
+                  <h3
+                    className="
+                      mt-2
+                      font-serif
+                      text-[25px]
+                      font-normal
+                    "
+                  >
+                    Contract History
+                  </h3>
+                </div>
+
+                <span
+                  className="
+                    font-sans
+                    text-[12px]
+                    text-[#8A8A84]
+                  "
+                >
+                  {contractHistory.length}{" "}
+                  {contractHistory.length === 1
+                    ? "contract"
+                    : "contracts"}
+                </span>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {contractHistory.map(
+                  ({
+                    id: contractId,
+                    contract_number,
+                    status,
+                    agreement_date,
+                    created_at,
+                    enrollment,
+                  }) => (
+                    <ContractHistoryRow
+                      key={contractId}
+                      contract={{
+                        id: contractId,
+                        contract_number,
+                        status,
+                        agreement_date,
+                        created_at,
+                      }}
+                      enrollment={enrollment}
+                      locale={locale}
+                      studentId={student.id}
+                      isCurrent={
+                        enrollment.id ===
+                        currentEnrollment?.id
+                      }
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* CURRENT PAYMENT */}
@@ -1402,6 +1633,229 @@ export default async function StudentPage({
         </section>
       </section>
     </main>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* CONTRACT HELPERS                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Normalize the Supabase contracts relationship.
+ *
+ * This is the main fix for:
+ *
+ * enrollment.contracts.map is not a function
+ */
+function normalizeContracts(
+  contracts: Contract | Contract[] | null | undefined
+): Contract[] {
+  if (!contracts) {
+    return [];
+  }
+
+  return Array.isArray(contracts)
+    ? contracts
+    : [contracts];
+}
+
+function getEnrollmentContract(
+  enrollment: Enrollment
+): Contract | null {
+  const contracts = normalizeContracts(
+    enrollment.contracts
+  );
+
+  if (contracts.length === 0) {
+    return null;
+  }
+
+  /*
+   * If multiple contracts somehow exist for one enrollment,
+   * prefer the newest one.
+   */
+  return [...contracts].sort(
+    compareContracts
+  )[0] ?? null;
+}
+
+/**
+ * If an enrollment is completed, its contract is considered
+ * completed for display purposes.
+ *
+ * Cancelled contracts remain cancelled.
+ */
+function getEffectiveContractStatus(
+  contract: Contract,
+  enrollment: Enrollment
+): string {
+  if (contract.status === "cancelled") {
+    return "cancelled";
+  }
+
+  if (enrollment.status === "completed") {
+    return "completed";
+  }
+
+  return contract.status ?? "draft";
+}
+
+/* -------------------------------------------------------------------------- */
+/* CONTRACT HISTORY ROW                                                       */
+/* -------------------------------------------------------------------------- */
+
+function ContractHistoryRow({
+  contract,
+  enrollment,
+  locale,
+  studentId,
+  isCurrent,
+}: {
+  contract: Contract;
+  enrollment: Enrollment;
+  locale: string;
+  studentId: string;
+  isCurrent: boolean;
+}) {
+  const effectiveStatus =
+    getEffectiveContractStatus(
+      contract,
+      enrollment
+    );
+
+  return (
+    <Link
+      href={`/${locale}/admin/students/${studentId}?enrollmentId=${enrollment.id}`}
+      className="
+        block
+        rounded-2xl
+        border
+        border-[#DCD8D2]
+        bg-white/40
+        p-5
+        transition-colors
+        hover:border-[#BFCDBA]
+        hover:bg-[#F5F7F3]
+        sm:p-6
+      "
+    >
+      <div
+        className="
+          flex
+          flex-col
+          gap-5
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+        "
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h4
+              className="
+                font-serif
+                text-[20px]
+                font-normal
+              "
+            >
+              {contract.contract_number ||
+                "Contract"}
+            </h4>
+
+            {effectiveStatus && (
+              <span
+                className="
+                  rounded-full
+                  bg-[#F0F4ED]
+                  px-3
+                  py-1
+                  font-sans
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.08em]
+                  text-[#6F8F72]
+                "
+              >
+                {formatContractStatus(
+                  effectiveStatus
+                )}
+              </span>
+            )}
+
+            {isCurrent && (
+              <span
+                className="
+                  rounded-full
+                  bg-[#E2EBDD]
+                  px-3
+                  py-1
+                  font-sans
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.08em]
+                  text-[#6F8F72]
+                "
+              >
+                Current
+              </span>
+            )}
+          </div>
+
+          <p
+            className="
+              mt-2
+              font-sans
+              text-[12px]
+              text-[#777771]
+            "
+          >
+            {enrollment.package_name}
+            {enrollment.renewal_of
+              ? " · Renewal"
+              : ""}
+          </p>
+
+          <div
+            className="
+              mt-3
+              flex
+              flex-wrap
+              gap-x-5
+              gap-y-2
+              font-sans
+              text-[12px]
+              text-[#8A8A84]
+            "
+          >
+            <span>
+              {contract.agreement_date
+                ? formatDate(
+                    contract.agreement_date
+                  )
+                : "Agreement date not set"}
+            </span>
+
+            <span>
+              {enrollment.number_of_lessons} lessons
+            </span>
+          </div>
+        </div>
+
+        <div className="shrink-0">
+          <span
+            className="
+              font-sans
+              text-[12px]
+              text-[#8A8A84]
+            "
+          >
+            View enrollment →
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -1868,7 +2322,7 @@ function SectionHeading({
   icon,
   title,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
 }) {
   return (
@@ -1993,7 +2447,7 @@ function DetailItem({
   label,
   value,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
 }) {
@@ -2210,6 +2664,27 @@ function formatEnrollmentStatus(
     payment_pending: "Payment Pending",
     active: "Active",
     completed: "Completed",
+    cancelled: "Cancelled",
+  };
+
+  return labels[status] ?? status;
+}
+
+/* -------------------------------------------------------------------------- */
+/* CONTRACT STATUS                                                            */
+/* -------------------------------------------------------------------------- */
+
+function formatContractStatus(
+  status: string
+) {
+  const labels: Record<string, string> = {
+    draft: "Draft",
+    pending: "Pending",
+    review: "For Review",
+    active: "Active",
+    signed: "Signed",
+    completed: "Completed",
+    cancelled: "Cancelled",
   };
 
   return labels[status] ?? status;
@@ -2228,13 +2703,6 @@ function formatPaymentMethod(
 
   const normalized =
     paymentMethod.trim().toLowerCase();
-
-  /*
-   * "pending" is a payment STATUS, not a payment method.
-   *
-   * Do not show it as a method even if an older record
-   * accidentally contains it.
-   */
 
   if (normalized === "pending") {
     return "Not provided";
@@ -2321,6 +2789,56 @@ function getPaymentTimestamp(
   if (payment.created_at) {
     const timestamp = new Date(
       payment.created_at
+    ).getTime();
+
+    if (Number.isFinite(timestamp)) {
+      return timestamp;
+    }
+  }
+
+  return 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* CONTRACT SORTING                                                           */
+/* -------------------------------------------------------------------------- */
+
+function compareContracts(
+  a: Contract,
+  b: Contract
+) {
+  const dateA = getContractTimestamp(a);
+  const dateB = getContractTimestamp(b);
+
+  return dateB - dateA;
+}
+
+function compareContractHistory(
+  a: Contract & { enrollment: Enrollment },
+  b: Contract & { enrollment: Enrollment }
+) {
+  const dateA = getContractTimestamp(a);
+  const dateB = getContractTimestamp(b);
+
+  return dateB - dateA;
+}
+
+function getContractTimestamp(
+  contract: Contract
+) {
+  if (contract.agreement_date) {
+    const timestamp = new Date(
+      `${contract.agreement_date}T00:00:00`
+    ).getTime();
+
+    if (Number.isFinite(timestamp)) {
+      return timestamp;
+    }
+  }
+
+  if (contract.created_at) {
+    const timestamp = new Date(
+      contract.created_at
     ).getTime();
 
     if (Number.isFinite(timestamp)) {
