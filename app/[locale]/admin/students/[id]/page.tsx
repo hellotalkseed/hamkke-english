@@ -14,11 +14,15 @@ import { createClient } from "@/lib/supabase/server";
 import LessonActions from "@/components/admin/LessonActions";
 import PrintAttendanceButton from "@/components/admin/PrintAttendanceButton";
 import PrintableAttendance from "@/components/admin/PrintableAttendance";
+import RenewEnrollmentButton from "@/components/admin/RenewEnrollmentButton";
 
 interface StudentPageProps {
   params: Promise<{
     locale: string;
     id: string;
+  }>;
+  searchParams: Promise<{
+    enrollmentId?: string;
   }>;
 }
 
@@ -45,13 +49,16 @@ interface Enrollment {
   status: string;
   schedule_days: string[] | null;
   schedule_time: string | null;
+  renewal_of: string | null;
   lessons: Lesson[];
 }
 
 export default async function StudentPage({
   params,
+  searchParams,
 }: StudentPageProps) {
   const { locale, id } = await params;
+  const { enrollmentId } = await searchParams;
 
   const supabase = await createClient();
 
@@ -77,6 +84,7 @@ export default async function StudentPage({
         status,
         schedule_days,
         schedule_time,
+        renewal_of,
         lessons (
           id,
           lesson_number,
@@ -101,43 +109,146 @@ export default async function StudentPage({
   const enrollments =
     (student.enrollments ?? []) as unknown as Enrollment[];
 
-  const activeEnrollment = enrollments.find(
-    (enrollment) => enrollment.status === "active"
+  /*
+   * ------------------------------------------------------------------------
+   * SORT ENROLLMENTS
+   * ------------------------------------------------------------------------
+   */
+
+  const sortedEnrollments = [...enrollments].sort((a, b) => {
+    const dateA = a.start_date
+      ? new Date(a.start_date).getTime()
+      : 0;
+
+    const dateB = b.start_date
+      ? new Date(b.start_date).getTime()
+      : 0;
+
+    return dateB - dateA;
+  });
+
+  /*
+   * ------------------------------------------------------------------------
+   * SELECT ENROLLMENT
+   * ------------------------------------------------------------------------
+   *
+   * If ?enrollmentId= exists, show that exact enrollment.
+   *
+   * Otherwise:
+   * 1. Prefer an active enrollment.
+   * 2. Fall back to the newest enrollment.
+   */
+
+  const selectedEnrollment = enrollmentId
+    ? sortedEnrollments.find(
+        (enrollment) => enrollment.id === enrollmentId
+      )
+    : sortedEnrollments.find(
+        (enrollment) => enrollment.status === "active"
+      ) ??
+      sortedEnrollments[0] ??
+      null;
+
+  if (enrollmentId && !selectedEnrollment) {
+    notFound();
+  }
+
+  const currentEnrollment = selectedEnrollment;
+
+  const enrollmentHistory = sortedEnrollments.filter(
+    (enrollment) =>
+      enrollment.id !== currentEnrollment?.id
   );
 
-  const pendingEnrollment = enrollments.find(
-    (enrollment) => enrollment.status === "pending"
-  );
+  /*
+   * ------------------------------------------------------------------------
+   * CURRENT ENROLLMENT LESSONS
+   * ------------------------------------------------------------------------
+   */
 
-  const currentEnrollment =
-    activeEnrollment ??
-    pendingEnrollment ??
-    enrollments[0] ??
-    null;
-
-  const lessons = [...(currentEnrollment?.lessons ?? [])].sort(
+  const lessons = [
+    ...(currentEnrollment?.lessons ?? []),
+  ].sort(
     (a, b) => a.lesson_number - b.lesson_number
   );
 
+  /*
+   * ATTENDANCE
+   *
+   * Completed, no-show, and late cancellation are
+   * consumed lessons when consumes_lesson = true.
+   *
+   * Scheduled lessons have not been consumed yet.
+   */
+
   const completedLessons = lessons.filter(
     (lesson) =>
-      lesson.consumes_lesson &&
       lesson.attendance_status === "completed"
+  ).length;
+
+  const scheduledLessons = lessons.filter(
+    (lesson) =>
+      lesson.attendance_status === "scheduled"
+  ).length;
+
+  const noShowLessons = lessons.filter(
+    (lesson) =>
+      lesson.attendance_status === "no_show"
+  ).length;
+
+  const lateCancellationLessons = lessons.filter(
+    (lesson) =>
+      lesson.attendance_status ===
+      "late_cancellation"
   ).length;
 
   const consumedLessons = lessons.filter(
     (lesson) => lesson.consumes_lesson
   ).length;
 
-  const scheduledLessons = lessons.filter(
-    (lesson) => lesson.attendance_status === "scheduled"
-  ).length;
-
   const totalLessons =
     currentEnrollment?.number_of_lessons ?? 0;
 
-  const remainingLessons =
-    totalLessons - consumedLessons;
+  const remainingLessons = Math.max(
+    totalLessons - consumedLessons,
+    0
+  );
+
+  /*
+   * ------------------------------------------------------------------------
+   * ENROLLMENT LIFECYCLE
+   * ------------------------------------------------------------------------
+   *
+   * pending
+   * contract_review
+   * payment_pending
+   * active
+   * completed
+   *
+   * Active means the contract is currently active.
+   * Completed means the enrollment has finished.
+   */
+
+  const enrollmentIsActive =
+    !!currentEnrollment &&
+    currentEnrollment.status === "active";
+
+  const enrollmentIsCompleted =
+    !!currentEnrollment &&
+    currentEnrollment.status === "completed";
+
+  const enrollmentIsConfirmed =
+    enrollmentIsActive ||
+    enrollmentIsCompleted;
+
+  const paymentIsPending =
+    !!currentEnrollment &&
+    !enrollmentIsConfirmed &&
+    [
+      "pending",
+      "contract_review",
+      "payment_pending",
+    ].includes(currentEnrollment.status);
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
@@ -169,7 +280,10 @@ export default async function StudentPage({
               hover:text-[#6F8F72]
             "
           >
-            <ArrowLeft size={16} strokeWidth={1.5} />
+            <ArrowLeft
+              size={16}
+              strokeWidth={1.5}
+            />
             Students
           </Link>
 
@@ -239,11 +353,13 @@ export default async function StudentPage({
             lg:text-[70px]
           "
         >
-          {student.preferred_name || student.full_name}
+          {student.preferred_name ||
+            student.full_name}
         </h1>
 
         {student.preferred_name &&
-          student.preferred_name !== student.full_name && (
+          student.preferred_name !==
+            student.full_name && (
             <p
               className="
                 mt-4
@@ -263,7 +379,8 @@ export default async function StudentPage({
         <div className="hidden print:block">
           <PrintableAttendance
             studentName={
-              student.preferred_name || student.full_name
+              student.preferred_name ||
+              student.full_name
             }
             enrollment={currentEnrollment}
             lessons={lessons}
@@ -287,7 +404,12 @@ export default async function StudentPage({
         {/* STUDENT INFORMATION */}
         <section className="border-t border-[#DCD8D2] py-10">
           <SectionHeading
-            icon={<User size={17} strokeWidth={1.5} />}
+            icon={
+              <User
+                size={17}
+                strokeWidth={1.5}
+              />
+            }
             title="Student Information"
           />
 
@@ -322,7 +444,9 @@ export default async function StudentPage({
 
             <InfoItem
               label="Preferred Language"
-              value={student.preferred_language}
+              value={
+                student.preferred_language
+              }
             />
 
             <InfoItem
@@ -336,11 +460,42 @@ export default async function StudentPage({
         <section className="border-t border-[#DCD8D2] py-10">
           <div className="flex items-center justify-between gap-6">
             <SectionHeading
-              icon={<BookOpen size={17} strokeWidth={1.5} />}
+              icon={
+                <BookOpen
+                  size={17}
+                  strokeWidth={1.5}
+                />
+              }
               title="Enrollment"
             />
 
-            {!currentEnrollment && (
+            {currentEnrollment ? (
+              <RenewEnrollmentButton
+                studentId={student.id}
+                enrollmentId={
+                  currentEnrollment.id
+                }
+                locale={locale}
+                packageName={
+                  currentEnrollment.package_name
+                }
+                numberOfLessons={
+                  currentEnrollment.number_of_lessons
+                }
+                lessonDuration={
+                  currentEnrollment.lesson_duration
+                }
+                lessonsPerWeek={
+                  currentEnrollment.lessons_per_week
+                }
+                scheduleDays={
+                  currentEnrollment.schedule_days
+                }
+                scheduleTime={
+                  currentEnrollment.schedule_time
+                }
+              />
+            ) : (
               <Link
                 href={`/${locale}/admin/students/${student.id}/enrollments/new`}
                 className="
@@ -387,7 +542,9 @@ export default async function StudentPage({
                       text-[#6F8F72]
                     "
                   >
-                    Package
+                    {currentEnrollment.renewal_of
+                      ? "Renewal"
+                      : "Package"}
                   </p>
 
                   <h3
@@ -400,6 +557,19 @@ export default async function StudentPage({
                   >
                     {currentEnrollment.package_name}
                   </h3>
+
+                  {currentEnrollment.renewal_of && (
+                    <p
+                      className="
+                        mt-2
+                        font-sans
+                        text-[12px]
+                        text-[#777771]
+                      "
+                    >
+                      Renewal of a previous enrollment
+                    </p>
+                  )}
                 </div>
 
                 <span
@@ -418,7 +588,9 @@ export default async function StudentPage({
                     text-[#6F8F72]
                   "
                 >
-                  {currentEnrollment.status}
+                  {formatEnrollmentStatus(
+                    currentEnrollment.status
+                  )}
                 </span>
               </div>
 
@@ -576,6 +748,65 @@ export default async function StudentPage({
               </p>
             </div>
           )}
+
+          {/* OTHER ENROLLMENTS */}
+          {enrollmentHistory.length > 0 && (
+            <div className="mt-12 border-t border-[#DCD8D2] pt-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    History
+                  </p>
+
+                  <h3
+                    className="
+                      mt-2
+                      font-serif
+                      text-[25px]
+                      font-normal
+                    "
+                  >
+                    Other Enrollments
+                  </h3>
+                </div>
+
+                <span
+                  className="
+                    font-sans
+                    text-[12px]
+                    text-[#8A8A84]
+                  "
+                >
+                  {enrollmentHistory.length}{" "}
+                  {enrollmentHistory.length === 1
+                    ? "record"
+                    : "records"}
+                </span>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {enrollmentHistory.map(
+                  (enrollment) => (
+                    <EnrollmentHistoryRow
+                      key={enrollment.id}
+                      enrollment={enrollment}
+                      locale={locale}
+                      studentId={student.id}
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* CONTRACT */}
@@ -609,7 +840,7 @@ export default async function StudentPage({
                   hover:opacity-85
                 "
               >
-                {currentEnrollment.status === "active"
+                {enrollmentIsConfirmed
                   ? "View Contract"
                   : "Prepare Contract"}
               </Link>
@@ -641,12 +872,30 @@ export default async function StudentPage({
             </p>
 
             <p className="mt-2 font-serif text-[21px]">
-              {currentEnrollment
-                ? currentEnrollment.status === "active"
-                  ? "Active"
-                  : "Contract for Review"
-                : "Not created"}
+              {!currentEnrollment
+                ? "Not created"
+                : enrollmentIsCompleted
+                  ? "Completed"
+                  : enrollmentIsActive
+                    ? "Active"
+                    : "Contract for Review"}
             </p>
+
+            {!currentEnrollment && (
+              <p
+                className="
+                  mt-3
+                  max-w-[500px]
+                  font-sans
+                  text-[12px]
+                  leading-[1.6]
+                  text-[#8A8A84]
+                "
+              >
+                A contract will become available once
+                an enrollment has been created.
+              </p>
+            )}
           </div>
         </section>
 
@@ -663,8 +912,8 @@ export default async function StudentPage({
               title="Payment"
             />
 
-            {currentEnrollment &&
-              currentEnrollment.status !== "active" && (
+            {paymentIsPending &&
+              currentEnrollment && (
                 <form
                   method="POST"
                   action={`/api/admin/students/${student.id}/enrollments/${currentEnrollment.id}/payment`}
@@ -723,14 +972,14 @@ export default async function StudentPage({
             </p>
 
             <p className="mt-2 font-serif text-[21px]">
-              {currentEnrollment?.status === "active"
-                ? "Paid"
-                : currentEnrollment
+              {!currentEnrollment
+                ? "No payment yet"
+                : paymentIsPending
                   ? "Payment Pending"
-                  : "No payment yet"}
+                  : "Paid"}
             </p>
 
-            {currentEnrollment?.status !== "active" &&
+            {paymentIsPending &&
               currentEnrollment && (
                 <p
                   className="
@@ -768,7 +1017,6 @@ export default async function StudentPage({
               title="Attendance & Lessons"
             />
 
-            {/* SINGLE PRINT BUTTON */}
             {currentEnrollment && (
               <PrintAttendanceButton />
             )}
@@ -780,8 +1028,9 @@ export default async function StudentPage({
                 className="
                   mt-8
                   grid
-                  gap-4
+                  gap-6
                   sm:grid-cols-3
+                  lg:grid-cols-5
                 "
               >
                 <Stat
@@ -793,6 +1042,18 @@ export default async function StudentPage({
                 <Stat
                   label="Completed"
                   value={completedLessons}
+                  suffix="lessons"
+                />
+
+                <Stat
+                  label="No-show"
+                  value={noShowLessons}
+                  suffix="lessons"
+                />
+
+                <Stat
+                  label="Late Cancellation"
+                  value={lateCancellationLessons}
                   suffix="lessons"
                 />
 
@@ -884,7 +1145,148 @@ export default async function StudentPage({
 }
 
 /* -------------------------------------------------------------------------- */
-/* LESSON ROW                                                                  */
+/* ENROLLMENT HISTORY ROW                                                     */
+/* -------------------------------------------------------------------------- */
+
+function EnrollmentHistoryRow({
+  enrollment,
+  locale,
+  studentId,
+}: {
+  enrollment: Enrollment;
+  locale: string;
+  studentId: string;
+}) {
+  return (
+    <Link
+      href={`/${locale}/admin/students/${studentId}?enrollmentId=${enrollment.id}`}
+      className="
+        block
+        rounded-2xl
+        border
+        border-[#DCD8D2]
+        bg-white/40
+        p-5
+        transition-colors
+        hover:border-[#BFCDBA]
+        hover:bg-[#F5F7F3]
+        sm:p-6
+      "
+    >
+      <div
+        className="
+          flex
+          flex-col
+          gap-4
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+        "
+      >
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h4
+              className="
+                font-serif
+                text-[20px]
+                font-normal
+              "
+            >
+              {enrollment.package_name}
+            </h4>
+
+            {enrollment.renewal_of && (
+              <span
+                className="
+                  rounded-full
+                  bg-[#E2EBDD]
+                  px-3
+                  py-1
+                  font-sans
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.08em]
+                  text-[#6F8F72]
+                "
+              >
+                Renewal
+              </span>
+            )}
+
+            <span
+              className="
+                rounded-full
+                bg-[#F0F4ED]
+                px-3
+                py-1
+                font-sans
+                text-[10px]
+                font-medium
+                uppercase
+                tracking-[0.08em]
+                text-[#6F8F72]
+              "
+            >
+              {formatEnrollmentStatus(
+                enrollment.status
+              )}
+            </span>
+          </div>
+
+          <div
+            className="
+              mt-3
+              flex
+              flex-wrap
+              gap-x-5
+              gap-y-2
+              font-sans
+              text-[12px]
+              text-[#777771]
+            "
+          >
+            <span>
+              {formatDate(enrollment.start_date)}
+            </span>
+
+            <span>
+              {enrollment.number_of_lessons} lessons
+            </span>
+
+            {enrollment.lesson_duration && (
+              <span>
+                {enrollment.lesson_duration} minutes
+              </span>
+            )}
+
+            {enrollment.lessons_per_week && (
+              <span>
+                {enrollment.lessons_per_week}× per week
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="shrink-0">
+          <span
+            className="
+              font-sans
+              text-[12px]
+              text-[#8A8A84]
+            "
+          >
+            {enrollment.lessons?.length ?? 0} lessons
+            recorded
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* LESSON ROW                                                                 */
 /* -------------------------------------------------------------------------- */
 
 function LessonRow({
@@ -1006,9 +1408,13 @@ function LessonRow({
             studentId={studentId}
             enrollmentId={enrollmentId}
             lessonId={lesson.id}
-            currentStatus={lesson.attendance_status}
+            currentStatus={
+              lesson.attendance_status
+            }
             currentResolution={lesson.resolution}
-            currentLessonDate={lesson.lesson_date}
+            currentLessonDate={
+              lesson.lesson_date
+            }
           />
         </div>
       </div>
@@ -1052,7 +1458,7 @@ function LessonRow({
 }
 
 /* -------------------------------------------------------------------------- */
-/* SECTION HEADING                                                             */
+/* SECTION HEADING                                                            */
 /* -------------------------------------------------------------------------- */
 
 function SectionHeading({
@@ -1094,7 +1500,7 @@ function SectionHeading({
 }
 
 /* -------------------------------------------------------------------------- */
-/* INFO                                                                        */
+/* INFO                                                                       */
 /* -------------------------------------------------------------------------- */
 
 function InfoItem({
@@ -1134,7 +1540,7 @@ function InfoItem({
 }
 
 /* -------------------------------------------------------------------------- */
-/* DETAIL                                                                      */
+/* DETAIL                                                                     */
 /* -------------------------------------------------------------------------- */
 
 function DetailItem({
@@ -1180,7 +1586,7 @@ function DetailItem({
 }
 
 /* -------------------------------------------------------------------------- */
-/* STAT                                                                        */
+/* STAT                                                                       */
 /* -------------------------------------------------------------------------- */
 
 function Stat({
@@ -1226,7 +1632,7 @@ function Stat({
 }
 
 /* -------------------------------------------------------------------------- */
-/* STATUS                                                                      */
+/* STATUS                                                                     */
 /* -------------------------------------------------------------------------- */
 
 function StatusBadge({
@@ -1245,7 +1651,8 @@ function StatusBadge({
       "Student cancelled · Credit",
     unexpected_circumstance:
       "Unexpected circumstance",
-    teacher_cancelled: "Teacher cancelled",
+    teacher_cancelled:
+      "Teacher cancelled",
   };
 
   return (
@@ -1270,7 +1677,25 @@ function StatusBadge({
 }
 
 /* -------------------------------------------------------------------------- */
-/* FORMATTERS                                                                  */
+/* ENROLLMENT STATUS                                                          */
+/* -------------------------------------------------------------------------- */
+
+function formatEnrollmentStatus(
+  status: string
+) {
+  const labels: Record<string, string> = {
+    pending: "Pending",
+    contract_review: "Contract Review",
+    payment_pending: "Payment Pending",
+    active: "Active",
+    completed: "Completed",
+  };
+
+  return labels[status] ?? status;
+}
+
+/* -------------------------------------------------------------------------- */
+/* FORMATTERS                                                                 */
 /* -------------------------------------------------------------------------- */
 
 function formatDate(date: string | null) {

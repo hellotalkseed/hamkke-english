@@ -37,18 +37,42 @@ export default function PrintableAttendance({
   enrollment,
   lessons,
 }: PrintableAttendanceProps) {
+  /*
+   * ------------------------------------------------------------------------
+   * ATTENDANCE COUNTS
+   * ------------------------------------------------------------------------
+   *
+   * Completed = lessons that were completed AND consumed a lesson credit.
+   *
+   * No-show / Late cancellation are counted independently based on their
+   * attendance status. They may also consume a lesson credit.
+   */
   const completedLessons = lessons.filter(
     (lesson) =>
       lesson.attendance_status === "completed" &&
       lesson.consumes_lesson
   ).length;
 
+  const noShowLessons = lessons.filter(
+    (lesson) =>
+      lesson.attendance_status === "no_show"
+  ).length;
+
+  const lateCancellationLessons = lessons.filter(
+    (lesson) =>
+      lesson.attendance_status ===
+      "late_cancellation"
+  ).length;
+
   const consumedLessons = lessons.filter(
     (lesson) => lesson.consumes_lesson
   ).length;
 
-  const remainingLessons =
-    enrollment.number_of_lessons - consumedLessons;
+  const remainingLessons = Math.max(
+    enrollment.number_of_lessons -
+      consumedLessons,
+    0
+  );
 
   return (
     <div
@@ -132,7 +156,7 @@ export default function PrintableAttendance({
 
       {/* SUMMARY */}
       <div className="mt-10 border-y border-[#DCD8D2] py-6">
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-5 gap-6">
           <PrintStat
             label="Total"
             value={enrollment.number_of_lessons}
@@ -141,6 +165,16 @@ export default function PrintableAttendance({
           <PrintStat
             label="Completed"
             value={completedLessons}
+          />
+
+          <PrintStat
+            label="No-show"
+            value={noShowLessons}
+          />
+
+          <PrintStat
+            label="Late cancellation"
+            value={lateCancellationLessons}
           />
 
           <PrintStat
@@ -229,7 +263,9 @@ export default function PrintableAttendance({
                 </td>
 
                 <td className="py-3 text-right font-sans text-[12px]">
-                  {lesson.consumes_lesson ? "Yes" : "No"}
+                  {lesson.consumes_lesson
+                    ? "Yes"
+                    : "No"}
                 </td>
               </tr>
             ))}
@@ -354,7 +390,8 @@ function formatSchedule(
   days: string[] | null,
   time: string | null
 ) {
-  const formattedDays = formatScheduleDays(days);
+  const formattedDays =
+    formatScheduleDays(days);
 
   if (!time) {
     return formattedDays;

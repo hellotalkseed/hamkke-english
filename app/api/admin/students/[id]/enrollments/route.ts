@@ -12,6 +12,7 @@ export async function POST(
   { params }: RouteContext
 ) {
   const { id } = await params;
+
   const formData = await request.formData();
 
   const packageName = String(
@@ -42,22 +43,31 @@ export async function POST(
     formData.get("currency") || "KRW"
   ).trim();
 
-  // Multiple checkboxes can submit multiple schedule_days values.
+  const renewalOfValue = String(
+    formData.get("renewal_of") || ""
+  ).trim();
+
+  const renewalOf = renewalOfValue || null;
+
   const scheduleDays = formData
     .getAll("schedule_days")
     .map((day) => String(day).trim())
     .filter(Boolean);
 
-  // Time is optional because it may not have been confirmed yet.
   const scheduleTimeValue = String(
     formData.get("schedule_time") || ""
   ).trim();
 
-  const scheduleTime = scheduleTimeValue || null;
+  const scheduleTime =
+    scheduleTimeValue || null;
 
   const locale = String(
     formData.get("locale") || "en"
   ).trim();
+
+  /* ---------------------------------------------------------------------- */
+  /* VALIDATION                                                             */
+  /* ---------------------------------------------------------------------- */
 
   if (!packageName) {
     return new NextResponse(
@@ -122,10 +132,10 @@ export async function POST(
 
   const supabase = await createClient();
 
-  /*
-   * STEP 1
-   * Confirm that the student exists.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* STEP 1: CONFIRM STUDENT                                               */
+  /* ---------------------------------------------------------------------- */
+
   const {
     data: student,
     error: studentError,
@@ -142,14 +152,50 @@ export async function POST(
     );
   }
 
-  /*
-   * STEP 2
-   * Create the enrollment in pending status.
-   *
-   * schedule_days contains the selected recurring days.
-   * schedule_time is nullable because the lesson time
-   * may still be "To be confirmed".
-   */
+  /* ---------------------------------------------------------------------- */
+  /* STEP 2: VALIDATE PREVIOUS ENROLLMENT                                  */
+  /* ---------------------------------------------------------------------- */
+
+  if (renewalOf) {
+    const {
+      data: previousEnrollment,
+      error: previousEnrollmentError,
+    } = await supabase
+      .from("enrollments")
+      .select("id, student_id")
+      .eq("id", renewalOf)
+      .eq("student_id", id)
+      .single();
+
+    if (
+      previousEnrollmentError ||
+      !previousEnrollment
+    ) {
+      console.error(
+        "RENEWAL VALIDATION ERROR:",
+        {
+          renewalOf,
+          studentId: id,
+          code: previousEnrollmentError?.code,
+          message:
+            previousEnrollmentError?.message,
+          details:
+            previousEnrollmentError?.details,
+          hint: previousEnrollmentError?.hint,
+        }
+      );
+
+      return new NextResponse(
+        "Previous enrollment not found.",
+        { status: 400 }
+      );
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 3: CREATE ENROLLMENT                                              */
+  /* ---------------------------------------------------------------------- */
+
   const {
     data: enrollment,
     error: enrollmentError,
@@ -167,8 +213,25 @@ export async function POST(
       currency,
       schedule_days: scheduleDays,
       schedule_time: scheduleTime,
+      renewal_of: renewalOf,
     })
-    .select("id")
+    .select(
+      `
+        id,
+        student_id,
+        package_name,
+        number_of_lessons,
+        lesson_duration,
+        lessons_per_week,
+        start_date,
+        status,
+        tuition_amount,
+        currency,
+        schedule_days,
+        schedule_time,
+        renewal_of
+      `
+    )
     .single();
 
   if (enrollmentError || !enrollment) {
@@ -185,21 +248,34 @@ export async function POST(
     return new NextResponse(
       `Unable to create enrollment.
 
-Code: ${enrollmentError?.code || "unknown"}
+Code: ${
+        enrollmentError?.code || "unknown"
+      }
 
-Message: ${enrollmentError?.message || "unknown"}
+Message: ${
+        enrollmentError?.message || "unknown"
+      }
 
-Details: ${enrollmentError?.details || "none"}
+Details: ${
+        enrollmentError?.details || "none"
+      }
 
-Hint: ${enrollmentError?.hint || "none"}`,
+Hint: ${
+        enrollmentError?.hint || "none"
+      }`,
       { status: 500 }
     );
   }
 
-  /*
-   * STEP 3
-   * Create the contract in for_review status.
-   */
+  console.log(
+    "ENROLLMENT CREATED:",
+    enrollment
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 4: CREATE CONTRACT                                                */
+  /* ---------------------------------------------------------------------- */
+
   const {
     data: contract,
     error: contractError,
@@ -223,7 +299,6 @@ Hint: ${enrollmentError?.hint || "none"}`,
       }
     );
 
-    // Roll back the enrollment if contract creation fails.
     await supabase
       .from("enrollments")
       .delete()
@@ -232,25 +307,29 @@ Hint: ${enrollmentError?.hint || "none"}`,
     return new NextResponse(
       `Unable to create contract.
 
-Code: ${contractError?.code || "unknown"}
+Code: ${
+        contractError?.code || "unknown"
+      }
 
-Message: ${contractError?.message || "unknown"}
+Message: ${
+        contractError?.message || "unknown"
+      }
 
-Details: ${contractError?.details || "none"}
+Details: ${
+        contractError?.details || "none"
+      }
 
-Hint: ${contractError?.hint || "none"}`,
+Hint: ${
+        contractError?.hint || "none"
+      }`,
       { status: 500 }
     );
   }
 
-  /*
-   * STEP 4
-   * Create the payment record in pending status.
-   *
-   * payment_date is required by the database, so the
-   * enrollment start date is used as the initial date.
-   * This does NOT mean payment has been confirmed.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* STEP 5: CREATE PAYMENT                                                 */
+  /* ---------------------------------------------------------------------- */
+
   const {
     error: paymentError,
   } = await supabase
@@ -275,13 +354,11 @@ Hint: ${contractError?.hint || "none"}`,
       }
     );
 
-    // Roll back the contract.
     await supabase
       .from("contracts")
       .delete()
       .eq("id", contract.id);
 
-    // Roll back the enrollment.
     await supabase
       .from("enrollments")
       .delete()
@@ -290,23 +367,69 @@ Hint: ${contractError?.hint || "none"}`,
     return new NextResponse(
       `Unable to create payment record.
 
-Code: ${paymentError.code || "unknown"}
+Code: ${
+        paymentError.code || "unknown"
+      }
 
-Message: ${paymentError.message || "unknown"}
+Message: ${
+        paymentError.message || "unknown"
+      }
 
-Details: ${paymentError.details || "none"}
+Details: ${
+        paymentError.details || "none"
+      }
 
-Hint: ${paymentError.hint || "none"}`,
+Hint: ${
+        paymentError.hint || "none"
+      }`,
       { status: 500 }
     );
   }
 
-  /*
-   * Lessons are intentionally NOT created here.
-   *
-   * They should be generated only when payment is confirmed
-   * and the enrollment becomes active.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* STEP 6: VERIFY RENEWAL                                                */
+  /* ---------------------------------------------------------------------- */
+
+  if (renewalOf) {
+    const {
+      data: verification,
+      error: verificationError,
+    } = await supabase
+      .from("enrollments")
+      .select("id, renewal_of")
+      .eq("id", enrollment.id)
+      .single();
+
+    if (
+      verificationError ||
+      !verification ||
+      verification.renewal_of !== renewalOf
+    ) {
+      console.error(
+        "RENEWAL VERIFICATION FAILED:",
+        {
+          createdEnrollmentId: enrollment.id,
+          expectedRenewalOf: renewalOf,
+          verification,
+          verificationError,
+        }
+      );
+
+      return new NextResponse(
+        "Enrollment was created, but the renewal relationship could not be verified.",
+        { status: 500 }
+      );
+    }
+
+    console.log(
+      "RENEWAL VERIFIED:",
+      verification
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 7: REDIRECT                                                       */
+  /* ---------------------------------------------------------------------- */
 
   return NextResponse.redirect(
     new URL(
