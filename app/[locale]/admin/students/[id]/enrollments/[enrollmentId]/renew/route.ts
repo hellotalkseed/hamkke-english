@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 
 interface RouteContext {
   params: Promise<{
-    studentId: string;
+    locale: string;
+    id: string;
     enrollmentId: string;
   }>;
 }
@@ -12,12 +13,11 @@ export async function POST(
   request: Request,
   { params }: RouteContext
 ) {
-  const { studentId, enrollmentId } = await params;
+  const { locale, id, enrollmentId } = await params;
+
+  const studentId = id;
 
   const formData = await request.formData();
-
-  const locale =
-    String(formData.get("locale") ?? "en");
 
   const packageName =
     String(formData.get("package_name") ?? "").trim();
@@ -56,22 +56,25 @@ export async function POST(
 
   /*
    * Get the existing enrollment.
-   * We copy its schedule information into the
-   * new renewal so the student doesn't have to
-   * re-enter everything.
+   *
+   * The existing schedule information is copied
+   * into the new renewal so the student does not
+   * have to enter it again.
    */
-  const { data: previousEnrollment, error: previousError } =
-    await supabase
-      .from("enrollments")
-      .select(`
-        id,
-        student_id,
-        schedule_days,
-        schedule_time
-      `)
-      .eq("id", enrollmentId)
-      .eq("student_id", studentId)
-      .single();
+  const {
+    data: previousEnrollment,
+    error: previousError,
+  } = await supabase
+    .from("enrollments")
+    .select(`
+      id,
+      student_id,
+      schedule_days,
+      schedule_time
+    `)
+    .eq("id", enrollmentId)
+    .eq("student_id", studentId)
+    .single();
 
   if (previousError || !previousEnrollment) {
     return NextResponse.json(
@@ -85,27 +88,29 @@ export async function POST(
   /*
    * Create the new enrollment as pending.
    *
-   * The previous enrollment is NOT modified.
+   * The previous enrollment is not modified.
    * This preserves the student's enrollment history.
    */
-  const { data: newEnrollment, error: enrollmentError } =
-    await supabase
-      .from("enrollments")
-      .insert({
-        student_id: studentId,
-        package_name: packageName,
-        number_of_lessons: numberOfLessons,
-        lesson_duration: lessonDuration,
-        lessons_per_week: lessonsPerWeek,
-        start_date: startDate,
-        status: "pending",
-        schedule_days:
-          previousEnrollment.schedule_days,
-        schedule_time:
-          previousEnrollment.schedule_time,
-      })
-      .select("id")
-      .single();
+  const {
+    data: newEnrollment,
+    error: enrollmentError,
+  } = await supabase
+    .from("enrollments")
+    .insert({
+      student_id: studentId,
+      package_name: packageName,
+      number_of_lessons: numberOfLessons,
+      lesson_duration: lessonDuration,
+      lessons_per_week: lessonsPerWeek,
+      start_date: startDate,
+      status: "pending",
+      schedule_days:
+        previousEnrollment.schedule_days,
+      schedule_time:
+        previousEnrollment.schedule_time,
+    })
+    .select("id")
+    .single();
 
   if (enrollmentError || !newEnrollment) {
     console.error(
