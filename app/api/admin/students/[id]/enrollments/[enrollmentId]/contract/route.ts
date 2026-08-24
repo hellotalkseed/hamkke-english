@@ -14,6 +14,12 @@ export async function POST(
 ) {
   const { id, enrollmentId } = await params;
 
+  const formData = await request.formData();
+
+  const locale = String(
+    formData.get("locale") || "en"
+  );
+
   const supabase = await createClient();
 
   // Make sure the enrollment belongs to this student.
@@ -33,16 +39,17 @@ export async function POST(
   }
 
   // Check whether a contract already exists.
-  const { data: existingContract } = await supabase
-    .from("contracts")
-    .select("id")
-    .eq("enrollment_id", enrollmentId)
-    .maybeSingle();
+  const { data: existingContract } =
+    await supabase
+      .from("contracts")
+      .select("id")
+      .eq("enrollment_id", enrollmentId)
+      .maybeSingle();
 
   if (existingContract) {
     return NextResponse.redirect(
       new URL(
-        `/${await getLocale(request)}/admin/students/${id}/contracts/${existingContract.id}`,
+        `/${locale}/admin/students/${id}/contracts/${existingContract.id}`,
         request.url
       )
     );
@@ -81,20 +88,10 @@ Hint: ${contractError?.hint || "none"}`,
     );
   }
 
-  const locale = await getLocale(request);
-
   return NextResponse.redirect(
     new URL(
       `/${locale}/admin/students/${id}/contracts/${contract.id}`,
       request.url
     )
-  );
-}
-
-async function getLocale(request: Request): Promise<string> {
-  const formData = await request.formData().catch(() => null);
-
-  return String(
-    formData?.get("locale") || "en"
   );
 }
