@@ -16,6 +16,16 @@ interface RenewEnrollmentFormProps {
   scheduleTime: string | null;
 }
 
+const DAYS = [
+  ["Monday", "mon"],
+  ["Tuesday", "tue"],
+  ["Wednesday", "wed"],
+  ["Thursday", "thu"],
+  ["Friday", "fri"],
+  ["Saturday", "sat"],
+  ["Sunday", "sun"],
+] as const;
+
 export default function RenewEnrollmentForm({
   studentId,
   enrollmentId,
@@ -55,8 +65,106 @@ export default function RenewEnrollmentForm({
   }
 
   return (
-    <div className="mt-8 rounded-2xl border border-[#D8E1D3] bg-white/50 p-6 sm:p-8">
-      <div>
+    <div
+      className="
+        mt-8
+        overflow-hidden
+        rounded-2xl
+        border
+        border-[#D8E1D3]
+        bg-white
+      "
+    >
+      {/* ================================================================ */}
+      {/* HEADER                                                           */}
+      {/* ================================================================ */}
+
+      <div
+        className="
+          border-b
+          border-[#E5E2DC]
+          px-6
+          py-7
+          sm:px-8
+          sm:py-8
+        "
+      >
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <p
+              className="
+                font-sans
+                text-[11px]
+                font-medium
+                uppercase
+                tracking-[0.14em]
+                text-[#6F8F72]
+              "
+            >
+              Renewal
+            </p>
+
+            <h3
+              className="
+                mt-2
+                font-serif
+                text-[28px]
+                font-normal
+                tracking-[-0.02em]
+                text-[#292929]
+              "
+            >
+              Create a new enrollment
+            </h3>
+
+            <p
+              className="
+                mt-3
+                max-w-[620px]
+                font-sans
+                text-[13px]
+                leading-6
+                text-[#777771]
+              "
+            >
+              The previous enrollment will remain unchanged.
+              This creates a separate enrollment with its own
+              contract, payment, status, schedule, and lessons.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close renewal form"
+            className="
+              shrink-0
+              font-sans
+              text-[13px]
+              text-[#8A8A84]
+              transition-colors
+              hover:text-[#292929]
+            "
+          >
+            Close
+          </button>
+        </div>
+      </div>
+
+      {/* ================================================================ */}
+      {/* PREVIOUS ENROLLMENT                                              */}
+      {/* ================================================================ */}
+
+      <div
+        className="
+          border-b
+          border-[#E5E2DC]
+          bg-[#F0F4ED]
+          px-6
+          py-6
+          sm:px-8
+        "
+      >
         <p
           className="
             font-sans
@@ -67,24 +175,87 @@ export default function RenewEnrollmentForm({
             text-[#6F8F72]
           "
         >
-          Renew Enrollment
+          Renewing from
         </p>
 
-        <h3 className="mt-2 font-serif text-[25px]">
-          Create a new lesson package
-        </h3>
+        <div className="mt-3">
+          <p className="font-serif text-[20px] text-[#292929]">
+            {packageName}
+          </p>
 
-        <p className="mt-2 max-w-[560px] font-sans text-[13px] leading-6 text-[#777771]">
-          The previous enrollment has been carried over.
-          Change anything that needs updating.
-        </p>
+          <p
+            className="
+              mt-2
+              font-sans
+              text-[13px]
+              leading-6
+              text-[#777771]
+            "
+          >
+            {numberOfLessons} lessons
+            {" · "}
+            {lessonDuration ?? 25} minutes
+            {" · "}
+            {lessonsPerWeek ?? 3} lessons per week
+          </p>
+
+          {scheduleDays && scheduleDays.length > 0 && (
+            <p
+              className="
+                mt-1
+                font-sans
+                text-[13px]
+                leading-6
+                text-[#777771]
+              "
+            >
+              {formatScheduleDays(scheduleDays)}
+              {scheduleTime
+                ? ` at ${formatTime(scheduleTime)}`
+                : ""}
+            </p>
+          )}
+        </div>
+
+        <div
+          className="
+            mt-5
+            rounded-xl
+            border
+            border-[#D8E1D3]
+            bg-white/60
+            px-4
+            py-3
+          "
+        >
+          <p
+            className="
+              font-sans
+              text-[12px]
+              leading-5
+              text-[#6B6B66]
+            "
+          >
+            This enrollment is only used as the starting point
+            for the renewal. Nothing from the previous enrollment
+            will be changed.
+          </p>
+        </div>
       </div>
+
+      {/* ================================================================ */}
+      {/* FORM                                                             */}
+      {/* ================================================================ */}
 
       <form
         action={`/api/admin/students/${studentId}/enrollments`}
         method="POST"
-        className="mt-8 space-y-7"
+        className="px-6 py-8 sm:px-8 sm:py-10"
       >
+        {/* ============================================================ */}
+        {/* HIDDEN WORKFLOW VALUES                                       */}
+        {/* ============================================================ */}
+
         <input
           type="hidden"
           name="locale"
@@ -97,69 +268,452 @@ export default function RenewEnrollmentForm({
           value={enrollmentId}
         />
 
-        <Field
-          label="Package Name"
-          id="renewal_package_name"
-          name="package_name"
-          type="text"
-          defaultValue={packageName}
-          required
-        />
+        {/* ============================================================ */}
+        {/* PACKAGE                                                       */}
+        {/* ============================================================ */}
 
-        <Field
-          label="Number of Lessons"
-          id="renewal_number_of_lessons"
-          name="number_of_lessons"
-          type="number"
-          defaultValue={String(numberOfLessons)}
-          min="1"
-          required
-        />
+        <section>
+          <SectionHeading
+            eyebrow="Package"
+            title="Lesson package"
+            description="The previous package is copied here. Update anything that is changing for the new enrollment."
+          />
 
-        <Field
-          label="Lesson Duration"
-          id="renewal_lesson_duration"
-          name="lesson_duration"
-          type="number"
-          defaultValue={String(lessonDuration ?? 25)}
-          min="1"
-          required
-        />
+          <div className="mt-7 space-y-7">
+            <Field
+              label="Package Name"
+              id="renewal_package_name"
+              name="package_name"
+              type="text"
+              defaultValue={packageName}
+              required
+            />
 
-        <Field
-          label="Lessons Per Week"
-          id="renewal_lessons_per_week"
-          name="lessons_per_week"
-          type="number"
-          defaultValue={String(lessonsPerWeek ?? 3)}
-          min="1"
-          required
-        />
+            <div className="grid gap-7 sm:grid-cols-3">
+              <Field
+                label="Number of Lessons"
+                id="renewal_number_of_lessons"
+                name="number_of_lessons"
+                type="number"
+                defaultValue={String(numberOfLessons)}
+                min="1"
+                step="1"
+                required
+              />
 
-        <Field
-          label="Start Date"
-          id="renewal_start_date"
-          name="start_date"
-          type="date"
-          required
-        />
+              <Field
+                label="Lesson Duration"
+                id="renewal_lesson_duration"
+                name="lesson_duration"
+                type="number"
+                defaultValue={String(
+                  lessonDuration ?? 25
+                )}
+                min="1"
+                step="1"
+                required
+              />
 
-        <Field
-          label="Tuition Amount"
-          id="renewal_tuition_amount"
-          name="tuition_amount"
-          type="number"
-          defaultValue={String(tuitionAmount ?? 2940)}
-          min="0"
-          step="0.01"
-          required
-        />
+              <Field
+                label="Lessons Per Week"
+                id="renewal_lessons_per_week"
+                name="lessons_per_week"
+                type="number"
+                defaultValue={String(
+                  lessonsPerWeek ?? 3
+                )}
+                min="1"
+                step="1"
+                required
+              />
+            </div>
 
-        <div>
-          <label
-            htmlFor="renewal_currency"
+            <Field
+              label="Start Date"
+              id="renewal_start_date"
+              name="start_date"
+              type="date"
+              required
+            />
+          </div>
+        </section>
+
+        {/* ============================================================ */}
+        {/* SCHEDULE                                                      */}
+        {/* ============================================================ */}
+
+        <section
+          className="
+            mt-12
+            rounded-2xl
+            bg-[#F0F4ED]
+            p-6
+            sm:p-8
+          "
+        >
+          <SectionHeading
+            eyebrow="Schedule"
+            title="Lesson schedule"
+            description="The previous schedule is pre-selected. Change it only if the student's schedule is changing."
+          />
+
+          {/* DAYS */}
+
+          <div className="mt-8">
+            <p
+              className="
+                font-sans
+                text-[11px]
+                font-medium
+                uppercase
+                tracking-[0.12em]
+                text-[#6F8F72]
+              "
+            >
+              Lesson Days
+            </p>
+
+            <div
+              className="
+                mt-4
+                grid
+                grid-cols-2
+                gap-x-6
+                gap-y-4
+                sm:grid-cols-4
+              "
+            >
+              {DAYS.map(([label, value]) => {
+                const selected =
+                  scheduleDays?.some(
+                    (day) =>
+                      day.toLowerCase() === value ||
+                      day.toLowerCase() ===
+                        label.toLowerCase()
+                  ) ?? false;
+
+                return (
+                  <label
+                    key={value}
+                    className="
+                      flex
+                      cursor-pointer
+                      items-center
+                      gap-3
+                      font-sans
+                      text-sm
+                      text-[#4A4A4A]
+                    "
+                  >
+                    <input
+                      type="checkbox"
+                      name="schedule_days"
+                      value={value}
+                      defaultChecked={selected}
+                      className="
+                        h-4
+                        w-4
+                        accent-[#6F8F72]
+                      "
+                    />
+
+                    <span>{label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* TIME */}
+
+          <div className="mt-8">
+            <label
+              htmlFor="renewal_schedule_time"
+              className="
+                block
+                font-sans
+                text-[11px]
+                font-medium
+                uppercase
+                tracking-[0.12em]
+                text-[#6F8F72]
+              "
+            >
+              Lesson Time
+            </label>
+
+            <input
+              id="renewal_schedule_time"
+              name="schedule_time"
+              type="time"
+              defaultValue={scheduleTime || ""}
+              className="
+                mt-3
+                w-full
+                border-b
+                border-[#CFCBC4]
+                bg-transparent
+                px-0
+                py-3
+                font-serif
+                text-[19px]
+                text-[#292929]
+                outline-none
+                transition-colors
+                focus:border-[#6F8F72]
+              "
+            />
+
+            <p
+              className="
+                mt-3
+                font-sans
+                text-[12px]
+                leading-5
+                text-[#777771]
+              "
+            >
+              The previous lesson time is carried over
+              automatically.
+            </p>
+          </div>
+        </section>
+
+        {/* ============================================================ */}
+        {/* PAYMENT                                                       */}
+        {/* ============================================================ */}
+
+        <section className="mt-12">
+          <SectionHeading
+            eyebrow="Payment"
+            title="Renewal payment"
+            description="The payment belongs to the new enrollment. It will remain pending until you confirm that payment has been received."
+          />
+
+          <div className="mt-7 space-y-7">
+            {/* ======================================================== */}
+            {/* KRW / PHP                                                */}
+            {/* ======================================================== */}
+
+            <div
+              className="
+                rounded-2xl
+                border
+                border-[#E7DDD1]
+                bg-[#FAF8F5]
+                p-5
+                sm:p-6
+              "
+            >
+              <p
+                className="
+                  font-sans
+                  text-[11px]
+                  font-medium
+                  uppercase
+                  tracking-[0.14em]
+                  text-[#6F8F72]
+                "
+              >
+                Payment Amount
+              </p>
+
+              <p
+                className="
+                  mt-1
+                  font-serif
+                  text-[15px]
+                  text-[#777771]
+                "
+              >
+                Record the renewal tuition in both KRW
+                and PHP.
+              </p>
+
+              <div
+                className="
+                  mt-5
+                  grid
+                  gap-5
+                  sm:grid-cols-2
+                "
+              >
+                <Field
+                  label="KRW Amount"
+                  id="renewal_tuition_amount_krw"
+                  name="tuition_amount_krw"
+                  type="number"
+                  defaultValue={
+                    currency?.toUpperCase() === "KRW"
+                      ? String(tuitionAmount ?? "")
+                      : ""
+                  }
+                  min="0"
+                  step="1"
+                  placeholder="75,000"
+                  required
+                />
+
+                <Field
+                  label="PHP Amount"
+                  id="renewal_tuition_amount_php"
+                  name="tuition_amount_php"
+                  type="number"
+                  defaultValue=""
+                  min="0"
+                  step="0.01"
+                  placeholder="3,150"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* ======================================================== */}
+            {/* PAYMENT METHOD                                           */}
+            {/* ======================================================== */}
+
+            <div>
+              <label
+                htmlFor="renewal_payment_method"
+                className="
+                  block
+                  font-sans
+                  text-[11px]
+                  font-medium
+                  uppercase
+                  tracking-[0.14em]
+                  text-[#6F8F72]
+                "
+              >
+                Payment Method
+              </label>
+
+              <select
+                id="renewal_payment_method"
+                name="payment_method"
+                defaultValue="pending"
+                className="
+                  mt-3
+                  w-full
+                  border-b
+                  border-[#CFCBC4]
+                  bg-transparent
+                  px-0
+                  py-3
+                  font-serif
+                  text-[19px]
+                  text-[#292929]
+                  outline-none
+                  focus:border-[#6F8F72]
+                "
+              >
+                <option value="pending">
+                  Not received yet
+                </option>
+
+                <option value="bank_transfer">
+                  Bank Transfer
+                </option>
+
+                <option value="paypal">
+                  PayPal
+                </option>
+
+                <option value="gcash">
+                  GCash
+                </option>
+
+                <option value="cash">
+                  Cash
+                </option>
+
+                <option value="other">
+                  Other
+                </option>
+              </select>
+            </div>
+
+            {/* ======================================================== */}
+            {/* REFERENCE                                                */}
+            {/* ======================================================== */}
+
+            <Field
+              label="Reference Number"
+              id="renewal_payment_reference"
+              name="payment_reference"
+              type="text"
+              placeholder="Optional"
+            />
+
+            {/* ======================================================== */}
+            {/* PAYMENT DATE                                              */}
+            {/* ======================================================== */}
+
+            <Field
+              label="Payment Date"
+              id="renewal_payment_date"
+              name="payment_date"
+              type="date"
+            />
+
+            {/* ======================================================== */}
+            {/* PAYMENT STATUS                                            */}
+            {/* ======================================================== */}
+
+            <input
+              type="hidden"
+              name="payment_status"
+              value="pending"
+            />
+
+            <div
+              className="
+                rounded-xl
+                border
+                border-[#E5E2DC]
+                bg-[#FAF8F5]
+                px-4
+                py-4
+              "
+            >
+              <p
+                className="
+                  font-sans
+                  text-[12px]
+                  leading-5
+                  text-[#6B6B66]
+                "
+              >
+                The new enrollment and its payment will be
+                created as{" "}
+                <strong className="font-medium text-[#4A4A4A]">
+                  pending
+                </strong>
+                . The previous enrollment will not be
+                changed. Once the payment is confirmed,
+                the database will activate this enrollment,
+                activate its contract, and generate its
+                lessons.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================ */}
+        {/* WHAT HAPPENS NEXT                                             */}
+        {/* ============================================================ */}
+
+        <section
+          className="
+            mt-12
+            rounded-2xl
+            bg-[#F0F4ED]
+            p-6
+            sm:p-8
+          "
+        >
+          <p
             className="
-              block
               font-sans
               text-[11px]
               font-medium
@@ -168,138 +722,55 @@ export default function RenewEnrollmentForm({
               text-[#6F8F72]
             "
           >
-            Currency
-          </label>
-
-          <select
-            id="renewal_currency"
-            name="currency"
-            defaultValue={currency || "KRW"}
-            className="
-              mt-3
-              w-full
-              border-b
-              border-[#CFCBC4]
-              bg-transparent
-              px-0
-              py-3
-              font-serif
-              text-[19px]
-              text-[#292929]
-              outline-none
-              focus:border-[#6F8F72]
-            "
-          >
-            <option value="PHP">PHP</option>
-            <option value="KRW">KRW</option>
-            <option value="USD">USD</option>
-          </select>
-        </div>
-
-        <div>
-          <p
-            className="
-              font-sans
-              text-[11px]
-              font-medium
-              uppercase
-              tracking-[0.12em]
-              text-[#6F8F72]
-            "
-          >
-            Lesson Days
+            What happens next
           </p>
 
-          <div
-            className="
-              mt-4
-              grid
-              grid-cols-2
-              gap-x-6
-              gap-y-4
-              sm:grid-cols-4
-            "
-          >
-            {[
-              ["Monday", "mon"],
-              ["Tuesday", "tue"],
-              ["Wednesday", "wed"],
-              ["Thursday", "thu"],
-              ["Friday", "fri"],
-              ["Saturday", "sat"],
-              ["Sunday", "sun"],
-            ].map(([label, value]) => {
-              const selected =
-                scheduleDays?.includes(value) ?? false;
+          <div className="mt-6 space-y-5">
+            <WorkflowStep
+              number="01"
+              title="A new enrollment is created"
+              description="The new package is created separately and linked to the previous enrollment through renewal_of."
+            />
 
-              return (
-                <label
-                  key={value}
-                  className="
-                    flex
-                    cursor-pointer
-                    items-center
-                    gap-3
-                    font-sans
-                    text-sm
-                    text-[#4A4A4A]
-                  "
-                >
-                  <input
-                    type="checkbox"
-                    name="schedule_days"
-                    value={value}
-                    defaultChecked={selected}
-                    className="h-4 w-4 accent-[#6F8F72]"
-                  />
+            <WorkflowStep
+              number="02"
+              title="A new contract is created"
+              description="The renewal receives its own contract for review."
+            />
 
-                  <span>{label}</span>
-                </label>
-              );
-            })}
+            <WorkflowStep
+              number="03"
+              title="A new payment is created"
+              description="The payment belongs only to this new enrollment and starts as pending."
+            />
+
+            <WorkflowStep
+              number="04"
+              title="The previous enrollment stays unchanged"
+              description="Its status, contract, payment, schedule, and lessons remain untouched."
+            />
+
+            <WorkflowStep
+              number="05"
+              title="Payment is confirmed"
+              description="Changing this payment from pending to paid activates only the new enrollment."
+            />
+
+            <WorkflowStep
+              number="06"
+              title="New lessons are generated"
+              description="The database generates lessons only for this enrollment using its own start date, schedule, duration, and lesson count."
+            />
           </div>
-        </div>
+        </section>
 
-        <div>
-          <label
-            htmlFor="renewal_schedule_time"
-            className="
-              block
-              font-sans
-              text-[11px]
-              font-medium
-              uppercase
-              tracking-[0.12em]
-              text-[#6F8F72]
-            "
-          >
-            Lesson Time
-          </label>
-
-          <input
-            id="renewal_schedule_time"
-            name="schedule_time"
-            type="time"
-            defaultValue={scheduleTime || ""}
-            className="
-              mt-3
-              w-full
-              border-b
-              border-[#CFCBC4]
-              bg-transparent
-              px-0
-              py-3
-              font-serif
-              text-[19px]
-              text-[#292929]
-              outline-none
-              focus:border-[#6F8F72]
-            "
-          />
-        </div>
+        {/* ============================================================ */}
+        {/* FINAL ACTIONS                                                 */}
+        {/* ============================================================ */}
 
         <div
           className="
+            mt-10
             flex
             flex-col-reverse
             gap-3
@@ -307,6 +778,7 @@ export default function RenewEnrollmentForm({
             border-[#DCD8D2]
             pt-7
             sm:flex-row
+            sm:items-center
             sm:justify-end
           "
         >
@@ -332,8 +804,8 @@ export default function RenewEnrollmentForm({
             className="
               rounded-full
               bg-[#6F8F72]
-              px-6
-              py-2.5
+              px-7
+              py-3
               font-sans
               text-sm
               font-medium
@@ -350,15 +822,73 @@ export default function RenewEnrollmentForm({
   );
 }
 
-/* -------------------------------------------------------------------------- */
+/* ========================================================================== */
+/* SECTION HEADING                                                            */
+/* ========================================================================== */
+
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div>
+      <p
+        className="
+          font-sans
+          text-[11px]
+          font-medium
+          uppercase
+          tracking-[0.14em]
+          text-[#6F8F72]
+        "
+      >
+        {eyebrow}
+      </p>
+
+      <h4
+        className="
+          mt-2
+          font-serif
+          text-[25px]
+          font-normal
+          tracking-[-0.02em]
+          text-[#292929]
+        "
+      >
+        {title}
+      </h4>
+
+      <p
+        className="
+          mt-2
+          max-w-[620px]
+          font-sans
+          text-[13px]
+          leading-6
+          text-[#777771]
+        "
+      >
+        {description}
+      </p>
+    </div>
+  );
+}
+
+/* ========================================================================== */
 /* FIELD                                                                      */
-/* -------------------------------------------------------------------------- */
+/* ========================================================================== */
 
 function Field({
   label,
   id,
   name,
   type,
+  placeholder,
   defaultValue,
   min,
   step,
@@ -368,6 +898,7 @@ function Field({
   id: string;
   name: string;
   type: string;
+  placeholder?: string;
   defaultValue?: string;
   min?: string;
   step?: string;
@@ -394,6 +925,7 @@ function Field({
         id={id}
         name={name}
         type={type}
+        placeholder={placeholder}
         defaultValue={defaultValue}
         min={min}
         step={step}
@@ -411,9 +943,132 @@ function Field({
           text-[#292929]
           outline-none
           transition-colors
+          placeholder:text-[#A09D96]
           focus:border-[#6F8F72]
         "
       />
     </div>
   );
+}
+
+/* ========================================================================== */
+/* WORKFLOW STEP                                                              */
+/* ========================================================================== */
+
+function WorkflowStep({
+  number,
+  title,
+  description,
+}: {
+  number: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex gap-4">
+      <span
+        className="
+          shrink-0
+          pt-1
+          font-sans
+          text-[11px]
+          font-medium
+          tracking-[0.12em]
+          text-[#8A8A84]
+        "
+      >
+        {number}
+      </span>
+
+      <div>
+        <p
+          className="
+            font-serif
+            text-[18px]
+            text-[#292929]
+          "
+        >
+          {title}
+        </p>
+
+        <p
+          className="
+            mt-1
+            font-sans
+            text-[13px]
+            leading-6
+            text-[#6B6B66]
+          "
+        >
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ========================================================================== */
+/* FORMATTERS                                                                 */
+/* ========================================================================== */
+
+function formatScheduleDays(days: string[]) {
+  const labels: Record<string, string> = {
+    mon: "Mon",
+    monday: "Mon",
+
+    tue: "Tue",
+    tuesday: "Tue",
+
+    wed: "Wed",
+    wednesday: "Wed",
+
+    thu: "Thu",
+    thursday: "Thu",
+
+    fri: "Fri",
+    friday: "Fri",
+
+    sat: "Sat",
+    saturday: "Sat",
+
+    sun: "Sun",
+    sunday: "Sun",
+  };
+
+  return days
+    .map(
+      (day) =>
+        labels[day.toLowerCase()] || day
+    )
+    .join(" · ");
+}
+
+function formatTime(time: string) {
+  const [hours, minutes] = time
+    .split(":")
+    .map(Number);
+
+  if (
+    !Number.isFinite(hours) ||
+    !Number.isFinite(minutes)
+  ) {
+    return time;
+  }
+
+  const date = new Date();
+
+  date.setHours(
+    hours,
+    minutes,
+    0,
+    0
+  );
+
+  return new Intl.DateTimeFormat(
+    "en-US",
+    {
+      hour: "numeric",
+      minute: "2-digit",
+    }
+  ).format(date);
 }

@@ -27,11 +27,26 @@ interface StudentPageProps {
   }>;
 }
 
+interface Student {
+  id: string;
+  full_name: string;
+  preferred_name: string | null;
+  email: string | null;
+  country: string | null;
+  timezone: string | null;
+  contact_method: string | null;
+  preferred_language: string | null;
+  created_at: string | null;
+}
+
 interface Lesson {
   id: string;
+  enrollment_id: string;
+  student_id: string | null;
   lesson_number: number;
   lesson_date: string | null;
   duration: number | null;
+  schedule_time: string | null;
   attendance_status: string;
   notes: string | null;
   original_lesson_date: string | null;
@@ -51,18 +66,25 @@ interface Payment {
   notes: string | null;
   status: string;
   created_at?: string | null;
+  amount_received_php?: number | null;
+  amount_krw?: number | null;
+  amount_php?: number | null;
 }
 
 interface Contract {
   id: string;
+  enrollment_id?: string;
   contract_number: string | null;
   status: string | null;
   agreement_date: string | null;
   created_at: string | null;
+  updated_at?: string | null;
 }
 
 interface Enrollment {
   id: string;
+  student_id: string | null;
+  enrollment_number: string | null;
   package_name: string;
   number_of_lessons: number;
   lesson_duration: number | null;
@@ -72,20 +94,22 @@ interface Enrollment {
   schedule_days: string[] | null;
   schedule_time: string | null;
   renewal_of: string | null;
+  tuition_amount: number | null;
+  tuition_amount_php: number | null;
+  tuition_amount_krw: number | null;
+  currency: string | null;
+  payment_method: string | null;
+  payment_reference: string | null;
+  created_at?: string | null;
 
-  /*
-   * Supabase can return a relationship as:
-   * - an object
-   * - an array
-   * - null
-   *
-   * We normalize it everywhere before using it.
-   */
-  contracts: Contract | Contract[] | null;
-
+  contracts: Contract[];
   lessons: Lesson[];
   payments: Payment[];
 }
+
+/* -------------------------------------------------------------------------- */
+/* PAGE                                                                       */
+/* -------------------------------------------------------------------------- */
 
 export default async function StudentPage({
   params,
@@ -96,7 +120,14 @@ export default async function StudentPage({
 
   const supabase = await createClient();
 
-  const { data: student, error } = await supabase
+  /* ------------------------------------------------------------------------ */
+  /* 1. LOAD STUDENT                                                          */
+  /* ------------------------------------------------------------------------ */
+
+  const {
+    data: student,
+    error: studentError,
+  } = await supabase
     .from("students")
     .select(`
       id,
@@ -107,41 +138,104 @@ export default async function StudentPage({
       timezone,
       contact_method,
       preferred_language,
-      created_at,
-      enrollments (
-        id,
-        package_name,
-        number_of_lessons,
-        lesson_duration,
-        lessons_per_week,
-        start_date,
-        status,
-        schedule_days,
-        schedule_time,
-        renewal_of,
+      created_at
+    `)
+    .eq("id", id)
+    .single();
 
-        contracts (
-          id,
-          contract_number,
-          status,
-          agreement_date,
-          created_at
-        ),
+  if (studentError || !student) {
+    notFound();
+  }
 
-        lessons (
+  /* ------------------------------------------------------------------------ */
+  /* 2. LOAD ENROLLMENTS                                                      */
+  /* ------------------------------------------------------------------------ */
+
+  const {
+    data: enrollmentRows,
+    error: enrollmentError,
+  } = await supabase
+    .from("enrollments")
+    .select(`
+      id,
+      student_id,
+      enrollment_number,
+      package_name,
+      number_of_lessons,
+      lesson_duration,
+      lessons_per_week,
+      start_date,
+      status,
+      schedule_days,
+      schedule_time,
+      renewal_of,
+      tuition_amount,
+      tuition_amount_php,
+      tuition_amount_krw,
+      currency,
+      payment_method,
+      payment_reference,
+      created_at
+    `)
+    .eq("student_id", id);
+
+  if (enrollmentError) {
+    console.error(
+      "Error loading enrollments:",
+      enrollmentError
+    );
+
+    throw new Error(
+      "Unable to load student enrollments."
+    );
+  }
+
+  const rawEnrollments =
+    (enrollmentRows ?? []) as Enrollment[];
+
+  const enrollmentIds = rawEnrollments.map(
+    (enrollment) => enrollment.id
+  );
+
+  /* ------------------------------------------------------------------------ */
+  /* 3. LOAD RELATED RECORDS                                                  */
+  /* ------------------------------------------------------------------------ */
+
+  let lessons: Lesson[] = [];
+  let payments: Payment[] = [];
+  let contracts: Contract[] = [];
+
+  if (enrollmentIds.length > 0) {
+    const [
+      lessonsResult,
+      paymentsResult,
+      contractsResult,
+    ] = await Promise.all([
+      supabase
+        .from("lessons")
+        .select(`
           id,
+          enrollment_id,
+          student_id,
           lesson_number,
           lesson_date,
           duration,
+          schedule_time,
           attendance_status,
           notes,
           original_lesson_date,
           rescheduled_at,
           consumes_lesson,
           resolution
-        ),
+        `)
+        .in("enrollment_id", enrollmentIds)
+        .order("lesson_number", {
+          ascending: true,
+        }),
 
-        payments (
+      supabase
+        .from("payments")
+        .select(`
           id,
           enrollment_id,
           amount,
@@ -151,50 +245,126 @@ export default async function StudentPage({
           reference,
           notes,
           status,
-          created_at
-        )
-      )
-    `)
-    .eq("id", id)
-    .single();
+          created_at,
+          amount_received_php,
+          amount_krw,
+          amount_php
+        `)
+        .in("enrollment_id", enrollmentIds)
+        .order("created_at", {
+          ascending: false,
+        }),
 
-  if (error || !student) {
-    notFound();
+      supabase
+        .from("contracts")
+        .select(`
+          id,
+          enrollment_id,
+          contract_number,
+          status,
+          agreement_date,
+          created_at,
+          updated_at
+        `)
+        .in("enrollment_id", enrollmentIds)
+        .order("created_at", {
+          ascending: false,
+        }),
+    ]);
+
+    if (lessonsResult.error) {
+      console.error(
+        "Error loading lessons:",
+        lessonsResult.error
+      );
+    }
+
+    if (paymentsResult.error) {
+      console.error(
+        "Error loading payments:",
+        paymentsResult.error
+      );
+    }
+
+    if (contractsResult.error) {
+      console.error(
+        "Error loading contracts:",
+        contractsResult.error
+      );
+    }
+
+    lessons =
+      (lessonsResult.data ?? []) as Lesson[];
+
+    payments =
+      (paymentsResult.data ?? []) as Payment[];
+
+    contracts =
+      (contractsResult.data ?? []) as Contract[];
   }
 
-  const enrollments =
-    (student.enrollments ?? []) as unknown as Enrollment[];
+  /* ------------------------------------------------------------------------ */
+  /* 4. ATTACH RELATED RECORDS TO THEIR OWN ENROLLMENT                        */
+  /* ------------------------------------------------------------------------ */
 
-  /*
-   * ------------------------------------------------------------------------
-   * SORT ENROLLMENTS
-   * ------------------------------------------------------------------------
-   */
+  const enrollments: Enrollment[] =
+    rawEnrollments.map((enrollment) => ({
+      ...enrollment,
 
-  const sortedEnrollments = [...enrollments].sort((a, b) => {
-    const dateA = a.start_date
-      ? new Date(a.start_date).getTime()
-      : 0;
+      contracts: contracts.filter(
+        (contract) =>
+          contract.enrollment_id === enrollment.id
+      ),
 
-    const dateB = b.start_date
-      ? new Date(b.start_date).getTime()
-      : 0;
+      lessons: lessons.filter(
+        (lesson) =>
+          lesson.enrollment_id === enrollment.id
+      ),
 
-    return dateB - dateA;
-  });
+      payments: payments.filter(
+        (payment) =>
+          payment.enrollment_id === enrollment.id
+      ),
+    }));
 
-  /*
-   * ------------------------------------------------------------------------
-   * SELECT ENROLLMENT
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* 5. SORT ENROLLMENTS                                                       */
+  /* ------------------------------------------------------------------------ */
+
+  const sortedEnrollments = [...enrollments].sort(
+    (a, b) => {
+      const dateA =
+        getEnrollmentStartTimestamp(a);
+
+      const dateB =
+        getEnrollmentStartTimestamp(b);
+
+      if (dateB !== dateA) {
+        return dateB - dateA;
+      }
+
+      const createdA =
+        getEnrollmentCreatedTimestamp(a);
+
+      const createdB =
+        getEnrollmentCreatedTimestamp(b);
+
+      return createdB - createdA;
+    }
+  );
+
+  /* ------------------------------------------------------------------------ */
+  /* 6. SELECT ENROLLMENT                                                      */
+  /* ------------------------------------------------------------------------ */
 
   const selectedEnrollment = enrollmentId
     ? sortedEnrollments.find(
-        (enrollment) => enrollment.id === enrollmentId
+        (enrollment) =>
+          enrollment.id === enrollmentId
       )
     : sortedEnrollments.find(
-        (enrollment) => enrollment.status === "active"
+        (enrollment) =>
+          enrollment.status === "active"
       ) ??
       sortedEnrollments[0] ??
       null;
@@ -203,30 +373,39 @@ export default async function StudentPage({
     notFound();
   }
 
-  const currentEnrollment = selectedEnrollment;
+  const currentEnrollment =
+    selectedEnrollment;
 
-  const enrollmentHistory = sortedEnrollments.filter(
-    (enrollment) =>
-      enrollment.id !== currentEnrollment?.id
-  );
+  const enrollmentHistory =
+    sortedEnrollments.filter(
+      (enrollment) =>
+        enrollment.id !==
+        currentEnrollment?.id
+    );
 
-  /*
-   * ------------------------------------------------------------------------
-   * CURRENT ENROLLMENT LESSONS
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* 7. CURRENT ENROLLMENT LESSONS                                            */
+  /* ------------------------------------------------------------------------ */
 
-  const lessons = [
+  const currentEnrollmentLessons = [
     ...(currentEnrollment?.lessons ?? []),
-  ].sort(
-    (a, b) => a.lesson_number - b.lesson_number
-  );
+  ].sort((a, b) => {
+    const lessonNumberDifference =
+      a.lesson_number - b.lesson_number;
 
-  /*
-   * ------------------------------------------------------------------------
-   * CURRENT ENROLLMENT PAYMENT
-   * ------------------------------------------------------------------------
-   */
+    if (lessonNumberDifference !== 0) {
+      return lessonNumberDifference;
+    }
+
+    return (
+      getLessonTimestamp(a) -
+      getLessonTimestamp(b)
+    );
+  });
+
+  /* ------------------------------------------------------------------------ */
+  /* 8. CURRENT ENROLLMENT PAYMENTS                                            */
+  /* ------------------------------------------------------------------------ */
 
   const currentEnrollmentPayments = [
     ...(currentEnrollment?.payments ?? []),
@@ -235,92 +414,99 @@ export default async function StudentPage({
   const currentPayment =
     currentEnrollmentPayments[0] ?? null;
 
-  /*
-   * ------------------------------------------------------------------------
-   * PAYMENT HISTORY
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* 9. PAYMENT HISTORY                                                        */
+  /* ------------------------------------------------------------------------ */
 
   const paymentHistory = enrollments
     .flatMap((enrollment) =>
       Array.isArray(enrollment.payments)
-        ? enrollment.payments.map((payment) => ({
-            ...payment,
-            enrollment,
-          }))
+        ? enrollment.payments.map(
+            (payment) => ({
+              ...payment,
+              enrollment,
+            })
+          )
         : []
     )
     .sort(comparePaymentHistory);
 
-  /*
-   * ------------------------------------------------------------------------
-   * CONTRACT HISTORY
-   * ------------------------------------------------------------------------
-   *
-   * IMPORTANT:
-   *
-   * Do not call:
-   *
-   * (enrollment.contracts ?? []).map(...)
-   *
-   * because Supabase may return a single object instead of an array.
-   *
-   * We normalize the relationship first.
-   */
+  /* ------------------------------------------------------------------------ */
+  /* 10. CONTRACT HISTORY                                                      */
+  /* ------------------------------------------------------------------------ */
 
   const contractHistory = enrollments
     .flatMap((enrollment) => {
-      const contracts = normalizeContracts(
-        enrollment.contracts
-      );
+      const enrollmentContracts =
+        normalizeContracts(
+          enrollment.contracts
+        );
 
-      return contracts.map((contract) => ({
-        ...contract,
-        enrollment,
-      }));
+      return enrollmentContracts.map(
+        (contract) => ({
+          ...contract,
+          enrollment,
+        })
+      );
     })
     .sort(compareContractHistory);
 
+  /* ------------------------------------------------------------------------ */
+  /* 11. CURRENT CONTRACT                                                      */
+  /* ------------------------------------------------------------------------ */
+
+  const currentEnrollmentContract =
+    currentEnrollment
+      ? getEnrollmentContract(
+          currentEnrollment
+        )
+      : null;
+
+  /* ------------------------------------------------------------------------ */
+  /* 12. CURRENT ENROLLMENT ATTENDANCE                                         */
+  /* ------------------------------------------------------------------------ */
+
   /*
-   * ------------------------------------------------------------------------
-   * CURRENT ENROLLMENT CONTRACT
-   * ------------------------------------------------------------------------
+   * IMPORTANT:
+   * Attendance is calculated ONLY from the selected enrollment.
+   * We must never use the student's entire lesson history here.
    */
 
-  const currentEnrollmentContract = currentEnrollment
-    ? getEnrollmentContract(currentEnrollment)
-    : null;
+  const currentLessons =
+    currentEnrollmentLessons;
 
-  /*
-   * ------------------------------------------------------------------------
-   * ATTENDANCE
-   * ------------------------------------------------------------------------
-   */
+  const completedLessons =
+    currentLessons.filter(
+      (lesson) =>
+        lesson.attendance_status ===
+        "completed"
+    ).length;
 
-  const completedLessons = lessons.filter(
-    (lesson) =>
-      lesson.attendance_status === "completed"
-  ).length;
+  const scheduledLessons =
+    currentLessons.filter(
+      (lesson) =>
+        lesson.attendance_status ===
+        "scheduled"
+    ).length;
 
-  const scheduledLessons = lessons.filter(
-    (lesson) =>
-      lesson.attendance_status === "scheduled"
-  ).length;
+  const noShowLessons =
+    currentLessons.filter(
+      (lesson) =>
+        lesson.attendance_status ===
+        "no_show"
+    ).length;
 
-  const noShowLessons = lessons.filter(
-    (lesson) =>
-      lesson.attendance_status === "no_show"
-  ).length;
+  const lateCancellationLessons =
+    currentLessons.filter(
+      (lesson) =>
+        lesson.attendance_status ===
+        "late_cancellation"
+    ).length;
 
-  const lateCancellationLessons = lessons.filter(
-    (lesson) =>
-      lesson.attendance_status ===
-      "late_cancellation"
-  ).length;
-
-  const consumedLessons = lessons.filter(
-    (lesson) => lesson.consumes_lesson
-  ).length;
+  const consumedLessons =
+    currentLessons.filter(
+      (lesson) => lesson.consumes_lesson
+    ).length;
 
   const totalLessons =
     currentEnrollment?.number_of_lessons ?? 0;
@@ -330,11 +516,9 @@ export default async function StudentPage({
     0
   );
 
-  /*
-   * ------------------------------------------------------------------------
-   * ENROLLMENT LIFECYCLE
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* 13. ENROLLMENT LIFECYCLE                                                  */
+  /* ------------------------------------------------------------------------ */
 
   const enrollmentIsActive =
     !!currentEnrollment &&
@@ -342,50 +526,51 @@ export default async function StudentPage({
 
   const enrollmentIsCompleted =
     !!currentEnrollment &&
-    currentEnrollment.status === "completed";
+    currentEnrollment.status ===
+      "completed";
 
   const enrollmentIsConfirmed =
     enrollmentIsActive ||
     enrollmentIsCompleted;
 
+  /* ------------------------------------------------------------------------ */
+  /* 14. PAYMENT STATUS                                                        */
+  /* ------------------------------------------------------------------------ */
+
   const paymentIsPending =
     !!currentPayment &&
     currentPayment.status === "pending";
 
-  const paymentIsPaid =
-    !!currentPayment &&
-    currentPayment.status === "paid";
-
-  /*
-   * ------------------------------------------------------------------------
-   * CURRENT TUITION
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* 15. CURRENT TUITION                                                       */
+  /* ------------------------------------------------------------------------ */
 
   const currentTuitionAmount =
-    currentPayment?.amount ?? 0;
+    currentPayment?.amount ??
+    currentEnrollment?.tuition_amount ??
+    0;
 
   const currentCurrency =
-    currentPayment?.currency ?? "KRW";
+    currentPayment?.currency ??
+    currentEnrollment?.currency ??
+    "KRW";
 
-  /*
-   * ------------------------------------------------------------------------
-   * CURRENT CONTRACT STATUS
-   * ------------------------------------------------------------------------
-   *
-   * A completed enrollment means its contract is completed as well.
-   *
-   * This changes the displayed status without performing a database
-   * mutation while rendering the page.
-   */
+  /* ------------------------------------------------------------------------ */
+  /* 16. CONTRACT DISPLAY STATUS                                               */
+  /* ------------------------------------------------------------------------ */
 
   const currentContractDisplayStatus =
-    currentEnrollment && currentEnrollmentContract
+    currentEnrollment &&
+    currentEnrollmentContract
       ? getEffectiveContractStatus(
           currentEnrollmentContract,
           currentEnrollment
         )
       : null;
+
+  /* ------------------------------------------------------------------------ */
+  /* RENDER                                                                    */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
@@ -520,7 +705,7 @@ export default async function StudentPage({
               student.full_name
             }
             enrollment={currentEnrollment}
-            lessons={lessons}
+            lessons={currentLessons}
           />
         </div>
       )}
@@ -588,7 +773,9 @@ export default async function StudentPage({
 
             <InfoItem
               label="Contact Method"
-              value={student.contact_method}
+              value={
+                student.contact_method
+              }
             />
           </div>
         </section>
@@ -698,6 +885,23 @@ export default async function StudentPage({
                   >
                     {currentEnrollment.package_name}
                   </h3>
+
+                  {currentEnrollment.enrollment_number && (
+                    <p
+                      className="
+                        mt-2
+                        font-sans
+                        text-[11px]
+                        uppercase
+                        tracking-[0.08em]
+                        text-[#8A8A84]
+                      "
+                    >
+                      {
+                        currentEnrollment.enrollment_number
+                      }
+                    </p>
+                  )}
 
                   {currentEnrollment.renewal_of && (
                     <p
@@ -820,6 +1024,25 @@ export default async function StudentPage({
                         )
                       : "To be confirmed"
                   }
+                />
+
+                <DetailItem
+                  icon={
+                    <CreditCard
+                      size={15}
+                      strokeWidth={1.5}
+                    />
+                  }
+                  label="Tuition"
+                  value={formatCurrency(
+                    currentEnrollment.tuition_amount ??
+                      currentEnrollment.tuition_amount_krw ??
+                      currentEnrollment.tuition_amount_php,
+                    currentEnrollment.currency ??
+                      (currentEnrollment.tuition_amount_php
+                        ? "PHP"
+                        : "KRW")
+                  )}
                 />
               </div>
 
@@ -1300,7 +1523,7 @@ export default async function StudentPage({
                       text-[#6F8F72]
                     "
                   >
-                    Payment Details
+                    Payment
                   </p>
 
                   <p className="mt-2 font-serif text-[28px]">
@@ -1330,14 +1553,6 @@ export default async function StudentPage({
                 "
               >
                 <PaymentDetail
-                  label="Amount"
-                  value={formatCurrency(
-                    currentPayment.amount,
-                    currentPayment.currency
-                  )}
-                />
-
-                <PaymentDetail
                   label="Payment Date"
                   value={formatDate(
                     currentPayment.payment_date
@@ -1359,14 +1574,18 @@ export default async function StudentPage({
                   }
                 />
 
-                <PaymentDetail
-                  label="Status"
-                  value={
-                    paymentIsPaid
-                      ? "Paid"
-                      : "Pending confirmation"
-                  }
-                />
+                {currentPayment.amount_php !==
+                  null &&
+                  currentPayment.amount_php !==
+                    undefined && (
+                    <PaymentDetail
+                      label="PHP Amount"
+                      value={formatCurrency(
+                        currentPayment.amount_php,
+                        "PHP"
+                      )}
+                    />
+                  )}
               </div>
 
               {currentPayment.notes && (
@@ -1427,7 +1646,9 @@ export default async function StudentPage({
                     with this enrollment. Confirm the
                     payment once the student&apos;s payment
                     has been received. Confirmation will
-                    activate this enrollment.
+                    activate this enrollment and generate
+                    the lessons belonging to this
+                    enrollment.
                   </p>
                 </div>
               )}
@@ -1557,8 +1778,8 @@ export default async function StudentPage({
               </div>
 
               <div className="mt-8 space-y-3">
-                {lessons.length > 0 ? (
-                  lessons.map((lesson) => (
+                {currentLessons.length > 0 ? (
+                  currentLessons.map((lesson) => (
                     <LessonRow
                       key={lesson.id}
                       lesson={lesson}
@@ -1640,15 +1861,12 @@ export default async function StudentPage({
 /* CONTRACT HELPERS                                                           */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Normalize the Supabase contracts relationship.
- *
- * This is the main fix for:
- *
- * enrollment.contracts.map is not a function
- */
 function normalizeContracts(
-  contracts: Contract | Contract[] | null | undefined
+  contracts:
+    | Contract
+    | Contract[]
+    | null
+    | undefined
 ): Contract[] {
   if (!contracts) {
     return [];
@@ -1670,21 +1888,12 @@ function getEnrollmentContract(
     return null;
   }
 
-  /*
-   * If multiple contracts somehow exist for one enrollment,
-   * prefer the newest one.
-   */
-  return [...contracts].sort(
-    compareContracts
-  )[0] ?? null;
+  return (
+    [...contracts].sort(compareContracts)[0] ??
+    null
+  );
 }
 
-/**
- * If an enrollment is completed, its contract is considered
- * completed for display purposes.
- *
- * Cancelled contracts remain cancelled.
- */
 function getEffectiveContractStatus(
   contract: Contract,
   enrollment: Enrollment
@@ -1762,26 +1971,24 @@ function ContractHistoryRow({
                 "Contract"}
             </h4>
 
-            {effectiveStatus && (
-              <span
-                className="
-                  rounded-full
-                  bg-[#F0F4ED]
-                  px-3
-                  py-1
-                  font-sans
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.08em]
-                  text-[#6F8F72]
-                "
-              >
-                {formatContractStatus(
-                  effectiveStatus
-                )}
-              </span>
-            )}
+            <span
+              className="
+                rounded-full
+                bg-[#F0F4ED]
+                px-3
+                py-1
+                font-sans
+                text-[10px]
+                font-medium
+                uppercase
+                tracking-[0.08em]
+                text-[#6F8F72]
+              "
+            >
+              {formatContractStatus(
+                effectiveStatus
+              )}
+            </span>
 
             {isCurrent && (
               <span
@@ -1840,6 +2047,12 @@ function ContractHistoryRow({
             <span>
               {enrollment.number_of_lessons} lessons
             </span>
+
+            {enrollment.enrollment_number && (
+              <span>
+                {enrollment.enrollment_number}
+              </span>
+            )}
           </div>
         </div>
 
@@ -1982,6 +2195,12 @@ function PaymentHistoryRow({
                 Ref. {payment.reference}
               </span>
             )}
+
+            {enrollment.enrollment_number && (
+              <span>
+                {enrollment.enrollment_number}
+              </span>
+            )}
           </div>
         </div>
 
@@ -2103,6 +2322,12 @@ function EnrollmentHistoryRow({
               text-[#777771]
             "
           >
+            {enrollment.enrollment_number && (
+              <span>
+                {enrollment.enrollment_number}
+              </span>
+            )}
+
             <span>
               {formatDate(enrollment.start_date)}
             </span>
@@ -2219,6 +2444,14 @@ function LessonRow({
                 {lesson.duration ?? "—"} minutes
               </span>
 
+              {lesson.schedule_time && (
+                <span>
+                  {formatTime(
+                    lesson.schedule_time
+                  )}
+                </span>
+              )}
+
               {lesson.original_lesson_date &&
                 lesson.original_lesson_date !==
                   lesson.lesson_date && (
@@ -2268,7 +2501,9 @@ function LessonRow({
             currentStatus={
               lesson.attendance_status
             }
-            currentResolution={lesson.resolution}
+            currentResolution={
+              lesson.resolution
+            }
             currentLessonDate={
               lesson.lesson_date
             }
@@ -2607,7 +2842,7 @@ function PaymentStatusBadge({
 }
 
 /* -------------------------------------------------------------------------- */
-/* STATUS                                                                     */
+/* LESSON STATUS                                                              */
 /* -------------------------------------------------------------------------- */
 
 function StatusBadge({
@@ -2619,7 +2854,8 @@ function StatusBadge({
     scheduled: "Scheduled",
     completed: "Completed",
     no_show: "No-show",
-    late_cancellation: "Late cancellation",
+    late_cancellation:
+      "Late cancellation",
     student_cancelled_rescheduled:
       "Student cancelled · Rescheduled",
     student_cancelled_credit:
@@ -2727,10 +2963,13 @@ function formatPaymentMethod(
 /* -------------------------------------------------------------------------- */
 
 function formatCurrency(
-  amount: number | null,
-  currency: string | null
+  amount: number | null | undefined,
+  currency: string | null | undefined
 ) {
-  if (amount === null || amount === undefined) {
+  if (
+    amount === null ||
+    amount === undefined
+  ) {
     return "Not provided";
   }
 
@@ -2757,20 +2996,47 @@ function comparePayments(
   a: Payment,
   b: Payment
 ) {
-  const dateA = getPaymentTimestamp(a);
-  const dateB = getPaymentTimestamp(b);
+  const dateA =
+    getPaymentTimestamp(a);
+
+  const dateB =
+    getPaymentTimestamp(b);
 
   return dateB - dateA;
 }
 
 function comparePaymentHistory(
-  a: Payment & { enrollment: Enrollment },
-  b: Payment & { enrollment: Enrollment }
+  a: Payment & {
+    enrollment: Enrollment;
+  },
+  b: Payment & {
+    enrollment: Enrollment;
+  }
 ) {
-  const dateA = getPaymentTimestamp(a);
-  const dateB = getPaymentTimestamp(b);
+  const dateA =
+    getPaymentTimestamp(a);
 
-  return dateB - dateA;
+  const dateB =
+    getPaymentTimestamp(b);
+
+  if (dateB !== dateA) {
+    return dateB - dateA;
+  }
+
+  const enrollmentDateA =
+    getEnrollmentStartTimestamp(
+      a.enrollment
+    );
+
+  const enrollmentDateB =
+    getEnrollmentStartTimestamp(
+      b.enrollment
+    );
+
+  return (
+    enrollmentDateB -
+    enrollmentDateA
+  );
 }
 
 function getPaymentTimestamp(
@@ -2807,20 +3073,41 @@ function compareContracts(
   a: Contract,
   b: Contract
 ) {
-  const dateA = getContractTimestamp(a);
-  const dateB = getContractTimestamp(b);
+  const dateA =
+    getContractTimestamp(a);
+
+  const dateB =
+    getContractTimestamp(b);
 
   return dateB - dateA;
 }
 
 function compareContractHistory(
-  a: Contract & { enrollment: Enrollment },
-  b: Contract & { enrollment: Enrollment }
+  a: Contract & {
+    enrollment: Enrollment;
+  },
+  b: Contract & {
+    enrollment: Enrollment;
+  }
 ) {
-  const dateA = getContractTimestamp(a);
-  const dateB = getContractTimestamp(b);
+  const dateA =
+    getContractTimestamp(a);
 
-  return dateB - dateA;
+  const dateB =
+    getContractTimestamp(b);
+
+  if (dateB !== dateA) {
+    return dateB - dateA;
+  }
+
+  return (
+    getEnrollmentStartTimestamp(
+      b.enrollment
+    ) -
+    getEnrollmentStartTimestamp(
+      a.enrollment
+    )
+  );
 }
 
 function getContractTimestamp(
@@ -2850,41 +3137,125 @@ function getContractTimestamp(
 }
 
 /* -------------------------------------------------------------------------- */
+/* ENROLLMENT SORTING                                                         */
+/* -------------------------------------------------------------------------- */
+
+function getEnrollmentStartTimestamp(
+  enrollment: Enrollment
+) {
+  if (!enrollment.start_date) {
+    return 0;
+  }
+
+  const timestamp = new Date(
+    `${enrollment.start_date}T00:00:00`
+  ).getTime();
+
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : 0;
+}
+
+function getEnrollmentCreatedTimestamp(
+  enrollment: Enrollment
+) {
+  if (!enrollment.created_at) {
+    return 0;
+  }
+
+  const timestamp =
+    new Date(
+      enrollment.created_at
+    ).getTime();
+
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* LESSON SORTING                                                             */
+/* -------------------------------------------------------------------------- */
+
+function getLessonTimestamp(
+  lesson: Lesson
+) {
+  if (!lesson.lesson_date) {
+    return 0;
+  }
+
+  const timestamp = new Date(
+    `${lesson.lesson_date}T00:00:00`
+  ).getTime();
+
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : 0;
+}
+
+/* -------------------------------------------------------------------------- */
 /* FORMATTERS                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function formatDate(date: string | null) {
-  if (!date) return "Not set";
+function formatDate(
+  date: string | null | undefined
+) {
+  if (!date) {
+    return "Not set";
+  }
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(
-    new Date(`${date}T00:00:00`)
+  const parsed = new Date(
+    `${date}T00:00:00`
   );
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "Not set";
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-US",
+    {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }
+  ).format(parsed);
 }
 
 function formatTime(time: string) {
-  const [hours, minutes] = time.split(":");
+  const [hours, minutes] =
+    time.split(":");
+
+  const numericHours = Number(hours);
+  const numericMinutes = Number(minutes);
+
+  if (
+    !Number.isFinite(numericHours) ||
+    !Number.isFinite(numericMinutes)
+  ) {
+    return time;
+  }
 
   const date = new Date();
 
   date.setHours(
-    Number(hours),
-    Number(minutes),
+    numericHours,
+    numericMinutes,
     0,
     0
   );
 
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
+  return new Intl.DateTimeFormat(
+    "en-US",
+    {
+      hour: "numeric",
+      minute: "2-digit",
+    }
+  ).format(date);
 }
 
 function formatScheduleDays(
-  days: string[] | null
+  days: string[] | null | undefined
 ) {
   if (!days || days.length === 0) {
     return "Not set";
@@ -2903,7 +3274,8 @@ function formatScheduleDays(
   return days
     .map(
       (day) =>
-        labels[day.toLowerCase()] ?? day
+        labels[day.toLowerCase()] ??
+        day
     )
     .join(", ");
 }

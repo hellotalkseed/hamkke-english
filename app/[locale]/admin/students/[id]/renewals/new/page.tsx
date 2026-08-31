@@ -4,6 +4,8 @@ import {
   ArrowLeft,
   BookOpen,
   RefreshCw,
+  CreditCard,
+  CalendarDays,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
@@ -366,7 +368,10 @@ export default async function NewRenewalPage({
             value={locale}
           />
 
-          {/* RENEWAL RELATIONSHIP */}
+          {/* ============================================================ */}
+          {/* RENEWAL RELATIONSHIP                                         */}
+          {/* ============================================================ */}
+
           <section className="rounded-2xl bg-[#F0F4ED] p-6 sm:p-8">
             <div className="flex items-center gap-4">
               <div
@@ -454,7 +459,10 @@ export default async function NewRenewalPage({
             />
           </section>
 
-          {/* LESSON PACKAGE */}
+          {/* ============================================================ */}
+          {/* LESSON PACKAGE                                                */}
+          {/* ============================================================ */}
+
           <section>
             <div className="mb-8 flex items-center gap-4">
               <div
@@ -489,6 +497,8 @@ export default async function NewRenewalPage({
             </div>
 
             <div className="space-y-7">
+              {/* PACKAGE NAME */}
+
               <Field
                 label="Package Name"
                 id="package_name"
@@ -499,6 +509,8 @@ export default async function NewRenewalPage({
                 }
                 required
               />
+
+              {/* NUMBER OF LESSONS */}
 
               <Field
                 label="Number of Lessons"
@@ -511,6 +523,8 @@ export default async function NewRenewalPage({
                 min="1"
                 required
               />
+
+              {/* LESSON DURATION */}
 
               <Field
                 label="Lesson Duration"
@@ -525,6 +539,8 @@ export default async function NewRenewalPage({
                 required
               />
 
+              {/* LESSONS PER WEEK */}
+
               <Field
                 label="Lessons Per Week"
                 id="lessons_per_week"
@@ -538,31 +554,13 @@ export default async function NewRenewalPage({
                 required
               />
 
-              <Field
-                label="Start Date"
-                id="start_date"
-                name="start_date"
-                type="date"
-                required
-              />
-
-              <Field
-                label="Tuition Amount"
-                id="tuition_amount"
-                name="tuition_amount"
-                type="number"
-                defaultValue={String(
-                  previousEnrollment.tuition_amount ??
-                    2940
-                )}
-                min="0"
-                step="0.01"
-                required
-              />
+              {/* ======================================================== */}
+              {/* LESSON START DATE                                         */}
+              {/* ======================================================== */}
 
               <div>
                 <label
-                  htmlFor="currency"
+                  htmlFor="start_date"
                   className="
                     block
                     font-sans
@@ -573,16 +571,14 @@ export default async function NewRenewalPage({
                     text-[#6F8F72]
                   "
                 >
-                  Currency
+                  Lesson Start Date
                 </label>
 
-                <select
-                  id="currency"
-                  name="currency"
-                  defaultValue={
-                    previousEnrollment.currency ||
-                    "KRW"
-                  }
+                <input
+                  id="start_date"
+                  name="start_date"
+                  type="date"
+                  required
                   className="
                     mt-3
                     w-full
@@ -595,54 +591,336 @@ export default async function NewRenewalPage({
                     text-[19px]
                     text-[#292929]
                     outline-none
+                    transition-colors
                     focus:border-[#6F8F72]
                   "
+                />
+
+                <p
+                  className="
+                    mt-3
+                    font-sans
+                    text-[12px]
+                    leading-5
+                    text-[#777771]
+                  "
                 >
-                  <option value="PHP">
-                    PHP
-                  </option>
+                  This is the date the renewed lessons begin.
+                  Lesson dates are generated from this date,
+                  the selected schedule, and the number of
+                  lessons. It is independent of the payment
+                  date.
+                </p>
+              </div>
 
-                  <option value="KRW">
-                    KRW
-                  </option>
+              {/* ======================================================== */}
+              {/* TUITION                                                   */}
+              {/* ======================================================== */}
 
-                  <option value="USD">
-                    USD
-                  </option>
-                </select>
+              <div>
+                <p
+                  className="
+                    font-sans
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.14em]
+                    text-[#6F8F72]
+                  "
+                >
+                  Tuition
+                </p>
+
+                <p
+                  className="
+                    mt-2
+                    font-sans
+                    text-[12px]
+                    leading-5
+                    text-[#777771]
+                  "
+                >
+                  Record the agreed tuition in both KRW and
+                  PHP. The KRW amount is the Korean payment
+                  amount, while the PHP amount records its
+                  equivalent for your bookkeeping.
+                </p>
+
+                <div className="mt-5 grid gap-6 sm:grid-cols-2">
+                  <Field
+                    label="Tuition Amount (KRW)"
+                    id="tuition_amount_krw"
+                    name="tuition_amount_krw"
+                    type="number"
+                    placeholder="75000"
+                    min="0"
+                    step="1"
+                    required
+                  />
+
+                  <Field
+                    label="Tuition Amount (PHP)"
+                    id="tuition_amount_php"
+                    name="tuition_amount_php"
+                    type="number"
+                    placeholder="2940"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* ======================================================== */}
+              {/* PAYMENT DETAILS                                           */}
+              {/* ======================================================== */}
+
+              <div
+                className="
+                  rounded-2xl
+                  bg-[#F0F4ED]
+                  p-6
+                  sm:p-8
+                "
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-[#E2EBDD]
+                      text-[#6F8F72]
+                    "
+                  >
+                    <CreditCard
+                      size={16}
+                      strokeWidth={1.5}
+                    />
+                  </div>
+
+                  <p
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Payment Details
+                  </p>
+                </div>
+
+                <p
+                  className="
+                    mt-3
+                    font-sans
+                    text-[13px]
+                    leading-6
+                    text-[#6B6B66]
+                  "
+                >
+                  Payment information is recorded separately
+                  from the lesson schedule. The payment date
+                  records when the payment was actually received
+                  or recorded. It does not determine when the
+                  renewed lessons begin.
+                </p>
+
+                <div className="mt-7 space-y-7">
+                  {/* PAYMENT DATE */}
+
+                  <div>
+                    <label
+                      htmlFor="payment_date"
+                      className="
+                        block
+                        font-sans
+                        text-[11px]
+                        font-medium
+                        uppercase
+                        tracking-[0.14em]
+                        text-[#6F8F72]
+                      "
+                    >
+                      Payment Date
+                    </label>
+
+                    <input
+                      id="payment_date"
+                      name="payment_date"
+                      type="date"
+                      required
+                      className="
+                        mt-3
+                        w-full
+                        border-b
+                        border-[#CFCBC4]
+                        bg-transparent
+                        px-0
+                        py-3
+                        font-serif
+                        text-[19px]
+                        text-[#292929]
+                        outline-none
+                        transition-colors
+                        focus:border-[#6F8F72]
+                      "
+                    />
+
+                    <p
+                      className="
+                        mt-3
+                        font-sans
+                        text-[12px]
+                        leading-5
+                        text-[#777771]
+                      "
+                    >
+                      Enter the actual date the renewal payment
+                      was received or recorded. This date is for
+                      payment records only and does not change
+                      the lesson start date.
+                    </p>
+                  </div>
+
+                  {/* PAYMENT METHOD */}
+
+                  <div>
+                    <label
+                      htmlFor="payment_method"
+                      className="
+                        block
+                        font-sans
+                        text-[11px]
+                        font-medium
+                        uppercase
+                        tracking-[0.14em]
+                        text-[#6F8F72]
+                      "
+                    >
+                      Payment Method
+                    </label>
+
+                    <select
+                      id="payment_method"
+                      name="payment_method"
+                      defaultValue="pending"
+                      className="
+                        mt-3
+                        w-full
+                        border-b
+                        border-[#CFCBC4]
+                        bg-transparent
+                        px-0
+                        py-3
+                        font-serif
+                        text-[19px]
+                        text-[#292929]
+                        outline-none
+                        focus:border-[#6F8F72]
+                      "
+                    >
+                      <option value="pending">
+                        Pending
+                      </option>
+
+                      <option value="Bank Transfer">
+                        Bank Transfer
+                      </option>
+
+                      <option value="PayPal">
+                        PayPal
+                      </option>
+
+                      <option value="GCash">
+                        GCash
+                      </option>
+
+                      <option value="Cash">
+                        Cash
+                      </option>
+
+                      <option value="Other">
+                        Other
+                      </option>
+                    </select>
+                  </div>
+
+                  {/* REFERENCE NUMBER */}
+
+                  <Field
+                    label="Reference Number"
+                    id="reference"
+                    name="reference"
+                    type="text"
+                    placeholder="Optional"
+                  />
+                </div>
               </div>
             </div>
           </section>
 
-          {/* SCHEDULE */}
+          {/* ============================================================ */}
+          {/* SCHEDULE                                                      */}
+          {/* ============================================================ */}
+
           <section className="rounded-2xl bg-[#F0F4ED] p-6 sm:p-8">
-            <p
-              className="
-                font-sans
-                text-[11px]
-                font-medium
-                uppercase
-                tracking-[0.14em]
-                text-[#6F8F72]
-              "
-            >
-              Schedule
-            </p>
+            <div className="flex items-center gap-3">
+              <div
+                className="
+                  flex
+                  h-9
+                  w-9
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#E2EBDD]
+                  text-[#6F8F72]
+                "
+              >
+                <CalendarDays
+                  size={16}
+                  strokeWidth={1.5}
+                />
+              </div>
+
+              <p
+                className="
+                  font-sans
+                  text-[11px]
+                  font-medium
+                  uppercase
+                  tracking-[0.14em]
+                  text-[#6F8F72]
+                "
+              >
+                Lesson Schedule
+              </p>
+            </div>
 
             <p
               className="
-                mt-2
+                mt-3
                 font-sans
                 text-[13px]
                 leading-6
                 text-[#6B6B66]
               "
             >
-              The previous schedule has been carried
-              over. Change anything that needs updating.
+              The previous schedule has been carried over.
+              Change anything that needs updating. This
+              schedule is used together with the lesson start
+              date to generate the renewed lessons.
             </p>
 
             {/* DAYS */}
+
             <div className="mt-7">
               <p
                 className="
@@ -714,6 +992,7 @@ export default async function NewRenewalPage({
             </div>
 
             {/* TIME */}
+
             <div className="mt-8">
               <label
                 htmlFor="schedule_time"
@@ -764,13 +1043,17 @@ export default async function NewRenewalPage({
                   text-[#777771]
                 "
               >
-                Leave blank if the lesson time has not
-                been confirmed yet.
+                Leave blank if the lesson time has not been
+                confirmed yet. The contract will show
+                "To be confirmed."
               </p>
             </div>
           </section>
 
-          {/* WORKFLOW */}
+          {/* ============================================================ */}
+          {/* WORKFLOW                                                      */}
+          {/* ============================================================ */}
+
           <section className="rounded-2xl bg-[#F0F4ED] p-6 sm:p-8">
             <p
               className="
@@ -795,24 +1078,27 @@ export default async function NewRenewalPage({
               <WorkflowStep
                 number="02"
                 title="Contract for review"
-                description="A new contract is created for the renewed package."
+                description="A new contract is created for the renewed package, including its own lesson start date and schedule."
               />
 
               <WorkflowStep
                 number="03"
-                title="Payment"
-                description="Payment remains pending until the student's renewal payment is confirmed."
+                title="Payment recorded"
+                description="The payment record stores the KRW amount, PHP amount, payment date, payment method, and reference number. The payment date is kept separately from the lesson start date."
               />
 
               <WorkflowStep
                 number="04"
                 title="New package becomes active"
-                description="Once payment is confirmed, the renewal becomes active and a fresh set of lessons is generated."
+                description="Once payment is confirmed, the renewal becomes active and a fresh set of lessons is generated from the lesson start date and schedule."
               />
             </div>
           </section>
 
-          {/* ACTIONS */}
+          {/* ============================================================ */}
+          {/* ACTIONS                                                       */}
+          {/* ============================================================ */}
+
           <div
             className="
               flex

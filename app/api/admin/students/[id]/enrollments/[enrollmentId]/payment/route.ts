@@ -19,23 +19,24 @@ export async function POST(
 
   const locale = String(
     formData.get("locale") || "en"
-  );
+  ).trim();
 
-  /*
-   * --------------------------------------------------------------------------
-   * STEP 1
-   * VERIFY ENROLLMENT
-   * --------------------------------------------------------------------------
-   *
-   * Make sure this enrollment belongs to this student.
-   */
+  /* -------------------------------------------------------------------------- */
+  /* STEP 1: VERIFY ENROLLMENT                                                  */
+  /* -------------------------------------------------------------------------- */
 
   const {
     data: enrollment,
     error: enrollmentError,
   } = await supabase
     .from("enrollments")
-    .select("id, student_id")
+    .select(
+      `
+        id,
+        student_id,
+        status
+      `
+    )
     .eq("id", enrollmentId)
     .eq("student_id", id)
     .single();
@@ -47,16 +48,17 @@ export async function POST(
     );
   }
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 2: FIND PAYMENT FOR THIS ENROLLMENT                                   */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * STEP 2
-   * FIND THE PAYMENT FOR THIS ENROLLMENT
-   * --------------------------------------------------------------------------
+   * Every enrollment has its own payment record.
    *
-   * The renewal form already creates the payment record.
+   * We ONLY search by enrollment_id.
    *
-   * This route does NOT create a new payment.
-   * It only confirms the existing one.
+   * This prevents one enrollment from accidentally confirming
+   * another enrollment's payment.
    */
 
   const {
@@ -64,17 +66,21 @@ export async function POST(
     error: paymentLookupError,
   } = await supabase
     .from("payments")
-    .select(`
-      id,
-      enrollment_id,
-      amount,
-      currency,
-      payment_date,
-      payment_method,
-      reference,
-      notes,
-      status
-    `)
+    .select(
+      `
+        id,
+        enrollment_id,
+        amount,
+        currency,
+        amount_krw,
+        amount_php,
+        payment_date,
+        payment_method,
+        reference,
+        notes,
+        status
+      `
+    )
     .eq("enrollment_id", enrollmentId)
     .order("created_at", {
       ascending: false,
@@ -85,7 +91,12 @@ export async function POST(
   if (paymentLookupError) {
     console.error(
       "PAYMENT LOOKUP ERROR:",
-      paymentLookupError
+      {
+        code: paymentLookupError.code,
+        message: paymentLookupError.message,
+        details: paymentLookupError.details,
+        hint: paymentLookupError.hint,
+      }
     );
 
     return new NextResponse(
@@ -106,12 +117,31 @@ Message: ${
     );
   }
 
-  /*
-   * --------------------------------------------------------------------------
-   * STEP 3
-   * PREVENT DUPLICATE CONFIRMATION
-   * --------------------------------------------------------------------------
-   */
+  /* -------------------------------------------------------------------------- */
+  /* STEP 3: VERIFY PAYMENT OWNERSHIP                                           */
+  /* -------------------------------------------------------------------------- */
+
+  if (payment.enrollment_id !== enrollmentId) {
+    console.error(
+      "PAYMENT ENROLLMENT MISMATCH:",
+      {
+        paymentId: payment.id,
+        paymentEnrollmentId:
+          payment.enrollment_id,
+        requestedEnrollmentId:
+          enrollmentId,
+      }
+    );
+
+    return new NextResponse(
+      "This payment does not belong to the selected enrollment.",
+      { status: 400 }
+    );
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* STEP 4: PREVENT DUPLICATE CONFIRMATION                                     */
+  /* -------------------------------------------------------------------------- */
 
   if (payment.status === "paid") {
     return NextResponse.redirect(
@@ -122,19 +152,31 @@ Message: ${
     );
   }
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 5: READ FORM VALUES                                                   */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * STEP 4
-   * READ OPTIONAL PAYMENT DETAILS
-   * --------------------------------------------------------------------------
+   * The confirmation form may use either the original payment field names
+   * or the newer renewal field names.
    *
-   * Normally the renewal form has already stored these values.
-   *
-   * If they are not submitted here, preserve the existing values.
+   * We support both so the workflow remains compatible.
    */
 
   const amountValue =
     formData.get("amount");
+
+  const tuitionAmountKrwValue =
+    formData.get("tuition_amount_krw");
+
+  const amountKrwValue =
+    formData.get("amount_krw");
+
+  const amountPhpValue =
+    formData.get("amount_php");
+
+  const tuitionAmountPhpValue =
+    formData.get("tuition_amount_php");
 
   const currencyValue =
     formData.get("currency");
@@ -145,46 +187,131 @@ Message: ${
   const paymentMethodValue =
     formData.get("payment_method");
 
+  /*
+   * Support both:
+   *
+   * reference
+   * payment_reference
+   *
+   * The database column remains:
+   *
+   * reference
+   */
   const referenceValue =
-    formData.get("reference");
+    formData.get("reference") ??
+    formData.get("payment_reference");
 
   const notesValue =
     formData.get("notes");
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 6: KRW AMOUNT                                                        */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * AMOUNT
-   * --------------------------------------------------------------------------
+   * KRW is the primary amount for the enrollment.
+   *
+   * Priority:
+   *
+   * 1. amount
+   * 2. tuition_amount_krw
+   * 3. amount_krw
+   * 4. existing payment amount_krw
+   * 5. existing payment amount
    */
 
-  let amount = payment.amount;
+  let amountKrw =
+    payment.amount_krw !== null
+      ? Number(payment.amount_krw)
+      : payment.amount !== null
+        ? Number(payment.amount)
+        : 0;
+
+  const submittedKrwValue =
+    amountValue ??
+    tuitionAmountKrwValue ??
+    amountKrwValue;
 
   if (
-    amountValue !== null &&
-    String(amountValue).trim() !== ""
+    submittedKrwValue !== null &&
+    String(submittedKrwValue).trim() !== ""
   ) {
-    const parsedAmount = Number(
-      String(amountValue).trim()
+    const parsedAmountKrw = Number(
+      String(submittedKrwValue).trim()
     );
 
     if (
-      !Number.isFinite(parsedAmount) ||
-      parsedAmount < 0
+      !Number.isFinite(parsedAmountKrw) ||
+      parsedAmountKrw < 0
     ) {
       return new NextResponse(
-        "Invalid payment amount.",
+        "Invalid KRW payment amount.",
         { status: 400 }
       );
     }
 
-    amount = parsedAmount;
+    amountKrw = parsedAmountKrw;
   }
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 7: PHP AMOUNT                                                        */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * CURRENCY
-   * --------------------------------------------------------------------------
+   * PHP is stored independently from the primary KRW amount.
+   *
+   * Priority:
+   *
+   * 1. tuition_amount_php
+   * 2. amount_php
+   * 3. existing payment amount_php
+   *
+   * We NEVER replace an existing PHP value with null
+   * simply because the confirmation form did not submit it.
    */
+
+  let amountPhp =
+    payment.amount_php !== null
+      ? Number(payment.amount_php)
+      : null;
+
+  const submittedPhpValue =
+    tuitionAmountPhpValue ??
+    amountPhpValue;
+
+  if (
+    submittedPhpValue !== null &&
+    String(submittedPhpValue).trim() !== ""
+  ) {
+    const parsedAmountPhp = Number(
+      String(submittedPhpValue).trim()
+    );
+
+    if (
+      !Number.isFinite(parsedAmountPhp) ||
+      parsedAmountPhp < 0
+    ) {
+      return new NextResponse(
+        "Invalid PHP payment amount.",
+        { status: 400 }
+      );
+    }
+
+    amountPhp = parsedAmountPhp;
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* STEP 8: PRIMARY PAYMENT AMOUNT                                             */
+  /* -------------------------------------------------------------------------- */
+
+  /*
+   * The payments.amount column represents the primary KRW amount.
+   */
+  const amount = amountKrw;
+
+  /* -------------------------------------------------------------------------- */
+  /* STEP 9: CURRENCY                                                           */
+  /* -------------------------------------------------------------------------- */
 
   const currency =
     currencyValue !== null &&
@@ -194,10 +321,18 @@ Message: ${
           .toUpperCase()
       : payment.currency || "KRW";
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 10: PAYMENT DATE                                                      */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * PAYMENT DATE
-   * --------------------------------------------------------------------------
+   * If a payment date is supplied during confirmation,
+   * use it.
+   *
+   * Otherwise preserve the existing date.
+   *
+   * If neither exists, use today's date because payment is
+   * being confirmed now.
    */
 
   const today = new Date()
@@ -210,13 +345,17 @@ Message: ${
       ? String(paymentDateValue).trim()
       : payment.payment_date || today;
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 11: PAYMENT METHOD                                                    */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * PAYMENT METHOD
-   * --------------------------------------------------------------------------
+   * "pending" is a status, not a payment method.
    *
-   * "pending" is a payment STATUS.
-   * It should never be stored as a payment method.
+   * If the confirmation form supplies a real payment method,
+   * use it.
+   *
+   * Otherwise preserve the existing method.
    */
 
   let paymentMethod =
@@ -238,10 +377,22 @@ Message: ${
     }
   }
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 12: REFERENCE                                                        */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * REFERENCE
-   * --------------------------------------------------------------------------
+   * The form may submit:
+   *
+   * payment_reference
+   *
+   * or:
+   *
+   * reference
+   *
+   * Both are saved to:
+   *
+   * payments.reference
    */
 
   const reference =
@@ -249,32 +400,47 @@ Message: ${
       ? String(referenceValue).trim() || null
       : payment.reference || null;
 
-  /*
-   * --------------------------------------------------------------------------
-   * NOTES
-   * --------------------------------------------------------------------------
-   */
+  /* -------------------------------------------------------------------------- */
+  /* STEP 13: NOTES                                                            */
+  /* -------------------------------------------------------------------------- */
 
   const notes =
     notesValue !== null
       ? String(notesValue).trim() || null
       : payment.notes || null;
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 14: CONFIRM PAYMENT                                                   */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * STEP 5
-   * CONFIRM PAYMENT
-   * --------------------------------------------------------------------------
+   * IMPORTANT:
    *
-   * The important change is:
+   * This route does NOT:
    *
-   * status: "paid"
+   * - activate the enrollment
+   * - activate the contract
+   * - generate lessons
    *
-   * Your existing database trigger should then handle:
+   * It ONLY changes the payment:
    *
-   * - activating the enrollment
-   * - activating the contract
-   * - generating lessons
+   *     pending → paid
+   *
+   * The existing database trigger:
+   *
+   *     payment_paid_activation
+   *
+   * should then call:
+   *
+   *     handle_payment_paid()
+   *
+   * and handle:
+   *
+   * 1. THIS enrollment
+   * 2. THIS enrollment's contract
+   * 3. THIS enrollment's lessons
+   *
+   * This keeps activation centralized in the database.
    */
 
   const {
@@ -282,22 +448,57 @@ Message: ${
   } = await supabase
     .from("payments")
     .update({
+      /*
+       * Primary KRW amount.
+       */
       amount,
+
+      /*
+       * Primary currency.
+       */
       currency,
+
+      /*
+       * Explicit KRW amount.
+       */
+      amount_krw: amountKrw,
+
+      /*
+       * Explicit PHP equivalent.
+       */
+      amount_php: amountPhp,
+
+      /*
+       * Actual payment date.
+       */
       payment_date: paymentDate,
+
+      /*
+       * Actual payment method.
+       */
       payment_method: paymentMethod,
+
+      /*
+       * Payment reference.
+       */
       reference,
+
+      /*
+       * Optional notes.
+       */
       notes,
+
+      /*
+       * This is the ONLY activation event.
+       */
       status: "paid",
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id)
+    .eq("enrollment_id", enrollmentId);
 
-  /*
-   * --------------------------------------------------------------------------
-   * STEP 6
-   * HANDLE UPDATE ERROR
-   * --------------------------------------------------------------------------
-   */
+  /* -------------------------------------------------------------------------- */
+  /* STEP 15: HANDLE UPDATE ERROR                                               */
+  /* -------------------------------------------------------------------------- */
 
   if (paymentUpdateError) {
     console.error(
@@ -336,12 +537,131 @@ Hint: ${
     );
   }
 
+  /* -------------------------------------------------------------------------- */
+  /* STEP 16: VERIFY PAYMENT                                                    */
+  /* -------------------------------------------------------------------------- */
+
   /*
-   * --------------------------------------------------------------------------
-   * STEP 7
-   * RETURN TO STUDENT RECORD
-   * --------------------------------------------------------------------------
+   * Verify that the payment itself was actually changed to paid.
    */
+
+  const {
+    data: updatedPayment,
+    error: updatedPaymentError,
+  } = await supabase
+    .from("payments")
+    .select(
+      `
+        id,
+        enrollment_id,
+        status,
+        amount,
+        currency,
+        amount_krw,
+        amount_php,
+        payment_date,
+        payment_method,
+        reference,
+        notes
+      `
+    )
+    .eq("id", payment.id)
+    .eq("enrollment_id", enrollmentId)
+    .single();
+
+  if (
+    updatedPaymentError ||
+    !updatedPayment
+  ) {
+    console.error(
+      "PAYMENT VERIFICATION ERROR:",
+      updatedPaymentError
+    );
+
+    return new NextResponse(
+      "Payment was updated, but the payment record could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  if (updatedPayment.status !== "paid") {
+    console.error(
+      "PAYMENT STATUS VERIFICATION FAILED:",
+      {
+        paymentId: payment.id,
+        status:
+          updatedPayment.status,
+      }
+    );
+
+    return new NextResponse(
+      "Payment confirmation could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* STEP 17: VERIFY ENROLLMENT ACTIVATION                                      */
+  /* -------------------------------------------------------------------------- */
+
+  /*
+   * The database trigger should now have activated THIS enrollment.
+   *
+   * We verify it.
+   *
+   * We do not manually activate it.
+   */
+
+  const {
+    data: updatedEnrollment,
+    error: updatedEnrollmentError,
+  } = await supabase
+    .from("enrollments")
+    .select(
+      `
+        id,
+        student_id,
+        status
+      `
+    )
+    .eq("id", enrollmentId)
+    .eq("student_id", id)
+    .single();
+
+  if (updatedEnrollmentError) {
+    console.error(
+      "ENROLLMENT VERIFICATION ERROR:",
+      updatedEnrollmentError
+    );
+
+    return new NextResponse(
+      "Payment was confirmed, but the enrollment could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  if (
+    !updatedEnrollment ||
+    updatedEnrollment.status !== "active"
+  ) {
+    console.error(
+      "ENROLLMENT ACTIVATION FAILED:",
+      {
+        enrollmentId,
+        status:
+          updatedEnrollment?.status,
+      }
+    );
+
+    return new NextResponse(
+      "Payment was confirmed, but the enrollment was not activated.",
+      { status: 500 }
+    );
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* STEP 18: RETURN TO STUDENT RECORD                                          */
+  /* -------------------------------------------------------------------------- */
 
   return NextResponse.redirect(
     new URL(

@@ -33,23 +33,21 @@ interface StudentRow {
 }
 
 interface PaymentRow {
-  amount: number | null;
-  currency: string | null;
+  amount_received_php: number | null;
   payment_date: string | null;
   status: string | null;
 }
 
-function formatMoney(
-  amount: number,
-  currency: string
-) {
+function formatMoney(amount: number, currency: string) {
   if (currency === "KRW") {
     return `₩${amount.toLocaleString("en-US")}`;
   }
 
-  return `${currency} ${amount.toLocaleString(
-    "en-US"
-  )}`;
+  if (currency === "PHP") {
+    return `₱${amount.toLocaleString("en-US")}`;
+  }
+
+  return `${currency} ${amount.toLocaleString("en-US")}`;
 }
 
 function formatSchedule(
@@ -107,8 +105,7 @@ function formatTime(time: string) {
   }
 
   const suffix = hour >= 12 ? "PM" : "AM";
-  const displayHour =
-    hour % 12 === 0 ? 12 : hour % 12;
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
 
   return `${displayHour}:${minute} ${suffix}`;
 }
@@ -118,40 +115,34 @@ function getStatusStyles(status: string | null) {
     case "active":
       return {
         label: "Active",
-        className:
-          "bg-[#E2EBDD] text-[#5F7D63]",
+        className: "bg-[#E2EBDD] text-[#5F7D63]",
       };
 
     case "pending":
       return {
         label: "Pending",
-        className:
-          "bg-[#F5EEDB] text-[#92783F]",
+        className: "bg-[#F5EEDB] text-[#92783F]",
       };
 
     case "completed":
       return {
         label: "Completed",
-        className:
-          "bg-[#EAE8E3] text-[#77736B]",
+        className: "bg-[#EAE8E3] text-[#77736B]",
       };
 
     case "cancelled":
     case "canceled":
       return {
         label: "Cancelled",
-        className:
-          "bg-[#F2E3E0] text-[#95645C]",
+        className: "bg-[#F2E3E0] text-[#95645C]",
       };
 
     default:
       return {
         label: status
-          ? status.charAt(0).toUpperCase() +
-            status.slice(1)
+          ? status.charAt(0).toUpperCase() + status.slice(1)
           : "Unknown",
-        className:
-          "bg-[#ECEAE6] text-[#77736B]",
+        className: "bg-[#ECEAE6] text-[#77736B]",
       };
   }
 }
@@ -209,8 +200,7 @@ export default async function OverviewPage({
     );
   }
 
-  const studentRows =
-    (students ?? []) as StudentRow[];
+  const studentRows = (students ?? []) as StudentRow[];
 
   /*
    * --------------------------------------------------------------------------
@@ -218,6 +208,14 @@ export default async function OverviewPage({
    * --------------------------------------------------------------------------
    *
    * Only PAID payments are counted as income.
+   *
+   * Income is based on the actual PHP amount received.
+   *
+   * Example:
+   * Tuition: ₩75,000
+   * Amount actually received through GCash: ₱3,000
+   *
+   * Overview income: ₱3,000
    */
 
   const {
@@ -226,8 +224,7 @@ export default async function OverviewPage({
   } = await supabase
     .from("payments")
     .select(`
-      amount,
-      currency,
+      amount_received_php,
       payment_date,
       status
     `)
@@ -247,8 +244,7 @@ export default async function OverviewPage({
     );
   }
 
-  const paymentRows =
-    (payments ?? []) as PaymentRow[];
+  const paymentRows = (payments ?? []) as PaymentRow[];
 
   /*
    * --------------------------------------------------------------------------
@@ -256,70 +252,54 @@ export default async function OverviewPage({
    * --------------------------------------------------------------------------
    */
 
-  const totalStudents =
-    studentRows.length;
+  const totalStudents = studentRows.length;
 
-  const activeStudents =
-    studentRows.filter((student) =>
-      (student.enrollments ?? []).some(
-        (enrollment) =>
-          enrollment.status === "active"
-      )
-    ).length;
+  const activeStudents = studentRows.filter((student) =>
+    (student.enrollments ?? []).some(
+      (enrollment) =>
+        enrollment.status === "active"
+    )
+  ).length;
 
   /*
    * --------------------------------------------------------------------------
    * INCOME
    * --------------------------------------------------------------------------
    *
-   * Keep currencies separate.
-   *
-   * At the moment, KRW is the primary currency.
+   * Use actual PHP received rather than the original KRW tuition amount.
    */
 
-  const krwPayments =
-    paymentRows.filter(
-      (payment) =>
-        (payment.currency ?? "KRW").toUpperCase() ===
-        "KRW"
-    );
-
-  const accumulatedKrw =
-    krwPayments.reduce(
-      (total, payment) =>
-        total + Number(payment.amount ?? 0),
-      0
-    );
+  const accumulatedPhp = paymentRows.reduce(
+    (total, payment) =>
+      total + Number(payment.amount_received_php ?? 0),
+    0
+  );
 
   const now = new Date();
 
-  const currentYear =
-    now.getFullYear();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
 
-  const currentMonth =
-    now.getMonth();
+  const monthlyPhp = paymentRows
+    .filter((payment) => {
+      if (!payment.payment_date) {
+        return false;
+      }
 
-  const monthlyKrw =
-    krwPayments
-      .filter((payment) => {
-        if (!payment.payment_date) {
-          return false;
-        }
-
-        const date = new Date(
-          `${payment.payment_date}T00:00:00`
-        );
-
-        return (
-          date.getFullYear() === currentYear &&
-          date.getMonth() === currentMonth
-        );
-      })
-      .reduce(
-        (total, payment) =>
-          total + Number(payment.amount ?? 0),
-        0
+      const date = new Date(
+        `${payment.payment_date}T00:00:00`
       );
+
+      return (
+        date.getFullYear() === currentYear &&
+        date.getMonth() === currentMonth
+      );
+    })
+    .reduce(
+      (total, payment) =>
+        total + Number(payment.amount_received_php ?? 0),
+      0
+    );
 
   /*
    * --------------------------------------------------------------------------
@@ -327,13 +307,12 @@ export default async function OverviewPage({
    * --------------------------------------------------------------------------
    */
 
-  const activeStudentRows =
-    studentRows.filter((student) =>
-      (student.enrollments ?? []).some(
-        (enrollment) =>
-          enrollment.status === "active"
-      )
-    );
+  const activeStudentRows = studentRows.filter((student) =>
+    (student.enrollments ?? []).some(
+      (enrollment) =>
+        enrollment.status === "active"
+    )
+  );
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
@@ -584,10 +563,7 @@ export default async function OverviewPage({
               sm:text-[42px]
             "
           >
-            {formatMoney(
-              accumulatedKrw,
-              "KRW"
-            )}
+            {formatMoney(accumulatedPhp, "PHP")}
           </p>
 
           <p
@@ -598,7 +574,7 @@ export default async function OverviewPage({
               text-[#8A8A84]
             "
           >
-            Paid payments · KRW
+            Paid payments · PHP
           </p>
         </div>
 
@@ -636,10 +612,7 @@ export default async function OverviewPage({
               sm:text-[42px]
             "
           >
-            {formatMoney(
-              monthlyKrw,
-              "KRW"
-            )}
+            {formatMoney(monthlyPhp, "PHP")}
           </p>
 
           <p
@@ -650,7 +623,7 @@ export default async function OverviewPage({
               text-[#8A8A84]
             "
           >
-            Current month · KRW
+            Current month · PHP
           </p>
         </div>
       </section>
@@ -767,132 +740,125 @@ export default async function OverviewPage({
               </thead>
 
               <tbody>
-                {activeStudentRows.map(
-                  (student) => {
-                    const activeEnrollment =
-                      (
-                        student.enrollments ??
-                        []
-                      ).find(
-                        (enrollment) =>
-                          enrollment.status ===
-                          "active"
-                      );
+                {activeStudentRows.map((student) => {
+                  const activeEnrollment = (
+                    student.enrollments ?? []
+                  ).find(
+                    (enrollment) =>
+                      enrollment.status === "active"
+                  );
 
-                    if (!activeEnrollment) {
-                      return null;
-                    }
-
-                    const lessons =
-                      activeEnrollment.lessons ??
-                      [];
-
-                    const consumedLessons =
-                      lessons.filter(
-                        (lesson) =>
-                          lesson.consumes_lesson
-                      ).length;
-
-                    const totalLessons =
-                      activeEnrollment.number_of_lessons ??
-                      0;
-
-                    const remainingLessons =
-                      Math.max(
-                        0,
-                        totalLessons -
-                          consumedLessons
-                      );
-
-                    const status =
-                      getStatusStyles(
-                        activeEnrollment.status
-                      );
-
-                    return (
-                      <tr
-                        key={student.id}
-                        className="
-                          border-b
-                          border-[#E7E3DD]
-                          transition-colors
-                          hover:bg-[#F0F4ED]
-                        "
-                      >
-                        <td className="px-4 py-5 font-sans text-[14px] text-[#6B6B66]">
-                          {student.student_number ??
-                            "—"}
-                        </td>
-
-                        <td className="px-4 py-5">
-                          <Link
-                            href={`/${locale}/admin/students/${student.id}`}
-                            className="
-                              font-serif
-                              text-[17px]
-                              transition-colors
-                              hover:text-[#6F8F72]
-                            "
-                          >
-                            {student.preferred_name ||
-                              student.full_name}
-                          </Link>
-
-                          {student.preferred_name &&
-                            student.preferred_name !==
-                              student.full_name && (
-                              <p
-                                className="
-                                  mt-1
-                                  font-sans
-                                  text-[12px]
-                                  text-[#8A8A84]
-                                "
-                              >
-                                {student.full_name}
-                              </p>
-                            )}
-                        </td>
-
-                        <td className="px-4 py-5 font-serif text-[16px]">
-                          {activeEnrollment.package_name ||
-                            "Enrollment"}
-                        </td>
-
-                        <td className="px-4 py-5 font-serif text-[15px]">
-                          {formatSchedule(
-                            activeEnrollment.schedule_days,
-                            activeEnrollment.schedule_time
-                          )}
-                        </td>
-
-                        <td className="px-4 py-5 font-serif text-[17px] font-medium">
-                          {remainingLessons}
-                        </td>
-
-                        <td className="px-4 py-5">
-                          <span
-                            className={`
-                              inline-flex
-                              items-center
-                              rounded-full
-                              px-3
-                              py-1.5
-                              font-sans
-                              text-[11px]
-                              font-medium
-                              uppercase
-                              tracking-[0.08em]
-                              ${status.className}
-                            `}
-                          >
-                            {status.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
+                  if (!activeEnrollment) {
+                    return null;
                   }
-                )}
+
+                  const lessons =
+                    activeEnrollment.lessons ?? [];
+
+                  const consumedLessons =
+                    lessons.filter(
+                      (lesson) =>
+                        lesson.consumes_lesson
+                    ).length;
+
+                  const totalLessons =
+                    activeEnrollment.number_of_lessons ??
+                    0;
+
+                  const remainingLessons =
+                    Math.max(
+                      0,
+                      totalLessons -
+                        consumedLessons
+                    );
+
+                  const status =
+                    getStatusStyles(
+                      activeEnrollment.status
+                    );
+
+                  return (
+                    <tr
+                      key={student.id}
+                      className="
+                        border-b
+                        border-[#E7E3DD]
+                        transition-colors
+                        hover:bg-[#F0F4ED]
+                      "
+                    >
+                      <td className="px-4 py-5 font-sans text-[14px] text-[#6B6B66]">
+                        {student.student_number ?? "—"}
+                      </td>
+
+                      <td className="px-4 py-5">
+                        <Link
+                          href={`/${locale}/admin/students/${student.id}`}
+                          className="
+                            font-serif
+                            text-[17px]
+                            transition-colors
+                            hover:text-[#6F8F72]
+                          "
+                        >
+                          {student.preferred_name ||
+                            student.full_name}
+                        </Link>
+
+                        {student.preferred_name &&
+                          student.preferred_name !==
+                            student.full_name && (
+                            <p
+                              className="
+                                mt-1
+                                font-sans
+                                text-[12px]
+                                text-[#8A8A84]
+                              "
+                            >
+                              {student.full_name}
+                            </p>
+                          )}
+                      </td>
+
+                      <td className="px-4 py-5 font-serif text-[16px]">
+                        {activeEnrollment.package_name ||
+                          "Enrollment"}
+                      </td>
+
+                      <td className="px-4 py-5 font-serif text-[15px]">
+                        {formatSchedule(
+                          activeEnrollment.schedule_days,
+                          activeEnrollment.schedule_time
+                        )}
+                      </td>
+
+                      <td className="px-4 py-5 font-serif text-[17px] font-medium">
+                        {remainingLessons}
+                      </td>
+
+                      <td className="px-4 py-5">
+                        <span
+                          className={`
+                            inline-flex
+                            items-center
+                            rounded-full
+                            px-3
+                            py-1.5
+                            font-sans
+                            text-[11px]
+                            font-medium
+                            uppercase
+                            tracking-[0.08em]
+                            ${status.className}
+                          `}
+                        >
+                          {status.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

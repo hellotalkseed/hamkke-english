@@ -61,7 +61,7 @@ export default async function ReflectionsAdminPage({
               text-[#6F8F72]
             "
           >
-            Hamkke Γöé φò¿Ω╗ÿ
+            Hamkke │ 함께
           </p>
 
           <h1

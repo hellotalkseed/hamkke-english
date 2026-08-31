@@ -41,12 +41,8 @@ export default function PrintableAttendance({
    * ------------------------------------------------------------------------
    * ATTENDANCE COUNTS
    * ------------------------------------------------------------------------
-   *
-   * Completed = lessons that were completed AND consumed a lesson credit.
-   *
-   * No-show / Late cancellation are counted independently based on their
-   * attendance status. They may also consume a lesson credit.
    */
+
   const completedLessons = lessons.filter(
     (lesson) =>
       lesson.attendance_status === "completed" &&
@@ -54,14 +50,12 @@ export default function PrintableAttendance({
   ).length;
 
   const noShowLessons = lessons.filter(
-    (lesson) =>
-      lesson.attendance_status === "no_show"
+    (lesson) => lesson.attendance_status === "no_show"
   ).length;
 
   const lateCancellationLessons = lessons.filter(
     (lesson) =>
-      lesson.attendance_status ===
-      "late_cancellation"
+      lesson.attendance_status === "late_cancellation"
   ).length;
 
   const consumedLessons = lessons.filter(
@@ -69,8 +63,7 @@ export default function PrintableAttendance({
   ).length;
 
   const remainingLessons = Math.max(
-    enrollment.number_of_lessons -
-      consumedLessons,
+    enrollment.number_of_lessons - consumedLessons,
     0
   );
 
@@ -82,81 +75,103 @@ export default function PrintableAttendance({
         print:block
         min-h-screen
         bg-white
-        p-10
+        px-10
+        py-8
         text-[#292929]
       "
     >
-      {/* HEADER */}
-      <div className="border-b border-[#DCD8D2] pb-8">
-        <p
-          className="
-            font-sans
-            text-[10px]
-            font-medium
-            uppercase
-            tracking-[0.16em]
-            text-[#6F8F72]
-          "
-        >
-          Hamkke │ 함께
-        </p>
+      {/* ------------------------------------------------------------------ */}
+      {/* HEADER                                                             */}
+      {/* ------------------------------------------------------------------ */}
 
-        <h1 className="mt-3 font-serif text-[32px] font-normal">
-          Attendance Record
-        </h1>
+      <header className="border-b border-[#DCD8D2] pb-5">
+        <div>
+          {/* BRAND */}
+          <p
+            className="
+              font-sans
+              text-[9px]
+              font-medium
+              uppercase
+              tracking-[0.18em]
+              text-[#6F8F72]
+            "
+          >
+            Hamkke │ 함께
+          </p>
 
-        <p className="mt-2 font-serif text-[20px]">
-          {studentName}
-        </p>
-      </div>
+          {/* TAGLINE */}
+          <p className="mt-1 font-serif text-[9px] italic text-[#777771]">
+            From Small Talk to Big Ideas
+          </p>
 
-      {/* ENROLLMENT DETAILS */}
-      <div className="mt-8 grid grid-cols-2 gap-x-10 gap-y-6">
-        <PrintDetail
-          label="Package"
-          value={enrollment.package_name}
-        />
+          {/* DOCUMENT TITLE */}
+          <h1 className="mt-4 font-serif text-[28px] font-normal leading-tight">
+            Attendance Record
+          </h1>
 
-        <PrintDetail
-          label="Status"
-          value={capitalize(enrollment.status)}
-        />
+          {/* STUDENT */}
+          <p className="mt-1 font-serif text-[17px]">
+            {studentName}
+          </p>
+        </div>
+      </header>
 
-        <PrintDetail
-          label="Start Date"
-          value={formatDate(enrollment.start_date)}
-        />
+      {/* ------------------------------------------------------------------ */}
+      {/* ENROLLMENT DETAILS                                                 */}
+      {/* ------------------------------------------------------------------ */}
 
-        <PrintDetail
-          label="Lesson Duration"
-          value={
-            enrollment.lesson_duration
-              ? `${enrollment.lesson_duration} minutes`
-              : "Not set"
-          }
-        />
+      <section className="mt-5">
+        <div className="grid grid-cols-3 gap-x-8 gap-y-4">
+          <PrintDetail
+            label="Package"
+            value={enrollment.package_name}
+          />
 
-        <PrintDetail
-          label="Lessons Per Week"
-          value={
-            enrollment.lessons_per_week
-              ? `${enrollment.lessons_per_week}`
-              : "Not set"
-          }
-        />
+          <PrintDetail
+            label="Status"
+            value={capitalize(enrollment.status)}
+          />
 
-        <PrintDetail
-          label="Schedule"
-          value={formatSchedule(
-            enrollment.schedule_days,
-            enrollment.schedule_time
-          )}
-        />
-      </div>
+          <PrintDetail
+            label="Start Date"
+            value={formatDate(enrollment.start_date)}
+          />
 
-      {/* SUMMARY */}
-      <div className="mt-10 border-y border-[#DCD8D2] py-6">
-        <div className="grid grid-cols-5 gap-6">
+          <PrintDetail
+            label="Lesson Duration"
+            value={
+              enrollment.lesson_duration
+                ? `${enrollment.lesson_duration} minutes`
+                : "Not set"
+            }
+          />
+
+          <PrintDetail
+            label="Lessons Per Week"
+            value={
+              enrollment.lessons_per_week
+                ? `${enrollment.lessons_per_week}`
+                : "Not set"
+            }
+          />
+
+          <PrintDetail
+            label="Schedule"
+            value={formatSchedule(
+              enrollment.schedule_days,
+              enrollment.schedule_time
+            )}
+          />
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* SUMMARY                                                            */}
+      {/* ------------------------------------------------------------------ */}
+
+      <section className="mt-6 border-y border-[#DCD8D2] py-4">
+        <div className="grid grid-cols-5 gap-5">
           <PrintStat
             label="Total"
             value={enrollment.number_of_lessons}
@@ -182,39 +197,55 @@ export default function PrintableAttendance({
             value={remainingLessons}
           />
         </div>
-      </div>
+      </section>
 
-      {/* LESSON TABLE */}
-      <div className="mt-10">
-        <h2 className="font-serif text-[22px]">
-          Lesson Attendance
-        </h2>
+      {/* ------------------------------------------------------------------ */}
+      {/* LESSON ATTENDANCE                                                  */}
+      {/* ------------------------------------------------------------------ */}
 
-        <table className="mt-5 w-full border-collapse">
+      <section className="mt-6">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="font-sans text-[8px] font-medium uppercase tracking-[0.15em] text-[#6F8F72]">
+              Lesson History
+            </p>
+
+            <h2 className="mt-1 font-serif text-[20px] font-normal">
+              Lesson Attendance
+            </h2>
+          </div>
+
+          <p className="font-sans text-[9px] text-[#777771]">
+            {lessons.length} lesson
+            {lessons.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+
+        <table className="mt-3 w-full border-collapse">
           <thead>
             <tr className="border-b border-[#292929]">
-              <th className="py-3 text-left font-sans text-[10px] font-medium uppercase tracking-[0.1em]">
+              <th className="w-[7%] py-2 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em]">
                 #
               </th>
 
-              <th className="py-3 text-left font-sans text-[10px] font-medium uppercase tracking-[0.1em]">
+              <th className="w-[22%] py-2 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em]">
                 Date
               </th>
 
-              <th className="py-3 text-left font-sans text-[10px] font-medium uppercase tracking-[0.1em]">
+              <th className="w-[12%] py-2 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em]">
                 Duration
               </th>
 
-              <th className="py-3 text-left font-sans text-[10px] font-medium uppercase tracking-[0.1em]">
+              <th className="w-[25%] py-2 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em]">
                 Status
               </th>
 
-              <th className="py-3 text-left font-sans text-[10px] font-medium uppercase tracking-[0.1em]">
+              <th className="w-[23%] py-2 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em]">
                 Resolution
               </th>
 
-              <th className="py-3 text-right font-sans text-[10px] font-medium uppercase tracking-[0.1em]">
-                Consumed
+              <th className="w-[11%] py-2 text-right font-sans text-[8px] font-medium uppercase tracking-[0.1em]">
+                Used
               </th>
             </tr>
           </thead>
@@ -225,17 +256,19 @@ export default function PrintableAttendance({
                 key={lesson.id}
                 className="border-b border-[#E5E1DB]"
               >
-                <td className="py-3 font-serif text-[14px]">
+                {/* LESSON NUMBER */}
+                <td className="py-[7px] font-serif text-[12px]">
                   {lesson.lesson_number}
                 </td>
 
-                <td className="py-3 font-sans text-[12px]">
+                {/* DATE */}
+                <td className="py-[7px] font-sans text-[9px]">
                   {formatDate(lesson.lesson_date)}
 
                   {lesson.original_lesson_date &&
                     lesson.original_lesson_date !==
                       lesson.lesson_date && (
-                      <span className="block text-[10px] text-[#777771]">
+                      <span className="block text-[7px] text-[#777771]">
                         Originally{" "}
                         {formatDate(
                           lesson.original_lesson_date
@@ -244,17 +277,20 @@ export default function PrintableAttendance({
                     )}
                 </td>
 
-                <td className="py-3 font-sans text-[12px]">
+                {/* DURATION */}
+                <td className="py-[7px] font-sans text-[9px]">
                   {lesson.duration ?? "—"} min
                 </td>
 
-                <td className="py-3 font-sans text-[12px]">
+                {/* STATUS */}
+                <td className="py-[7px] font-sans text-[9px]">
                   {formatStatus(
                     lesson.attendance_status
                   )}
                 </td>
 
-                <td className="py-3 font-sans text-[12px]">
+                {/* RESOLUTION */}
+                <td className="py-[7px] font-sans text-[9px]">
                   {lesson.resolution
                     ? formatResolution(
                         lesson.resolution
@@ -262,7 +298,8 @@ export default function PrintableAttendance({
                     : "—"}
                 </td>
 
-                <td className="py-3 text-right font-sans text-[12px]">
+                {/* CONSUMED */}
+                <td className="py-[7px] text-right font-sans text-[9px]">
                   {lesson.consumes_lesson
                     ? "Yes"
                     : "No"}
@@ -271,51 +308,65 @@ export default function PrintableAttendance({
             ))}
           </tbody>
         </table>
-      </div>
+      </section>
 
-      {/* NOTES */}
+      {/* ------------------------------------------------------------------ */}
+      {/* NOTES                                                              */}
+      {/* ------------------------------------------------------------------ */}
+
       {lessons.some((lesson) => lesson.notes) && (
-        <div className="mt-10">
-          <h2 className="font-serif text-[20px]">
-            Notes
-          </h2>
+        <section className="mt-6">
+          <div className="border-t border-[#DCD8D2] pt-4">
+            <p className="font-sans text-[8px] font-medium uppercase tracking-[0.15em] text-[#6F8F72]">
+              Teacher Notes
+            </p>
 
-          <div className="mt-4 space-y-3">
+            <h2 className="mt-1 font-serif text-[18px] font-normal">
+              Notes
+            </h2>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-3">
             {lessons
               .filter((lesson) => lesson.notes)
               .map((lesson) => (
                 <div
                   key={lesson.id}
-                  className="border-l-2 border-[#DCD8D2] pl-4"
+                  className="border-l-2 border-[#DCD8D2] pl-3"
                 >
-                  <p className="font-sans text-[10px] uppercase tracking-[0.08em] text-[#777771]">
+                  <p className="font-sans text-[7px] uppercase tracking-[0.08em] text-[#777771]">
                     Lesson {lesson.lesson_number}
                   </p>
 
-                  <p className="mt-1 font-sans text-[12px] leading-5">
+                  <p className="mt-1 font-sans text-[9px] leading-4">
                     {lesson.notes}
                   </p>
                 </div>
               ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* FOOTER */}
-      <div className="mt-12 border-t border-[#DCD8D2] pt-5">
-        <p className="font-sans text-[10px] text-[#777771]">
-          Printed from Hamkke student records.
-        </p>
+      {/* ------------------------------------------------------------------ */}
+      {/* FOOTER                                                             */}
+      {/* ------------------------------------------------------------------ */}
 
-        <p className="mt-1 font-sans text-[10px] text-[#777771]">
-          Printed on{" "}
-          {new Intl.DateTimeFormat("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          }).format(new Date())}
-        </p>
-      </div>
+      <footer className="mt-6 border-t border-[#DCD8D2] pt-3">
+        <div className="flex items-end justify-between">
+          <p className="font-sans text-[7px] text-[#777771]">
+            Printed from Hamkke student records.
+          </p>
+
+          <p className="font-sans text-[7px] text-[#777771]">
+            Printed on{" "}
+            {new Intl.DateTimeFormat("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }).format(new Date())}
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -333,11 +384,20 @@ function PrintDetail({
 }) {
   return (
     <div>
-      <p className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]">
+      <p
+        className="
+          font-sans
+          text-[8px]
+          font-medium
+          uppercase
+          tracking-[0.12em]
+          text-[#6F8F72]
+        "
+      >
         {label}
       </p>
 
-      <p className="mt-1 font-serif text-[15px]">
+      <p className="mt-0.5 font-serif text-[12px] leading-4">
         {value}
       </p>
     </div>
@@ -357,15 +417,24 @@ function PrintStat({
 }) {
   return (
     <div>
-      <p className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]">
+      <p
+        className="
+          font-sans
+          text-[8px]
+          font-medium
+          uppercase
+          tracking-[0.12em]
+          text-[#6F8F72]
+        "
+      >
         {label}
       </p>
 
-      <p className="mt-1 font-serif text-[24px]">
+      <p className="mt-0.5 font-serif text-[21px] leading-6">
         {value}
       </p>
 
-      <p className="font-sans text-[10px] text-[#777771]">
+      <p className="font-sans text-[8px] text-[#777771]">
         lessons
       </p>
     </div>
@@ -390,8 +459,7 @@ function formatSchedule(
   days: string[] | null,
   time: string | null
 ) {
-  const formattedDays =
-    formatScheduleDays(days);
+  const formattedDays = formatScheduleDays(days);
 
   if (!time) {
     return formattedDays;
@@ -400,9 +468,7 @@ function formatSchedule(
   return `${formattedDays} · ${formatTime(time)}`;
 }
 
-function formatScheduleDays(
-  days: string[] | null
-) {
+function formatScheduleDays(days: string[] | null) {
   if (!days || days.length === 0) {
     return "Not set";
   }
@@ -462,9 +528,7 @@ function formatStatus(status: string) {
   return labels[status] ?? status;
 }
 
-function formatResolution(
-  resolution: string
-) {
+function formatResolution(resolution: string) {
   const labels: Record<string, string> = {
     rescheduled: "Rescheduled",
     lesson_credit: "Lesson credit",
