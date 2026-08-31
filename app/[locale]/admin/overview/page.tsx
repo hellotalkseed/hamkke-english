@@ -7,90 +7,55 @@ interface OverviewPageProps {
   }>;
 }
 
+interface LessonRow {
+  id: string;
+  consumes_lesson: boolean | null;
+  attendance_status: string | null;
+}
+
+interface EnrollmentRow {
+  id: string;
+  package_name: string | null;
+  number_of_lessons: number | null;
+  status: string | null;
+  start_date: string | null;
+  schedule_days: string[] | null;
+  schedule_time: string | null;
+  lessons: LessonRow[] | null;
+}
+
 interface StudentRow {
   id: string;
   student_number: string | number | null;
   full_name: string;
   preferred_name: string | null;
-  enrollments:
-    | {
-        id: string;
-        package_name: string | null;
-        number_of_lessons: number | null;
-        status: string | null;
-        start_date: string | null;
-        schedule_days: string[] | null;
-        schedule_time: string | null;
-        lessons:
-          | {
-              id: string;
-              consumes_lesson: boolean | null;
-              attendance_status: string | null;
-            }[]
-          | null;
-      }[]
-    | null;
+  enrollments: EnrollmentRow[] | null;
 }
 
 interface PaymentRow {
-  amount_received_php: number | null;
+  id: string;
+  amount: number | null;
+  currency: string | null;
+  amount_krw: number | null;
+  amount_php: number | null;
   payment_date: string | null;
   status: string | null;
 }
 
-function formatMoney(amount: number, currency: string) {
-  if (currency === "KRW") {
-    return `₩${amount.toLocaleString("en-US")}`;
-  }
+/* ========================================================================= */
+/* HELPERS                                                                   */
+/* ========================================================================= */
 
-  if (currency === "PHP") {
-    return `₱${amount.toLocaleString("en-US")}`;
-  }
-
-  return `${currency} ${amount.toLocaleString("en-US")}`;
+function formatMoney(amount: number) {
+  return `₱${amount.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
-function formatSchedule(
-  days: string[] | null,
-  time: string | null
-) {
-  if (!days || days.length === 0) {
-    return time ? time : "No schedule";
-  }
+function formatTime(time: string | null) {
+  if (!time) return null;
 
-  const formattedDays = days
-    .map((day) => {
-      const normalized = day.toLowerCase();
-
-      const labels: Record<string, string> = {
-        mon: "Mon",
-        monday: "Mon",
-        tue: "Tue",
-        tuesday: "Tue",
-        wed: "Wed",
-        wednesday: "Wed",
-        thu: "Thu",
-        thursday: "Thu",
-        fri: "Fri",
-        friday: "Fri",
-        sat: "Sat",
-        saturday: "Sat",
-        sun: "Sun",
-        sunday: "Sun",
-      };
-
-      return labels[normalized] ?? day;
-    })
-    .join(" / ");
-
-  if (!time) {
-    return formattedDays;
-  }
-
-  return `${formattedDays} · ${formatTime(time)}`;
-}
-
-function formatTime(time: string) {
   const parts = time.split(":");
 
   if (parts.length < 2) {
@@ -105,47 +70,124 @@ function formatTime(time: string) {
   }
 
   const suffix = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  const displayHour =
+    hour % 12 === 0 ? 12 : hour % 12;
 
   return `${displayHour}:${minute} ${suffix}`;
 }
 
-function getStatusStyles(status: string | null) {
+function formatSchedule(
+  days: string[] | null,
+  time: string | null
+) {
+  const labels: Record<string, string> = {
+    mon: "Mon",
+    monday: "Mon",
+    tue: "Tue",
+    tuesday: "Tue",
+    wed: "Wed",
+    wednesday: "Wed",
+    thu: "Thu",
+    thursday: "Thu",
+    fri: "Fri",
+    friday: "Fri",
+    sat: "Sat",
+    saturday: "Sat",
+    sun: "Sun",
+    sunday: "Sun",
+  };
+
+  const formattedDays =
+    days?.length
+      ? days
+          .map(
+            (day) =>
+              labels[day.toLowerCase()] ?? day
+          )
+          .join(" · ")
+      : "";
+
+  const formattedTime = formatTime(time);
+
+  if (formattedDays && formattedTime) {
+    return `${formattedDays} · ${formattedTime}`;
+  }
+
+  return (
+    formattedDays ||
+    formattedTime ||
+    "No schedule"
+  );
+}
+
+function getStatusStyles(
+  status: string | null
+) {
   switch (status) {
     case "active":
       return {
         label: "Active",
-        className: "bg-[#E2EBDD] text-[#5F7D63]",
+        className:
+          "bg-[#E5EBDD] text-[#607963]",
       };
 
     case "pending":
       return {
         label: "Pending",
-        className: "bg-[#F5EEDB] text-[#92783F]",
+        className:
+          "bg-[#F3EEDC] text-[#927B45]",
       };
 
     case "completed":
       return {
         label: "Completed",
-        className: "bg-[#EAE8E3] text-[#77736B]",
+        className:
+          "bg-[#EAE8E3] text-[#77736B]",
       };
 
     case "cancelled":
     case "canceled":
       return {
         label: "Cancelled",
-        className: "bg-[#F2E3E0] text-[#95645C]",
+        className:
+          "bg-[#F1E3E0] text-[#95645C]",
       };
 
     default:
       return {
         label: status
-          ? status.charAt(0).toUpperCase() + status.slice(1)
+          ? status.charAt(0).toUpperCase() +
+            status.slice(1)
           : "Unknown",
-        className: "bg-[#ECEAE6] text-[#77736B]",
+        className:
+          "bg-[#ECEAE6] text-[#77736B]",
       };
   }
 }
+
+function getMonthLabel(monthIndex: number) {
+  return new Date(
+    2000,
+    monthIndex,
+    1
+  ).toLocaleString("en-US", {
+    month: "short",
+  });
+}
+
+function getMonthFullLabel(monthIndex: number) {
+  return new Date(
+    2000,
+    monthIndex,
+    1
+  ).toLocaleString("en-US", {
+    month: "long",
+  });
+}
+
+/* ========================================================================= */
+/* PAGE                                                                      */
+/* ========================================================================= */
 
 export default async function OverviewPage({
   params,
@@ -154,11 +196,9 @@ export default async function OverviewPage({
 
   const supabase = await createClient();
 
-  /*
-   * --------------------------------------------------------------------------
-   * STUDENTS
-   * --------------------------------------------------------------------------
-   */
+  /* ----------------------------------------------------------------------- */
+  /* STUDENTS                                                                */
+  /* ----------------------------------------------------------------------- */
 
   const {
     data: students,
@@ -200,23 +240,12 @@ export default async function OverviewPage({
     );
   }
 
-  const studentRows = (students ?? []) as StudentRow[];
+  const studentRows =
+    (students ?? []) as StudentRow[];
 
-  /*
-   * --------------------------------------------------------------------------
-   * PAYMENTS
-   * --------------------------------------------------------------------------
-   *
-   * Only PAID payments are counted as income.
-   *
-   * Income is based on the actual PHP amount received.
-   *
-   * Example:
-   * Tuition: ₩75,000
-   * Amount actually received through GCash: ₱3,000
-   *
-   * Overview income: ₱3,000
-   */
+  /* ----------------------------------------------------------------------- */
+  /* PAYMENTS                                                                */
+  /* ----------------------------------------------------------------------- */
 
   const {
     data: payments,
@@ -224,13 +253,17 @@ export default async function OverviewPage({
   } = await supabase
     .from("payments")
     .select(`
-      amount_received_php,
+      id,
+      amount,
+      currency,
+      amount_krw,
+      amount_php,
       payment_date,
       status
     `)
     .eq("status", "paid")
     .order("payment_date", {
-      ascending: false,
+      ascending: true,
     });
 
   if (paymentsError) {
@@ -244,105 +277,183 @@ export default async function OverviewPage({
     );
   }
 
-  const paymentRows = (payments ?? []) as PaymentRow[];
+  const paymentRows =
+    (payments ?? []) as PaymentRow[];
 
-  /*
-   * --------------------------------------------------------------------------
-   * COUNTS
-   * --------------------------------------------------------------------------
-   */
+  /* ----------------------------------------------------------------------- */
+  /* STUDENT COUNTS                                                          */
+  /* ----------------------------------------------------------------------- */
 
-  const totalStudents = studentRows.length;
+  const totalStudents =
+    studentRows.length;
 
-  const activeStudents = studentRows.filter((student) =>
-    (student.enrollments ?? []).some(
-      (enrollment) =>
-        enrollment.status === "active"
-    )
-  ).length;
+  const activeStudentRows =
+    studentRows.filter((student) =>
+      (student.enrollments ?? []).some(
+        (enrollment) =>
+          enrollment.status === "active"
+      )
+    );
 
-  /*
-   * --------------------------------------------------------------------------
-   * INCOME
-   * --------------------------------------------------------------------------
-   *
-   * Use actual PHP received rather than the original KRW tuition amount.
-   */
+  const activeStudents =
+    activeStudentRows.length;
 
-  const accumulatedPhp = paymentRows.reduce(
-    (total, payment) =>
-      total + Number(payment.amount_received_php ?? 0),
-    0
-  );
+  /* ----------------------------------------------------------------------- */
+  /* CURRENT DATE                                                            */
+  /* ----------------------------------------------------------------------- */
 
   const now = new Date();
 
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const currentYear =
+    now.getFullYear();
 
-  const monthlyPhp = paymentRows
-    .filter((payment) => {
-      if (!payment.payment_date) {
-        return false;
-      }
+  const currentMonth =
+    now.getMonth();
 
-      const date = new Date(
-        `${payment.payment_date}T00:00:00`
-      );
+  /* ----------------------------------------------------------------------- */
+  /* PHP AMOUNT                                                              */
+  /* ----------------------------------------------------------------------- */
 
-      return (
-        date.getFullYear() === currentYear &&
-        date.getMonth() === currentMonth
-      );
-    })
-    .reduce(
+  function getPhpAmount(
+    payment: PaymentRow
+  ) {
+    const value = Number(
+      payment.amount_php ?? 0
+    );
+
+    return Number.isFinite(value)
+      ? value
+      : 0;
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* ACCUMULATED INCOME                                                      */
+  /* ----------------------------------------------------------------------- */
+
+  const accumulatedPhp =
+    paymentRows.reduce(
       (total, payment) =>
-        total + Number(payment.amount_received_php ?? 0),
+        total + getPhpAmount(payment),
       0
     );
 
-  /*
-   * --------------------------------------------------------------------------
-   * ACTIVE STUDENTS FOR TABLE
-   * --------------------------------------------------------------------------
-   */
+  /* ----------------------------------------------------------------------- */
+  /* CURRENT MONTH INCOME                                                    */
+  /* ----------------------------------------------------------------------- */
 
-  const activeStudentRows = studentRows.filter((student) =>
-    (student.enrollments ?? []).some(
-      (enrollment) =>
-        enrollment.status === "active"
-    )
+  const monthlyPhp =
+    paymentRows
+      .filter((payment) => {
+        if (!payment.payment_date) {
+          return false;
+        }
+
+        const date = new Date(
+          `${payment.payment_date}T00:00:00`
+        );
+
+        return (
+          date.getFullYear() ===
+            currentYear &&
+          date.getMonth() ===
+            currentMonth
+        );
+      })
+      .reduce(
+        (total, payment) =>
+          total + getPhpAmount(payment),
+        0
+      );
+
+  /* ----------------------------------------------------------------------- */
+  /* YEARLY GRAPH DATA                                                       */
+  /* ----------------------------------------------------------------------- */
+
+  const monthlyIncome =
+    Array.from(
+      { length: 12 },
+      (_, month) => {
+        return paymentRows
+          .filter((payment) => {
+            if (!payment.payment_date) {
+              return false;
+            }
+
+            const date = new Date(
+              `${payment.payment_date}T00:00:00`
+            );
+
+            return (
+              date.getFullYear() ===
+                currentYear &&
+              date.getMonth() === month
+            );
+          })
+          .reduce(
+            (total, payment) =>
+              total +
+              getPhpAmount(payment),
+            0
+          );
+      }
+    );
+
+  const graphMax = Math.max(
+    ...monthlyIncome,
+    1
   );
 
+  const currentMonthLabel =
+    getMonthFullLabel(
+      currentMonth
+    );
+
+  /* ========================================================================= */
+  /* RENDER                                                                    */
+  /* ========================================================================= */
+
   return (
-    <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      {/* HEADER */}
+    <main
+      className="
+        min-h-screen
+        bg-[#FAF8F5]
+        text-[#292929]
+      "
+    >
+      {/* =================================================================== */}
+      {/* HEADER                                                              */}
+      {/* =================================================================== */}
+
       <header
         className="
-          w-full
           px-6
           pt-7
           sm:px-8
           sm:pt-8
-          lg:px-10
-          xl:px-12
+          lg:px-12
+          xl:px-16
         "
       >
-        <div className="relative flex w-full items-center justify-between">
+        <div
+          className="
+            relative
+            flex
+            items-center
+            justify-between
+          "
+        >
           <Link
             href={`/${locale}/admin`}
             className="
-              shrink-0
               font-sans
-              text-[15px]
-              text-[#5F655F]
+              text-[14px]
+              text-[#77736B]
               transition-colors
-              duration-200
               hover:text-[#6F8F72]
-              sm:text-[16px]
+              sm:text-[15px]
             "
           >
-            &larr; Administration
+            ← Administration
           </Link>
 
           <div
@@ -357,7 +468,6 @@ export default async function OverviewPage({
               font-medium
               text-[#6F8F72]
               sm:block
-              sm:text-[16px]
             "
           >
             Hamkke │ 함께
@@ -365,500 +475,914 @@ export default async function OverviewPage({
         </div>
       </header>
 
-      {/* INTRO */}
+      {/* =================================================================== */}
+      {/* INTRO                                                               */}
+      {/* =================================================================== */}
+
       <section
         className="
           mx-auto
-          w-full
           max-w-[1200px]
           px-6
-          pb-10
-          pt-10
+          pb-12
+          pt-12
           sm:px-8
-          sm:pb-12
+          sm:pb-14
           sm:pt-16
           lg:px-10
-          lg:pb-14
+          lg:pb-16
           lg:pt-20
         "
       >
-        <h1
-          className="
-            font-serif
-            text-[52px]
-            font-normal
-            leading-[1.05]
-            tracking-[-0.035em]
-            text-[#292929]
-            sm:text-[62px]
-            lg:text-[70px]
-          "
-        >
-          Overview
-        </h1>
-
-        <p
-          className="
-            mt-5
-            max-w-[700px]
-            font-serif
-            text-[19px]
-            leading-8
-            text-[#6B6B66]
-            sm:text-[21px]
-            sm:leading-9
-          "
-        >
-          A quick look at your students and
-          income.
-        </p>
-      </section>
-
-      {/* SUMMARY */}
-      <section
-        className="
-          mx-auto
-          grid
-          w-full
-          max-w-[1200px]
-          grid-cols-1
-          gap-4
-          px-6
-          pb-12
-          sm:grid-cols-2
-          lg:grid-cols-4
-          sm:px-8
-          lg:px-10
-        "
-      >
-        {/* TOTAL STUDENTS */}
-        <div
-          className="
-            border
-            border-[#DCD8D2]
-            bg-white/40
-            p-7
-            sm:p-8
-          "
-        >
+        <div className="max-w-[760px]">
           <p
             className="
+              mb-4
               font-sans
-              text-[11px]
+              text-[10px]
               font-medium
               uppercase
-              tracking-[0.14em]
+              tracking-[0.18em]
               text-[#8A8A84]
             "
           >
-            Total Students
+            Administration
           </p>
 
-          <p
+          <h1
             className="
-              mt-4
               font-serif
-              text-[36px]
+              text-[48px]
               font-normal
-              tracking-[-0.02em]
-              text-[#292929]
-              sm:text-[42px]
+              leading-[1]
+              tracking-[-0.035em]
+              sm:text-[58px]
+              lg:text-[66px]
             "
           >
-            {totalStudents}
-          </p>
+            Overview
+          </h1>
 
           <p
             className="
-              mt-2
+              mt-5
+              max-w-[620px]
               font-serif
-              text-[15px]
-              text-[#8A8A84]
+              text-[18px]
+              leading-8
+              text-[#74716B]
+              sm:text-[20px]
+              sm:leading-9
             "
           >
-            All students
-          </p>
-        </div>
-
-        {/* ACTIVE STUDENTS */}
-        <div
-          className="
-            border
-            border-[#DCD8D2]
-            bg-white/40
-            p-7
-            sm:p-8
-          "
-        >
-          <p
-            className="
-              font-sans
-              text-[11px]
-              font-medium
-              uppercase
-              tracking-[0.14em]
-              text-[#8A8A84]
-            "
-          >
-            Active Students
-          </p>
-
-          <p
-            className="
-              mt-4
-              font-serif
-              text-[36px]
-              font-normal
-              tracking-[-0.02em]
-              text-[#292929]
-              sm:text-[42px]
-            "
-          >
-            {activeStudents}
-          </p>
-
-          <p
-            className="
-              mt-2
-              font-serif
-              text-[15px]
-              text-[#8A8A84]
-            "
-          >
-            Currently enrolled
-          </p>
-        </div>
-
-        {/* ACCUMULATED INCOME */}
-        <div
-          className="
-            border
-            border-[#DCD8D2]
-            bg-white/40
-            p-7
-            sm:p-8
-          "
-        >
-          <p
-            className="
-              font-sans
-              text-[11px]
-              font-medium
-              uppercase
-              tracking-[0.14em]
-              text-[#8A8A84]
-            "
-          >
-            Accumulated Income
-          </p>
-
-          <p
-            className="
-              mt-4
-              font-serif
-              text-[36px]
-              font-normal
-              tracking-[-0.02em]
-              text-[#292929]
-              sm:text-[42px]
-            "
-          >
-            {formatMoney(accumulatedPhp, "PHP")}
-          </p>
-
-          <p
-            className="
-              mt-2
-              font-serif
-              text-[15px]
-              text-[#8A8A84]
-            "
-          >
-            Paid payments · PHP
-          </p>
-        </div>
-
-        {/* MONTHLY INCOME */}
-        <div
-          className="
-            border
-            border-[#DCD8D2]
-            bg-white/40
-            p-7
-            sm:p-8
-          "
-        >
-          <p
-            className="
-              font-sans
-              text-[11px]
-              font-medium
-              uppercase
-              tracking-[0.14em]
-              text-[#8A8A84]
-            "
-          >
-            Monthly Income
-          </p>
-
-          <p
-            className="
-              mt-4
-              font-serif
-              text-[36px]
-              font-normal
-              tracking-[-0.02em]
-              text-[#292929]
-              sm:text-[42px]
-            "
-          >
-            {formatMoney(monthlyPhp, "PHP")}
-          </p>
-
-          <p
-            className="
-              mt-2
-              font-serif
-              text-[15px]
-              text-[#8A8A84]
-            "
-          >
-            Current month · PHP
+            A simple view of your students,
+            lessons, and income.
           </p>
         </div>
       </section>
 
-      {/* STUDENTS */}
+      {/* =================================================================== */}
+      {/* SUMMARY                                                             */}
+      {/* =================================================================== */}
+
       <section
         className="
           mx-auto
-          w-full
           max-w-[1200px]
           px-6
-          pb-20
           sm:px-8
           lg:px-10
-          lg:pb-24
         "
       >
-        {/* SECTION HEADER */}
         <div
           className="
-            mb-6
-            flex
-            items-end
-            justify-between
-            gap-4
+            grid
+            grid-cols-1
+            gap-12
+            border-y
+            border-[#DCD8D2]
+            py-10
+            lg:grid-cols-[0.72fr_1.28fr]
+            lg:gap-16
+            lg:py-12
           "
         >
-          <div>
+          {/* =============================================================== */}
+          {/* STUDENTS                                                        */}
+          {/* =============================================================== */}
+
+          <div
+            className="
+              flex
+              flex-col
+              justify-center
+              lg:border-r
+              lg:border-[#E1DDD7]
+              lg:pr-16
+            "
+          >
             <p
               className="
+                mb-6
                 font-sans
-                text-[11px]
+                text-[10px]
                 font-medium
                 uppercase
-                tracking-[0.14em]
+                tracking-[0.18em]
                 text-[#8A8A84]
               "
             >
               Students
             </p>
 
-            <h2
+            <div
               className="
-                mt-2
-                font-serif
-                text-[32px]
-                font-normal
-                tracking-[-0.02em]
+                flex
+                flex-wrap
+                items-baseline
+                gap-x-8
+                gap-y-3
               "
             >
-              Active Students
-            </h2>
+              <div className="flex items-baseline gap-2.5">
+                <span
+                  className="
+                    font-sans
+                    text-[12px]
+                    uppercase
+                    tracking-[0.1em]
+                    text-[#8A8A84]
+                  "
+                >
+                  Active
+                </span>
+
+                <span
+                  className="
+                    font-serif
+                    text-[31px]
+                    leading-none
+                    tracking-[-0.02em]
+                  "
+                >
+                  {activeStudents}
+                </span>
+              </div>
+
+              <div className="flex items-baseline gap-2.5">
+                <span
+                  className="
+                    font-sans
+                    text-[12px]
+                    uppercase
+                    tracking-[0.1em]
+                    text-[#8A8A84]
+                  "
+                >
+                  Total
+                </span>
+
+                <span
+                  className="
+                    font-serif
+                    text-[31px]
+                    leading-none
+                    tracking-[-0.02em]
+                  "
+                >
+                  {totalStudents}
+                </span>
+              </div>
+            </div>
 
             <p
               className="
-                mt-2
-                font-sans
-                text-[13px]
-                text-[#8A8A84]
+                mt-3
+                font-serif
+                text-[14px]
+                text-[#918E87]
               "
             >
               {activeStudents}{" "}
               {activeStudents === 1
                 ? "student"
                 : "students"}{" "}
-              currently active
+              currently enrolled
             </p>
+          </div>
+
+          {/* =============================================================== */}
+          {/* INCOME                                                          */}
+          {/* =============================================================== */}
+
+          <div>
+            <div
+              className="
+                flex
+                items-start
+                justify-between
+              "
+            >
+              <p
+                className="
+                  font-sans
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.18em]
+                  text-[#8A8A84]
+                "
+              >
+                Income
+              </p>
+
+              <span
+                className="
+                  font-sans
+                  text-[11px]
+                  text-[#9A9790]
+                "
+              >
+                {currentYear}
+              </span>
+            </div>
+
+            <div
+              className="
+                mt-6
+                grid
+                grid-cols-2
+                gap-10
+              "
+            >
+              {/* MONTHLY */}
+
+              <div>
+                <p
+                  className="
+                    font-sans
+                    text-[10px]
+                    uppercase
+                    tracking-[0.12em]
+                    text-[#8A8A84]
+                  "
+                >
+                  Monthly income
+                </p>
+
+                <p
+                  className="
+                    mt-2
+                    font-serif
+                    text-[30px]
+                    leading-none
+                    tracking-[-0.025em]
+                    sm:text-[34px]
+                  "
+                >
+                  {formatMoney(
+                    monthlyPhp
+                  )}
+                </p>
+
+                <p
+                  className="
+                    mt-2
+                    font-serif
+                    text-[13px]
+                    text-[#918E87]
+                  "
+                >
+                  {currentMonthLabel}{" "}
+                  {currentYear}
+                </p>
+              </div>
+
+              {/* ACCUMULATED */}
+
+              <div>
+                <p
+                  className="
+                    font-sans
+                    text-[10px]
+                    uppercase
+                    tracking-[0.12em]
+                    text-[#8A8A84]
+                  "
+                >
+                  Accumulated income
+                </p>
+
+                <p
+                  className="
+                    mt-2
+                    font-serif
+                    text-[30px]
+                    leading-none
+                    tracking-[-0.025em]
+                    sm:text-[34px]
+                  "
+                >
+                  {formatMoney(
+                    accumulatedPhp
+                  )}
+                </p>
+
+                <p
+                  className="
+                    mt-2
+                    font-serif
+                    text-[13px]
+                    text-[#918E87]
+                  "
+                >
+                  PHP received
+                </p>
+              </div>
+            </div>
+
+            {/* ============================================================= */}
+            {/* YEARLY GRAPH                                                   */}
+            {/* ============================================================= */}
+
+            <div className="mt-9">
+              <div
+                className="
+                  flex
+                  h-[145px]
+                  items-end
+                  gap-2
+                  border-b
+                  border-[#DCD8D2]
+                  sm:gap-3
+                "
+              >
+                {monthlyIncome.map(
+                  (amount, index) => {
+                    const height =
+                      amount > 0
+                        ? Math.max(
+                            5,
+                            (amount /
+                              graphMax) *
+                              100
+                          )
+                        : 2;
+
+                    const isCurrentMonth =
+                      index ===
+                      currentMonth;
+
+                    return (
+                      <div
+                        key={index}
+                        className="
+                          group
+                          relative
+                          flex
+                          h-full
+                          flex-1
+                          items-end
+                        "
+                      >
+                        {amount > 0 && (
+                          <div
+                            className="
+                              pointer-events-none
+                              absolute
+                              bottom-full
+                              left-1/2
+                              z-10
+                              mb-2
+                              -translate-x-1/2
+                              whitespace-nowrap
+                              rounded
+                              bg-[#292929]
+                              px-2.5
+                              py-1.5
+                              font-sans
+                              text-[10px]
+                              text-white
+                              opacity-0
+                              transition-opacity
+                              group-hover:opacity-100
+                            "
+                          >
+                            {formatMoney(
+                              amount
+                            )}
+                          </div>
+                        )}
+
+                        <div
+                          className={`
+                            w-full
+                            rounded-t-[2px]
+                            transition-all
+                            duration-200
+                            ${
+                              isCurrentMonth
+                                ? "bg-[#6F8F72]"
+                                : "bg-[#C8CEC5]"
+                            }
+                            ${
+                              amount === 0
+                                ? "opacity-30"
+                                : "opacity-100"
+                            }
+                          `}
+                          style={{
+                            height: `${height}%`,
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+
+              <div
+                className="
+                  mt-2
+                  grid
+                  grid-cols-12
+                  gap-2
+                  sm:gap-3
+                "
+              >
+                {monthlyIncome.map(
+                  (_, index) => (
+                    <span
+                      key={index}
+                      className={`
+                        text-center
+                        font-sans
+                        text-[9px]
+                        ${
+                          index ===
+                          currentMonth
+                            ? "font-medium text-[#6F8F72]"
+                            : "text-[#99958E]"
+                        }
+                      `}
+                    >
+                      {getMonthLabel(
+                        index
+                      )}
+                    </span>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* CURRENT STUDENTS                                                    */}
+      {/* =================================================================== */}
+
+      <section
+        className="
+          mx-auto
+          max-w-[1200px]
+          px-6
+          pb-20
+          pt-14
+          sm:px-8
+          sm:pb-24
+          sm:pt-16
+          lg:px-10
+        "
+      >
+        <div
+          className="
+            mb-7
+            flex
+            items-end
+            justify-between
+            gap-6
+          "
+        >
+          <div>
+            <p
+              className="
+                font-sans
+                text-[10px]
+                font-medium
+                uppercase
+                tracking-[0.18em]
+                text-[#8A8A84]
+              "
+            >
+              Current students
+            </p>
+
+            <h2
+              className="
+                mt-2
+                font-serif
+                text-[29px]
+                font-normal
+                tracking-[-0.025em]
+              "
+            >
+              Active Students
+            </h2>
           </div>
 
           <Link
             href={`/${locale}/admin/students`}
             className="
+              hidden
               font-sans
-              text-[14px]
+              text-[13px]
               text-[#6F8F72]
               transition-colors
               hover:text-[#526B55]
+              sm:block
             "
           >
             View all students →
           </Link>
         </div>
 
-        {/* TABLE */}
-        {activeStudentRows.length > 0 ? (
-          <div className="overflow-x-auto border-y border-[#DCD8D2]">
-            <table className="w-full min-w-[900px] border-collapse">
-              <thead>
-                <tr className="border-b border-[#DCD8D2]">
-                  <th className="px-4 py-4 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
-                    Student No.
-                  </th>
+        {/* ================================================================= */}
+        {/* TABLE                                                             */}
+        {/* ================================================================= */}
 
-                  <th className="px-4 py-4 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+        {activeStudentRows.length > 0 ? (
+          <div
+            className="
+              overflow-x-auto
+              border-y
+              border-[#DCD8D2]
+            "
+          >
+            <table
+              className="
+                w-full
+                min-w-[850px]
+                table-fixed
+                border-collapse
+              "
+            >
+              <thead>
+                <tr
+                  className="
+                    border-b
+                    border-[#DCD8D2]
+                  "
+                >
+                  {/* ======================================================= */}
+                  {/* STUDENT HEADING                                          */}
+                  {/* ======================================================= */}
+
+                  <th
+                    className="
+                      w-[23%]
+                      px-3
+                      py-4
+                      text-left
+                      font-sans
+                      text-[10px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#8A8A84]
+                      sm:px-4
+                    "
+                  >
                     Student
                   </th>
 
-                  <th className="px-4 py-4 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
-                    Current Enrollment
+                  {/* ======================================================= */}
+                  {/* SCHEDULE HEADING                                         */}
+                  {/* ======================================================= */}
+
+                  <th
+                    className="
+                      w-[29%]
+                      px-3
+                      py-4
+                      text-center
+                      font-sans
+                      text-[10px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#8A8A84]
+                      sm:px-4
+                    "
+                  >
+                    Schedule
                   </th>
 
-                  <th className="px-4 py-4 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
-                    Schedule & Time
+                  {/* ======================================================= */}
+                  {/* PROGRESS HEADING                                         */}
+                  {/* ======================================================= */}
+
+                  <th
+                    className="
+                      w-[33%]
+                      px-3
+                      py-4
+                      text-center
+                      font-sans
+                      text-[10px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#8A8A84]
+                      sm:px-4
+                    "
+                  >
+                    Progress
                   </th>
 
-                  <th className="px-4 py-4 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
-                    Classes Left
-                  </th>
+                  {/* ======================================================= */}
+                  {/* STATUS HEADING                                           */}
+                  {/* ======================================================= */}
 
-                  <th className="px-4 py-4 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                  <th
+                    className="
+                      w-[15%]
+                      px-3
+                      py-4
+                      text-right
+                      font-sans
+                      text-[10px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#8A8A84]
+                      sm:px-4
+                    "
+                  >
                     Status
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {activeStudentRows.map((student) => {
-                  const activeEnrollment = (
-                    student.enrollments ?? []
-                  ).find(
-                    (enrollment) =>
-                      enrollment.status === "active"
-                  );
+                {activeStudentRows.map(
+                  (student) => {
+                    const activeEnrollment =
+                      (
+                        student.enrollments ??
+                        []
+                      ).find(
+                        (enrollment) =>
+                          enrollment.status ===
+                          "active"
+                      );
 
-                  if (!activeEnrollment) {
-                    return null;
-                  }
+                    if (
+                      !activeEnrollment
+                    ) {
+                      return null;
+                    }
 
-                  const lessons =
-                    activeEnrollment.lessons ?? [];
+                    const lessons =
+                      activeEnrollment.lessons ??
+                      [];
 
-                  const consumedLessons =
-                    lessons.filter(
-                      (lesson) =>
-                        lesson.consumes_lesson
-                    ).length;
+                    const consumedLessons =
+                      lessons.filter(
+                        (lesson) =>
+                          lesson.consumes_lesson
+                      ).length;
 
-                  const totalLessons =
-                    activeEnrollment.number_of_lessons ??
-                    0;
+                    const totalLessons =
+                      activeEnrollment.number_of_lessons ??
+                      0;
 
-                  const remainingLessons =
-                    Math.max(
-                      0,
-                      totalLessons -
-                        consumedLessons
-                    );
+                    const remainingLessons =
+                      Math.max(
+                        0,
+                        totalLessons -
+                          consumedLessons
+                      );
 
-                  const status =
-                    getStatusStyles(
-                      activeEnrollment.status
-                    );
+                    const progress =
+                      totalLessons > 0
+                        ? Math.min(
+                            100,
+                            Math.round(
+                              (consumedLessons /
+                                totalLessons) *
+                                100
+                            )
+                          )
+                        : 0;
 
-                  return (
-                    <tr
-                      key={student.id}
-                      className="
-                        border-b
-                        border-[#E7E3DD]
-                        transition-colors
-                        hover:bg-[#F0F4ED]
-                      "
-                    >
-                      <td className="px-4 py-5 font-sans text-[14px] text-[#6B6B66]">
-                        {student.student_number ?? "—"}
-                      </td>
+                    const status =
+                      getStatusStyles(
+                        activeEnrollment.status
+                      );
 
-                      <td className="px-4 py-5">
-                        <Link
-                          href={`/${locale}/admin/students/${student.id}`}
+                    const studentName =
+                      student.preferred_name ||
+                      student.full_name;
+
+                    return (
+                      <tr
+                        key={student.id}
+                        className="
+                          border-b
+                          border-[#E7E3DD]
+                          transition-colors
+                          last:border-b-0
+                          hover:bg-[#F2F5F0]
+                        "
+                      >
+                        {/* ================================================= */}
+                        {/* STUDENT CONTENT                                    */}
+                        {/* ================================================= */}
+
+                        <td
                           className="
-                            font-serif
-                            text-[17px]
-                            transition-colors
-                            hover:text-[#6F8F72]
+                            px-3
+                            py-5
+                            text-left
+                            sm:px-4
                           "
                         >
-                          {student.preferred_name ||
-                            student.full_name}
-                        </Link>
+                          <Link
+                            href={`/${locale}/admin/students/${student.id}`}
+                            className="
+                              font-serif
+                              text-[17px]
+                              tracking-[-0.01em]
+                              transition-colors
+                              hover:text-[#6F8F72]
+                            "
+                          >
+                            {studentName}
+                          </Link>
 
-                        {student.preferred_name &&
-                          student.preferred_name !==
-                            student.full_name && (
-                            <p
+                          <p
+                            className="
+                              mt-1
+                              font-sans
+                              text-[10px]
+                              uppercase
+                              tracking-[0.12em]
+                              text-[#9A9790]
+                            "
+                          >
+                            {student.student_number ??
+                              "—"}
+                          </p>
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* SCHEDULE CONTENT                                   */}
+                        {/* ================================================= */}
+
+                        <td
+                          className="
+                            px-3
+                            py-5
+                            text-left
+                            font-serif
+                            text-[14px]
+                            leading-6
+                            text-[#55544F]
+                            sm:px-4
+                          "
+                        >
+                          {formatSchedule(
+                            activeEnrollment.schedule_days,
+                            activeEnrollment.schedule_time
+                          )}
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* PROGRESS CONTENT                                   */}
+                        {/* ================================================= */}
+
+                        <td
+                          className="
+                            px-3
+                            py-5
+                            text-left
+                            sm:px-4
+                          "
+                        >
+                          <div
+                            className="
+                              w-full
+                              max-w-[280px]
+                            "
+                          >
+                            <div
                               className="
-                                mt-1
-                                font-sans
-                                text-[12px]
-                                text-[#8A8A84]
+                                mb-2
+                                flex
+                                items-center
+                                justify-between
+                                gap-4
                               "
                             >
-                              {student.full_name}
+                              <span
+                                className="
+                                  font-serif
+                                  text-[14px]
+                                  text-[#4E4D48]
+                                "
+                              >
+                                {consumedLessons}{" "}
+                                /{" "}
+                                {totalLessons}
+                              </span>
+
+                              <span
+                                className="
+                                  shrink-0
+                                  font-sans
+                                  text-[10px]
+                                  text-[#99958E]
+                                "
+                              >
+                                {progress}%
+                              </span>
+                            </div>
+
+                            <div
+                              className="
+                                h-[3px]
+                                w-full
+                                overflow-hidden
+                                rounded-full
+                                bg-[#E4E1DB]
+                              "
+                            >
+                              <div
+                                className="
+                                  h-full
+                                  rounded-full
+                                  bg-[#7B927C]
+                                  transition-all
+                                "
+                                style={{
+                                  width: `${progress}%`,
+                                }}
+                              />
+                            </div>
+
+                            <p
+                              className="
+                                mt-2
+                                font-sans
+                                text-[10px]
+                                text-[#99958E]
+                              "
+                            >
+                              {remainingLessons}{" "}
+                              {remainingLessons ===
+                              1
+                                ? "lesson"
+                                : "lessons"}{" "}
+                              remaining
                             </p>
-                          )}
-                      </td>
+                          </div>
+                        </td>
 
-                      <td className="px-4 py-5 font-serif text-[16px]">
-                        {activeEnrollment.package_name ||
-                          "Enrollment"}
-                      </td>
+                        {/* ================================================= */}
+                        {/* STATUS CONTENT                                     */}
+                        {/* ================================================= */}
 
-                      <td className="px-4 py-5 font-serif text-[15px]">
-                        {formatSchedule(
-                          activeEnrollment.schedule_days,
-                          activeEnrollment.schedule_time
-                        )}
-                      </td>
-
-                      <td className="px-4 py-5 font-serif text-[17px] font-medium">
-                        {remainingLessons}
-                      </td>
-
-                      <td className="px-4 py-5">
-                        <span
-                          className={`
-                            inline-flex
-                            items-center
-                            rounded-full
+                        <td
+                          className="
                             px-3
-                            py-1.5
-                            font-sans
-                            text-[11px]
-                            font-medium
-                            uppercase
-                            tracking-[0.08em]
-                            ${status.className}
-                          `}
+                            py-5
+                            text-right
+                            sm:px-4
+                          "
                         >
-                          {status.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                          <span
+                            className={`
+                              inline-flex
+                              items-center
+                              rounded-full
+                              px-3
+                              py-1.5
+                              font-sans
+                              text-[9px]
+                              font-medium
+                              uppercase
+                              tracking-[0.1em]
+                              ${status.className}
+                            `}
+                          >
+                            {status.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  }
+                )}
               </tbody>
             </table>
           </div>
@@ -874,7 +1398,7 @@ export default async function OverviewPage({
             <h3
               className="
                 font-serif
-                text-[28px]
+                text-[27px]
                 font-normal
               "
             >
@@ -885,25 +1409,25 @@ export default async function OverviewPage({
               className="
                 mx-auto
                 mt-3
-                max-w-md
+                max-w-[420px]
                 font-serif
-                text-[17px]
+                text-[16px]
                 leading-7
-                text-[#6B6B66]
+                text-[#74716B]
               "
             >
-              Once a student has an active
-              enrollment, they will appear here.
+              Students will appear here once
+              they have an active enrollment.
             </p>
 
             {totalStudents > 0 && (
               <Link
                 href={`/${locale}/admin/students`}
                 className="
-                  mt-7
+                  mt-6
                   inline-block
                   font-sans
-                  text-sm
+                  text-[13px]
                   text-[#6F8F72]
                   underline
                   underline-offset-4

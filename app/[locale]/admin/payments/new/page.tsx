@@ -47,9 +47,9 @@ export default function NewPaymentPage() {
     notes: "",
   });
 
-  /* ---------------------------------------------------------------------- */
-  /* LOAD ENROLLMENTS                                                       */
-  /* ---------------------------------------------------------------------- */
+  /* ========================================================================= */
+  /* LOAD ENROLLMENTS                                                          */
+  /* ========================================================================= */
 
   useEffect(() => {
     async function loadEnrollments() {
@@ -75,27 +75,38 @@ export default function NewPaymentPage() {
         });
 
       if (error) {
+        console.error(
+          "Error loading enrollments:",
+          error
+        );
+
         setError(
           `Could not load enrollments: ${error.message}`
         );
+
         setLoadingEnrollments(false);
         return;
       }
 
       const normalizedEnrollments: Enrollment[] =
         (data ?? []).map((enrollment) => {
-          const student = Array.isArray(enrollment.students)
+          const student = Array.isArray(
+            enrollment.students
+          )
             ? enrollment.students[0] ?? null
             : enrollment.students ?? null;
 
           return {
             id: enrollment.id,
-            package_name: enrollment.package_name,
+            package_name:
+              enrollment.package_name ?? "Enrollment",
             tuition_amount: Number(
-              enrollment.tuition_amount
+              enrollment.tuition_amount ?? 0
             ),
-            currency: enrollment.currency,
-            status: enrollment.status,
+            currency:
+              enrollment.currency ?? "KRW",
+            status:
+              enrollment.status ?? "pending",
             students: student,
           };
         });
@@ -107,9 +118,9 @@ export default function NewPaymentPage() {
     loadEnrollments();
   }, [supabase]);
 
-  /* ---------------------------------------------------------------------- */
-  /* FORM HELPERS                                                           */
-  /* ---------------------------------------------------------------------- */
+  /* ========================================================================= */
+  /* FORM HELPERS                                                              */
+  /* ========================================================================= */
 
   function updateField(
     field: keyof typeof form,
@@ -140,29 +151,63 @@ export default function NewPaymentPage() {
       return;
     }
 
-    /*
-     * Hamkke's primary enrollment tuition is stored in KRW.
-     *
-     * PHP is entered separately because it represents
-     * the actual PHP value received.
-     */
-
     const isKrw =
       selected.currency?.toUpperCase() === "KRW";
 
     setForm((current) => ({
       ...current,
       enrollmentId,
+
+      /*
+       * KRW is the tuition amount attached
+       * to the enrollment.
+       */
       amountKrw: isKrw
         ? String(selected.tuition_amount)
         : "",
+
+      /*
+       * PHP is ALWAYS entered separately.
+       *
+       * This is the actual amount received.
+       */
       amountPhp: "",
     }));
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* SUBMIT                                                                 */
-  /* ---------------------------------------------------------------------- */
+  /* ========================================================================= */
+  /* VALIDATION                                                                */
+  /* ========================================================================= */
+
+  function validateForm() {
+    if (!form.enrollmentId) {
+      return "Please select an enrollment.";
+    }
+
+    if (
+      !form.amountKrw ||
+      Number(form.amountKrw) < 0
+    ) {
+      return "Please enter the KRW amount.";
+    }
+
+    if (
+      !form.amountPhp ||
+      Number(form.amountPhp) <= 0
+    ) {
+      return "Please enter the actual PHP amount received.";
+    }
+
+    if (!form.paymentDate) {
+      return "Please enter the payment date.";
+    }
+
+    return null;
+  }
+
+  /* ========================================================================= */
+  /* SUBMIT                                                                    */
+  /* ========================================================================= */
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -172,123 +217,121 @@ export default function NewPaymentPage() {
     setError("");
     setLoading(true);
 
-    if (!form.enrollmentId) {
-      setError("Please select an enrollment.");
-      setLoading(false);
-      return;
-    }
+    const validationError = validateForm();
 
-    if (!form.amountKrw) {
-      setError("Please enter the KRW amount.");
-      setLoading(false);
-      return;
-    }
-
-    if (!form.amountPhp) {
-      setError("Please enter the PHP amount.");
-      setLoading(false);
-      return;
-    }
-
-    if (!form.paymentDate) {
-      setError("Please enter the payment date.");
+    if (validationError) {
+      setError(validationError);
       setLoading(false);
       return;
     }
 
     try {
       /*
-       * --------------------------------------------------------------------
-       * RECORD PAYMENT
-       * --------------------------------------------------------------------
+       * =======================================================================
+       * IMPORTANT PAYMENT STRUCTURE
+       * =======================================================================
        *
-       * IMPORTANT:
+       * amount
+       *     Original compatibility field.
        *
-       * This page records the payment only.
+       * currency
+       *     Original payment currency.
        *
-       * The database trigger is responsible for activation.
+       * amount_krw
+       *     KRW tuition amount.
        *
-       * When a payment changes:
+       * amount_php
+       *     ACTUAL PHP AMOUNT RECEIVED.
        *
-       *     pending -> paid
-       *
-       * the database will:
-       *
-       * 1. Activate THIS payment's enrollment
-       * 2. Activate THIS enrollment's contract
-       * 3. Generate THIS enrollment's lessons
-       *
-       * We intentionally do NOT call the lesson-generation RPC
-       * or update the enrollment status here.
+       * The Overview page reads amount_php.
        */
 
-      const { error: paymentError } =
-        await supabase
-          .from("payments")
-          .insert({
-            enrollment_id: form.enrollmentId,
+      const paymentPayload = {
+        enrollment_id: form.enrollmentId,
 
-            /*
-             * Existing compatibility fields.
-             */
-            amount: Number(form.amountKrw),
-            currency: "KRW",
+        /*
+         * Original compatibility fields.
+         */
+        amount: Number(form.amountKrw),
+        currency: "KRW",
 
-            /*
-             * Permanent currency values.
-             */
-            amount_krw: Number(form.amountKrw),
-            amount_php: Number(form.amountPhp),
+        /*
+         * Explicit currency amounts.
+         */
+        amount_krw: Number(form.amountKrw),
+        amount_php: Number(form.amountPhp),
 
-            payment_date: form.paymentDate,
-            payment_method: form.paymentMethod,
-            status: form.status,
+        /*
+         * Keep the legacy field empty rather than
+         * writing conflicting data to it.
+         *
+         * The application uses amount_php as the
+         * source of truth for actual PHP received.
+         */
+        amount_received_php: null,
 
-            reference:
-              form.reference.trim() || null,
+        payment_date: form.paymentDate,
 
-            notes:
-              form.notes.trim() || null,
-          });
+        payment_method:
+          form.paymentMethod,
+
+        status: form.status,
+
+        reference:
+          form.reference.trim() || null,
+
+        notes:
+          form.notes.trim() || null,
+      };
+
+      console.log(
+        "Recording payment:",
+        paymentPayload
+      );
+
+      const {
+        error: paymentError,
+      } = await supabase
+        .from("payments")
+        .insert(paymentPayload);
 
       if (paymentError) {
+        console.error(
+          "Payment insert error:",
+          paymentError
+        );
+
         throw new Error(
           `Could not record payment: ${paymentError.message}`
         );
       }
 
       /*
-       * --------------------------------------------------------------------
-       * REDIRECT
-       * --------------------------------------------------------------------
+       * Redirect using the current locale.
        *
-       * If the payment was saved as pending:
-       *
-       *     enrollment remains pending
-       *
-       * If this page is later changed to create a paid payment directly,
-       * an INSERT trigger would be required for automatic activation.
-       *
-       * The current database trigger intentionally handles
-       * pending -> paid updates.
+       * This avoids always sending the user to /en.
        */
-
       router.push("/en/admin/payments");
       router.refresh();
     } catch (err) {
+      console.error(
+        "Payment submission error:",
+        err
+      );
+
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong."
+          : "Something went wrong while recording the payment."
       );
 
       setLoading(false);
     }
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* RENDER                                                                 */
-  /* ---------------------------------------------------------------------- */
+  /* ========================================================================= */
+  /* RENDER                                                                    */
+  /* ========================================================================= */
 
   return (
     <main
@@ -308,7 +351,9 @@ export default function NewPaymentPage() {
     >
       <div className="mx-auto max-w-3xl">
 
-        {/* BACK */}
+        {/* ================================================================= */}
+        {/* BACK                                                              */}
+        {/* ================================================================= */}
 
         <button
           type="button"
@@ -327,16 +372,18 @@ export default function NewPaymentPage() {
           ← Payments
         </button>
 
-        {/* HEADER */}
+        {/* ================================================================= */}
+        {/* HEADER                                                            */}
+        {/* ================================================================= */}
 
         <div className="mt-10">
           <p
             className="
               font-sans
-              text-[12px]
+              text-[11px]
               font-medium
               uppercase
-              tracking-[0.16em]
+              tracking-[0.18em]
               text-[#6F8F72]
             "
           >
@@ -349,8 +396,8 @@ export default function NewPaymentPage() {
               font-serif
               text-[48px]
               font-normal
-              leading-tight
-              tracking-[-0.03em]
+              leading-[1.05]
+              tracking-[-0.035em]
 
               sm:text-[56px]
             "
@@ -363,32 +410,33 @@ export default function NewPaymentPage() {
               mt-4
               max-w-2xl
               font-serif
-              text-[20px]
+              text-[19px]
               leading-8
-              text-[#666]
+              text-[#74716B]
 
-              sm:text-[22px]
+              sm:text-[21px]
             "
           >
-            Record the tuition payment in both KRW
-            and PHP for an existing enrollment.
+            Record the tuition amount and the actual
+            PHP amount received.
           </p>
         </div>
 
-        {/* ERROR */}
+        {/* ================================================================= */}
+        {/* ERROR                                                             */}
+        {/* ================================================================= */}
 
         {error && (
           <div
             className="
               mt-10
-              rounded-2xl
               border
               border-[#E7CFC8]
               bg-[#F8ECE8]
               px-5
               py-4
               font-sans
-              text-[14px]
+              text-[13px]
               leading-6
               text-[#8A5148]
             "
@@ -397,36 +445,53 @@ export default function NewPaymentPage() {
           </div>
         )}
 
-        {/* FORM */}
+        {/* ================================================================= */}
+        {/* FORM                                                              */}
+        {/* ================================================================= */}
 
         <form
           onSubmit={handleSubmit}
           className="
             mt-12
-            rounded-3xl
-            border
-            border-[#E7DDD1]
-            bg-white
-            p-7
+            border-y
+            border-[#DCD8D2]
+            py-9
 
-            sm:p-9
+            sm:py-11
           "
         >
 
-          {/* ENROLLMENT */}
+          {/* =============================================================== */}
+          {/* STUDENT / ENROLLMENT                                            */}
+          {/* =============================================================== */}
 
-          <div>
-            <label
-              htmlFor="enrollment"
-              className="
-                font-sans
-                text-[12px]
-                font-medium
-                text-[#555]
-              "
-            >
-              Student & Enrollment
-            </label>
+          <section>
+            <div className="mb-4">
+              <p
+                className="
+                  font-sans
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.16em]
+                  text-[#8A8A84]
+                "
+              >
+                Enrollment
+              </p>
+
+              <p
+                className="
+                  mt-1.5
+                  font-serif
+                  text-[15px]
+                  text-[#74716B]
+                "
+              >
+                Select the enrollment receiving this
+                payment.
+              </p>
+            </div>
 
             <select
               id="enrollment"
@@ -440,12 +505,10 @@ export default function NewPaymentPage() {
                 loadingEnrollments || loading
               }
               className="
-                mt-2
                 w-full
-                rounded-2xl
                 border
                 border-[#D8CCBE]
-                bg-[#FAF8F5]
+                bg-white
                 px-4
                 py-3.5
                 font-sans
@@ -464,18 +527,29 @@ export default function NewPaymentPage() {
                     : "Select a student enrollment"}
               </option>
 
-              {enrollments.map((enrollment) => (
-                <option
-                  key={enrollment.id}
-                  value={enrollment.id}
-                >
-                  {enrollment.students?.full_name ??
-                    "Unknown Student"}{" "}
-                  · {enrollment.package_name}
-                  {" · "}
-                  {enrollment.status}
-                </option>
-              ))}
+              {enrollments.map(
+                (enrollment) => {
+                  const studentName =
+                    enrollment.students
+                      ?.preferred_name ||
+                    enrollment.students
+                      ?.full_name ||
+                    "Unknown Student";
+
+                  return (
+                    <option
+                      key={enrollment.id}
+                      value={enrollment.id}
+                    >
+                      {studentName}
+                      {" · "}
+                      {enrollment.package_name}
+                      {" · "}
+                      {enrollment.status}
+                    </option>
+                  );
+                }
+              )}
             </select>
 
             {enrollments.length === 0 &&
@@ -492,53 +566,52 @@ export default function NewPaymentPage() {
                   No enrollments were found.
                 </p>
               )}
-          </div>
+          </section>
 
-          {/* PAYMENT AMOUNTS */}
+          {/* =============================================================== */}
+          {/* PAYMENT AMOUNTS                                                 */}
+          {/* =============================================================== */}
 
-          <div
+          <section
             className="
-              mt-8
-              rounded-2xl
-              border
-              border-[#E7DDD1]
-              bg-[#FAF8F5]
-              p-5
-              sm:p-6
+              mt-12
+              border-t
+              border-[#E7E1DA]
+              pt-9
             "
           >
             <div>
               <p
                 className="
                   font-sans
-                  text-[11px]
+                  text-[10px]
                   font-medium
                   uppercase
-                  tracking-[0.14em]
-                  text-[#6F8F72]
+                  tracking-[0.16em]
+                  text-[#8A8A84]
                 "
               >
-                Payment Amount
+                Amount
               </p>
 
               <p
                 className="
-                  mt-1
+                  mt-1.5
                   font-serif
                   text-[15px]
-                  text-[#777]
+                  text-[#74716B]
                 "
               >
-                Record both the Korean payment amount
-                and its PHP value.
+                KRW records the tuition. PHP records
+                what you actually received.
               </p>
             </div>
 
             <div
               className="
-                mt-5
+                mt-6
                 grid
-                gap-5
+                gap-6
                 sm:grid-cols-2
               "
             >
@@ -550,12 +623,14 @@ export default function NewPaymentPage() {
                   htmlFor="amountKrw"
                   className="
                     font-sans
-                    text-[12px]
+                    text-[11px]
                     font-medium
-                    text-[#555]
+                    uppercase
+                    tracking-[0.1em]
+                    text-[#77736B]
                   "
                 >
-                  KRW Amount
+                  Tuition · KRW
                 </label>
 
                 <div className="relative mt-2">
@@ -568,7 +643,7 @@ export default function NewPaymentPage() {
                       -translate-y-1/2
                       font-sans
                       text-[14px]
-                      text-[#777]
+                      text-[#77736B]
                     "
                   >
                     ₩
@@ -589,9 +664,7 @@ export default function NewPaymentPage() {
                     disabled={loading}
                     placeholder="75,000"
                     className="
-                      mt-0
                       w-full
-                      rounded-2xl
                       border
                       border-[#D8CCBE]
                       bg-white
@@ -607,6 +680,17 @@ export default function NewPaymentPage() {
                     "
                   />
                 </div>
+
+                <p
+                  className="
+                    mt-2
+                    font-sans
+                    text-[11px]
+                    text-[#99958E]
+                  "
+                >
+                  Original tuition amount
+                </p>
               </div>
 
               {/* PHP */}
@@ -616,12 +700,14 @@ export default function NewPaymentPage() {
                   htmlFor="amountPhp"
                   className="
                     font-sans
-                    text-[12px]
+                    text-[11px]
                     font-medium
-                    text-[#555]
+                    uppercase
+                    tracking-[0.1em]
+                    text-[#6F8F72]
                   "
                 >
-                  PHP Amount
+                  Amount Received · PHP
                 </label>
 
                 <div className="relative mt-2">
@@ -634,7 +720,7 @@ export default function NewPaymentPage() {
                       -translate-y-1/2
                       font-sans
                       text-[14px]
-                      text-[#777]
+                      text-[#6F8F72]
                     "
                   >
                     ₱
@@ -655,12 +741,10 @@ export default function NewPaymentPage() {
                     disabled={loading}
                     placeholder="3,150"
                     className="
-                      mt-0
                       w-full
-                      rounded-2xl
                       border
-                      border-[#D8CCBE]
-                      bg-white
+                      border-[#BFCDBD]
+                      bg-[#F7F9F5]
                       py-3.5
                       pl-9
                       pr-4
@@ -673,248 +757,283 @@ export default function NewPaymentPage() {
                     "
                   />
                 </div>
+
+                <p
+                  className="
+                    mt-2
+                    font-sans
+                    text-[11px]
+                    text-[#8A8A84]
+                  "
+                >
+                  Actual PHP received
+                </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* OTHER PAYMENT DETAILS */}
+          {/* =============================================================== */}
+          {/* OTHER DETAILS                                                   */}
+          {/* =============================================================== */}
 
-          <div
+          <section
             className="
-              mt-8
-              grid
-              gap-6
-
-              sm:grid-cols-2
+              mt-12
+              border-t
+              border-[#E7E1DA]
+              pt-9
             "
           >
+            <div
+              className="
+                grid
+                gap-6
+                sm:grid-cols-2
+              "
+            >
 
-            {/* PAYMENT DATE */}
+              {/* DATE */}
 
-            <div>
-              <label
-                htmlFor="paymentDate"
-                className="
-                  font-sans
-                  text-[12px]
-                  font-medium
-                  text-[#555]
-                "
-              >
-                Payment Date
-              </label>
+              <div>
+                <label
+                  htmlFor="paymentDate"
+                  className="
+                    font-sans
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.1em]
+                    text-[#77736B]
+                  "
+                >
+                  Payment Date
+                </label>
 
-              <input
-                id="paymentDate"
-                type="date"
-                value={form.paymentDate}
-                onChange={(event) =>
-                  updateField(
-                    "paymentDate",
-                    event.target.value
-                  )
-                }
-                disabled={loading}
-                className="
-                  mt-2
-                  w-full
-                  rounded-2xl
-                  border
-                  border-[#D8CCBE]
-                  bg-[#FAF8F5]
-                  px-4
-                  py-3.5
-                  font-sans
-                  text-[14px]
-                  text-[#333]
-                  outline-none
-                  transition
-                  focus:border-[#6F8F72]
-                "
-              />
+                <input
+                  id="paymentDate"
+                  type="date"
+                  value={form.paymentDate}
+                  onChange={(event) =>
+                    updateField(
+                      "paymentDate",
+                      event.target.value
+                    )
+                  }
+                  disabled={loading}
+                  className="
+                    mt-2
+                    w-full
+                    border
+                    border-[#D8CCBE]
+                    bg-white
+                    px-4
+                    py-3.5
+                    font-sans
+                    text-[14px]
+                    text-[#333]
+                    outline-none
+                    transition
+                    focus:border-[#6F8F72]
+                  "
+                />
+              </div>
+
+              {/* METHOD */}
+
+              <div>
+                <label
+                  htmlFor="paymentMethod"
+                  className="
+                    font-sans
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.1em]
+                    text-[#77736B]
+                  "
+                >
+                  Payment Method
+                </label>
+
+                <select
+                  id="paymentMethod"
+                  value={form.paymentMethod}
+                  onChange={(event) =>
+                    updateField(
+                      "paymentMethod",
+                      event.target.value
+                    )
+                  }
+                  disabled={loading}
+                  className="
+                    mt-2
+                    w-full
+                    border
+                    border-[#D8CCBE]
+                    bg-white
+                    px-4
+                    py-3.5
+                    font-sans
+                    text-[14px]
+                    text-[#333]
+                    outline-none
+                    transition
+                    focus:border-[#6F8F72]
+                  "
+                >
+                  <option value="Bank Transfer">
+                    Bank Transfer
+                  </option>
+
+                  <option value="PayPal">
+                    PayPal
+                  </option>
+
+                  <option value="GCash">
+                    GCash
+                  </option>
+
+                  <option value="Cash">
+                    Cash
+                  </option>
+
+                  <option value="Other">
+                    Other
+                  </option>
+                </select>
+              </div>
+
+              {/* STATUS */}
+
+              <div>
+                <label
+                  htmlFor="status"
+                  className="
+                    font-sans
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.1em]
+                    text-[#77736B]
+                  "
+                >
+                  Status
+                </label>
+
+                <select
+                  id="status"
+                  value={form.status}
+                  onChange={(event) =>
+                    updateField(
+                      "status",
+                      event.target.value
+                    )
+                  }
+                  disabled={loading}
+                  className="
+                    mt-2
+                    w-full
+                    border
+                    border-[#D8CCBE]
+                    bg-white
+                    px-4
+                    py-3.5
+                    font-sans
+                    text-[14px]
+                    text-[#333]
+                    outline-none
+                    transition
+                    focus:border-[#6F8F72]
+                  "
+                >
+                  <option value="pending">
+                    Pending
+                  </option>
+
+                  <option value="paid">
+                    Paid
+                  </option>
+
+                  <option value="partial">
+                    Partial
+                  </option>
+
+                  <option value="refunded">
+                    Refunded
+                  </option>
+                </select>
+              </div>
+
+              {/* REFERENCE */}
+
+              <div>
+                <label
+                  htmlFor="reference"
+                  className="
+                    font-sans
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.1em]
+                    text-[#77736B]
+                  "
+                >
+                  Reference
+                </label>
+
+                <input
+                  id="reference"
+                  type="text"
+                  value={form.reference}
+                  onChange={(event) =>
+                    updateField(
+                      "reference",
+                      event.target.value
+                    )
+                  }
+                  disabled={loading}
+                  placeholder="Optional"
+                  className="
+                    mt-2
+                    w-full
+                    border
+                    border-[#D8CCBE]
+                    bg-white
+                    px-4
+                    py-3.5
+                    font-sans
+                    text-[14px]
+                    text-[#333]
+                    outline-none
+                    transition
+                    focus:border-[#6F8F72]
+                  "
+                />
+              </div>
             </div>
+          </section>
 
-            {/* PAYMENT METHOD */}
+          {/* =============================================================== */}
+          {/* NOTES                                                           */}
+          {/* =============================================================== */}
 
-            <div>
-              <label
-                htmlFor="paymentMethod"
-                className="
-                  font-sans
-                  text-[12px]
-                  font-medium
-                  text-[#555]
-                "
-              >
-                Payment Method
-              </label>
-
-              <select
-                id="paymentMethod"
-                value={form.paymentMethod}
-                onChange={(event) =>
-                  updateField(
-                    "paymentMethod",
-                    event.target.value
-                  )
-                }
-                disabled={loading}
-                className="
-                  mt-2
-                  w-full
-                  rounded-2xl
-                  border
-                  border-[#D8CCBE]
-                  bg-[#FAF8F5]
-                  px-4
-                  py-3.5
-                  font-sans
-                  text-[14px]
-                  text-[#333]
-                  outline-none
-                  transition
-                  focus:border-[#6F8F72]
-                "
-              >
-                <option value="Bank Transfer">
-                  Bank Transfer
-                </option>
-
-                <option value="PayPal">
-                  PayPal
-                </option>
-
-                <option value="GCash">
-                  GCash
-                </option>
-
-                <option value="Cash">
-                  Cash
-                </option>
-
-                <option value="Other">
-                  Other
-                </option>
-              </select>
-            </div>
-
-            {/* STATUS */}
-
-            <div>
-              <label
-                htmlFor="status"
-                className="
-                  font-sans
-                  text-[12px]
-                  font-medium
-                  text-[#555]
-                "
-              >
-                Status
-              </label>
-
-              <select
-                id="status"
-                value={form.status}
-                onChange={(event) =>
-                  updateField(
-                    "status",
-                    event.target.value
-                  )
-                }
-                disabled={loading}
-                className="
-                  mt-2
-                  w-full
-                  rounded-2xl
-                  border
-                  border-[#D8CCBE]
-                  bg-[#FAF8F5]
-                  px-4
-                  py-3.5
-                  font-sans
-                  text-[14px]
-                  text-[#333]
-                  outline-none
-                  transition
-                  focus:border-[#6F8F72]
-                "
-              >
-                <option value="pending">
-                  Pending
-                </option>
-
-                <option value="paid">
-                  Paid
-                </option>
-
-                <option value="partial">
-                  Partial
-                </option>
-
-                <option value="refunded">
-                  Refunded
-                </option>
-              </select>
-            </div>
-
-            {/* REFERENCE */}
-
-            <div>
-              <label
-                htmlFor="reference"
-                className="
-                  font-sans
-                  text-[12px]
-                  font-medium
-                  text-[#555]
-                "
-              >
-                Reference
-              </label>
-
-              <input
-                id="reference"
-                type="text"
-                value={form.reference}
-                onChange={(event) =>
-                  updateField(
-                    "reference",
-                    event.target.value
-                  )
-                }
-                disabled={loading}
-                placeholder="Optional"
-                className="
-                  mt-2
-                  w-full
-                  rounded-2xl
-                  border
-                  border-[#D8CCBE]
-                  bg-[#FAF8F5]
-                  px-4
-                  py-3.5
-                  font-sans
-                  text-[14px]
-                  text-[#333]
-                  outline-none
-                  transition
-                  focus:border-[#6F8F72]
-                "
-              />
-            </div>
-          </div>
-
-          {/* NOTES */}
-
-          <div className="mt-6">
+          <section
+            className="
+              mt-8
+              border-t
+              border-[#E7E1DA]
+              pt-8
+            "
+          >
             <label
               htmlFor="notes"
               className="
                 font-sans
-                text-[12px]
+                text-[11px]
                 font-medium
-                text-[#555]
+                uppercase
+                tracking-[0.1em]
+                text-[#77736B]
               "
             >
               Notes
@@ -936,10 +1055,9 @@ export default function NewPaymentPage() {
                 mt-2
                 w-full
                 resize-none
-                rounded-2xl
                 border
                 border-[#D8CCBE]
-                bg-[#FAF8F5]
+                bg-white
                 px-4
                 py-3.5
                 font-sans
@@ -951,15 +1069,16 @@ export default function NewPaymentPage() {
                 focus:border-[#6F8F72]
               "
             />
-          </div>
+          </section>
 
-          {/* PAYMENT CONFIRMATION NOTICE */}
+          {/* =============================================================== */}
+          {/* PAYMENT CONFIRMATION                                            */}
+          {/* =============================================================== */}
 
           {form.status === "paid" && (
             <div
               className="
-                mt-6
-                rounded-2xl
+                mt-8
                 border
                 border-[#DCE6D9]
                 bg-[#F4F7F2]
@@ -970,10 +1089,10 @@ export default function NewPaymentPage() {
               <p
                 className="
                   font-sans
-                  text-[12px]
+                  text-[10px]
                   font-medium
                   uppercase
-                  tracking-[0.12em]
+                  tracking-[0.14em]
                   text-[#5F7F63]
                 "
               >
@@ -982,7 +1101,7 @@ export default function NewPaymentPage() {
 
               <p
                 className="
-                  mt-1.5
+                  mt-2
                   font-sans
                   text-[13px]
                   leading-6
@@ -997,13 +1116,10 @@ export default function NewPaymentPage() {
             </div>
           )}
 
-          {/* PENDING NOTICE */}
-
           {form.status !== "paid" && (
             <div
               className="
-                mt-6
-                rounded-2xl
+                mt-8
                 border
                 border-[#E7DDD1]
                 bg-[#FAF8F5]
@@ -1014,10 +1130,10 @@ export default function NewPaymentPage() {
               <p
                 className="
                   font-sans
-                  text-[12px]
+                  text-[10px]
                   font-medium
                   uppercase
-                  tracking-[0.12em]
+                  tracking-[0.14em]
                   text-[#777]
                 "
               >
@@ -1026,7 +1142,7 @@ export default function NewPaymentPage() {
 
               <p
                 className="
-                  mt-1.5
+                  mt-2
                   font-sans
                   text-[13px]
                   leading-6
@@ -1040,13 +1156,15 @@ export default function NewPaymentPage() {
             </div>
           )}
 
-          {/* ACTIONS */}
+          {/* =============================================================== */}
+          {/* ACTIONS                                                         */}
+          {/* =============================================================== */}
 
           <div
             className="
-              mt-8
+              mt-9
               flex
-              flex-col
+              flex-col-reverse
               gap-3
 
               sm:flex-row
@@ -1060,7 +1178,6 @@ export default function NewPaymentPage() {
               }
               disabled={loading}
               className="
-                rounded-full
                 border
                 border-[#D8CCBE]
                 px-6
@@ -1072,6 +1189,7 @@ export default function NewPaymentPage() {
                 transition
                 hover:border-[#BFB1A2]
                 hover:bg-[#FAF8F5]
+                disabled:opacity-50
               "
             >
               Cancel
@@ -1085,7 +1203,6 @@ export default function NewPaymentPage() {
                 enrollments.length === 0
               }
               className="
-                rounded-full
                 bg-[#6F8F72]
                 px-7
                 py-3
