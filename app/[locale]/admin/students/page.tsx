@@ -16,17 +16,65 @@ export default async function StudentsPage({
 
   const supabase = await createClient();
 
-  const { data: students, error } = await supabase
-    .from("students")
-    .select(`
-      id,
-      student_number,
-      full_name,
-      preferred_name,
-      country,
-      timezone,
-      enrollments (
+  /*
+   * ---------------------------------------------------------
+   * LOAD STUDENTS
+   * ---------------------------------------------------------
+   *
+   * Students are loaded separately from enrollments because
+   * an enrollment can now belong to:
+   *
+   * 1. One student directly through enrollments.student_id
+   * 2. Multiple students through enrollment_students
+   *
+   * Keeping these queries separate lets us support both
+   * individual and shared enrollments reliably.
+   */
+
+  const { data: students, error: studentsError } =
+    await supabase
+      .from("students")
+      .select(`
         id,
+        student_number,
+        full_name,
+        preferred_name,
+        country,
+        timezone
+      `)
+      .order("created_at", { ascending: false });
+
+  if (studentsError) {
+    console.error(
+      "Error loading students:",
+      studentsError
+    );
+
+    throw new Error(
+      "Unable to load students."
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD ENROLLMENTS
+   * ---------------------------------------------------------
+   *
+   * This includes:
+   *
+   * - Direct student relationship
+   * - Shared enrollment participants
+   * - Lessons belonging to the enrollment
+   *
+   * The enrollment itself remains ONE record.
+   */
+
+  const { data: enrollments, error: enrollmentsError } =
+    await supabase
+      .from("enrollments")
+      .select(`
+        id,
+        student_id,
         package_name,
         number_of_lessons,
         status,
@@ -34,15 +82,88 @@ export default async function StudentsPage({
           id,
           attendance_status,
           consumes_lesson
+        ),
+        enrollment_students (
+          student_id
         )
-      )
-    `)
-    .order("created_at", { ascending: false });
+      `);
 
-  if (error) {
-    console.error("Error loading students:", error);
-    throw new Error("Unable to load students.");
+  if (enrollmentsError) {
+    console.error(
+      "Error loading enrollments:",
+      enrollmentsError
+    );
+
+    throw new Error(
+      "Unable to load enrollments."
+    );
   }
+
+  /*
+   * ---------------------------------------------------------
+   * BUILD STUDENT → ENROLLMENT RELATIONSHIP
+   * ---------------------------------------------------------
+   *
+   * We create the same data shape that StudentsList already
+   * expects.
+   *
+   * Individual enrollment:
+   *
+   * enrollment.student_id
+   *
+   * Shared enrollment:
+   *
+   * enrollment.enrollment_students[].student_id
+   *
+   * A shared enrollment is attached to every participant,
+   * but remains a single enrollment record in the database.
+   */
+
+  const studentsWithEnrollments = (
+    students ?? []
+  ).map((student) => {
+    const studentEnrollments = (
+      enrollments ?? []
+    ).filter((enrollment) => {
+      /*
+       * Direct / individual enrollment
+       */
+      if (
+        enrollment.student_id ===
+        student.id
+      ) {
+        return true;
+      }
+
+      /*
+       * Shared enrollment
+       */
+      const isSharedParticipant =
+        enrollment.enrollment_students?.some(
+          (participant) =>
+            participant.student_id ===
+            student.id
+        );
+
+      return Boolean(isSharedParticipant);
+    });
+
+    return {
+      ...student,
+      enrollments: studentEnrollments.map(
+        (enrollment) => ({
+          id: enrollment.id,
+          package_name:
+            enrollment.package_name,
+          number_of_lessons:
+            enrollment.number_of_lessons,
+          status: enrollment.status,
+          lessons:
+            enrollment.lessons ?? [],
+        })
+      ),
+    };
+  });
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
@@ -238,8 +359,8 @@ export default async function StudentsPage({
                 text-[#6F8F72]
               "
             >
-              {students?.length ?? 0}{" "}
-              {students?.length === 1
+              {studentsWithEnrollments.length}{" "}
+              {studentsWithEnrollments.length === 1
                 ? "Student"
                 : "Students"}
             </span>
@@ -260,7 +381,7 @@ export default async function StudentsPage({
         </div>
 
         <StudentsList
-          students={students ?? []}
+          students={studentsWithEnrollments}
           locale={locale}
         />
 

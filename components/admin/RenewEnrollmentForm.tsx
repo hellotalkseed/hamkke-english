@@ -75,9 +75,9 @@ export default function RenewEnrollmentForm({
         bg-white
       "
     >
-      {/* ================================================================ */}
-      {/* HEADER                                                           */}
-      {/* ================================================================ */}
+      {/* ================================================================== */}
+      {/* HEADER                                                             */}
+      {/* ================================================================== */}
 
       <div
         className="
@@ -151,9 +151,9 @@ export default function RenewEnrollmentForm({
         </div>
       </div>
 
-      {/* ================================================================ */}
-      {/* PREVIOUS ENROLLMENT                                              */}
-      {/* ================================================================ */}
+      {/* ================================================================== */}
+      {/* PREVIOUS ENROLLMENT                                                */}
+      {/* ================================================================== */}
 
       <div
         className="
@@ -243,18 +243,18 @@ export default function RenewEnrollmentForm({
         </div>
       </div>
 
-      {/* ================================================================ */}
-      {/* FORM                                                             */}
-      {/* ================================================================ */}
+      {/* ================================================================== */}
+      {/* FORM                                                               */}
+      {/* ================================================================== */}
 
       <form
         action={`/api/admin/students/${studentId}/enrollments`}
         method="POST"
         className="px-6 py-8 sm:px-8 sm:py-10"
       >
-        {/* ============================================================ */}
-        {/* HIDDEN WORKFLOW VALUES                                       */}
-        {/* ============================================================ */}
+        {/* ================================================================= */}
+        {/* HIDDEN WORKFLOW VALUES                                           */}
+        {/* ================================================================= */}
 
         <input
           type="hidden"
@@ -268,9 +268,15 @@ export default function RenewEnrollmentForm({
           value={enrollmentId}
         />
 
-        {/* ============================================================ */}
-        {/* PACKAGE                                                       */}
-        {/* ============================================================ */}
+        <input
+          type="hidden"
+          name="enrollment_type"
+          value="individual"
+        />
+
+        {/* ================================================================= */}
+        {/* PACKAGE                                                           */}
+        {/* ================================================================= */}
 
         <section>
           <SectionHeading
@@ -306,9 +312,7 @@ export default function RenewEnrollmentForm({
                 id="renewal_lesson_duration"
                 name="lesson_duration"
                 type="number"
-                defaultValue={String(
-                  lessonDuration ?? 25
-                )}
+                defaultValue={String(lessonDuration ?? 25)}
                 min="1"
                 step="1"
                 required
@@ -319,9 +323,7 @@ export default function RenewEnrollmentForm({
                 id="renewal_lessons_per_week"
                 name="lessons_per_week"
                 type="number"
-                defaultValue={String(
-                  lessonsPerWeek ?? 3
-                )}
+                defaultValue={String(lessonsPerWeek ?? 3)}
                 min="1"
                 step="1"
                 required
@@ -338,9 +340,9 @@ export default function RenewEnrollmentForm({
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* SCHEDULE                                                      */}
-        {/* ============================================================ */}
+        {/* ================================================================= */}
+        {/* SCHEDULE                                                          */}
+        {/* ================================================================= */}
 
         <section
           className="
@@ -356,8 +358,6 @@ export default function RenewEnrollmentForm({
             title="Lesson schedule"
             description="The previous schedule is pre-selected. Change it only if the student's schedule is changing."
           />
-
-          {/* DAYS */}
 
           <div className="mt-8">
             <p
@@ -385,12 +385,16 @@ export default function RenewEnrollmentForm({
             >
               {DAYS.map(([label, value]) => {
                 const selected =
-                  scheduleDays?.some(
-                    (day) =>
-                      day.toLowerCase() === value ||
-                      day.toLowerCase() ===
-                        label.toLowerCase()
-                  ) ?? false;
+                  scheduleDays?.some((day) => {
+                    const normalized = day
+                      .toLowerCase()
+                      .trim();
+
+                    return (
+                      normalized === value ||
+                      normalized === label.toLowerCase()
+                    );
+                  }) ?? false;
 
                 return (
                   <label
@@ -424,8 +428,6 @@ export default function RenewEnrollmentForm({
             </div>
           </div>
 
-          {/* TIME */}
-
           <div className="mt-8">
             <label
               htmlFor="renewal_schedule_time"
@@ -447,6 +449,7 @@ export default function RenewEnrollmentForm({
               name="schedule_time"
               type="time"
               defaultValue={scheduleTime || ""}
+              required
               className="
                 mt-3
                 w-full
@@ -479,9 +482,9 @@ export default function RenewEnrollmentForm({
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* PAYMENT                                                       */}
-        {/* ============================================================ */}
+        {/* ================================================================= */}
+        {/* PAYMENT                                                           */}
+        {/* ================================================================= */}
 
         <section className="mt-12">
           <SectionHeading
@@ -491,10 +494,6 @@ export default function RenewEnrollmentForm({
           />
 
           <div className="mt-7 space-y-7">
-            {/* ======================================================== */}
-            {/* KRW / PHP                                                */}
-            {/* ======================================================== */}
-
             <div
               className="
                 rounded-2xl
@@ -568,10 +567,6 @@ export default function RenewEnrollmentForm({
               </div>
             </div>
 
-            {/* ======================================================== */}
-            {/* PAYMENT METHOD                                           */}
-            {/* ======================================================== */}
-
             <div>
               <label
                 htmlFor="renewal_payment_method"
@@ -633,10 +628,6 @@ export default function RenewEnrollmentForm({
               </select>
             </div>
 
-            {/* ======================================================== */}
-            {/* REFERENCE                                                */}
-            {/* ======================================================== */}
-
             <Field
               label="Reference Number"
               id="renewal_payment_reference"
@@ -645,20 +636,12 @@ export default function RenewEnrollmentForm({
               placeholder="Optional"
             />
 
-            {/* ======================================================== */}
-            {/* PAYMENT DATE                                              */}
-            {/* ======================================================== */}
-
             <Field
               label="Payment Date"
               id="renewal_payment_date"
               name="payment_date"
               type="date"
             />
-
-            {/* ======================================================== */}
-            {/* PAYMENT STATUS                                            */}
-            {/* ======================================================== */}
 
             <input
               type="hidden"
@@ -689,19 +672,17 @@ export default function RenewEnrollmentForm({
                 <strong className="font-medium text-[#4A4A4A]">
                   pending
                 </strong>
-                . The previous enrollment will not be
-                changed. Once the payment is confirmed,
-                the database will activate this enrollment,
-                activate its contract, and generate its
-                lessons.
+                . The previous enrollment will not be changed.
+                Once the payment is confirmed, the database can
+                activate this enrollment and generate its lessons.
               </p>
             </div>
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* WHAT HAPPENS NEXT                                             */}
-        {/* ============================================================ */}
+        {/* ================================================================= */}
+        {/* WHAT HAPPENS NEXT                                                 */}
+        {/* ================================================================= */}
 
         <section
           className="
@@ -759,14 +740,14 @@ export default function RenewEnrollmentForm({
             <WorkflowStep
               number="06"
               title="New lessons are generated"
-              description="The database generates lessons only for this enrollment using its own start date, schedule, duration, and lesson count."
+              description="Lessons are generated only for this enrollment using its own start date, schedule, duration, and lesson count."
             />
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* FINAL ACTIONS                                                 */}
-        {/* ============================================================ */}
+        {/* ================================================================= */}
+        {/* FINAL ACTIONS                                                     */}
+        {/* ================================================================= */}
 
         <div
           className="
@@ -1015,31 +996,26 @@ function formatScheduleDays(days: string[]) {
   const labels: Record<string, string> = {
     mon: "Mon",
     monday: "Mon",
-
     tue: "Tue",
     tuesday: "Tue",
-
     wed: "Wed",
     wednesday: "Wed",
-
     thu: "Thu",
     thursday: "Thu",
-
     fri: "Fri",
     friday: "Fri",
-
     sat: "Sat",
     saturday: "Sat",
-
     sun: "Sun",
     sunday: "Sun",
   };
 
   return days
-    .map(
-      (day) =>
-        labels[day.toLowerCase()] || day
-    )
+    .map((day) => {
+      const normalized = day.toLowerCase().trim();
+
+      return labels[normalized] || day;
+    })
     .join(" · ");
 }
 
@@ -1064,11 +1040,8 @@ function formatTime(time: string) {
     0
   );
 
-  return new Intl.DateTimeFormat(
-    "en-US",
-    {
-      hour: "numeric",
-      minute: "2-digit",
-    }
-  ).format(date);
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }

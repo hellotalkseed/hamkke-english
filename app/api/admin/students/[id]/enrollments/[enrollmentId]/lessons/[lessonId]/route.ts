@@ -35,9 +35,16 @@ export async function PATCH(
 ) {
   const { id, enrollmentId, lessonId } = await params;
 
+  /*
+   * ------------------------------------------------------------
+   * REQUEST BODY
+   * ------------------------------------------------------------
+   */
+
   const body = await request.json();
 
   const status = body.status as Status;
+
   const resolution =
     body.resolution === null ||
     body.resolution === undefined ||
@@ -67,7 +74,9 @@ export async function PATCH(
 
   if (!VALID_STATUSES.includes(status)) {
     return NextResponse.json(
-      { error: "Invalid lesson status." },
+      {
+        error: "Invalid lesson status.",
+      },
       { status: 400 }
     );
   }
@@ -83,7 +92,9 @@ export async function PATCH(
     !VALID_RESOLUTIONS.includes(resolution)
   ) {
     return NextResponse.json(
-      { error: "Invalid lesson resolution." },
+      {
+        error: "Invalid lesson resolution.",
+      },
       { status: 400 }
     );
   }
@@ -109,8 +120,8 @@ export async function PATCH(
   }
 
   /*
-   * Scheduled lessons have no resolution
-   * and do not consume the lesson.
+   * Scheduled lessons do not consume a lesson
+   * and cannot have a resolution.
    */
 
   if (status === "scheduled") {
@@ -145,7 +156,8 @@ export async function PATCH(
   }
 
   /*
-   * No-shows consume the lesson.
+   * No-shows consume the lesson and cannot have
+   * a resolution.
    */
 
   if (
@@ -162,7 +174,8 @@ export async function PATCH(
   }
 
   /*
-   * Late cancellations consume the lesson.
+   * Late cancellations consume the lesson and
+   * cannot have a resolution.
    */
 
   if (
@@ -179,11 +192,14 @@ export async function PATCH(
   }
 
   /*
-   * Student cancellation with rescheduling.
+   * ------------------------------------------------------------
+   * STUDENT CANCELLATION WITH RESCHEDULING
+   * ------------------------------------------------------------
    */
 
   if (
-    status === "student_cancelled_rescheduled"
+    status ===
+    "student_cancelled_rescheduled"
   ) {
     if (resolution !== "rescheduled") {
       return NextResponse.json(
@@ -209,11 +225,14 @@ export async function PATCH(
   }
 
   /*
-   * Student cancellation with lesson credit.
+   * ------------------------------------------------------------
+   * STUDENT CANCELLATION WITH LESSON CREDIT
+   * ------------------------------------------------------------
    */
 
   if (
-    status === "student_cancelled_credit"
+    status ===
+    "student_cancelled_credit"
   ) {
     if (resolution !== "lesson_credit") {
       return NextResponse.json(
@@ -229,12 +248,14 @@ export async function PATCH(
   }
 
   /*
-   * Unexpected circumstances require
-   * an explicit resolution.
+   * ------------------------------------------------------------
+   * UNEXPECTED CIRCUMSTANCE
+   * ------------------------------------------------------------
    */
 
   if (
-    status === "unexpected_circumstance"
+    status ===
+    "unexpected_circumstance"
   ) {
     if (
       resolution !== "rescheduled" &&
@@ -264,55 +285,159 @@ export async function PATCH(
     }
 
     consumesLesson =
-      resolution === "counted_as_completed";
+      resolution ===
+      "counted_as_completed";
   }
 
   /*
- * Teacher cancellation.
- *
- * A teacher cancellation must either be rescheduled
- * or converted into lesson credit.
- *
- * It never consumes the student's lesson.
- */
+   * ------------------------------------------------------------
+   * TEACHER CANCELLATION
+   * ------------------------------------------------------------
+   *
+   * A teacher cancellation must either be:
+   *
+   *   - rescheduled
+   *   - converted to lesson credit
+   *
+   * It never consumes the student's lesson.
+   */
 
-if (status === "teacher_cancelled") {
+  if (status === "teacher_cancelled") {
+    if (
+      resolution !== "rescheduled" &&
+      resolution !== "lesson_credit"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Teacher cancellation requires either rescheduling or lesson credit.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      resolution === "rescheduled" &&
+      !lessonDate
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "A new lesson date is required when rescheduling.",
+        },
+        { status: 400 }
+      );
+    }
+
+    consumesLesson = false;
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * CREATE SUPABASE CLIENT
+   * ------------------------------------------------------------
+   */
+
+  const supabase = await createClient();
+
+  /*
+   * ------------------------------------------------------------
+   * VERIFY ENROLLMENT ACCESS
+   * ------------------------------------------------------------
+   *
+   * IMPORTANT FOR SHARED ENROLLMENTS
+   *
+   * We cannot use:
+   *
+   *   enrollments.student_id = id
+   *
+   * because shared enrollments use the
+   * enrollment_students table.
+   *
+   * The current student is authorized if they
+   * belong to the enrollment through
+   * enrollment_students.
+   *
+   * This works for:
+   *
+   *   Individual enrollment
+   *   Shared enrollment
+   */
+
+  const {
+    data: enrollmentParticipant,
+    error: enrollmentParticipantError,
+  } = await supabase
+    .from("enrollment_students")
+    .select("student_id")
+    .eq("enrollment_id", enrollmentId)
+    .eq("student_id", id)
+    .maybeSingle();
+
   if (
-    resolution !== "rescheduled" &&
-    resolution !== "lesson_credit"
+    enrollmentParticipantError
   ) {
+    console.error(
+      "ENROLLMENT PARTICIPANT LOOKUP ERROR:",
+      {
+        code:
+          enrollmentParticipantError.code,
+        message:
+          enrollmentParticipantError.message,
+        details:
+          enrollmentParticipantError.details,
+        hint:
+          enrollmentParticipantError.hint,
+      }
+    );
+
     return NextResponse.json(
       {
         error:
-          "Teacher cancellation requires either rescheduling or lesson credit.",
+          "Unable to verify enrollment access.",
       },
-      { status: 400 }
+      { status: 500 }
     );
   }
 
-  if (
-    resolution === "rescheduled" &&
-    !lessonDate
-  ) {
+  /*
+   * If the student is not connected to this enrollment,
+   * they cannot update its lessons.
+   */
+
+  if (!enrollmentParticipant) {
     return NextResponse.json(
       {
         error:
-          "A new lesson date is required when rescheduling.",
+          "You are not a participant in this enrollment.",
       },
-      { status: 400 }
+      { status: 403 }
     );
   }
-
-  consumesLesson = false;
-}
 
   /*
    * ------------------------------------------------------------
    * FIND LESSON
    * ------------------------------------------------------------
+   *
+   * IMPORTANT:
+   *
+   * We identify the lesson by:
+   *
+   *   lesson.id
+   *   lesson.enrollment_id
+   *
+   * We intentionally DO NOT filter by:
+   *
+   *   enrollment.student_id
+   *
+   * because that does not correctly support
+   * shared enrollments.
+   *
+   * Once the current student has been verified
+   * as a participant of the enrollment, they can
+   * update the shared lesson track.
    */
-
-  const supabase = await createClient();
 
   const {
     data: lesson,
@@ -322,6 +447,7 @@ if (status === "teacher_cancelled") {
     .select(`
       id,
       enrollment_id,
+      student_id,
       lesson_number,
       lesson_date,
       original_lesson_date,
@@ -329,19 +455,45 @@ if (status === "teacher_cancelled") {
       attendance_status,
       consumes_lesson,
       resolution,
-      enrollment:enrollments!inner (
-        id,
-        student_id
-      )
+      notes
     `)
     .eq("id", lessonId)
     .eq("enrollment_id", enrollmentId)
-    .eq("enrollment.student_id", id)
-    .single();
+    .maybeSingle();
 
-  if (lessonLookupError || !lesson) {
+  if (
+    lessonLookupError
+  ) {
+    console.error(
+      "LESSON LOOKUP ERROR:",
+      {
+        code:
+          lessonLookupError.code,
+        message:
+          lessonLookupError.message,
+        details:
+          lessonLookupError.details,
+        hint:
+          lessonLookupError.hint,
+      }
+    );
+
     return NextResponse.json(
-      { error: "Lesson not found." },
+      {
+        error:
+          "Unable to find lesson.",
+        details:
+          lessonLookupError.message,
+      },
+      { status: 500 }
+    );
+  }
+
+  if (!lesson) {
+    return NextResponse.json(
+      {
+        error: "Lesson not found.",
+      },
       { status: 404 }
     );
   }
@@ -383,6 +535,10 @@ if (status === "teacher_cancelled") {
   };
 
   /*
+   * ------------------------------------------------------------
+   * RESCHEDULING
+   * ------------------------------------------------------------
+   *
    * Rescheduling changes the date but NEVER
    * changes the lesson number.
    */
@@ -391,15 +547,19 @@ if (status === "teacher_cancelled") {
     updateData.original_lesson_date =
       originalLessonDate;
 
-    updateData.lesson_date = lessonDate;
+    updateData.lesson_date =
+      lessonDate;
 
     updateData.rescheduled_at =
       new Date().toISOString();
   }
 
   /*
-   * If the lesson is not being rescheduled,
-   * preserve its existing date/history.
+   * ------------------------------------------------------------
+   * NON-RESCHEDULED UPDATE
+   * ------------------------------------------------------------
+   *
+   * Preserve the existing lesson date/history.
    */
 
   if (resolution !== "rescheduled") {
@@ -416,8 +576,28 @@ if (status === "teacher_cancelled") {
 
   /*
    * ------------------------------------------------------------
-   * UPDATE
+   * UPDATE LESSON
    * ------------------------------------------------------------
+   *
+   * The update is performed using the actual lesson ID.
+   *
+   * This means:
+   *
+   *   Dasom viewing lesson #2
+   *        ↓
+   *   lesson.id = ABC
+   *        ↓
+   *   update lesson ABC
+   *
+   * and:
+   *
+   *   Bin viewing lesson #2
+   *        ↓
+   *   lesson.id = ABC
+   *        ↓
+   *   update the SAME lesson ABC
+   *
+   * This is what we want for the shared lesson pool.
    */
 
   const {
@@ -425,16 +605,21 @@ if (status === "teacher_cancelled") {
   } = await supabase
     .from("lessons")
     .update(updateData)
-    .eq("id", lessonId);
+    .eq("id", lessonId)
+    .eq("enrollment_id", enrollmentId);
 
   if (updateError) {
     console.error(
       "LESSON UPDATE ERROR:",
       {
-        code: updateError.code,
-        message: updateError.message,
-        details: updateError.details,
-        hint: updateError.hint,
+        code:
+          updateError.code,
+        message:
+          updateError.message,
+        details:
+          updateError.details,
+        hint:
+          updateError.hint,
       }
     );
 
@@ -449,18 +634,37 @@ if (status === "teacher_cancelled") {
     );
   }
 
+  /*
+   * ------------------------------------------------------------
+   * RETURN UPDATED LESSON
+   * ------------------------------------------------------------
+   */
+
   return NextResponse.json({
     success: true,
+
     lesson: {
       id: lesson.id,
+
+      enrollment_id:
+        lesson.enrollment_id,
+
+      student_id:
+        lesson.student_id,
+
       lesson_number:
         lesson.lesson_number,
+
       status,
+
       consumes_lesson:
         consumesLesson,
+
       resolution,
+
       original_lesson_date:
         originalLessonDate,
+
       lesson_date:
         resolution === "rescheduled"
           ? lessonDate

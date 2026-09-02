@@ -12,6 +12,24 @@ interface ContractPageProps {
   }>;
 }
 
+interface EnrollmentSchedule {
+  id?: string;
+  enrollment_id: string;
+  student_id: string | null;
+  day_of_week: number;
+  schedule_time: string;
+}
+
+const DAY_LABELS: Record<number, string> = {
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+};
+
 export default async function ContractPage({
   params,
 }: ContractPageProps) {
@@ -19,7 +37,14 @@ export default async function ContractPage({
 
   const supabase = await createClient();
 
-  const { data: student, error: studentError } = await supabase
+  /* ---------------------------------------------------------------------- */
+  /* LOAD STUDENT                                                           */
+  /* ---------------------------------------------------------------------- */
+
+  const {
+    data: student,
+    error: studentError,
+  } = await supabase
     .from("students")
     .select("id, full_name, timezone")
     .eq("id", id)
@@ -29,7 +54,14 @@ export default async function ContractPage({
     notFound();
   }
 
-  const { data: contract, error: contractError } = await supabase
+  /* ---------------------------------------------------------------------- */
+  /* LOAD CONTRACT + ENROLLMENT                                             */
+  /* ---------------------------------------------------------------------- */
+
+  const {
+    data: contract,
+    error: contractError,
+  } = await supabase
     .from("contracts")
     .select(`
       id,
@@ -65,15 +97,56 @@ export default async function ContractPage({
     notFound();
   }
 
+  /* ---------------------------------------------------------------------- */
+  /* LOAD PER-DAY ENROLLMENT SCHEDULE                                       */
+  /* ---------------------------------------------------------------------- */
+
+  const {
+    data: enrollmentScheduleRows,
+    error: enrollmentScheduleError,
+  } = await supabase
+    .from("enrollment_schedules")
+    .select(`
+      id,
+      enrollment_id,
+      student_id,
+      day_of_week,
+      schedule_time
+    `)
+    .eq("enrollment_id", enrollment.id)
+    .order("day_of_week", {
+      ascending: true,
+    })
+    .order("schedule_time", {
+      ascending: true,
+    });
+
+  if (enrollmentScheduleError) {
+    console.error(
+      "Error loading enrollment schedules for contract:",
+      enrollmentScheduleError
+    );
+  }
+
+  const enrollmentSchedules =
+    (enrollmentScheduleRows ??
+      []) as EnrollmentSchedule[];
+
   const studentName = student.full_name;
 
-  const agreementDate = new Date(
-    `${contract.agreement_date}T00:00:00`
-  ).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  /* ---------------------------------------------------------------------- */
+  /* DATES                                                                   */
+  /* ---------------------------------------------------------------------- */
+
+  const agreementDate = contract.agreement_date
+    ? new Date(
+        `${contract.agreement_date}T00:00:00`
+      ).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Not set";
 
   const startDate = enrollment.start_date
     ? new Date(
@@ -85,53 +158,33 @@ export default async function ContractPage({
       })
     : "To be confirmed";
 
-  const dayNames: Record<string, string> = {
-    mon: "Monday",
-    monday: "Monday",
-    tue: "Tuesday",
-    tues: "Tuesday",
-    tuesday: "Tuesday",
-    wed: "Wednesday",
-    wednesday: "Wednesday",
-    thu: "Thursday",
-    thurs: "Thursday",
-    thursday: "Thursday",
-    fri: "Friday",
-    friday: "Friday",
-    sat: "Saturday",
-    saturday: "Saturday",
-    sun: "Sunday",
-    sunday: "Sunday",
-  };
+  /* ---------------------------------------------------------------------- */
+  /* SCHEDULE                                                                */
+  /* ---------------------------------------------------------------------- */
 
-  const rawScheduleDays = Array.isArray(enrollment.schedule_days)
-    ? enrollment.schedule_days
-    : [];
+  const schedule = getEnrollmentSchedule(
+    enrollmentSchedules,
+    enrollment.schedule_days,
+    enrollment.schedule_time
+  );
 
   const scheduleDays =
-    rawScheduleDays.length > 0
-      ? rawScheduleDays
-          .flatMap((day: string) =>
-            String(day)
-              .replace(/Â·/g, "·")
-              .split("·")
-              .map((part) => part.trim())
-              .filter(Boolean)
-          )
-          .map((day) => {
-            const normalized = day.toLowerCase();
-            return dayNames[normalized] || day;
-          })
-          .filter(
-            (day, index, array) =>
-              array.indexOf(day) === index
-          )
-          .join(" · ") || "To be confirmed"
+    schedule.length > 0
+      ? schedule.map((item) => item.day).join(" · ")
       : "To be confirmed";
 
-  const scheduleTime = enrollment.schedule_time
-    ? formatTime(enrollment.schedule_time)
-    : "To be confirmed";
+  const scheduleTime =
+    schedule.length > 0
+      ? schedule
+          .map(
+            (item) =>
+              `${item.day} — ${item.time}`
+          )
+      : [];
+
+  /* ---------------------------------------------------------------------- */
+  /* TUITION                                                                 */
+  /* ---------------------------------------------------------------------- */
 
   const currency = enrollment.currency || "KRW";
 
@@ -353,14 +406,59 @@ export default async function ContractPage({
                   value={scheduleDays}
                 />
 
-                <Info
-                  label="Lesson Time"
-                  value={scheduleTime}
-                />
+                <div className="keep-together sm:col-span-2">
+                  <p
+                    className="
+                      font-sans
+                      text-[8px]
+                      font-medium
+                      uppercase
+                      tracking-[0.13em]
+                      text-[#666A65]
+                    "
+                  >
+                    Lesson Schedule
+                  </p>
+
+                  {scheduleTime.length > 0 ? (
+                    <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                      {scheduleTime.map(
+                        (item, index) => (
+                          <p
+                            key={`${item}-${index}`}
+                            className="
+                              font-serif
+                              text-[15px]
+                              leading-[1.35]
+                              text-[#292929]
+                            "
+                          >
+                            {item}
+                          </p>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    <p
+                      className="
+                        mt-1.5
+                        font-serif
+                        text-[15px]
+                        leading-[1.35]
+                        text-[#292929]
+                      "
+                    >
+                      To be confirmed
+                    </p>
+                  )}
+                </div>
 
                 <Info
                   label="Student Timezone"
-                  value={student.timezone || "To be confirmed"}
+                  value={
+                    student.timezone ||
+                    "To be confirmed"
+                  }
                 />
 
                 <Info
@@ -1049,11 +1147,146 @@ function Policy({
 }
 
 /* -------------------------------------------------------------------------- */
+/* SCHEDULE HELPERS                                                           */
+/* -------------------------------------------------------------------------- */
+
+function getEnrollmentSchedule(
+  schedules: EnrollmentSchedule[],
+  scheduleDays: string[] | null | undefined,
+  scheduleTime: string | null | undefined
+): {
+  day: string;
+  time: string;
+}[] {
+  /*
+   * New scheduling system:
+   * enrollment_schedules contains one row for each
+   * selected day and its specific lesson time.
+   */
+  if (schedules.length > 0) {
+    return [...schedules]
+      .sort((a, b) => {
+        if (
+          a.day_of_week !==
+          b.day_of_week
+        ) {
+          return (
+            a.day_of_week -
+            b.day_of_week
+          );
+        }
+
+        return a.schedule_time.localeCompare(
+          b.schedule_time
+        );
+      })
+      .map((schedule) => ({
+        day:
+          DAY_LABELS[
+            schedule.day_of_week
+          ] ??
+          `Day ${schedule.day_of_week}`,
+        time: formatTime(
+          schedule.schedule_time
+        ),
+      }));
+  }
+
+  /*
+   * Backward compatibility:
+   * Older enrollments may only have schedule_days
+   * and one shared schedule_time.
+   */
+  if (
+    Array.isArray(scheduleDays) &&
+    scheduleDays.length > 0 &&
+    scheduleTime
+  ) {
+    return scheduleDays
+      .flatMap((day: string) =>
+        String(day)
+          .replace(/Â·/g, "·")
+          .split("·")
+          .map((part) => part.trim())
+          .filter(Boolean)
+      )
+      .map((day) => ({
+        day: formatScheduleDayLabel(day),
+        time: formatTime(scheduleTime),
+      }))
+      .filter(
+        (item, index, array) =>
+          array.findIndex(
+            (existing) =>
+              existing.day === item.day &&
+              existing.time === item.time
+          ) === index
+      );
+  }
+
+  /*
+   * If an older enrollment has only a schedule_time
+   * and no schedule_days.
+   */
+  if (scheduleTime) {
+    return [
+      {
+        day: "Time",
+        time: formatTime(scheduleTime),
+      },
+    ];
+  }
+
+  return [];
+}
+
+function formatScheduleDayLabel(
+  day: string
+) {
+  const normalized =
+    day.trim().toLowerCase();
+
+  const labels: Record<string, string> = {
+    monday: "Monday",
+    tuesday: "Tuesday",
+    wednesday: "Wednesday",
+    thursday: "Thursday",
+    friday: "Friday",
+    saturday: "Saturday",
+    sunday: "Sunday",
+  };
+
+  if (
+    normalized !== "" &&
+    !Number.isNaN(Number(normalized))
+  ) {
+    const numericDay = Number(normalized);
+
+    return (
+      DAY_LABELS[numericDay] ??
+      day
+    );
+  }
+
+  return (
+    labels[normalized] ??
+    day
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* TIME FORMAT                                                                */
 /* -------------------------------------------------------------------------- */
 
-function formatTime(value: string) {
-  const [hours, minutes] = value.split(":").map(Number);
+function formatTime(
+  value: string | null | undefined
+) {
+  if (!value) {
+    return "To be confirmed";
+  }
+
+  const [hours, minutes] =
+    value.split(":").map(Number);
 
   if (
     Number.isNaN(hours) ||
@@ -1062,8 +1295,13 @@ function formatTime(value: string) {
     return value;
   }
 
-  const suffix = hours >= 12 ? "PM" : "AM";
-  const hour12 = hours % 12 || 12;
+  const suffix =
+    hours >= 12 ? "PM" : "AM";
 
-  return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+  const hour12 =
+    hours % 12 || 12;
+
+  return `${hour12}:${String(
+    minutes
+  ).padStart(2, "0")} ${suffix}`;
 }

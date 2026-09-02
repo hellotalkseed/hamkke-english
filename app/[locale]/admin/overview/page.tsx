@@ -9,6 +9,8 @@ interface OverviewPageProps {
 
 interface LessonRow {
   id: string;
+  enrollment_id: string;
+  student_id: string | null;
   consumes_lesson: boolean | null;
   attendance_status: string | null;
 }
@@ -21,7 +23,19 @@ interface EnrollmentRow {
   start_date: string | null;
   schedule_days: string[] | null;
   schedule_time: string | null;
-  lessons: LessonRow[] | null;
+}
+
+interface EnrollmentStudentRow {
+  enrollment_id: string;
+  student_id: string;
+}
+
+interface EnrollmentScheduleRow {
+  id: string;
+  enrollment_id: string;
+  student_id: string | null;
+  day_of_week: number;
+  schedule_time: string;
 }
 
 interface StudentRow {
@@ -29,7 +43,6 @@ interface StudentRow {
   student_number: string | number | null;
   full_name: string;
   preferred_name: string | null;
-  enrollments: EnrollmentRow[] | null;
 }
 
 interface PaymentRow {
@@ -70,8 +83,7 @@ function formatTime(time: string | null) {
   }
 
   const suffix = hour >= 12 ? "PM" : "AM";
-  const displayHour =
-    hour % 12 === 0 ? 12 : hour % 12;
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
 
   return `${displayHour}:${minute} ${suffix}`;
 }
@@ -97,15 +109,14 @@ function formatSchedule(
     sunday: "Sun",
   };
 
-  const formattedDays =
-    days?.length
-      ? days
-          .map(
-            (day) =>
-              labels[day.toLowerCase()] ?? day
-          )
-          .join(" · ")
-      : "";
+  const formattedDays = days?.length
+    ? days
+        .map(
+          (day) =>
+            labels[day.toLowerCase()] ?? day
+        )
+        .join(" · ")
+    : "";
 
   const formattedTime = formatTime(time);
 
@@ -113,11 +124,55 @@ function formatSchedule(
     return `${formattedDays} · ${formattedTime}`;
   }
 
-  return (
-    formattedDays ||
-    formattedTime ||
-    "No schedule"
-  );
+  return formattedDays || formattedTime || "No schedule";
+}
+
+function formatScheduleRows(
+  schedules: EnrollmentScheduleRow[],
+  enrollmentId: string,
+  studentId: string
+) {
+  const dayLabels: Record<number, string> = {
+    0: "Sun",
+    1: "Mon",
+    2: "Tue",
+    3: "Wed",
+    4: "Thu",
+    5: "Fri",
+    6: "Sat",
+  };
+
+  const studentSchedules = schedules
+    .filter(
+      (schedule) =>
+        schedule.enrollment_id === enrollmentId &&
+        schedule.student_id === studentId
+    )
+    .sort(
+      (a, b) =>
+        a.day_of_week - b.day_of_week ||
+        a.schedule_time.localeCompare(
+          b.schedule_time
+        )
+    );
+
+  if (!studentSchedules.length) {
+    return "No schedule";
+  }
+
+  return studentSchedules
+    .map((schedule) => {
+      const day =
+        dayLabels[schedule.day_of_week] ??
+        String(schedule.day_of_week);
+
+      const time = formatTime(
+        schedule.schedule_time
+      );
+
+      return time ? `${day} · ${time}` : day;
+    })
+    .join("  /  ");
 }
 
 function getStatusStyles(
@@ -209,21 +264,7 @@ export default async function OverviewPage({
       id,
       student_number,
       full_name,
-      preferred_name,
-      enrollments (
-        id,
-        package_name,
-        number_of_lessons,
-        status,
-        start_date,
-        schedule_days,
-        schedule_time,
-        lessons (
-          id,
-          consumes_lesson,
-          attendance_status
-        )
-      )
+      preferred_name
     `)
     .order("created_at", {
       ascending: false,
@@ -242,6 +283,138 @@ export default async function OverviewPage({
 
   const studentRows =
     (students ?? []) as StudentRow[];
+
+  /* ----------------------------------------------------------------------- */
+  /* ENROLLMENTS                                                             */
+  /* ----------------------------------------------------------------------- */
+
+  const {
+    data: enrollments,
+    error: enrollmentsError,
+  } = await supabase
+    .from("enrollments")
+    .select(`
+      id,
+      student_id,
+      package_name,
+      number_of_lessons,
+      status,
+      start_date,
+      schedule_days,
+      schedule_time
+    `);
+
+  if (enrollmentsError) {
+    console.error(
+      "Error loading overview enrollments:",
+      enrollmentsError
+    );
+
+    throw new Error(
+      "Unable to load overview enrollments."
+    );
+  }
+
+  const enrollmentRows =
+    (enrollments ?? []) as (
+      EnrollmentRow & {
+        student_id: string | null;
+      }
+    )[];
+
+  /* ----------------------------------------------------------------------- */
+  /* ENROLLMENT PARTICIPANTS                                                 */
+  /* ----------------------------------------------------------------------- */
+
+  const {
+    data: enrollmentStudents,
+    error:
+      enrollmentStudentsError,
+  } = await supabase
+    .from("enrollment_students")
+    .select(`
+      enrollment_id,
+      student_id
+    `);
+
+  if (enrollmentStudentsError) {
+    console.error(
+      "Error loading overview enrollment participants:",
+      enrollmentStudentsError
+    );
+
+    throw new Error(
+      "Unable to load overview enrollment participants."
+    );
+  }
+
+  const enrollmentStudentRows =
+    (enrollmentStudents ??
+      []) as EnrollmentStudentRow[];
+
+  /* ----------------------------------------------------------------------- */
+  /* LESSONS                                                                 */
+  /* ----------------------------------------------------------------------- */
+
+  const {
+    data: lessons,
+    error: lessonsError,
+  } = await supabase
+    .from("lessons")
+    .select(`
+      id,
+      enrollment_id,
+      student_id,
+      consumes_lesson,
+      attendance_status
+    `);
+
+  if (lessonsError) {
+    console.error(
+      "Error loading overview lessons:",
+      lessonsError
+    );
+
+    throw new Error(
+      "Unable to load overview lessons."
+    );
+  }
+
+  const lessonRows =
+    (lessons ?? []) as LessonRow[];
+
+  /* ----------------------------------------------------------------------- */
+  /* ENROLLMENT SCHEDULES                                                    */
+  /* ----------------------------------------------------------------------- */
+
+  const {
+    data: enrollmentSchedules,
+    error:
+      enrollmentSchedulesError,
+  } = await supabase
+    .from("enrollment_schedules")
+    .select(`
+      id,
+      enrollment_id,
+      student_id,
+      day_of_week,
+      schedule_time
+    `);
+
+  if (enrollmentSchedulesError) {
+    console.error(
+      "Error loading overview schedules:",
+      enrollmentSchedulesError
+    );
+
+    throw new Error(
+      "Unable to load overview schedules."
+    );
+  }
+
+  const scheduleRows =
+    (enrollmentSchedules ??
+      []) as EnrollmentScheduleRow[];
 
   /* ----------------------------------------------------------------------- */
   /* PAYMENTS                                                                */
@@ -281,6 +454,143 @@ export default async function OverviewPage({
     (payments ?? []) as PaymentRow[];
 
   /* ----------------------------------------------------------------------- */
+  /* STUDENT / ENROLLMENT HELPERS                                            */
+  /* ----------------------------------------------------------------------- */
+
+  function getEnrollmentsForStudent(
+    studentId: string
+  ) {
+    const directEnrollments =
+      enrollmentRows.filter(
+        (enrollment) =>
+          enrollment.student_id ===
+          studentId
+      );
+
+    const sharedEnrollmentIds =
+      enrollmentStudentRows
+        .filter(
+          (row) =>
+            row.student_id === studentId
+        )
+        .map(
+          (row) =>
+            row.enrollment_id
+        );
+
+    const sharedEnrollments =
+      enrollmentRows.filter(
+        (enrollment) =>
+          sharedEnrollmentIds.includes(
+            enrollment.id
+          )
+      );
+
+    const all = [
+      ...directEnrollments,
+      ...sharedEnrollments,
+    ];
+
+    return Array.from(
+      new Map(
+        all.map((enrollment) => [
+          enrollment.id,
+          enrollment,
+        ])
+      ).values()
+    );
+  }
+
+  function isSharedEnrollment(
+    enrollmentId: string
+  ) {
+    return (
+      enrollmentStudentRows.filter(
+        (row) =>
+          row.enrollment_id ===
+          enrollmentId
+      ).length > 1
+    );
+  }
+
+  function getEnrollmentLessons(
+    enrollmentId: string
+  ) {
+    return lessonRows.filter(
+      (lesson) =>
+        lesson.enrollment_id ===
+        enrollmentId
+    );
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* ACTIVE ENROLLMENT SCHEDULE                                              */
+  /* ----------------------------------------------------------------------- */
+
+  function getStudentSchedule(
+    enrollment: EnrollmentRow & {
+      student_id: string | null;
+    },
+    studentId: string
+  ) {
+    /*
+     * Schedule is only valid for the student's
+     * current/active enrollment.
+     *
+     * This guard prevents pending, completed,
+     * or cancelled enrollment schedules from
+     * appearing in the overview.
+     */
+    if (enrollment.status !== "active") {
+      return "No schedule";
+    }
+
+    const schedules =
+      scheduleRows.filter(
+        (schedule) =>
+          schedule.enrollment_id ===
+            enrollment.id &&
+          schedule.student_id ===
+            studentId
+      );
+
+    if (schedules.length > 0) {
+      /*
+       * IMPORTANT:
+       * Pass both enrollment ID and student ID
+       * so schedules from an older enrollment
+       * cannot leak into the current schedule.
+       */
+      return formatScheduleRows(
+        scheduleRows,
+        enrollment.id,
+        studentId
+      );
+    }
+
+    /*
+     * Legacy individual enrollment schedule.
+     * This is only used for an active individual
+     * enrollment that does not yet have rows in
+     * enrollment_schedules.
+     */
+    if (
+      enrollment.student_id ===
+        studentId &&
+      !isSharedEnrollment(
+        enrollment.id
+      )
+    ) {
+      return formatSchedule(
+        enrollment.schedule_days,
+        enrollment.schedule_time
+      );
+    }
+
+    return "No schedule";
+  }
+
+  /* ----------------------------------------------------------------------- */
   /* STUDENT COUNTS                                                          */
   /* ----------------------------------------------------------------------- */
 
@@ -289,9 +599,12 @@ export default async function OverviewPage({
 
   const activeStudentRows =
     studentRows.filter((student) =>
-      (student.enrollments ?? []).some(
+      getEnrollmentsForStudent(
+        student.id
+      ).some(
         (enrollment) =>
-          enrollment.status === "active"
+          enrollment.status ===
+          "active"
       )
     );
 
@@ -386,7 +699,8 @@ export default async function OverviewPage({
             return (
               date.getFullYear() ===
                 currentYear &&
-              date.getMonth() === month
+              date.getMonth() ===
+                month
             );
           })
           .reduce(
@@ -567,10 +881,6 @@ export default async function OverviewPage({
             lg:py-12
           "
         >
-          {/* =============================================================== */}
-          {/* STUDENTS                                                        */}
-          {/* =============================================================== */}
-
           <div
             className="
               flex
@@ -671,10 +981,6 @@ export default async function OverviewPage({
             </p>
           </div>
 
-          {/* =============================================================== */}
-          {/* INCOME                                                          */}
-          {/* =============================================================== */}
-
           <div>
             <div
               className="
@@ -715,8 +1021,6 @@ export default async function OverviewPage({
                 gap-10
               "
             >
-              {/* MONTHLY */}
-
               <div>
                 <p
                   className="
@@ -758,8 +1062,6 @@ export default async function OverviewPage({
                 </p>
               </div>
 
-              {/* ACCUMULATED */}
-
               <div>
                 <p
                   className="
@@ -800,10 +1102,6 @@ export default async function OverviewPage({
                 </p>
               </div>
             </div>
-
-            {/* ============================================================= */}
-            {/* YEARLY GRAPH                                                   */}
-            {/* ============================================================= */}
 
             <div className="mt-9">
               <div
@@ -1007,10 +1305,6 @@ export default async function OverviewPage({
           </Link>
         </div>
 
-        {/* ================================================================= */}
-        {/* TABLE                                                             */}
-        {/* ================================================================= */}
-
         {activeStudentRows.length > 0 ? (
           <div
             className="
@@ -1027,6 +1321,20 @@ export default async function OverviewPage({
                 border-collapse
               "
             >
+              <colgroup>
+                {/* Student is narrower so Schedule starts closer */}
+                <col className="w-[22%]" />
+
+                {/* Schedule gets the largest share of space */}
+                <col className="w-[43%]" />
+
+                {/* Progress remains compact and is pushed right */}
+                <col className="w-[21%]" />
+
+                {/* Status remains compact */}
+                <col className="w-[14%]" />
+              </colgroup>
+
               <thead>
                 <tr
                   className="
@@ -1034,15 +1342,13 @@ export default async function OverviewPage({
                     border-[#DCD8D2]
                   "
                 >
-                  {/* ======================================================= */}
-                  {/* STUDENT HEADING                                          */}
-                  {/* ======================================================= */}
+                  {/* STUDENT */}
 
                   <th
                     className="
-                      w-[23%]
-                      px-3
                       py-4
+                      pl-3
+                      pr-2
                       text-left
                       font-sans
                       text-[10px]
@@ -1050,21 +1356,20 @@ export default async function OverviewPage({
                       uppercase
                       tracking-[0.14em]
                       text-[#8A8A84]
-                      sm:px-4
+                      sm:pl-4
+                      sm:pr-2
                     "
                   >
                     Student
                   </th>
 
-                  {/* ======================================================= */}
-                  {/* SCHEDULE HEADING                                         */}
-                  {/* ======================================================= */}
+                  {/* SCHEDULE */}
 
                   <th
                     className="
-                      w-[29%]
-                      px-3
                       py-4
+                      pl-0
+                      pr-2
                       text-center
                       font-sans
                       text-[10px]
@@ -1072,21 +1377,20 @@ export default async function OverviewPage({
                       uppercase
                       tracking-[0.14em]
                       text-[#8A8A84]
-                      sm:px-4
+                      sm:pl-0
+                      sm:pr-3
                     "
                   >
                     Schedule
                   </th>
 
-                  {/* ======================================================= */}
-                  {/* PROGRESS HEADING                                         */}
-                  {/* ======================================================= */}
+                  {/* PROGRESS */}
 
                   <th
                     className="
-                      w-[33%]
-                      px-3
                       py-4
+                      pl-10
+                      pr-2
                       text-center
                       font-sans
                       text-[10px]
@@ -1094,19 +1398,17 @@ export default async function OverviewPage({
                       uppercase
                       tracking-[0.14em]
                       text-[#8A8A84]
-                      sm:px-4
+                      sm:pl-12
+                      sm:pr-3
                     "
                   >
                     Progress
                   </th>
 
-                  {/* ======================================================= */}
-                  {/* STATUS HEADING                                           */}
-                  {/* ======================================================= */}
+                  {/* STATUS */}
 
                   <th
                     className="
-                      w-[15%]
                       px-3
                       py-4
                       text-right
@@ -1127,10 +1429,17 @@ export default async function OverviewPage({
               <tbody>
                 {activeStudentRows.map(
                   (student) => {
+                    /*
+                     * Only an ACTIVE enrollment is
+                     * considered for this table.
+                     *
+                     * This guarantees that the schedule,
+                     * progress, and status all belong to
+                     * the same current enrollment.
+                     */
                     const activeEnrollment =
-                      (
-                        student.enrollments ??
-                        []
+                      getEnrollmentsForStudent(
+                        student.id
                       ).find(
                         (enrollment) =>
                           enrollment.status ===
@@ -1143,9 +1452,24 @@ export default async function OverviewPage({
                       return null;
                     }
 
+                    const shared =
+                      isSharedEnrollment(
+                        activeEnrollment.id
+                      );
+
+                    /*
+                     * Lessons are also taken from the
+                     * active enrollment only.
+                     *
+                     * For shared enrollments, this is
+                     * intentionally the entire shared
+                     * lesson pool rather than lessons
+                     * belonging only to this student.
+                     */
                     const lessons =
-                      activeEnrollment.lessons ??
-                      [];
+                      getEnrollmentLessons(
+                        activeEnrollment.id
+                      );
 
                     const consumedLessons =
                       lessons.filter(
@@ -1185,6 +1509,19 @@ export default async function OverviewPage({
                       student.preferred_name ||
                       student.full_name;
 
+                    /*
+                     * Schedule is explicitly retrieved
+                     * from this student's active enrollment.
+                     *
+                     * This prevents schedules from previous
+                     * enrollments from appearing here.
+                     */
+                    const schedule =
+                      getStudentSchedule(
+                        activeEnrollment,
+                        student.id
+                      );
+
                     return (
                       <tr
                         key={student.id}
@@ -1197,15 +1534,18 @@ export default async function OverviewPage({
                         "
                       >
                         {/* ================================================= */}
-                        {/* STUDENT CONTENT                                    */}
+                        {/* STUDENT                                            */}
                         {/* ================================================= */}
 
                         <td
                           className="
-                            px-3
-                            py-5
+                            py-4
+                            pl-3
+                            pr-2
                             text-left
-                            sm:px-4
+                            sm:py-[18px]
+                            sm:pl-4
+                            sm:pr-2
                           "
                         >
                           <Link
@@ -1213,6 +1553,7 @@ export default async function OverviewPage({
                             className="
                               font-serif
                               text-[17px]
+                              leading-6
                               tracking-[-0.01em]
                               transition-colors
                               hover:text-[#6F8F72]
@@ -1234,61 +1575,88 @@ export default async function OverviewPage({
                             {student.student_number ??
                               "—"}
                           </p>
-                        </td>
 
-                        {/* ================================================= */}
-                        {/* SCHEDULE CONTENT                                   */}
-                        {/* ================================================= */}
-
-                        <td
-                          className="
-                            px-3
-                            py-5
-                            text-left
-                            font-serif
-                            text-[14px]
-                            leading-6
-                            text-[#55544F]
-                            sm:px-4
-                          "
-                        >
-                          {formatSchedule(
-                            activeEnrollment.schedule_days,
-                            activeEnrollment.schedule_time
+                          {shared && (
+                            <span
+                              className="
+                                mt-2
+                                inline-flex
+                                items-center
+                                rounded-full
+                                bg-[#EEF1EB]
+                                px-2
+                                py-1
+                                font-sans
+                                text-[8px]
+                                font-medium
+                                uppercase
+                                tracking-[0.1em]
+                                text-[#6F856F]
+                              "
+                            >
+                              Shared enrollment
+                            </span>
                           )}
                         </td>
 
                         {/* ================================================= */}
-                        {/* PROGRESS CONTENT                                   */}
+                        {/* SCHEDULE                                           */}
                         {/* ================================================= */}
 
                         <td
                           className="
-                            px-3
-                            py-5
+                            py-4
+                            pl-0
+                            pr-2
                             text-left
-                            sm:px-4
+                            font-serif
+                            text-[14px]
+                            leading-6
+                            tracking-[-0.005em]
+                            text-[#55544F]
+                            sm:py-[18px]
+                            sm:pl-0
+                            sm:pr-3
+                          "
+                        >
+                          {schedule}
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* PROGRESS                                           */}
+                        {/* ================================================= */}
+
+                        <td
+                          className="
+                            py-4
+                            pl-10
+                            pr-2
+                            text-left
+                            sm:py-[18px]
+                            sm:pl-12
+                            sm:pr-3
                           "
                         >
                           <div
                             className="
                               w-full
-                              max-w-[280px]
+                              max-w-[180px]
                             "
                           >
                             <div
                               className="
-                                mb-2
+                                mb-1.5
                                 flex
                                 items-center
                                 justify-between
-                                gap-4
+                                gap-2
                               "
                             >
                               <span
                                 className="
                                   font-serif
                                   text-[14px]
+                                  leading-5
                                   text-[#4E4D48]
                                 "
                               >
@@ -1301,7 +1669,7 @@ export default async function OverviewPage({
                                 className="
                                   shrink-0
                                   font-sans
-                                  text-[10px]
+                                  text-[9px]
                                   text-[#99958E]
                                 "
                               >
@@ -1333,9 +1701,10 @@ export default async function OverviewPage({
 
                             <p
                               className="
-                                mt-2
+                                mt-1.5
                                 font-sans
-                                text-[10px]
+                                text-[9px]
+                                leading-4
                                 text-[#99958E]
                               "
                             >
@@ -1350,15 +1719,16 @@ export default async function OverviewPage({
                         </td>
 
                         {/* ================================================= */}
-                        {/* STATUS CONTENT                                     */}
+                        {/* STATUS                                             */}
                         {/* ================================================= */}
 
                         <td
                           className="
                             px-3
-                            py-5
+                            py-4
                             text-right
                             sm:px-4
+                            sm:py-[18px]
                           "
                         >
                           <span
@@ -1366,10 +1736,10 @@ export default async function OverviewPage({
                               inline-flex
                               items-center
                               rounded-full
-                              px-3
+                              px-2.5
                               py-1.5
                               font-sans
-                              text-[9px]
+                              text-[8px]
                               font-medium
                               uppercase
                               tracking-[0.1em]

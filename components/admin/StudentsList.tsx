@@ -95,12 +95,6 @@ export default function StudentsList({
        * The search field only accepts:
        *
        * 0014
-       *
-       * We extract the final numeric portion from
-       * the stored student number.
-       *
-       * This also makes the search independent
-       * of the year.
        */
       const storedStudentNumber = String(
         student.student_number ?? ""
@@ -146,7 +140,6 @@ export default function StudentsList({
           mb-8
           grid
           gap-4
-
           md:grid-cols-2
         "
       >
@@ -372,8 +365,20 @@ export default function StudentsList({
                 student.enrollments ?? [];
 
               /*
-               * Only the active enrollment is
-               * summarized on the student list.
+               * -------------------------------------------------
+               * ACTIVE ENROLLMENT
+               * -------------------------------------------------
+               *
+               * This now works for BOTH:
+               *
+               * Individual enrollment
+               * → attached directly to the student
+               *
+               * Shared enrollment
+               * → attached to the student through
+               *   enrollment_students
+               *
+               * The enrollment is still represented only once.
                */
               const activeEnrollment =
                 enrollments.find(
@@ -382,13 +387,33 @@ export default function StudentsList({
                     "active"
                 );
 
+              /*
+               * -------------------------------------------------
+               * SHARED / ENROLLMENT-LEVEL LESSON COUNT
+               * -------------------------------------------------
+               *
+               * The lesson pool belongs to the enrollment,
+               * not to the participant.
+               *
+               * Therefore we count consumed lessons from
+               * the enrollment's complete lesson track.
+               *
+               * Example:
+               *
+               * 20 total
+               * 1 consumed
+               * 19 remaining
+               *
+               * Both Dasom and Bin will show the same count.
+               */
               const lessons =
                 activeEnrollment?.lessons ?? [];
 
               const consumedLessons =
                 lessons.filter(
                   (lesson) =>
-                    lesson.consumes_lesson
+                    lesson.consumes_lesson ===
+                    true
                 ).length;
 
               const totalLessons =
@@ -478,7 +503,6 @@ export default function StudentsList({
                               leading-tight
                               tracking-[-0.02em]
                               text-[#292929]
-
                               sm:text-[34px]
                             "
                           >

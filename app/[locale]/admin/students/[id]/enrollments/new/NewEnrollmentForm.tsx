@@ -25,7 +25,7 @@ interface NewEnrollmentFormProps {
 interface ParticipantSchedule {
   studentId: string;
   scheduleDays: string[];
-  scheduleTime: string;
+  scheduleTimes: Record<string, string>;
 }
 
 const DAYS = [
@@ -37,6 +37,14 @@ const DAYS = [
   ["Saturday", "sat"],
   ["Sunday", "sun"],
 ] as const;
+
+const EMPTY_SCHEDULE = (
+  studentId: string
+): ParticipantSchedule => ({
+  studentId,
+  scheduleDays: [],
+  scheduleTimes: {},
+});
 
 export default function NewEnrollmentForm({
   locale,
@@ -52,11 +60,7 @@ export default function NewEnrollmentForm({
 
   const [participantSchedules, setParticipantSchedules] =
     useState<Record<string, ParticipantSchedule>>({
-      [student.id]: {
-        studentId: student.id,
-        scheduleDays: [],
-        scheduleTime: "",
-      },
+      [student.id]: EMPTY_SCHEDULE(student.id),
     });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,8 +73,8 @@ export default function NewEnrollmentForm({
   const action = `/api/admin/students/${student.id}/enrollments`;
 
   /*
-   * Keep the current student available even if the server
-   * does not provide the complete student list.
+   * Always include the current student, even if the server
+   * did not include them in the students prop.
    */
   const availableStudents = useMemo(() => {
     const map = new Map<string, Student>();
@@ -84,6 +88,7 @@ export default function NewEnrollmentForm({
     return Array.from(map.values()).sort((a, b) => {
       const nameA =
         a.preferred_name || a.full_name;
+
       const nameB =
         b.preferred_name || b.full_name;
 
@@ -91,18 +96,26 @@ export default function NewEnrollmentForm({
     });
   }, [student, students]);
 
-  const participantScheduleEntries = useMemo(
-    () =>
-      participants.map(
-        (studentId) =>
-          participantSchedules[studentId] ?? {
-            studentId,
-            scheduleDays: [],
-            scheduleTime: "",
-          }
-      ),
-    [participants, participantSchedules]
-  );
+  const participantScheduleEntries = useMemo(() => {
+    return participants.map(
+      (studentId) =>
+        participantSchedules[studentId] ??
+        EMPTY_SCHEDULE(studentId)
+    );
+  }, [participants, participantSchedules]);
+
+  /*
+   * For an individual enrollment, this is the exact number
+   * of lessons per week.
+   *
+   * Example:
+   * Monday = 1
+   * Monday + Wednesday = 2
+   * Monday + Wednesday + Friday = 3
+   */
+  const individualLessonsPerWeek =
+    participantSchedules[student.id]
+      ?.scheduleDays.length ?? 0;
 
   function getStudent(studentId: string): Student {
     return (
@@ -116,51 +129,93 @@ export default function NewEnrollmentForm({
     );
   }
 
-  function updateParticipantSchedule(
+  function getParticipantName(studentId: string) {
+    const participant = getStudent(studentId);
+
+    return (
+      participant.preferred_name ||
+      participant.full_name
+    );
+  }
+
+  function updateParticipantTime(
     studentId: string,
-    changes: Partial<ParticipantSchedule>
+    day: string,
+    time: string
   ) {
-    setParticipantSchedules((current) => ({
-      ...current,
-      [studentId]: {
-        ...(current[studentId] ?? {
-          studentId,
-          scheduleDays: [],
-          scheduleTime: "",
-        }),
-        ...changes,
-      },
-    }));
+    setParticipantSchedules((current) => {
+      const schedule =
+        current[studentId] ??
+        EMPTY_SCHEDULE(studentId);
+
+      return {
+        ...current,
+        [studentId]: {
+          ...schedule,
+          scheduleTimes: {
+            ...schedule.scheduleTimes,
+            [day]: time,
+          },
+        },
+      };
+    });
   }
 
   function toggleParticipantDay(
     studentId: string,
     day: string
   ) {
-    const current =
-      participantSchedules[studentId]?.scheduleDays ?? [];
+    const schedule =
+      participantSchedules[studentId] ??
+      EMPTY_SCHEDULE(studentId);
 
-    const next = current.includes(day)
+    const current = schedule.scheduleDays;
+
+    const isSelected = current.includes(day);
+
+    const next = isSelected
       ? current.filter((value) => value !== day)
       : [...current, day];
 
-    updateParticipantSchedule(studentId, {
-      scheduleDays: next,
+    setParticipantSchedules((currentSchedules) => {
+      const existing =
+        currentSchedules[studentId] ??
+        EMPTY_SCHEDULE(studentId);
+
+      const nextTimes = {
+        ...existing.scheduleTimes,
+      };
+
+      /*
+       * Remove the time when its corresponding day
+       * is removed.
+       */
+      if (isSelected) {
+        delete nextTimes[day];
+      }
+
+      return {
+        ...currentSchedules,
+        [studentId]: {
+          ...existing,
+          scheduleDays: next,
+          scheduleTimes: nextTimes,
+        },
+      };
     });
   }
 
   function toggleParticipant(studentId: string) {
+    /*
+     * The student whose admin record is open must always
+     * remain part of the enrollment.
+     */
+    if (studentId === student.id) {
+      return;
+    }
+
     setParticipants((current) => {
       if (current.includes(studentId)) {
-        /*
-         * The student whose admin record we are currently
-         * creating the enrollment from must remain part
-         * of a shared enrollment.
-         */
-        if (studentId === student.id) {
-          return current;
-        }
-
         return current.filter(
           (id) => id !== studentId
         );
@@ -169,18 +224,11 @@ export default function NewEnrollmentForm({
       return [...current, studentId];
     });
 
-    /*
-     * Make sure a newly selected participant has a
-     * schedule object ready for the schedule section.
-     */
     setParticipantSchedules((current) => ({
       ...current,
       [studentId]:
-        current[studentId] ?? {
-          studentId,
-          scheduleDays: [],
-          scheduleTime: "",
-        },
+        current[studentId] ??
+        EMPTY_SCHEDULE(studentId),
     }));
   }
 
@@ -189,146 +237,197 @@ export default function NewEnrollmentForm({
   ) {
     setEnrollmentType(type);
 
+    /*
+     * Individual enrollment always belongs only to the
+     * student whose admin record is currently open.
+     */
     if (type === "individual") {
-      /*
-       * Individual enrollment always belongs to the
-       * student whose record we are currently viewing.
-       */
       setParticipants([student.id]);
 
       setParticipantSchedules((current) => ({
         ...current,
         [student.id]:
-          current[student.id] ?? {
-            studentId: student.id,
-            scheduleDays: [],
-            scheduleTime: "",
-          },
+          current[student.id] ??
+          EMPTY_SCHEDULE(student.id),
       }));
 
       return;
     }
 
     /*
-     * Shared enrollment starts with the current student.
-     * Additional participants can then be selected below.
+     * Shared enrollment always starts with the current
+     * student. Additional participants can be selected.
      */
-    setParticipants([student.id]);
+    setParticipants((current) =>
+      current.includes(student.id)
+        ? current
+        : [student.id, ...current]
+    );
+
+    setParticipantSchedules((current) => ({
+      ...current,
+      [student.id]:
+        current[student.id] ??
+        EMPTY_SCHEDULE(student.id),
+    }));
+  }
+
+  function validateSchedule(
+    schedule: ParticipantSchedule,
+    name: string
+  ) {
+    if (schedule.scheduleDays.length === 0) {
+      alert(
+        `Please select at least one lesson day for ${name}.`
+      );
+
+      return false;
+    }
+
+    for (const day of schedule.scheduleDays) {
+      if (!schedule.scheduleTimes[day]) {
+        const dayName =
+          DAYS.find(
+            ([, value]) => value === day
+          )?.[0] ?? day;
+
+        alert(
+          `Please enter a lesson time for ${name} on ${dayName}.`
+        );
+
+        return false;
+      }
+    }
+
+    return true;
   }
 
   function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
   ) {
-    /*
-     * Common package validation
-     */
     const form = event.currentTarget;
+    const formData = new FormData(form);
 
     const numberOfLessons = Number(
-      new FormData(form).get("number_of_lessons")
+      formData.get("number_of_lessons")
     );
 
     const lessonDuration = Number(
-      new FormData(form).get("lesson_duration")
+      formData.get("lesson_duration")
     );
 
-    const startDate = new FormData(form).get(
-      "start_date"
-    );
+    const startDate = formData.get("start_date");
 
+    /*
+     * Validate package size.
+     */
     if (
       !Number.isInteger(numberOfLessons) ||
       numberOfLessons < 1
     ) {
       event.preventDefault();
+
       alert(
         "Please enter a valid number of lessons."
       );
+
       return;
     }
 
+    /*
+     * Validate lesson duration.
+     */
     if (
       !Number.isInteger(lessonDuration) ||
       lessonDuration < 1
     ) {
       event.preventDefault();
+
       alert(
         "Please enter a valid lesson duration."
       );
+
       return;
     }
 
-    if (!startDate) {
+    /*
+     * Validate start date.
+     */
+    if (
+      typeof startDate !== "string" ||
+      !startDate
+    ) {
       event.preventDefault();
+
       alert(
         "Please select a lesson start date."
       );
+
       return;
     }
 
     /*
-     * Individual enrollment validation
+     * Individual enrollment validation.
+     *
+     * lessons_per_week is intentionally NOT submitted
+     * from the form. The API derives it from the number
+     * of selected schedule days.
      */
     if (enrollmentType === "individual") {
       const schedule =
-        participantSchedules[student.id];
+        participantSchedules[student.id] ??
+        EMPTY_SCHEDULE(student.id);
 
-      if (!schedule?.scheduleDays.length) {
+      if (
+        !validateSchedule(
+          schedule,
+          studentName
+        )
+      ) {
         event.preventDefault();
-        alert(
-          "Please select at least one lesson day."
-        );
-        return;
-      }
-
-      if (!schedule.scheduleTime) {
-        event.preventDefault();
-        alert(
-          "Please select a lesson time."
-        );
         return;
       }
     }
 
     /*
-     * Shared enrollment validation
+     * Shared enrollment validation.
+     *
+     * Every participant must have at least one day
+     * and a time for every selected day.
      */
     if (enrollmentType === "shared") {
       if (participants.length < 2) {
         event.preventDefault();
+
         alert(
           "A shared enrollment must have at least two participating students."
         );
+
         return;
       }
 
       for (const participant of participantScheduleEntries) {
-        if (participant.scheduleDays.length === 0) {
-          event.preventDefault();
-          alert(
-            `Please select at least one lesson day for ${getStudent(
-              participant.studentId
-            ).preferred_name ||
-              getStudent(participant.studentId).full_name
-            }.`
-          );
-          return;
-        }
+        const name = getParticipantName(
+          participant.studentId
+        );
 
-        if (!participant.scheduleTime) {
+        if (
+          !validateSchedule(
+            participant,
+            name
+          )
+        ) {
           event.preventDefault();
-          alert(
-            `Please select a lesson time for ${getStudent(
-              participant.studentId
-            ).preferred_name ||
-              getStudent(participant.studentId).full_name
-            }.`
-          );
           return;
         }
       }
     }
 
+    /*
+     * All validation passed.
+     *
+     * Allow the browser to perform the normal POST.
+     */
     setIsSubmitting(true);
   }
 
@@ -348,7 +447,11 @@ export default function NewEnrollmentForm({
               transition-colors hover:text-[#6F8F72]
             "
           >
-            <ArrowLeft size={16} strokeWidth={1.5} />
+            <ArrowLeft
+              size={16}
+              strokeWidth={1.5}
+            />
+
             Student
           </Link>
 
@@ -460,7 +563,10 @@ export default function NewEnrollmentForm({
                   text-[#6F8F72]
                 "
               >
-                <Users size={17} strokeWidth={1.5} />
+                <Users
+                  size={17}
+                  strokeWidth={1.5}
+                />
               </div>
 
               <h2
@@ -573,7 +679,10 @@ export default function NewEnrollmentForm({
                   text-[#6F8F72]
                 "
               >
-                <Users size={17} strokeWidth={1.5} />
+                <Users
+                  size={17}
+                  strokeWidth={1.5}
+                />
               </div>
 
               <h2
@@ -624,7 +733,8 @@ export default function NewEnrollmentForm({
                       availableStudent.full_name;
 
                     const isCurrentStudent =
-                      availableStudent.id === student.id;
+                      availableStudent.id ===
+                      student.id;
 
                     const isSelected =
                       participants.includes(
@@ -755,7 +865,10 @@ export default function NewEnrollmentForm({
                   text-[#6F8F72]
                 "
               >
-                <BookOpen size={17} strokeWidth={1.5} />
+                <BookOpen
+                  size={17}
+                  strokeWidth={1.5}
+                />
               </div>
 
               <h2
@@ -798,6 +911,61 @@ export default function NewEnrollmentForm({
                 required
               />
 
+              {/* ======================================================== */}
+              {/* WEEKLY FREQUENCY                                         */}
+              {/* ======================================================== */}
+
+              <div
+                className="
+                  rounded-2xl border border-[#DCD8D2]
+                  bg-[#FAF8F5] p-5
+                "
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p
+                      className="
+                        font-sans text-[11px]
+                        font-medium uppercase
+                        tracking-[0.14em]
+                        text-[#6F8F72]
+                      "
+                    >
+                      Lessons Per Week
+                    </p>
+
+                    <p className="mt-2 font-serif text-[24px]">
+                      {enrollmentType === "individual"
+                        ? individualLessonsPerWeek
+                        : "Calculated per participant"}
+                    </p>
+                  </div>
+
+                  <CalendarDays
+                    size={20}
+                    strokeWidth={1.5}
+                    className="text-[#6F8F72]"
+                  />
+                </div>
+
+                <p
+                  className="
+                    mt-3 font-sans text-[12px]
+                    leading-5 text-[#777771]
+                  "
+                >
+                  {enrollmentType === "individual"
+                    ? individualLessonsPerWeek > 0
+                      ? `Based on ${individualLessonsPerWeek} selected lesson ${
+                          individualLessonsPerWeek === 1
+                            ? "day"
+                            : "days"
+                        }.`
+                      : "Select lesson days below to calculate the weekly frequency."
+                    : "Each shared participant can have a different number of lesson days. The database uses each participant's schedule when generating lessons."}
+                </p>
+              </div>
+
               <div>
                 <label
                   htmlFor="start_date"
@@ -838,7 +1006,9 @@ export default function NewEnrollmentForm({
                 </p>
               </div>
 
-              {/* TUITION */}
+              {/* ======================================================== */}
+              {/* TUITION                                                   */}
+              {/* ======================================================== */}
 
               <div>
                 <p
@@ -887,7 +1057,9 @@ export default function NewEnrollmentForm({
                 </div>
               </div>
 
-              {/* PAYMENT */}
+              {/* ======================================================== */}
+              {/* PAYMENT                                                   */}
+              {/* ======================================================== */}
 
               <div
                 className="
@@ -1002,18 +1174,23 @@ export default function NewEnrollmentForm({
                       <option value="pending">
                         Pending
                       </option>
+
                       <option value="Bank Transfer">
                         Bank Transfer
                       </option>
+
                       <option value="PayPal">
                         PayPal
                       </option>
+
                       <option value="GCash">
                         GCash
                       </option>
+
                       <option value="Cash">
                         Cash
                       </option>
+
                       <option value="Other">
                         Other
                       </option>
@@ -1050,11 +1227,8 @@ export default function NewEnrollmentForm({
             <IndividualSchedule
               student={student}
               schedule={
-                participantSchedules[student.id] ?? {
-                  studentId: student.id,
-                  scheduleDays: [],
-                  scheduleTime: "",
-                }
+                participantSchedules[student.id] ??
+                EMPTY_SCHEDULE(student.id)
               }
               onToggleDay={(day) =>
                 toggleParticipantDay(
@@ -1062,12 +1236,11 @@ export default function NewEnrollmentForm({
                   day
                 )
               }
-              onTimeChange={(time) =>
-                updateParticipantSchedule(
+              onTimeChange={(day, time) =>
+                updateParticipantTime(
                   student.id,
-                  {
-                    scheduleTime: time,
-                  }
+                  day,
+                  time
                 )
               }
             />
@@ -1113,12 +1286,11 @@ export default function NewEnrollmentForm({
                           day
                         )
                       }
-                      onTimeChange={(time) =>
-                        updateParticipantSchedule(
+                      onTimeChange={(day, time) =>
+                        updateParticipantTime(
                           participant.studentId,
-                          {
-                            scheduleTime: time,
-                          }
+                          day,
+                          time
                         )
                       }
                     />
@@ -1133,9 +1305,9 @@ export default function NewEnrollmentForm({
                 "
               >
                 Each participant has an independent
-                schedule. The database uses these
-                schedules when generating lessons after
-                payment is confirmed.
+                schedule. You can choose different
+                days and different times for each
+                selected day.
               </p>
             </section>
           )}
@@ -1155,19 +1327,35 @@ export default function NewEnrollmentForm({
                 }
               />
 
+              {(
+                participantSchedules[student.id]
+                  ?.scheduleDays ?? []
+              ).map((day) => (
+                <input
+                  key={day}
+                  type="hidden"
+                  name={`schedule_time_${day}`}
+                  value={
+                    participantSchedules[student.id]
+                      ?.scheduleTimes[day] ?? ""
+                  }
+                />
+              ))}
+
               <input
                 type="hidden"
-                name="schedule_time"
-                value={
+                name="schedule_times"
+                value={JSON.stringify(
                   participantSchedules[student.id]
-                    ?.scheduleTime ?? ""
-                }
+                    ?.scheduleTimes ?? {}
+                )}
               />
             </>
           ) : (
             participants.map((studentId) => {
               const schedule =
-                participantSchedules[studentId];
+                participantSchedules[studentId] ??
+                EMPTY_SCHEDULE(studentId);
 
               return (
                 <div key={studentId}>
@@ -1180,20 +1368,33 @@ export default function NewEnrollmentForm({
                   <input
                     type="hidden"
                     name={`schedule_days_${studentId}`}
-                    value={
-                      schedule?.scheduleDays.join(
-                        ","
-                      ) ?? ""
-                    }
+                    value={schedule.scheduleDays.join(
+                      ","
+                    )}
                   />
 
                   <input
                     type="hidden"
-                    name={`schedule_time_${studentId}`}
-                    value={
-                      schedule?.scheduleTime ?? ""
-                    }
+                    name={`schedule_times_${studentId}`}
+                    value={JSON.stringify(
+                      schedule.scheduleTimes
+                    )}
                   />
+
+                  {schedule.scheduleDays.map(
+                    (day) => (
+                      <input
+                        key={day}
+                        type="hidden"
+                        name={`schedule_time_${studentId}_${day}`}
+                        value={
+                          schedule.scheduleTimes[
+                            day
+                          ] ?? ""
+                        }
+                      />
+                    )
+                  )}
                 </div>
               );
             })
@@ -1328,7 +1529,7 @@ function IndividualSchedule({
   student: Student;
   schedule: ParticipantSchedule;
   onToggleDay: (day: string) => void;
-  onTimeChange: (time: string) => void;
+  onTimeChange: (day: string, time: string) => void;
 }) {
   return (
     <ParticipantScheduleCard
@@ -1355,11 +1556,14 @@ function ParticipantScheduleCard({
   student: Student;
   schedule: ParticipantSchedule;
   onToggleDay: (day: string) => void;
-  onTimeChange: (time: string) => void;
+  onTimeChange: (day: string, time: string) => void;
   title?: string;
 }) {
   const name =
     student.preferred_name || student.full_name;
+
+  const lessonsPerWeek =
+    schedule.scheduleDays.length;
 
   return (
     <section className="rounded-2xl bg-[#F0F4ED] p-6 sm:p-8">
@@ -1398,85 +1602,133 @@ function ParticipantScheduleCard({
       {/* DAYS */}
 
       <div className="mt-7">
-        <p
-          className="
-            font-sans text-[11px]
-            font-medium uppercase
-            tracking-[0.12em]
-            text-[#6F8F72]
-          "
-        >
-          Lesson Days
-        </p>
+        <div className="flex items-center justify-between gap-4">
+          <p
+            className="
+              font-sans text-[11px]
+              font-medium uppercase
+              tracking-[0.12em]
+              text-[#6F8F72]
+            "
+          >
+            Lesson Days
+          </p>
 
-        <div
-          className="
-            mt-4 grid grid-cols-2
-            gap-x-6 gap-y-4
-            sm:grid-cols-4
-          "
-        >
-          {DAYS.map(([label, value]) => (
-            <label
-              key={value}
-              className="
-                flex cursor-pointer
-                items-center gap-3
-                font-sans text-sm
-                text-[#4A4A4A]
-              "
-            >
-              <input
-                type="checkbox"
-                checked={schedule.scheduleDays.includes(
-                  value
+          <span
+            className="
+              font-sans text-[11px]
+              font-medium uppercase
+              tracking-[0.1em]
+              text-[#8A8A84]
+            "
+          >
+            {lessonsPerWeek}{" "}
+            {lessonsPerWeek === 1
+              ? "lesson"
+              : "lessons"}{" "}
+            / week
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {DAYS.map(([label, value]) => {
+            const isSelected =
+              schedule.scheduleDays.includes(value);
+
+            const time =
+              schedule.scheduleTimes[value] ?? "";
+
+            return (
+              <div
+                key={value}
+                className={`
+                  rounded-xl border p-4
+                  transition-colors
+                  ${
+                    isSelected
+                      ? "border-[#6F8F72] bg-[#FAF8F5]"
+                      : "border-[#DCD8D2] bg-[#FAF8F5]"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <input
+                    id={`day-${student.id}-${value}`}
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() =>
+                      onToggleDay(value)
+                    }
+                    className="h-4 w-4 accent-[#6F8F72]"
+                  />
+
+                  <label
+                    htmlFor={`day-${student.id}-${value}`}
+                    className="
+                      cursor-pointer
+                      font-sans text-sm
+                      font-medium text-[#4A4A4A]
+                    "
+                  >
+                    {label}
+                  </label>
+                </div>
+
+                {isSelected && (
+                  <div className="mt-4 pl-7">
+                    <label
+                      htmlFor={`schedule-time-${student.id}-${value}`}
+                      className="
+                        block font-sans text-[10px]
+                        font-medium uppercase
+                        tracking-[0.12em]
+                        text-[#8A8A84]
+                      "
+                    >
+                      Time
+                    </label>
+
+                    <input
+                      id={`schedule-time-${student.id}-${value}`}
+                      type="time"
+                      value={time}
+                      required
+                      onChange={(event) =>
+                        onTimeChange(
+                          value,
+                          event.target.value
+                        )
+                      }
+                      className="
+                        mt-2 w-full
+                        border-b border-[#CFCBC4]
+                        bg-transparent px-0 py-2
+                        font-serif text-[18px]
+                        text-[#292929]
+                        outline-none
+                        transition-colors
+                        focus:border-[#6F8F72]
+                      "
+                    />
+                  </div>
                 )}
-                onChange={() =>
-                  onToggleDay(value)
-                }
-                className="h-4 w-4 accent-[#6F8F72]"
-              />
-
-              <span>{label}</span>
-            </label>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* TIME */}
-
-      <div className="mt-8">
-        <label
-          htmlFor={`schedule-time-${student.id}`}
-          className="
-            block font-sans text-[11px]
-            font-medium uppercase
-            tracking-[0.12em]
-            text-[#6F8F72]
-          "
-        >
-          Lesson Time
-        </label>
-
-        <input
-          id={`schedule-time-${student.id}`}
-          type="time"
-          value={schedule.scheduleTime}
-          onChange={(event) =>
-            onTimeChange(event.target.value)
-          }
-          className="
-            mt-3 w-full
-            border-b border-[#CFCBC4]
-            bg-transparent px-0 py-3
-            font-serif text-[19px]
-            text-[#292929]
-            outline-none
-            transition-colors
-            focus:border-[#6F8F72]
-          "
-        />
-      </div>
+      <p
+        className="
+          mt-5 font-sans text-[12px]
+          leading-5 text-[#777771]
+        "
+      >
+        Select the days this student has lessons,
+        then enter the specific time for each day.
+        The number of selected days determines the
+        weekly lesson frequency.
+      </p>
     </section>
   );
 }

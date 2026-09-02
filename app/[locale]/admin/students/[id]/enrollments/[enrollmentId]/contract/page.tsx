@@ -12,6 +12,49 @@ interface ContractPageProps {
   }>;
 }
 
+interface EnrollmentSchedule {
+  id: string;
+  enrollment_id: string;
+  student_id: string | null;
+  day_of_week: number;
+  schedule_time: string;
+}
+
+interface Participant {
+  id: string;
+  full_name: string;
+  preferred_name: string | null;
+  timezone: string | null;
+}
+
+interface ScheduleItem {
+  day: string;
+  time: string;
+}
+
+interface ParticipantSchedule {
+  participant: Participant;
+  schedule: ScheduleItem[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* DAY LABELS                                                                 */
+/* -------------------------------------------------------------------------- */
+
+const DAY_LABELS: Record<number, string> = {
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+};
+
+/* -------------------------------------------------------------------------- */
+/* PAGE                                                                       */
+/* -------------------------------------------------------------------------- */
+
 export default async function ContractPage({
   params,
 }: ContractPageProps) {
@@ -20,12 +63,15 @@ export default async function ContractPage({
   const supabase = await createClient();
 
   /* ---------------------------------------------------------------------- */
-  /* STUDENT                                                                 */
+  /* CURRENT STUDENT                                                         */
   /* ---------------------------------------------------------------------- */
 
-  const { data: student, error: studentError } = await supabase
+  const {
+    data: student,
+    error: studentError,
+  } = await supabase
     .from("students")
-    .select("id, full_name, timezone")
+    .select("id, full_name, preferred_name, timezone")
     .eq("id", id)
     .single();
 
@@ -37,43 +83,252 @@ export default async function ContractPage({
   /* ENROLLMENT                                                              */
   /* ---------------------------------------------------------------------- */
 
-  const { data: enrollment, error: enrollmentError } =
-    await supabase
-      .from("enrollments")
-      .select(`
-        id,
-        package_name,
-        number_of_lessons,
-        lesson_duration,
-        lessons_per_week,
-        start_date,
-        tuition_amount,
-        currency,
-        schedule_days,
-        schedule_time
-      `)
-      .eq("id", enrollmentId)
-      .eq("student_id", id)
-      .single();
+  /*
+   * IMPORTANT:
+   *
+   * Do NOT filter the enrollment by student_id here.
+   *
+   * Individual enrollments use:
+   *
+   *   enrollments.student_id
+   *
+   * Shared enrollments use:
+   *
+   *   enrollment_students.student_id
+   *
+   * Therefore we first load the enrollment by its own ID,
+   * then verify that the current student belongs to it.
+   */
+
+  const {
+    data: enrollment,
+    error: enrollmentError,
+  } = await supabase
+    .from("enrollments")
+    .select(`
+      id,
+      student_id,
+      package_name,
+      number_of_lessons,
+      lesson_duration,
+      lessons_per_week,
+      start_date,
+      tuition_amount,
+      currency,
+      schedule_days,
+      schedule_time
+    `)
+    .eq("id", enrollmentId)
+    .single();
 
   if (enrollmentError || !enrollment) {
     notFound();
   }
 
   /* ---------------------------------------------------------------------- */
+  /* SHARED PARTICIPANTS                                                     */
+  /* ---------------------------------------------------------------------- */
+
+  const {
+    data: enrollmentParticipants,
+    error: participantsError,
+  } = await supabase
+    .from("enrollment_students")
+    .select(`
+      student_id
+    `)
+    .eq("enrollment_id", enrollmentId);
+
+  if (participantsError) {
+    console.error(
+      "Contract enrollment_students error:",
+      participantsError
+    );
+  }
+
+  /*
+   * Collect every student attached to the enrollment.
+   *
+   * Individual enrollment:
+   * enrollment.student_id
+   *
+   * Shared enrollment:
+   * enrollment_students[].student_id
+   */
+
+  const participantIds = Array.from(
+    new Set(
+      [
+        enrollment.student_id,
+        ...(enrollmentParticipants ?? []).map(
+          (participant) =>
+            participant.student_id
+        ),
+      ].filter(
+        (studentId): studentId is string =>
+          Boolean(studentId)
+      )
+    )
+  );
+
+  /*
+   * The student opening the page must belong to the enrollment.
+   *
+   * This protects the contract route while still allowing
+   * shared participants to open the same contract.
+   */
+
+  const currentStudentIsParticipant =
+    participantIds.includes(id);
+
+  if (!currentStudentIsParticipant) {
+    notFound();
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* LOAD PARTICIPANT DETAILS                                                */
+  /* ---------------------------------------------------------------------- */
+
+  let participants: Participant[] = [];
+
+  if (participantIds.length > 0) {
+    const {
+      data: participantStudents,
+      error: participantStudentsError,
+    } = await supabase
+      .from("students")
+      .select(`
+        id,
+        full_name,
+        preferred_name,
+        timezone
+      `)
+      .in("id", participantIds);
+
+    if (participantStudentsError) {
+      console.error(
+        "Contract participant students error:",
+        participantStudentsError
+      );
+    }
+
+    participants =
+      (participantStudents ?? []) as Participant[];
+  }
+
+  /*
+   * Keep the participant order consistent with the
+   * enrollment relationship.
+   *
+   * The current student is also guaranteed to appear.
+   */
+
+  participants = participantIds
+    .map((participantId) =>
+      participants.find(
+        (participant) =>
+          participant.id === participantId
+      )
+    )
+    .filter(
+      (
+        participant
+      ): participant is Participant =>
+        Boolean(participant)
+    );
+
+  /*
+   * Safety fallback.
+   *
+   * If participant details could not be loaded for some
+   * reason, use the student who opened the contract.
+   */
+
+  if (participants.length === 0) {
+    participants = [
+      {
+        id: student.id,
+        full_name: student.full_name,
+        preferred_name:
+          student.preferred_name,
+        timezone: student.timezone,
+      },
+    ];
+  }
+
+  const isSharedEnrollment =
+    participants.length > 1 ||
+    (enrollmentParticipants?.length ?? 0) > 1;
+
+  /* ---------------------------------------------------------------------- */
+  /* ENROLLMENT SCHEDULES                                                    */
+  /* ---------------------------------------------------------------------- */
+
+  /*
+   * enrollment_schedules is the primary scheduling source.
+   *
+   * For shared enrollments, each participant has their own
+   * schedule rows under the same enrollment.
+   *
+   * Example:
+   *
+   * Dasom:
+   * Monday    -> 18:00
+   * Tuesday   -> 11:30
+   * Wednesday -> 18:00
+   *
+   * Bin:
+   * Monday    -> 22:30
+   * Wednesday -> 22:30
+   * Friday    -> 22:30
+   */
+
+  const {
+    data: scheduleRows,
+    error: scheduleError,
+  } = await supabase
+    .from("enrollment_schedules")
+    .select(`
+      id,
+      enrollment_id,
+      student_id,
+      day_of_week,
+      schedule_time
+    `)
+    .eq("enrollment_id", enrollmentId)
+    .order("day_of_week", {
+      ascending: true,
+    })
+    .order("schedule_time", {
+      ascending: true,
+    });
+
+  if (scheduleError) {
+    console.error(
+      "Contract enrollment_schedules error:",
+      scheduleError
+    );
+  }
+
+  const enrollmentSchedules: EnrollmentSchedule[] =
+    (scheduleRows ?? []) as EnrollmentSchedule[];
+
+  /* ---------------------------------------------------------------------- */
   /* CONTRACT                                                                */
   /* ---------------------------------------------------------------------- */
 
-  const { data: contract, error: contractError } =
-    await supabase
-      .from("contracts")
-      .select(`
-        id,
-        contract_number,
-        agreement_date
-      `)
-      .eq("enrollment_id", enrollmentId)
-      .single();
+  const {
+    data: contract,
+    error: contractError,
+  } = await supabase
+    .from("contracts")
+    .select(`
+      id,
+      contract_number,
+      agreement_date
+    `)
+    .eq("enrollment_id", enrollmentId)
+    .single();
 
   if (contractError || !contract) {
     notFound();
@@ -83,103 +338,189 @@ export default async function ContractPage({
   /* BASIC VALUES                                                            */
   /* ---------------------------------------------------------------------- */
 
-  // Always use the student's full legal/account name.
-  const studentName = student.full_name;
+  const studentName = isSharedEnrollment
+    ? participants
+        .map(
+          (participant) =>
+            participant.preferred_name ||
+            participant.full_name
+        )
+        .join(" & ")
+    : student.full_name;
 
   const contractNumber =
-    contract.contract_number || "To be confirmed";
+    contract.contract_number ||
+    "To be confirmed";
 
-  const agreementDate = new Date(
-    `${contract.agreement_date}T00:00:00`
-  ).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const agreementDate = formatDate(
+    contract.agreement_date,
+    "To be confirmed"
+  );
 
-  const startDate = enrollment.start_date
-    ? new Date(
-        `${enrollment.start_date}T00:00:00`
-      ).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "To be confirmed";
+  const startDate = formatDate(
+    enrollment.start_date,
+    "To be confirmed"
+  );
 
   /* ---------------------------------------------------------------------- */
-  /* SCHEDULE DAYS                                                           */
+  /* PARTICIPANT SCHEDULES                                                   */
   /* ---------------------------------------------------------------------- */
 
-  const dayNames: Record<string, string> = {
-    mon: "Monday",
-    monday: "Monday",
+  const participantSchedules: ParticipantSchedule[] =
+    participants.map((participant) => {
+      const participantRows =
+        enrollmentSchedules.filter(
+          (schedule) =>
+            schedule.student_id ===
+            participant.id
+        );
 
-    tue: "Tuesday",
-    tues: "Tuesday",
-    tuesday: "Tuesday",
+      /*
+       * For shared enrollments, schedules are participant-specific.
+       *
+       * For an individual enrollment, student_id may be null
+       * on older rows, so use all rows as the fallback.
+       */
 
-    wed: "Wednesday",
-    wednesday: "Wednesday",
+      const usableRows =
+        participantRows.length > 0
+          ? participantRows
+          : !isSharedEnrollment
+            ? enrollmentSchedules
+            : [];
 
-    thu: "Thursday",
-    thurs: "Thursday",
-    thursday: "Thursday",
+      const schedule =
+        getEnrollmentSchedule(
+          usableRows,
+          enrollment.schedule_days,
+          enrollment.schedule_time
+        );
 
-    fri: "Friday",
-    friday: "Friday",
+      return {
+        participant,
+        schedule,
+      };
+    });
 
-    sat: "Saturday",
-    saturday: "Saturday",
+  /*
+   * If no participant-specific schedules were found at all,
+   * build one legacy schedule for the enrollment.
+   */
 
-    sun: "Sunday",
-    sunday: "Sunday",
-  };
-
-  const rawScheduleDays = Array.isArray(enrollment.schedule_days)
-    ? enrollment.schedule_days
-    : [];
-
-  const normalizedScheduleDays = rawScheduleDays
-    .flatMap((day: string) =>
-      String(day)
-        .replace(/Â·/g, "·")
-        .split("·")
-        .map((part) => part.trim())
-        .filter(Boolean)
-    )
-    .map((day) => {
-      const normalized = day.toLowerCase().trim();
-
-      return dayNames[normalized] || day;
-    })
-    .filter(
-      (day, index, array) =>
-        array.indexOf(day) === index
+  const hasAnyParticipantSchedule =
+    participantSchedules.some(
+      (item) => item.schedule.length > 0
     );
 
-  const scheduleDays =
-    normalizedScheduleDays.length > 0
-      ? normalizedScheduleDays.join(" · ")
-      : "To be confirmed";
+  if (
+    !hasAnyParticipantSchedule &&
+    enrollmentSchedules.length === 0
+  ) {
+    const fallbackSchedule =
+      getEnrollmentSchedule(
+        [],
+        enrollment.schedule_days,
+        enrollment.schedule_time
+      );
+
+    if (participantSchedules.length > 0) {
+      participantSchedules[0] = {
+        ...participantSchedules[0],
+        schedule: fallbackSchedule,
+      };
+    }
+  }
 
   /* ---------------------------------------------------------------------- */
-  /* SCHEDULE TIME                                                           */
+  /* SCHEDULE SUMMARY                                                        */
   /* ---------------------------------------------------------------------- */
 
-  const scheduleTime = enrollment.schedule_time
-    ? formatTime(enrollment.schedule_time)
-    : "To be confirmed";
+  /*
+   * For individual contracts:
+   *
+   * Monday · Tuesday · Wednesday
+   *
+   * For shared contracts:
+   *
+   * Dasom: Monday · Tuesday · Wednesday
+   * Bin: Monday · Wednesday · Friday
+   */
+
+  const scheduleDays = isSharedEnrollment
+    ? participantSchedules
+        .filter(
+          (item) =>
+            item.schedule.length > 0
+        )
+        .map((item) => {
+          const name =
+            item.participant.preferred_name ||
+            item.participant.full_name;
+
+          return `${name}: ${item.schedule
+            .map(
+              (schedule) =>
+                schedule.day
+            )
+            .join(" · ")}`;
+        })
+        .join("  |  ")
+    : participantSchedules[0]?.schedule
+        .map((item) => item.day)
+        .join(" · ") ||
+      "To be confirmed";
+
+  /*
+   * Full compact schedule.
+   *
+   * Individual:
+   * Monday (6:00 PM), Tuesday (11:30 AM)
+   *
+   * Shared:
+   * Dasom — Monday (6:00 PM), Tuesday (11:30 AM)
+   * Bin — Monday (10:30 PM), Wednesday (10:30 PM)
+   */
+
+  const scheduleText = isSharedEnrollment
+    ? participantSchedules
+        .filter(
+          (item) =>
+            item.schedule.length > 0
+        )
+        .map((item) => {
+          const name =
+            item.participant.preferred_name ||
+            item.participant.full_name;
+
+          return `${name} — ${item.schedule
+            .map(
+              (schedule) =>
+                `${schedule.day} (${schedule.time})`
+            )
+            .join(", ")}`;
+        })
+        .join(" | ")
+    : participantSchedules[0]?.schedule
+        .map(
+          (item) =>
+            `${item.day} (${item.time})`
+        )
+        .join(", ") ||
+      "To be confirmed";
 
   /* ---------------------------------------------------------------------- */
   /* TUITION                                                                 */
   /* ---------------------------------------------------------------------- */
 
-  const currency = enrollment.currency || "KRW";
+  const currency =
+    enrollment.currency || "KRW";
 
-  const tuition = new Intl.NumberFormat("en-US").format(
-    Number(enrollment.tuition_amount || 0)
-  );
+  const tuition =
+    new Intl.NumberFormat("en-US").format(
+      Number(
+        enrollment.tuition_amount || 0
+      )
+    );
 
   /* ---------------------------------------------------------------------- */
   /* RENDER                                                                  */
@@ -194,6 +535,7 @@ export default async function ContractPage({
 
       <div className="mx-auto w-full max-w-[794px] px-5 py-5 print:hidden">
         <div className="flex items-center justify-between">
+
           <Link
             href={`/${locale}/admin/students/${student.id}`}
             className="
@@ -215,6 +557,7 @@ export default async function ContractPage({
           </Link>
 
           <PrintButton />
+
         </div>
       </div>
 
@@ -250,9 +593,11 @@ export default async function ContractPage({
           {/* ============================================================ */}
 
           <header className="contract-header border-b border-[#CFCFCB] pb-6">
+
             <div className="flex items-start justify-between gap-8">
 
               <div>
+
                 <div
                   className="
                     font-serif
@@ -277,9 +622,11 @@ export default async function ContractPage({
                 >
                   From Small Talk to Big Ideas
                 </p>
+
               </div>
 
               <div className="text-right">
+
                 <p
                   className="
                     font-sans
@@ -304,9 +651,11 @@ export default async function ContractPage({
                 >
                   Lesson Agreement
                 </p>
+
               </div>
 
             </div>
+
           </header>
 
           {/* ============================================================ */}
@@ -314,10 +663,15 @@ export default async function ContractPage({
           {/* ============================================================ */}
 
           <section className="contract-summary border-b border-[#CFCFCB] py-5">
+
             <div className="grid grid-cols-3">
 
               <SummaryItem
-                label="Student"
+                label={
+                  isSharedEnrollment
+                    ? "Students"
+                    : "Student"
+                }
                 value={studentName}
                 className="
                   border-r
@@ -343,6 +697,7 @@ export default async function ContractPage({
               />
 
             </div>
+
           </section>
 
           {/* ============================================================ */}
@@ -353,11 +708,15 @@ export default async function ContractPage({
             number="01"
             title="Agreement Overview"
           >
+
             <p>
               This Lesson Agreement sets out the terms and
               policies applicable to the private English
-              lessons arranged between Hamkke and the
-              student named above.
+              lessons arranged between Hamkke and the{" "}
+              {isSharedEnrollment
+                ? "students"
+                : "student"}{" "}
+              named above.
             </p>
 
             <p>
@@ -369,11 +728,15 @@ export default async function ContractPage({
             <p>
               This agreement is provided digitally before
               payment. By proceeding with payment for the
-              lesson package, the student confirms that they
-              have had the opportunity to review this
-              agreement and agree to the terms and lesson
-              policies contained herein.
+              lesson package, the{" "}
+              {isSharedEnrollment
+                ? "students"
+                : "student"}{" "}
+              confirms that they have had the opportunity to
+              review this agreement and agree to the terms
+              and lesson policies contained herein.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -384,27 +747,31 @@ export default async function ContractPage({
             number="02"
             title="Enrollment Details"
           >
+
             <div className="detail-table">
 
               <DetailRow
                 label="Package"
-                value={enrollment.package_name}
+                value={
+                  enrollment.package_name ||
+                  "To be confirmed"
+                }
                 strong
               />
 
               <DetailRow
                 label="Number of Lessons"
-                value={`${enrollment.number_of_lessons} lessons`}
+                value={`${enrollment.number_of_lessons ?? 0} lessons`}
               />
 
               <DetailRow
                 label="Lesson Duration"
-                value={`${enrollment.lesson_duration} minutes`}
+                value={`${enrollment.lesson_duration ?? 0} minutes`}
               />
 
               <DetailRow
                 label="Lessons Per Week"
-                value={`${enrollment.lessons_per_week}`}
+                value={`${enrollment.lessons_per_week ?? 0}`}
               />
 
               <DetailRow
@@ -412,19 +779,128 @@ export default async function ContractPage({
                 value={startDate}
               />
 
+              {isSharedEnrollment && (
+                <DetailRow
+                  label="Students"
+                  value={participants
+                    .map(
+                      (participant) =>
+                        participant.preferred_name ||
+                        participant.full_name
+                    )
+                    .join(" & ")}
+                />
+              )}
+
               <DetailRow
                 label="Lesson Days"
                 value={scheduleDays}
               />
 
-              <DetailRow
-                label="Lesson Time"
-                value={scheduleTime}
-              />
+              {/* ====================================================== */}
+              {/* COMPACT PER-DAY LESSON SCHEDULE                        */}
+              {/* ====================================================== */}
+
+              <div
+                className="
+                  detail-row
+                  grid
+                  grid-cols-[155px_minmax(0,1fr)]
+                  items-baseline
+                  gap-6
+                  py-2.5
+                  border-b
+                  border-[#E1E0DC]
+                "
+              >
+
+                <p
+                  className="
+                    font-sans
+                    text-[8.5px]
+                    font-medium
+                    uppercase
+                    tracking-[0.11em]
+                    text-[#666]
+                  "
+                >
+                  Lesson Schedule
+                </p>
+
+                <div
+                  className="
+                    space-y-1.5
+                    font-serif
+                    text-[13.5px]
+                    leading-[1.5]
+                    text-[#222]
+                  "
+                >
+                  {isSharedEnrollment ? (
+                    participantSchedules.some(
+                      (item) =>
+                        item.schedule.length > 0
+                    ) ? (
+                      participantSchedules.map(
+                        (item) => {
+                          const name =
+                            item.participant
+                              .preferred_name ||
+                            item.participant
+                              .full_name;
+
+                          return (
+                            <p
+                              key={
+                                item.participant.id
+                              }
+                            >
+                              <span className="font-medium">
+                                {name}:
+                              </span>{" "}
+                              {item.schedule.length >
+                              0
+                                ? item.schedule
+                                    .map(
+                                      (schedule) =>
+                                        `${schedule.day} (${schedule.time})`
+                                    )
+                                    .join(", ")
+                                : "To be confirmed"}
+                            </p>
+                          );
+                        }
+                      )
+                    ) : (
+                      <p>
+                        {scheduleText}
+                      </p>
+                    )
+                  ) : (
+                    <p>
+                      {scheduleText}
+                    </p>
+                  )}
+                </div>
+
+              </div>
 
               <DetailRow
                 label="Student Timezone"
-                value={student.timezone || "To be confirmed"}
+                value={
+                  isSharedEnrollment
+                    ? participants
+                        .map(
+                          (participant) =>
+                            `${participant.preferred_name || participant.full_name}: ${
+                              participant.timezone ||
+                              "To be confirmed"
+                            }`
+                        )
+                        .join(" | ")
+                    : student.timezone ||
+                      "To be confirmed"
+                }
               />
 
               <DetailRow
@@ -435,6 +911,7 @@ export default async function ContractPage({
               />
 
             </div>
+
           </Section>
 
           {/* ============================================================ */}
@@ -445,6 +922,7 @@ export default async function ContractPage({
             number="03"
             title="Tuition & Payment"
           >
+
             <p>
               The tuition for the enrollment is{" "}
               {currency} {tuition} for the lesson package
@@ -452,10 +930,16 @@ export default async function ContractPage({
             </p>
 
             <p>
-              The lesson package is reserved for the
-              student upon payment. Payment confirms the
-              student's acceptance of this agreement and
-              the lesson policies set out below.
+              The lesson package is reserved for the{" "}
+              {isSharedEnrollment
+                ? "students"
+                : "student"}{" "}
+              upon payment. Payment confirms the{" "}
+              {isSharedEnrollment
+                ? "students'"
+                : "student's"}{" "}
+              acceptance of this agreement and the lesson
+              policies set out below.
             </p>
 
             <p>
@@ -465,6 +949,7 @@ export default async function ContractPage({
               exceptions described in the Refunds & Transfers
               section of this agreement.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -475,11 +960,18 @@ export default async function ContractPage({
             number="04"
             title="Cancellation & Rescheduling"
           >
+
             <p>
-              Each lesson is reserved specifically for the
-              student. If the student needs to cancel or
-              reschedule a lesson, notice should be provided
-              at least 2 hours before the scheduled lesson.
+              Each lesson is reserved specifically for the{" "}
+              {isSharedEnrollment
+                ? "students"
+                : "student"}. If the{" "}
+              {isSharedEnrollment
+                ? "students need"
+                : "student needs"}{" "}
+              to cancel or reschedule a lesson, notice
+              should be provided at least 2 hours before the
+              scheduled lesson.
             </p>
 
             <div className="policy-table">
@@ -503,12 +995,16 @@ export default async function ContractPage({
             </div>
 
             <p>
-              If something unexpected comes up, the student
-              is encouraged to communicate as soon as
+              If something unexpected comes up, the{" "}
+              {isSharedEnrollment
+                ? "students are"
+                : "student is"}{" "}
+              encouraged to communicate as soon as
               reasonably possible. Hamkke will do its best
               to accommodate reasonable circumstances when
               possible.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -519,6 +1015,7 @@ export default async function ContractPage({
             number="05"
             title="Unexpected Circumstances"
           >
+
             <p>
               Not everything is within either party's
               control. Power outages, internet or connection
@@ -545,6 +1042,7 @@ export default async function ContractPage({
               Hamkke's side prevents a lesson from taking
               place as planned.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -555,6 +1053,7 @@ export default async function ContractPage({
             number="06"
             title="Late Arrivals"
           >
+
             <p>
               If the student is running late, they should
               let Hamkke know when they can.
@@ -579,6 +1078,7 @@ export default async function ContractPage({
               be considered a no-show and counted as
               completed.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -589,6 +1089,7 @@ export default async function ContractPage({
             number="07"
             title="Teacher Cancellations"
           >
+
             <p>
               Sometimes Hamkke may need to cancel a lesson.
             </p>
@@ -602,6 +1103,7 @@ export default async function ContractPage({
               The student will receive either a replacement
               lesson or full credit for the missed session.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -612,6 +1114,7 @@ export default async function ContractPage({
             number="08"
             title="Repeated Cancellations"
           >
+
             <p>
               There is no fixed limit on cancellations.
               Hamkke understands that unexpected situations
@@ -631,6 +1134,7 @@ export default async function ContractPage({
               reserved lesson times useful and fair for
               everyone.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -641,6 +1145,7 @@ export default async function ContractPage({
             number="09"
             title="Refunds & Transfers"
           >
+
             <p>
               Because lessons are purchased as a package,
               refunds are generally not available once a
@@ -672,6 +1177,7 @@ export default async function ContractPage({
               so that a fair and reasonable solution can be
               considered.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -682,6 +1188,7 @@ export default async function ContractPage({
             number="10"
             title="Communication"
           >
+
             <p>
               Students are encouraged to communicate
               scheduling changes, technical issues,
@@ -694,6 +1201,7 @@ export default async function ContractPage({
               parties manage reserved lesson times fairly
               and avoid unnecessary misunderstandings.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -704,6 +1212,7 @@ export default async function ContractPage({
             number="11"
             title="Agreement & Acceptance"
           >
+
             <p>
               This agreement is provided to the student
               before payment so that the student may review
@@ -725,6 +1234,7 @@ export default async function ContractPage({
               this enrollment serves as confirmation of
               acceptance of these terms.
             </p>
+
           </Section>
 
           {/* ============================================================ */}
@@ -732,9 +1242,11 @@ export default async function ContractPage({
           {/* ============================================================ */}
 
           <section className="agreement-record border-b border-[#CFCFCB] py-7">
+
             <div className="border border-[#C8C8C4]">
 
-              <div className="border-b border-[#C8C8C4] px-5 py-4">
+              <div className="border-b border-[#C8C8C4] px-5 py-4 text-center">
+
                 <p
                   className="
                     font-sans
@@ -770,35 +1282,83 @@ export default async function ContractPage({
                 >
                   of this Lesson Agreement.
                 </p>
+
               </div>
 
-              {/* AGREEMENT RECORD DETAILS */}
+              <div
+                className={
+                  isSharedEnrollment
+                    ? "grid grid-cols-2"
+                    : "grid grid-cols-3"
+                }
+              >
 
-              <div className="grid grid-cols-3">
+                {isSharedEnrollment ? (
+                  <>
+                    <div className="border-r border-[#C8C8C4] px-5 py-4">
 
-                <div className="border-r border-[#C8C8C4] px-5 py-4">
-                  <Info
-                    label="Student"
-                    value={studentName}
-                  />
-                </div>
+                      <Info
+                        label="Students"
+                        value={studentName}
+                      />
 
-                <div className="border-r border-[#C8C8C4] px-5 py-4">
-                  <Info
-                    label="Contract Number"
-                    value={contractNumber}
-                  />
-                </div>
+                    </div>
 
-                <div className="px-5 py-4">
+                    <div className="px-5 py-4">
+
+                      <Info
+                        label="Contract Number"
+                        value={contractNumber}
+                      />
+
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="border-r border-[#C8C8C4] px-5 py-4">
+
+                      <Info
+                        label="Student"
+                        value={studentName}
+                      />
+
+                    </div>
+
+                    <div className="border-r border-[#C8C8C4] px-5 py-4">
+
+                      <Info
+                        label="Contract Number"
+                        value={contractNumber}
+                      />
+
+                    </div>
+
+                    <div className="px-5 py-4">
+
+                      <Info
+                        label="Agreement Date"
+                        value={agreementDate}
+                      />
+
+                    </div>
+                  </>
+                )}
+
+              </div>
+
+              {isSharedEnrollment && (
+                <div className="border-t border-[#C8C8C4] px-5 py-4">
+
                   <Info
                     label="Agreement Date"
                     value={agreementDate}
                   />
-                </div>
 
-              </div>
+                </div>
+              )}
+
             </div>
+
           </section>
 
           {/* ============================================================ */}
@@ -889,10 +1449,6 @@ export default async function ContractPage({
             box-shadow: none !important;
           }
 
-          /*
-           * Keep the document header and summary together.
-           */
-
           .contract-header {
             break-after: avoid;
             page-break-after: avoid;
@@ -903,10 +1459,6 @@ export default async function ContractPage({
             page-break-after: avoid;
           }
 
-          /*
-           * Keep each numbered contract section together.
-           */
-
           .contract-section {
             break-inside: avoid-page !important;
             page-break-inside: avoid !important;
@@ -916,10 +1468,6 @@ export default async function ContractPage({
             break-inside: avoid-page !important;
             page-break-inside: avoid !important;
           }
-
-          /*
-           * Keep tables and individual rows together.
-           */
 
           .detail-table {
             break-inside: avoid;
@@ -941,27 +1489,15 @@ export default async function ContractPage({
             page-break-inside: avoid;
           }
 
-          /*
-           * Keep the digital agreement record together.
-           */
-
           .agreement-record {
             break-inside: avoid;
             page-break-inside: avoid;
           }
 
-          /*
-           * Keep the footer together.
-           */
-
           footer {
             break-inside: avoid;
             page-break-inside: avoid;
           }
-
-          /*
-           * Keep headings with the content immediately following them.
-           */
 
           h1,
           h2,
@@ -970,19 +1506,10 @@ export default async function ContractPage({
             page-break-after: avoid;
           }
 
-          /*
-           * Prevent awkward single lines at the top or bottom
-           * of printed pages.
-           */
-
           p {
             orphans: 3;
             widows: 3;
           }
-
-          /*
-           * Remove link styling in the printed agreement.
-           */
 
           a {
             color: inherit !important;
@@ -990,6 +1517,7 @@ export default async function ContractPage({
           }
         }
       `}</style>
+
     </main>
   );
 }
@@ -1016,6 +1544,7 @@ function Section({
         py-6
       "
     >
+
       <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
 
         <div
@@ -1032,6 +1561,7 @@ function Section({
         </div>
 
         <div>
+
           <h2
             className="
               font-serif
@@ -1057,9 +1587,11 @@ function Section({
           >
             {children}
           </div>
+
         </div>
 
       </div>
+
     </section>
   );
 }
@@ -1136,6 +1668,7 @@ function DetailRow({
         ${!last ? "border-b border-[#E1E0DC]" : ""}
       `}
     >
+
       <p
         className="
           font-sans
@@ -1159,6 +1692,7 @@ function DetailRow({
       >
         {value}
       </p>
+
     </div>
   );
 }
@@ -1227,6 +1761,7 @@ function Policy({
         ${!last ? "border-b border-[#E1E0DC]" : ""}
       `}
     >
+
       <div className="grid grid-cols-[155px_minmax(0,1fr)] gap-6">
 
         <p
@@ -1254,7 +1789,230 @@ function Policy({
         </p>
 
       </div>
+
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* SCHEDULE                                                                   */
+/* -------------------------------------------------------------------------- */
+
+function getEnrollmentSchedule(
+  schedules: EnrollmentSchedule[],
+  scheduleDays: unknown,
+  scheduleTime: string | null | undefined
+): ScheduleItem[] {
+
+  /*
+   * PRIMARY SOURCE:
+   *
+   * enrollment_schedules
+   */
+
+  if (schedules.length > 0) {
+    return [...schedules]
+      .sort((a, b) => {
+
+        const dayDifference =
+          Number(a.day_of_week) -
+          Number(b.day_of_week);
+
+        if (dayDifference !== 0) {
+          return dayDifference;
+        }
+
+        return String(
+          a.schedule_time ?? ""
+        ).localeCompare(
+          String(
+            b.schedule_time ?? ""
+          )
+        );
+      })
+      .map((schedule) => ({
+        day:
+          DAY_LABELS[
+            Number(schedule.day_of_week)
+          ] ??
+          `Day ${schedule.day_of_week}`,
+
+        time: formatTime(
+          schedule.schedule_time
+        ),
+      }));
+  }
+
+  /*
+   * FALLBACK:
+   *
+   * Older enrollments may not have rows in
+   * enrollment_schedules.
+   */
+
+  const fallbackDays =
+    normalizeScheduleDays(scheduleDays);
+
+  if (
+    fallbackDays.length > 0 &&
+    scheduleTime
+  ) {
+    return fallbackDays.map(
+      (day) => ({
+        day,
+        time: formatTime(
+          scheduleTime
+        ),
+      })
+    );
+  }
+
+  /*
+   * FINAL FALLBACK:
+   */
+
+  if (scheduleTime) {
+    return [
+      {
+        day: "Time",
+        time: formatTime(
+          scheduleTime
+        ),
+      },
+    ];
+  }
+
+  return [];
+}
+
+/* -------------------------------------------------------------------------- */
+/* NORMALIZE SCHEDULE DAYS                                                    */
+/* -------------------------------------------------------------------------- */
+
+function normalizeScheduleDays(
+  value: unknown
+): string[] {
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const dayNames: Record<
+    string,
+    string
+  > = {
+
+    sun: "Sunday",
+    sunday: "Sunday",
+
+    mon: "Monday",
+    monday: "Monday",
+
+    tue: "Tuesday",
+    tues: "Tuesday",
+    tuesday: "Tuesday",
+
+    wed: "Wednesday",
+    wednesday: "Wednesday",
+
+    thu: "Thursday",
+    thurs: "Thursday",
+    thursday: "Thursday",
+
+    fri: "Friday",
+    friday: "Friday",
+
+    sat: "Saturday",
+    saturday: "Saturday",
+  };
+
+  return value
+    .flatMap((day) =>
+      String(day)
+        .replace(/Â·/g, "·")
+        .split("·")
+        .map((part) =>
+          part.trim()
+        )
+        .filter(Boolean)
+    )
+    .map((day) => {
+
+      const normalized =
+        day
+          .toLowerCase()
+          .trim();
+
+      /*
+       * Support numeric PostgreSQL-style
+       * day values as well.
+       */
+
+      if (
+        normalized !== "" &&
+        !Number.isNaN(
+          Number(normalized)
+        )
+      ) {
+
+        const numericDay =
+          Number(normalized);
+
+        return (
+          DAY_LABELS[
+            numericDay
+          ] ?? day
+        );
+      }
+
+      return (
+        dayNames[
+          normalized
+        ] ?? day
+      );
+    })
+    .filter(
+      (day, index, array) =>
+        array.indexOf(day) === index
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/* DATE FORMAT                                                                */
+/* -------------------------------------------------------------------------- */
+
+function formatDate(
+  value:
+    | string
+    | null
+    | undefined,
+  fallback = "Not set"
+): string {
+
+  if (!value) {
+    return fallback;
+  }
+
+  const date =
+    new Date(
+      `${value}T00:00:00`
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return fallback;
+  }
+
+  return date.toLocaleDateString(
+    "en-US",
+    {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }
   );
 }
 
@@ -1262,18 +2020,60 @@ function Policy({
 /* TIME FORMAT                                                                */
 /* -------------------------------------------------------------------------- */
 
-function formatTime(value: string) {
-  const [hours, minutes] = value.split(":").map(Number);
+function formatTime(
+  value:
+    | string
+    | null
+    | undefined
+): string {
+
+  if (!value) {
+    return "To be confirmed";
+  }
+
+  /*
+   * PostgreSQL TIME values normally arrive as:
+   *
+   * 18:00:00
+   * 11:30:00
+   *
+   * This also accepts:
+   *
+   * 18:00
+   * 11:30
+   */
+
+  const match =
+    /^(\d{1,2}):(\d{2})/.exec(
+      String(value).trim()
+    );
+
+  if (!match) {
+    return String(value);
+  }
+
+  const hours =
+    Number(match[1]);
+
+  const minutes =
+    Number(match[2]);
 
   if (
     Number.isNaN(hours) ||
     Number.isNaN(minutes)
   ) {
-    return value;
+    return String(value);
   }
 
-  const suffix = hours >= 12 ? "PM" : "AM";
-  const hour12 = hours % 12 || 12;
+  const suffix =
+    hours >= 12
+      ? "PM"
+      : "AM";
 
-  return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+  const hour12 =
+    hours % 12 || 12;
+
+  return `${hour12}:${String(
+    minutes
+  ).padStart(2, "0")} ${suffix}`;
 }

@@ -81,6 +81,26 @@ interface Contract {
   updated_at?: string | null;
 }
 
+interface EnrollmentSchedule {
+  id?: string;
+  enrollment_id: string;
+  student_id: string | null;
+  day_of_week: number;
+  schedule_time: string;
+}
+
+interface EnrollmentStudent {
+  enrollment_id: string;
+  student_id: string;
+}
+
+interface PrintableParticipantSchedule {
+  student_id: string;
+  student_name: string;
+  day_of_week: number;
+  schedule_time: string;
+}
+
 interface Enrollment {
   id: string;
   student_id: string | null;
@@ -105,6 +125,9 @@ interface Enrollment {
   contracts: Contract[];
   lessons: Lesson[];
   payments: Payment[];
+  schedules: EnrollmentSchedule[];
+
+  isShared: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -148,41 +171,51 @@ export default async function StudentPage({
   }
 
   /* ------------------------------------------------------------------------ */
-  /* 2. LOAD ENROLLMENTS                                                      */
+  /* 2. LOAD DIRECT + SHARED ENROLLMENTS                                      */
   /* ------------------------------------------------------------------------ */
 
-  const {
-    data: enrollmentRows,
-    error: enrollmentError,
-  } = await supabase
-    .from("enrollments")
-    .select(`
-      id,
-      student_id,
-      enrollment_number,
-      package_name,
-      number_of_lessons,
-      lesson_duration,
-      lessons_per_week,
-      start_date,
-      status,
-      schedule_days,
-      schedule_time,
-      renewal_of,
-      tuition_amount,
-      tuition_amount_php,
-      tuition_amount_krw,
-      currency,
-      payment_method,
-      payment_reference,
-      created_at
-    `)
-    .eq("student_id", id);
+  const [
+    directEnrollmentsResult,
+    sharedParticipantResult,
+  ] = await Promise.all([
+    supabase
+      .from("enrollments")
+      .select(`
+        id,
+        student_id,
+        enrollment_number,
+        package_name,
+        number_of_lessons,
+        lesson_duration,
+        lessons_per_week,
+        start_date,
+        status,
+        schedule_days,
+        schedule_time,
+        renewal_of,
+        tuition_amount,
+        tuition_amount_php,
+        tuition_amount_krw,
+        currency,
+        payment_method,
+        payment_reference,
+        created_at
+      `)
+      .eq("student_id", id),
 
-  if (enrollmentError) {
+    supabase
+      .from("enrollment_students")
+      .select(`
+        enrollment_id,
+        student_id
+      `)
+      .eq("student_id", id),
+  ]);
+
+  if (directEnrollmentsResult.error) {
     console.error(
-      "Error loading enrollments:",
-      enrollmentError
+      "Error loading direct enrollments:",
+      directEnrollmentsResult.error
     );
 
     throw new Error(
@@ -190,12 +223,112 @@ export default async function StudentPage({
     );
   }
 
-  const rawEnrollments =
-    (enrollmentRows ?? []) as Enrollment[];
+  if (sharedParticipantResult.error) {
+    console.error(
+      "Error loading shared enrollment participants:",
+      sharedParticipantResult.error
+    );
 
-  const enrollmentIds = rawEnrollments.map(
-    (enrollment) => enrollment.id
-  );
+    throw new Error(
+      "Unable to load shared enrollments."
+    );
+  }
+
+  const directEnrollmentRows =
+    (directEnrollmentsResult.data ??
+      []) as Enrollment[];
+
+  const studentSharedRows =
+    (sharedParticipantResult.data ??
+      []) as EnrollmentStudent[];
+
+  const sharedEnrollmentIdsForStudent =
+    studentSharedRows.map(
+      (row) => row.enrollment_id
+    );
+
+  const uniqueSharedEnrollmentIds = [
+    ...new Set(
+      sharedEnrollmentIdsForStudent
+    ),
+  ];
+
+  let sharedEnrollmentRows: Enrollment[] =
+    [];
+
+  if (
+    uniqueSharedEnrollmentIds.length > 0
+  ) {
+    const {
+      data: sharedRows,
+      error: sharedEnrollmentError,
+    } = await supabase
+      .from("enrollments")
+      .select(`
+        id,
+        student_id,
+        enrollment_number,
+        package_name,
+        number_of_lessons,
+        lesson_duration,
+        lessons_per_week,
+        start_date,
+        status,
+        schedule_days,
+        schedule_time,
+        renewal_of,
+        tuition_amount,
+        tuition_amount_php,
+        tuition_amount_krw,
+        currency,
+        payment_method,
+        payment_reference,
+        created_at
+      `)
+      .in(
+        "id",
+        uniqueSharedEnrollmentIds
+      );
+
+    if (sharedEnrollmentError) {
+      console.error(
+        "Error loading shared enrollments:",
+        sharedEnrollmentError
+      );
+
+      throw new Error(
+        "Unable to load shared enrollments."
+      );
+    }
+
+    sharedEnrollmentRows =
+      (sharedRows ?? []) as Enrollment[];
+  }
+
+  const enrollmentMap =
+    new Map<string, Enrollment>();
+
+  for (const enrollment of directEnrollmentRows) {
+    enrollmentMap.set(
+      enrollment.id,
+      enrollment
+    );
+  }
+
+  for (const enrollment of sharedEnrollmentRows) {
+    enrollmentMap.set(
+      enrollment.id,
+      enrollment
+    );
+  }
+
+  const rawEnrollments =
+    [...enrollmentMap.values()];
+
+  const enrollmentIds =
+    rawEnrollments.map(
+      (enrollment) => enrollment.id
+    );
 
   /* ------------------------------------------------------------------------ */
   /* 3. LOAD RELATED RECORDS                                                  */
@@ -204,12 +337,19 @@ export default async function StudentPage({
   let lessons: Lesson[] = [];
   let payments: Payment[] = [];
   let contracts: Contract[] = [];
+  let enrollmentSchedules: EnrollmentSchedule[] =
+    [];
+
+  let allEnrollmentStudents: EnrollmentStudent[] =
+    [];
 
   if (enrollmentIds.length > 0) {
     const [
       lessonsResult,
       paymentsResult,
       contractsResult,
+      schedulesResult,
+      enrollmentStudentsResult,
     ] = await Promise.all([
       supabase
         .from("lessons")
@@ -270,6 +410,34 @@ export default async function StudentPage({
         .order("created_at", {
           ascending: false,
         }),
+
+      supabase
+        .from("enrollment_schedules")
+        .select(`
+          id,
+          enrollment_id,
+          student_id,
+          day_of_week,
+          schedule_time
+        `)
+        .in("enrollment_id", enrollmentIds)
+        .order("day_of_week", {
+          ascending: true,
+        })
+        .order("schedule_time", {
+          ascending: true,
+        }),
+
+      supabase
+        .from("enrollment_students")
+        .select(`
+          enrollment_id,
+          student_id
+        `)
+        .in(
+          "enrollment_id",
+          enrollmentIds
+        ),
     ]);
 
     if (lessonsResult.error) {
@@ -293,6 +461,20 @@ export default async function StudentPage({
       );
     }
 
+    if (schedulesResult.error) {
+      console.error(
+        "Error loading enrollment schedules:",
+        schedulesResult.error
+      );
+    }
+
+    if (enrollmentStudentsResult.error) {
+      console.error(
+        "Error loading enrollment participants:",
+        enrollmentStudentsResult.error
+      );
+    }
+
     lessons =
       (lessonsResult.data ?? []) as Lesson[];
 
@@ -301,60 +483,204 @@ export default async function StudentPage({
 
     contracts =
       (contractsResult.data ?? []) as Contract[];
+
+    enrollmentSchedules =
+      (schedulesResult.data ??
+        []) as EnrollmentSchedule[];
+
+    allEnrollmentStudents =
+      (enrollmentStudentsResult.data ??
+        []) as EnrollmentStudent[];
   }
 
   /* ------------------------------------------------------------------------ */
-  /* 4. ATTACH RELATED RECORDS TO THEIR OWN ENROLLMENT                        */
+  /* 4. LOAD ALL PARTICIPANT NAMES                                            */
+  /* ------------------------------------------------------------------------ */
+
+  const participantStudentIds = [
+    id,
+
+    ...allEnrollmentStudents.map(
+      (row) => row.student_id
+    ),
+
+    ...lessons
+      .map((lesson) => lesson.student_id)
+      .filter(
+        (studentId): studentId is string =>
+          Boolean(studentId)
+      ),
+  ];
+
+  const uniqueParticipantStudentIds = [
+    ...new Set(participantStudentIds),
+  ];
+
+  let participantMap: Record<
+    string,
+    string
+  > = {};
+
+  if (
+    uniqueParticipantStudentIds.length > 0
+  ) {
+    const {
+      data: participantStudents,
+      error: participantStudentsError,
+    } = await supabase
+      .from("students")
+      .select(`
+        id,
+        full_name,
+        preferred_name
+      `)
+      .in(
+        "id",
+        uniqueParticipantStudentIds
+      );
+
+    if (participantStudentsError) {
+      console.error(
+        "Error loading participant names:",
+        participantStudentsError
+      );
+    } else {
+      participantMap = Object.fromEntries(
+        (
+          participantStudents ?? []
+        ).map((participant) => [
+          participant.id,
+          participant.preferred_name ||
+            participant.full_name,
+        ])
+      );
+    }
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* 5. DETERMINE SHARED ENROLLMENTS                                          */
+  /* ------------------------------------------------------------------------ */
+
+  const sharedEnrollmentIds =
+    new Set(
+      allEnrollmentStudents.map(
+        (row) => row.enrollment_id
+      )
+    );
+
+  for (const sharedId of uniqueSharedEnrollmentIds) {
+    sharedEnrollmentIds.add(
+      sharedId
+    );
+  }
+
+  for (const enrollment of rawEnrollments) {
+    if (
+      enrollment.package_name
+        ?.toLowerCase()
+        .includes("shared")
+    ) {
+      sharedEnrollmentIds.add(
+        enrollment.id
+      );
+    }
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* 6. ATTACH RELATED RECORDS TO THEIR OWN ENROLLMENT                        */
   /* ------------------------------------------------------------------------ */
 
   const enrollments: Enrollment[] =
-    rawEnrollments.map((enrollment) => ({
-      ...enrollment,
+    rawEnrollments.map((enrollment) => {
+      const isShared =
+        sharedEnrollmentIds.has(
+          enrollment.id
+        );
 
-      contracts: contracts.filter(
-        (contract) =>
-          contract.enrollment_id === enrollment.id
-      ),
-
-      lessons: lessons.filter(
+      /*
+       * Shared enrollment:
+       * ALL lessons belong to the same shared
+       * lesson pool and therefore appear on both
+       * participants' Student Records.
+       */
+      const enrollmentLessons = lessons.filter(
         (lesson) =>
-          lesson.enrollment_id === enrollment.id
-      ),
+          lesson.enrollment_id ===
+          enrollment.id
+      );
 
-      payments: payments.filter(
-        (payment) =>
-          payment.enrollment_id === enrollment.id
-      ),
-    }));
+      /*
+       * Schedule display remains participant-specific
+       * on the Student Record screen.
+       *
+       * Dasom sees Dasom's schedule.
+       * Bin sees Bin's schedule.
+       */
+      const enrollmentScheduleRows =
+        isShared
+          ? enrollmentSchedules.filter(
+              (schedule) =>
+                schedule.enrollment_id ===
+                  enrollment.id &&
+                schedule.student_id === id
+            )
+          : enrollmentSchedules.filter(
+              (schedule) =>
+                schedule.enrollment_id ===
+                enrollment.id
+            );
+
+      return {
+        ...enrollment,
+        isShared,
+
+        contracts: contracts.filter(
+          (contract) =>
+            contract.enrollment_id ===
+            enrollment.id
+        ),
+
+        lessons: enrollmentLessons,
+
+        payments: payments.filter(
+          (payment) =>
+            payment.enrollment_id ===
+            enrollment.id
+        ),
+
+        schedules:
+          enrollmentScheduleRows,
+      };
+    });
 
   /* ------------------------------------------------------------------------ */
-  /* 5. SORT ENROLLMENTS                                                       */
+  /* 7. SORT ENROLLMENTS                                                       */
   /* ------------------------------------------------------------------------ */
 
-  const sortedEnrollments = [...enrollments].sort(
-    (a, b) => {
-      const dateA =
-        getEnrollmentStartTimestamp(a);
+  const sortedEnrollments = [
+    ...enrollments,
+  ].sort((a, b) => {
+    const dateA =
+      getEnrollmentStartTimestamp(a);
 
-      const dateB =
-        getEnrollmentStartTimestamp(b);
+    const dateB =
+      getEnrollmentStartTimestamp(b);
 
-      if (dateB !== dateA) {
-        return dateB - dateA;
-      }
-
-      const createdA =
-        getEnrollmentCreatedTimestamp(a);
-
-      const createdB =
-        getEnrollmentCreatedTimestamp(b);
-
-      return createdB - createdA;
+    if (dateB !== dateA) {
+      return dateB - dateA;
     }
-  );
+
+    const createdA =
+      getEnrollmentCreatedTimestamp(a);
+
+    const createdB =
+      getEnrollmentCreatedTimestamp(b);
+
+    return createdB - createdA;
+  });
 
   /* ------------------------------------------------------------------------ */
-  /* 6. SELECT ENROLLMENT                                                      */
+  /* 8. SELECT ENROLLMENT                                                      */
   /* ------------------------------------------------------------------------ */
 
   const selectedEnrollment = enrollmentId
@@ -384,7 +710,79 @@ export default async function StudentPage({
     );
 
   /* ------------------------------------------------------------------------ */
-  /* 7. CURRENT ENROLLMENT LESSONS                                            */
+  /* 9. CURRENT ENROLLMENT PARTICIPANTS                                       */
+  /* ------------------------------------------------------------------------ */
+
+  const currentEnrollmentParticipantIds =
+    currentEnrollment
+      ? [
+          ...allEnrollmentStudents
+            .filter(
+              (row) =>
+                row.enrollment_id ===
+                currentEnrollment.id
+            )
+            .map(
+              (row) => row.student_id
+            ),
+
+          id,
+
+          ...(currentEnrollment.student_id
+            ? [currentEnrollment.student_id]
+            : []),
+
+          ...currentEnrollment.lessons
+            .map(
+              (lesson) =>
+                lesson.student_id
+            )
+            .filter(
+              (
+                studentId
+              ): studentId is string =>
+                Boolean(studentId)
+            ),
+        ]
+      : [];
+
+  const uniqueCurrentEnrollmentParticipantIds =
+    [
+      ...new Set(
+        currentEnrollmentParticipantIds
+      ),
+    ];
+
+  const currentParticipantNames =
+    uniqueCurrentEnrollmentParticipantIds
+      .map(
+        (participantId) =>
+          participantMap[participantId]
+      )
+      .filter(
+        (
+          name
+        ): name is string =>
+          Boolean(name)
+      );
+
+  const uniqueCurrentParticipantNames = [
+    ...new Set(
+      currentParticipantNames
+    ),
+  ];
+
+  const printableParticipantNames =
+    uniqueCurrentParticipantNames.length >
+    0
+      ? uniqueCurrentParticipantNames
+      : [
+          student.preferred_name ||
+            student.full_name,
+        ];
+
+  /* ------------------------------------------------------------------------ */
+  /* 10. CURRENT ENROLLMENT LESSONS                                           */
   /* ------------------------------------------------------------------------ */
 
   const currentEnrollmentLessons = [
@@ -404,7 +802,81 @@ export default async function StudentPage({
   });
 
   /* ------------------------------------------------------------------------ */
-  /* 8. CURRENT ENROLLMENT PAYMENTS                                            */
+  /* 11. PREPARE PRINTABLE LESSONS                                            */
+  /* ------------------------------------------------------------------------ */
+
+  const printableLessons =
+    currentEnrollment
+      ? currentEnrollmentLessons.map(
+          (lesson) => {
+            if (lesson.student_id) {
+              return lesson;
+            }
+
+            const inferredStudentId =
+              inferLessonParticipantId({
+                lesson,
+                enrollmentId:
+                  currentEnrollment.id,
+                schedules:
+                  enrollmentSchedules,
+              });
+
+            if (!inferredStudentId) {
+              return lesson;
+            }
+
+            return {
+              ...lesson,
+              student_id:
+                inferredStudentId,
+            };
+          }
+        )
+      : [];
+
+  /* ------------------------------------------------------------------------ */
+  /* 12. PREPARE PRINTABLE PARTICIPANT SCHEDULES                              */
+  /* ------------------------------------------------------------------------ */
+
+  /*
+   * The screen intentionally displays only the current
+   * student's schedule.
+   *
+   * The printable attendance record for a shared
+   * enrollment, however, needs ALL participant schedules.
+   *
+   * Therefore we prepare the complete schedule list
+   * separately here.
+   */
+  const printableParticipantSchedules =
+    currentEnrollment
+      ? enrollmentSchedules
+          .filter(
+            (schedule) =>
+              schedule.enrollment_id ===
+                currentEnrollment.id &&
+              Boolean(schedule.student_id)
+          )
+          .map(
+            (schedule) => ({
+              student_id:
+                schedule.student_id!,
+              student_name:
+                participantMap[
+                  schedule.student_id!
+                ] ??
+                "Participant",
+              day_of_week:
+                schedule.day_of_week,
+              schedule_time:
+                schedule.schedule_time,
+            })
+          )
+      : [];
+
+  /* ------------------------------------------------------------------------ */
+  /* 13. CURRENT ENROLLMENT PAYMENTS                                          */
   /* ------------------------------------------------------------------------ */
 
   const currentEnrollmentPayments = [
@@ -415,7 +887,7 @@ export default async function StudentPage({
     currentEnrollmentPayments[0] ?? null;
 
   /* ------------------------------------------------------------------------ */
-  /* 9. PAYMENT HISTORY                                                        */
+  /* 14. PAYMENT HISTORY                                                       */
   /* ------------------------------------------------------------------------ */
 
   const paymentHistory = enrollments
@@ -432,7 +904,7 @@ export default async function StudentPage({
     .sort(comparePaymentHistory);
 
   /* ------------------------------------------------------------------------ */
-  /* 10. CONTRACT HISTORY                                                      */
+  /* 15. CONTRACT HISTORY                                                      */
   /* ------------------------------------------------------------------------ */
 
   const contractHistory = enrollments
@@ -452,7 +924,7 @@ export default async function StudentPage({
     .sort(compareContractHistory);
 
   /* ------------------------------------------------------------------------ */
-  /* 11. CURRENT CONTRACT                                                      */
+  /* 16. CURRENT CONTRACT                                                      */
   /* ------------------------------------------------------------------------ */
 
   const currentEnrollmentContract =
@@ -463,14 +935,8 @@ export default async function StudentPage({
       : null;
 
   /* ------------------------------------------------------------------------ */
-  /* 12. CURRENT ENROLLMENT ATTENDANCE                                         */
+  /* 17. CURRENT ENROLLMENT ATTENDANCE                                         */
   /* ------------------------------------------------------------------------ */
-
-  /*
-   * IMPORTANT:
-   * Attendance is calculated ONLY from the selected enrollment.
-   * We must never use the student's entire lesson history here.
-   */
 
   const currentLessons =
     currentEnrollmentLessons;
@@ -517,7 +983,7 @@ export default async function StudentPage({
   );
 
   /* ------------------------------------------------------------------------ */
-  /* 13. ENROLLMENT LIFECYCLE                                                  */
+  /* 18. ENROLLMENT LIFECYCLE                                                  */
   /* ------------------------------------------------------------------------ */
 
   const enrollmentIsActive =
@@ -534,7 +1000,7 @@ export default async function StudentPage({
     enrollmentIsCompleted;
 
   /* ------------------------------------------------------------------------ */
-  /* 14. PAYMENT STATUS                                                        */
+  /* 19. PAYMENT STATUS                                                        */
   /* ------------------------------------------------------------------------ */
 
   const paymentIsPending =
@@ -542,7 +1008,7 @@ export default async function StudentPage({
     currentPayment.status === "pending";
 
   /* ------------------------------------------------------------------------ */
-  /* 15. CURRENT TUITION                                                       */
+  /* 20. CURRENT TUITION                                                       */
   /* ------------------------------------------------------------------------ */
 
   const currentTuitionAmount =
@@ -556,7 +1022,7 @@ export default async function StudentPage({
     "KRW";
 
   /* ------------------------------------------------------------------------ */
-  /* 16. CONTRACT DISPLAY STATUS                                               */
+  /* 21. CONTRACT DISPLAY STATUS                                               */
   /* ------------------------------------------------------------------------ */
 
   const currentContractDisplayStatus =
@@ -705,7 +1171,16 @@ export default async function StudentPage({
               student.full_name
             }
             enrollment={currentEnrollment}
-            lessons={currentLessons}
+            lessons={printableLessons}
+            participantNames={
+              printableParticipantNames
+            }
+            participantNameById={
+              participantMap
+            }
+            participantSchedules={
+              printableParticipantSchedules
+            }
           />
         </div>
       )}
@@ -860,20 +1335,43 @@ export default async function StudentPage({
                 "
               >
                 <div>
-                  <p
-                    className="
-                      font-sans
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.14em]
-                      text-[#6F8F72]
-                    "
-                  >
-                    {currentEnrollment.renewal_of
-                      ? "Renewal"
-                      : "Package"}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p
+                      className="
+                        font-sans
+                        text-[11px]
+                        font-medium
+                        uppercase
+                        tracking-[0.14em]
+                        text-[#6F8F72]
+                      "
+                    >
+                      {currentEnrollment.renewal_of
+                        ? "Renewal"
+                        : currentEnrollment.isShared
+                        ? "Shared Enrollment"
+                        : "Package"}
+                    </p>
+
+                    {currentEnrollment.isShared && (
+                      <span
+                        className="
+                          rounded-full
+                          bg-white
+                          px-3
+                          py-1
+                          font-sans
+                          text-[10px]
+                          font-medium
+                          uppercase
+                          tracking-[0.08em]
+                          text-[#6F8F72]
+                        "
+                      >
+                        Shared
+                      </span>
+                    )}
+                  </div>
 
                   <h3
                     className="
@@ -913,6 +1411,20 @@ export default async function StudentPage({
                       "
                     >
                       Renewal of a previous enrollment
+                    </p>
+                  )}
+
+                  {currentEnrollment.isShared && (
+                    <p
+                      className="
+                        mt-2
+                        font-sans
+                        text-[12px]
+                        text-[#777771]
+                      "
+                    >
+                      This enrollment is shared with
+                      other participant(s).
                     </p>
                   )}
                 </div>
@@ -996,34 +1508,10 @@ export default async function StudentPage({
                   }
                 />
 
-                <DetailItem
-                  icon={
-                    <CalendarDays
-                      size={15}
-                      strokeWidth={1.5}
-                    />
-                  }
-                  label="Days"
-                  value={formatScheduleDays(
-                    currentEnrollment.schedule_days
+                <ScheduleDetail
+                  schedules={getEnrollmentSchedule(
+                    currentEnrollment
                   )}
-                />
-
-                <DetailItem
-                  icon={
-                    <Clock3
-                      size={15}
-                      strokeWidth={1.5}
-                    />
-                  }
-                  label="Time"
-                  value={
-                    currentEnrollment.schedule_time
-                      ? formatTime(
-                          currentEnrollment.schedule_time
-                        )
-                      : "To be confirmed"
-                  }
                 />
 
                 <DetailItem
@@ -1788,6 +2276,9 @@ export default async function StudentPage({
                       enrollmentId={
                         currentEnrollment.id
                       }
+                      participantMap={
+                        participantMap
+                      }
                     />
                   ))
                 ) : (
@@ -2022,6 +2513,9 @@ function ContractHistoryRow({
             {enrollment.renewal_of
               ? " · Renewal"
               : ""}
+            {enrollment.isShared
+              ? " · Shared"
+              : ""}
           </p>
 
           <div
@@ -2166,6 +2660,9 @@ function PaymentHistoryRow({
             {enrollment.renewal_of
               ? " · Renewal"
               : ""}
+            {enrollment.isShared
+              ? " · Shared"
+              : ""}
           </p>
 
           <div
@@ -2270,6 +2767,25 @@ function EnrollmentHistoryRow({
             >
               {enrollment.package_name}
             </h4>
+
+            {enrollment.isShared && (
+              <span
+                className="
+                  rounded-full
+                  bg-[#E2EBDD]
+                  px-3
+                  py-1
+                  font-sans
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.08em]
+                  text-[#6F8F72]
+                "
+              >
+                Shared
+              </span>
+            )}
 
             {enrollment.renewal_of && (
               <span
@@ -2376,11 +2892,13 @@ function LessonRow({
   locale,
   studentId,
   enrollmentId,
+  participantMap,
 }: {
   lesson: Lesson;
   locale: string;
   studentId: string;
   enrollmentId: string;
+  participantMap: Record<string, string>;
 }) {
   return (
     <div
@@ -2448,6 +2966,15 @@ function LessonRow({
                 <span>
                   {formatTime(
                     lesson.schedule_time
+                  )}
+                </span>
+              )}
+
+              {lesson.student_id && (
+                <span>
+                  {getParticipantLabel(
+                    lesson.student_id,
+                    participantMap
                   )}
                 </span>
               )}
@@ -2728,7 +3255,7 @@ function PaymentDetail({
   value,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
 }) {
   return (
     <div>
@@ -2738,23 +3265,98 @@ function PaymentDetail({
           text-[11px]
           font-medium
           uppercase
-          tracking-[0.12em]
+          tracking-[0.14em]
           text-[#6F8F72]
         "
       >
         {label}
       </p>
 
-      <p
+      <div
         className="
           mt-2
           font-serif
-          text-[17px]
+          text-[19px]
+          leading-7
           text-[#292929]
         "
       >
         {value}
-      </p>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* SCHEDULE DETAIL                                                            */
+/* -------------------------------------------------------------------------- */
+
+function ScheduleDetail({
+  schedules,
+}: {
+  schedules: {
+    day: string;
+    time: string;
+  }[];
+}) {
+  return (
+    <div>
+      <div
+        className="
+          flex
+          items-center
+          gap-2
+          font-sans
+          text-[11px]
+          font-medium
+          uppercase
+          tracking-[0.12em]
+          text-[#6F8F72]
+        "
+      >
+        <Clock3
+          size={15}
+          strokeWidth={1.5}
+        />
+        Schedule
+      </div>
+
+      {schedules.length > 0 ? (
+        <div className="mt-2 space-y-1">
+          {schedules.map(
+            ({ day, time }, index) => (
+              <p
+                key={`${day}-${time}-${index}`}
+                className="
+                  font-serif
+                  text-[17px]
+                  leading-6
+                  text-[#292929]
+                "
+              >
+                <span>{day}</span>
+
+                <span className="mx-2 text-[#B8B5AE]">
+                  —
+                </span>
+
+                <span>{time}</span>
+              </p>
+            )
+          )}
+        </div>
+      ) : (
+        <p
+          className="
+            mt-2
+            font-serif
+            text-[17px]
+            text-[#8A8A84]
+          "
+        >
+          To be confirmed
+        </p>
+      )}
     </div>
   );
 }
@@ -3194,6 +3796,241 @@ function getLessonTimestamp(
 }
 
 /* -------------------------------------------------------------------------- */
+/* PARTICIPANT HELPERS                                                        */
+/* -------------------------------------------------------------------------- */
+
+function getParticipantLabel(
+  studentId: string,
+  participantMap: Record<string, string>
+) {
+  return (
+    participantMap[studentId] ??
+    "Participant"
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* INFER LESSON PARTICIPANT                                                   */
+/* -------------------------------------------------------------------------- */
+
+function inferLessonParticipantId({
+  lesson,
+  enrollmentId,
+  schedules,
+}: {
+  lesson: Lesson;
+  enrollmentId: string;
+  schedules: EnrollmentSchedule[];
+}): string | null {
+  if (
+    !lesson.lesson_date ||
+    !lesson.schedule_time
+  ) {
+    return null;
+  }
+
+  const lessonDayOfWeek =
+    getDayOfWeekFromDate(
+      lesson.lesson_date
+    );
+
+  if (lessonDayOfWeek === null) {
+    return null;
+  }
+
+  const normalizedLessonTime =
+    normalizeScheduleTime(
+      lesson.schedule_time
+    );
+
+  const matchingSchedules =
+    schedules.filter(
+      (schedule) =>
+        schedule.enrollment_id ===
+          enrollmentId &&
+        schedule.day_of_week ===
+          lessonDayOfWeek &&
+        normalizeScheduleTime(
+          schedule.schedule_time
+        ) === normalizedLessonTime
+    );
+
+  if (
+    matchingSchedules.length === 1
+  ) {
+    return (
+      matchingSchedules[0]
+        .student_id ?? null
+    );
+  }
+
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* DATE DAY HELPER                                                            */
+/* -------------------------------------------------------------------------- */
+
+function getDayOfWeekFromDate(
+  date: string
+): number | null {
+  const parsed = new Date(
+    `${date}T00:00:00Z`
+  );
+
+  if (
+    Number.isNaN(
+      parsed.getTime()
+    )
+  ) {
+    return null;
+  }
+
+  return parsed.getUTCDay();
+}
+
+/* -------------------------------------------------------------------------- */
+/* SCHEDULE HELPERS                                                           */
+/* -------------------------------------------------------------------------- */
+
+const DAY_LABELS: Record<number, string> = {
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+};
+
+function normalizeScheduleTime(
+  value: unknown
+): string {
+  const text = String(
+    value ?? ""
+  ).trim();
+
+  const match =
+    /^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(
+      text
+    );
+
+  if (!match) {
+    return text;
+  }
+
+  return `${match[1].padStart(
+    2,
+    "0"
+  )}:${match[2]}`;
+}
+
+function getEnrollmentSchedule(
+  enrollment: Enrollment
+): {
+  day: string;
+  time: string;
+}[] {
+  if (
+    enrollment.schedules &&
+    enrollment.schedules.length > 0
+  ) {
+    return [...enrollment.schedules]
+      .sort((a, b) => {
+        if (
+          a.day_of_week !==
+          b.day_of_week
+        ) {
+          return (
+            a.day_of_week -
+            b.day_of_week
+          );
+        }
+
+        return normalizeScheduleTime(
+          a.schedule_time
+        ).localeCompare(
+          normalizeScheduleTime(
+            b.schedule_time
+          )
+        );
+      })
+      .map((schedule) => ({
+        day:
+          DAY_LABELS[
+            schedule.day_of_week
+          ] ??
+          `Day ${schedule.day_of_week}`,
+        time: formatTime(
+          schedule.schedule_time
+        ),
+      }));
+  }
+
+  if (
+    enrollment.schedule_days &&
+    enrollment.schedule_days.length > 0 &&
+    enrollment.schedule_time
+  ) {
+    return enrollment.schedule_days.map(
+      (day) => ({
+        day: formatScheduleDayLabel(day),
+        time: formatTime(
+          enrollment.schedule_time!
+        ),
+      })
+    );
+  }
+
+  if (enrollment.schedule_time) {
+    return [
+      {
+        day: "Time",
+        time: formatTime(
+          enrollment.schedule_time
+        ),
+      },
+    ];
+  }
+
+  return [];
+}
+
+function formatScheduleDayLabel(
+  day: string
+) {
+  const normalized =
+    day.trim().toLowerCase();
+
+  const labels: Record<string, string> = {
+    monday: "Monday",
+    tuesday: "Tuesday",
+    wednesday: "Wednesday",
+    thursday: "Thursday",
+    friday: "Friday",
+    saturday: "Saturday",
+    sunday: "Sunday",
+  };
+
+  if (
+    normalized !== "" &&
+    !Number.isNaN(Number(normalized))
+  ) {
+    const numericDay = Number(normalized);
+
+    return (
+      DAY_LABELS[numericDay] ??
+      day
+    );
+  }
+
+  return (
+    labels[normalized] ??
+    day
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* FORMATTERS                                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -3223,8 +4060,11 @@ function formatDate(
 }
 
 function formatTime(time: string) {
+  const normalized =
+    normalizeScheduleTime(time);
+
   const [hours, minutes] =
-    time.split(":");
+    normalized.split(":");
 
   const numericHours = Number(hours);
   const numericMinutes = Number(minutes);
@@ -3252,32 +4092,6 @@ function formatTime(time: string) {
       minute: "2-digit",
     }
   ).format(date);
-}
-
-function formatScheduleDays(
-  days: string[] | null | undefined
-) {
-  if (!days || days.length === 0) {
-    return "Not set";
-  }
-
-  const labels: Record<string, string> = {
-    monday: "Monday",
-    tuesday: "Tuesday",
-    wednesday: "Wednesday",
-    thursday: "Thursday",
-    friday: "Friday",
-    saturday: "Saturday",
-    sunday: "Sunday",
-  };
-
-  return days
-    .map(
-      (day) =>
-        labels[day.toLowerCase()] ??
-        day
-    )
-    .join(", ");
 }
 
 function formatResolution(

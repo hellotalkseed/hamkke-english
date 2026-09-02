@@ -16,6 +16,37 @@ interface LessonsPageProps {
   }>;
 }
 
+interface Lesson {
+  id: string;
+  student_id: string | null;
+  lesson_number: number;
+  lesson_date: string | null;
+  duration: number | null;
+  attendance_status: string;
+  notes: string | null;
+  original_lesson_date: string | null;
+  rescheduled_at: string | null;
+  consumes_lesson: boolean;
+  resolution: string | null;
+}
+
+interface Participant {
+  student_id: string;
+}
+
+interface Enrollment {
+  id: string;
+  package_name: string;
+  number_of_lessons: number;
+  lesson_duration: number | null;
+  lessons_per_week: number | null;
+  start_date: string | null;
+  status: string;
+  schedule_days: number[] | null;
+  schedule_time: string | null;
+  lessons: Lesson[];
+}
+
 export default async function LessonsPage({
   params,
 }: LessonsPageProps) {
@@ -23,49 +54,162 @@ export default async function LessonsPage({
 
   const supabase = await createClient();
 
-  const { data: enrollment, error } = await supabase
-    .from("enrollments")
-    .select(`
-      id,
-      package_name,
-      number_of_lessons,
-      lesson_duration,
-      lessons_per_week,
-      start_date,
-      status,
-      schedule_days,
-      schedule_time,
-      lessons (
-        id,
-        lesson_number,
-        lesson_date,
-        duration,
-        attendance_status,
-        notes,
-        original_lesson_date,
-        rescheduled_at,
-        consumes_lesson,
-        resolution
-      )
-    `)
-    .eq("id", enrollmentId)
-    .eq("student_id", id)
-    .single();
+  /*
+   * First verify that the current student belongs to this enrollment.
+   *
+   * This is important for shared enrollments because the participant
+   * is stored in enrollment_students rather than relying only on
+   * enrollments.student_id.
+   */
+  const { data: participant, error: participantError } =
+    await supabase
+      .from("enrollment_students")
+      .select("student_id")
+      .eq("enrollment_id", enrollmentId)
+      .eq("student_id", id)
+      .maybeSingle();
 
-  if (error || !enrollment) {
+  if (participantError || !participant) {
+    /*
+     * For older individual enrollments that may not yet have an
+     * enrollment_students row, fall back to the legacy student_id.
+     */
+    const { data: legacyEnrollment } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("id", enrollmentId)
+      .eq("student_id", id)
+      .maybeSingle();
+
+    if (!legacyEnrollment) {
+      notFound();
+    }
+  }
+
+  /*
+   * Fetch the enrollment itself.
+   *
+   * IMPORTANT:
+   * Do not filter the enrollment by student_id here.
+   *
+   * A shared enrollment belongs to multiple students, so filtering
+   * with:
+   *
+   *   .eq("student_id", id)
+   *
+   * would cause the page to fail for shared enrollments whose
+   * primary student_id does not match the student currently viewing it.
+   */
+  const { data: enrollmentData, error: enrollmentError } =
+    await supabase
+      .from("enrollments")
+      .select(`
+        id,
+        package_name,
+        number_of_lessons,
+        lesson_duration,
+        lessons_per_week,
+        start_date,
+        status,
+        schedule_days,
+        schedule_time,
+        lessons (
+          id,
+          student_id,
+          lesson_number,
+          lesson_date,
+          duration,
+          attendance_status,
+          notes,
+          original_lesson_date,
+          rescheduled_at,
+          consumes_lesson,
+          resolution
+        )
+      `)
+      .eq("id", enrollmentId)
+      .single();
+
+  if (enrollmentError || !enrollmentData) {
     notFound();
   }
 
+  const enrollment = enrollmentData as Enrollment;
+
+  /*
+   * Lessons belong to the enrollment as a whole.
+   *
+   * For shared enrollments, ALL participants should see the same
+   * complete lesson track.
+   *
+   * Therefore, we intentionally do NOT filter lessons by student_id.
+   */
   const lessons = [...(enrollment.lessons ?? [])].sort(
     (a, b) => a.lesson_number - b.lesson_number
   );
 
+  /*
+   * Consumption is calculated at the enrollment level.
+   *
+   * Example:
+   * 20 shared lessons
+   * Dasom consumes 8
+   * Bin consumes 5
+   *
+   * Total consumed = 13
+   * Remaining = 7
+   *
+   * It is NOT calculated separately for each participant.
+   */
   const consumedLessons = lessons.filter(
-    (lesson) => lesson.consumes_lesson
+    (lesson) => lesson.consumes_lesson === true
   ).length;
 
-  const remainingLessons =
-    enrollment.number_of_lessons - consumedLessons;
+  const remainingLessons = Math.max(
+    enrollment.number_of_lessons - consumedLessons,
+    0
+  );
+
+  /*
+   * Determine whether this is a shared enrollment.
+   *
+   * The package name check is retained as a fallback for older
+   * records that may not have an explicit shared flag.
+   */
+  const { data: enrollmentParticipants } = await supabase
+    .from("enrollment_students")
+    .select("student_id")
+    .eq("enrollment_id", enrollmentId);
+
+  const isShared =
+    (enrollmentParticipants?.length ?? 0) > 1 ||
+    enrollment.package_name.toLowerCase().includes("shared");
+
+  /*
+   * Build a participant lookup so the lesson track can identify
+   * who the scheduled lesson belongs to.
+   */
+  let participantNameById: Record<string, string> = {};
+
+  if (isShared && enrollmentParticipants?.length) {
+    const participantIds = enrollmentParticipants.map(
+      (participant) => participant.student_id
+    );
+
+    const { data: students } = await supabase
+      .from("students")
+      .select("id, full_name")
+      .in("id", participantIds);
+
+    if (students) {
+      participantNameById = Object.fromEntries(
+        students.map((student) => [
+          student.id,
+          student.full_name,
+        ])
+      );
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
@@ -159,9 +303,24 @@ export default async function LessonsPage({
             text-[#777771]
           "
         >
-          {enrollment.lesson_duration} minutes ·{" "}
-          {enrollment.lessons_per_week} lessons per week
+          {enrollment.lesson_duration ?? "—"} minutes ·{" "}
+          {enrollment.lessons_per_week ?? "—"} lessons per week
         </p>
+
+        {isShared && (
+          <p
+            className="
+              mt-3
+              text-center
+              font-sans
+              text-[12px]
+              text-[#8A8A84]
+            "
+          >
+            Shared lesson track · All participants share the same
+            lesson pool
+          </p>
+        )}
       </section>
 
       {/* SUMMARY */}
@@ -232,28 +391,61 @@ export default async function LessonsPage({
               <BookOpen size={17} strokeWidth={1.5} />
             </div>
 
-            <h2
-              className="
-                font-serif
-                text-[30px]
-                font-normal
-                tracking-[-0.02em]
-              "
-            >
-              Lessons
-            </h2>
+            <div>
+              <h2
+                className="
+                  font-serif
+                  text-[30px]
+                  font-normal
+                  tracking-[-0.02em]
+                "
+              >
+                Lessons
+              </h2>
+
+              {isShared && (
+                <p className="mt-1 font-sans text-[12px] text-[#8A8A84]">
+                  Shared across all participants
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="mt-8 space-y-3">
-            {lessons.map((lesson) => (
-              <LessonRow
-                key={lesson.id}
-                lesson={lesson}
-                locale={locale}
-                studentId={id}
-                enrollmentId={enrollmentId}
-              />
-            ))}
+            {lessons.length > 0 ? (
+              lessons.map((lesson) => (
+                <LessonRow
+                  key={lesson.id}
+                  lesson={lesson}
+                  locale={locale}
+                  studentId={id}
+                  enrollmentId={enrollmentId}
+                  isShared={isShared}
+                  participantNameById={participantNameById}
+                />
+              ))
+            ) : (
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  border-[#DCD8D2]
+                  bg-white/40
+                  px-6
+                  py-12
+                  text-center
+                "
+              >
+                <p className="font-serif text-[20px] text-[#55544F]">
+                  No lessons have been generated yet.
+                </p>
+
+                <p className="mt-2 font-sans text-[13px] text-[#8A8A84]">
+                  Lessons will appear here once the enrollment is
+                  activated.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -299,26 +491,24 @@ function LessonRow({
   locale,
   studentId,
   enrollmentId,
+  isShared,
+  participantNameById,
 }: {
-  lesson: {
-    id: string;
-    lesson_number: number;
-    lesson_date: string | null;
-    duration: number | null;
-    attendance_status: string;
-    notes: string | null;
-    original_lesson_date: string | null;
-    rescheduled_at: string | null;
-    consumes_lesson: boolean;
-    resolution: string | null;
-  };
+  lesson: Lesson;
   locale: string;
   studentId: string;
   enrollmentId: string;
+  isShared: boolean;
+  participantNameById: Record<string, string>;
 }) {
   const isRescheduled =
     lesson.rescheduled_at !== null &&
     lesson.original_lesson_date !== lesson.lesson_date;
+
+  const participantName =
+    lesson.student_id
+      ? participantNameById[lesson.student_id]
+      : null;
 
   return (
     <div
@@ -362,7 +552,7 @@ function LessonRow({
           </div>
 
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <p className="font-serif text-[20px]">
                 {formatDate(lesson.lesson_date)}
               </p>
@@ -391,6 +581,12 @@ function LessonRow({
               <CalendarDays size={13} strokeWidth={1.5} />
               {lesson.duration ?? "—"} minutes
             </div>
+
+            {isShared && participantName && (
+              <p className="mt-2 font-sans text-[12px] text-[#6F8F72]">
+                Scheduled for {participantName}
+              </p>
+            )}
 
             {isRescheduled &&
               lesson.original_lesson_date && (
@@ -427,15 +623,15 @@ function LessonRow({
             )}
           </div>
 
-         <LessonActions
-  locale={locale}
-  studentId={studentId}
-  enrollmentId={enrollmentId}
-  lessonId={lesson.id}
-  currentStatus={lesson.attendance_status}
-  currentResolution={lesson.resolution}
-  currentLessonDate={lesson.lesson_date}
-/>
+          <LessonActions
+            locale={locale}
+            studentId={studentId}
+            enrollmentId={enrollmentId}
+            lessonId={lesson.id}
+            currentStatus={lesson.attendance_status}
+            currentResolution={lesson.resolution}
+            currentLessonDate={lesson.lesson_date}
+          />
         </div>
       </div>
 

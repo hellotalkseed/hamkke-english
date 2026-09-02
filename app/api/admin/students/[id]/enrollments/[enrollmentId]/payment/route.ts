@@ -8,6 +8,60 @@ interface RouteContext {
   }>;
 }
 
+interface EnrollmentParticipant {
+  student_id: string;
+}
+
+/* ========================================================================== */
+/* HELPERS                                                                    */
+/* ========================================================================== */
+
+function getFormValue(
+  formData: FormData,
+  ...names: string[]
+): string | null {
+  for (const name of names) {
+    const value = formData.get(name);
+
+    if (value === null) {
+      continue;
+    }
+
+    const text = String(value).trim();
+
+    if (text !== "") {
+      return text;
+    }
+  }
+
+  return null;
+}
+
+function parseNumber(
+  value: string | null
+): number | null {
+  if (value === null || value.trim() === "") {
+    return null;
+  }
+
+  const cleaned = value
+    .replace(/,/g, "")
+    .replace(/[₩₱$]/g, "")
+    .trim();
+
+  const number = Number(cleaned);
+
+  if (!Number.isFinite(number)) {
+    return null;
+  }
+
+  return number;
+}
+
+/* ========================================================================== */
+/* POST                                                                       */
+/* ========================================================================== */
+
 export async function POST(
   request: Request,
   { params }: RouteContext
@@ -17,13 +71,33 @@ export async function POST(
   const supabase = await createClient();
   const formData = await request.formData();
 
-  const locale = String(
-    formData.get("locale") || "en"
-  ).trim();
+  const locale =
+    getFormValue(formData, "locale") || "en";
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 1: VERIFY ENROLLMENT                                                  */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 1: VERIFY ENROLLMENT                                                */
+  /* ======================================================================== */
+
+  /*
+   * IMPORTANT:
+   *
+   * Individual enrollment:
+   *
+   *   enrollments.student_id = originating student
+   *
+   * Shared enrollment:
+   *
+   *   enrollments.student_id = NULL
+   *
+   * Therefore we cannot simply use:
+   *
+   *   .eq("student_id", id)
+   *
+   * because that would reject shared enrollments.
+   *
+   * We first find the enrollment by ID, then determine whether
+   * the originating student is allowed to manage it.
+   */
 
   const {
     data: enrollment,
@@ -38,27 +112,206 @@ export async function POST(
       `
     )
     .eq("id", enrollmentId)
-    .eq("student_id", id)
     .single();
 
   if (enrollmentError || !enrollment) {
+    console.error(
+      "ENROLLMENT LOOKUP ERROR:",
+      {
+        enrollmentId,
+        studentId: id,
+        code: enrollmentError?.code,
+        message: enrollmentError?.message,
+        details: enrollmentError?.details,
+        hint: enrollmentError?.hint,
+      }
+    );
+
     return new NextResponse(
       "Enrollment not found.",
       { status: 404 }
     );
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 2: FIND PAYMENT FOR THIS ENROLLMENT                                   */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 2: DETERMINE ENROLLMENT TYPE                                        */
+  /* ======================================================================== */
+
+  const isIndividual =
+    enrollment.student_id !== null;
+
+  const isShared =
+    enrollment.student_id === null;
+
+  /* ======================================================================== */
+  /* STEP 3: VERIFY STUDENT ACCESS                                            */
+  /* ======================================================================== */
+
+  if (isIndividual) {
+    /*
+     * Individual enrollment:
+     *
+     * The enrollment must belong directly to the
+     * student whose record is being managed.
+     */
+
+    if (enrollment.student_id !== id) {
+      console.error(
+        "INDIVIDUAL ENROLLMENT OWNERSHIP MISMATCH:",
+        {
+          enrollmentId,
+          enrollmentStudentId:
+            enrollment.student_id,
+          requestedStudentId: id,
+        }
+      );
+
+      return new NextResponse(
+        "This enrollment does not belong to the selected student.",
+        { status: 403 }
+      );
+    }
+  }
+
+  if (isShared) {
+    /*
+     * Shared enrollment:
+     *
+     * The enrollment itself has no student_id.
+     *
+     * Therefore we verify that the student whose record
+     * was opened is one of the participating students.
+     */
+
+    const {
+      data: participant,
+      error: participantError,
+    } = await supabase
+      .from("enrollment_students")
+      .select(
+        `
+          student_id
+        `
+      )
+      .eq("enrollment_id", enrollmentId)
+      .eq("student_id", id)
+      .maybeSingle();
+
+    if (participantError) {
+      console.error(
+        "SHARED ENROLLMENT PARTICIPANT LOOKUP ERROR:",
+        {
+          enrollmentId,
+          studentId: id,
+          code: participantError.code,
+          message: participantError.message,
+          details: participantError.details,
+          hint: participantError.hint,
+        }
+      );
+
+      return new NextResponse(
+        "Unable to verify shared enrollment participation.",
+        { status: 500 }
+      );
+    }
+
+    if (!participant) {
+      console.error(
+        "SHARED ENROLLMENT PARTICIPATION DENIED:",
+        {
+          enrollmentId,
+          studentId: id,
+        }
+      );
+
+      return new NextResponse(
+        "The selected student is not part of this shared enrollment.",
+        { status: 403 }
+      );
+    }
+  }
+
+  /* ======================================================================== */
+  /* STEP 4: VERIFY SHARED ENROLLMENT PARTICIPANTS                            */
+  /* ======================================================================== */
+
+  /*
+   * For a shared enrollment, confirm that participant records actually exist.
+   *
+   * This is not strictly required for payment confirmation, but it protects
+   * the enrollment structure and gives us a clear audit trail if something
+   * is malformed.
+   */
+
+  if (isShared) {
+    const {
+      data: participants,
+      error: participantsError,
+    } = await supabase
+      .from("enrollment_students")
+      .select(
+        `
+          student_id
+        `
+      )
+      .eq("enrollment_id", enrollmentId);
+
+    if (participantsError) {
+      console.error(
+        "SHARED PARTICIPANTS LOOKUP ERROR:",
+        {
+          enrollmentId,
+          code: participantsError.code,
+          message: participantsError.message,
+          details: participantsError.details,
+          hint: participantsError.hint,
+        }
+      );
+
+      return new NextResponse(
+        "Unable to verify shared enrollment participants.",
+        { status: 500 }
+      );
+    }
+
+    if (
+      !participants ||
+      participants.length < 2
+    ) {
+      console.error(
+        "INVALID SHARED ENROLLMENT:",
+        {
+          enrollmentId,
+          participants,
+        }
+      );
+
+      return new NextResponse(
+        "This shared enrollment does not have enough participating students.",
+        { status: 400 }
+      );
+    }
+  }
+
+  /* ======================================================================== */
+  /* STEP 5: FIND PAYMENT FOR THIS ENROLLMENT                                 */
+  /* ======================================================================== */
 
   /*
    * Every enrollment has its own payment record.
    *
-   * We ONLY search by enrollment_id.
+   * IMPORTANT:
    *
-   * This prevents one enrollment from accidentally confirming
-   * another enrollment's payment.
+   * We search ONLY by enrollment_id.
+   *
+   * This means:
+   *
+   * Enrollment A → Payment A
+   * Enrollment B → Payment B
+   *
+   * A payment from another enrollment can never be confirmed
+   * through this route.
    */
 
   const {
@@ -92,6 +345,7 @@ export async function POST(
     console.error(
       "PAYMENT LOOKUP ERROR:",
       {
+        enrollmentId,
         code: paymentLookupError.code,
         message: paymentLookupError.message,
         details: paymentLookupError.details,
@@ -117,11 +371,14 @@ Message: ${
     );
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 3: VERIFY PAYMENT OWNERSHIP                                           */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 6: VERIFY PAYMENT OWNERSHIP                                         */
+  /* ======================================================================== */
 
-  if (payment.enrollment_id !== enrollmentId) {
+  if (
+    payment.enrollment_id !==
+    enrollmentId
+  ) {
     console.error(
       "PAYMENT ENROLLMENT MISMATCH:",
       {
@@ -139,9 +396,9 @@ Message: ${
     );
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 4: PREVENT DUPLICATE CONFIRMATION                                     */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 7: PREVENT DUPLICATE CONFIRMATION                                   */
+  /* ======================================================================== */
 
   if (payment.status === "paid") {
     return NextResponse.redirect(
@@ -152,72 +409,83 @@ Message: ${
     );
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 5: READ FORM VALUES                                                   */
-  /* -------------------------------------------------------------------------- */
-
-  /*
-   * The confirmation form may use either the original payment field names
-   * or the newer renewal field names.
-   *
-   * We support both so the workflow remains compatible.
-   */
+  /* ======================================================================== */
+  /* STEP 8: READ FORM VALUES                                                 */
+  /* ======================================================================== */
 
   const amountValue =
-    formData.get("amount");
+    getFormValue(
+      formData,
+      "amount"
+    );
 
   const tuitionAmountKrwValue =
-    formData.get("tuition_amount_krw");
+    getFormValue(
+      formData,
+      "tuition_amount_krw"
+    );
 
   const amountKrwValue =
-    formData.get("amount_krw");
+    getFormValue(
+      formData,
+      "amount_krw"
+    );
 
   const amountPhpValue =
-    formData.get("amount_php");
+    getFormValue(
+      formData,
+      "amount_php"
+    );
 
   const tuitionAmountPhpValue =
-    formData.get("tuition_amount_php");
+    getFormValue(
+      formData,
+      "tuition_amount_php"
+    );
 
   const currencyValue =
-    formData.get("currency");
+    getFormValue(
+      formData,
+      "currency"
+    );
 
   const paymentDateValue =
-    formData.get("payment_date");
+    getFormValue(
+      formData,
+      "payment_date"
+    );
 
   const paymentMethodValue =
-    formData.get("payment_method");
+    getFormValue(
+      formData,
+      "payment_method"
+    );
 
-  /*
-   * Support both:
-   *
-   * reference
-   * payment_reference
-   *
-   * The database column remains:
-   *
-   * reference
-   */
   const referenceValue =
-    formData.get("reference") ??
-    formData.get("payment_reference");
+    getFormValue(
+      formData,
+      "reference",
+      "payment_reference"
+    );
 
   const notesValue =
-    formData.get("notes");
+    getFormValue(
+      formData,
+      "notes"
+    );
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 6: KRW AMOUNT                                                        */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 9: DETERMINE KRW AMOUNT                                             */
+  /* ======================================================================== */
 
   /*
-   * KRW is the primary amount for the enrollment.
-   *
    * Priority:
    *
    * 1. amount
    * 2. tuition_amount_krw
    * 3. amount_krw
-   * 4. existing payment amount_krw
-   * 5. existing payment amount
+   * 4. existing amount_krw
+   * 5. existing amount
    */
 
   let amountKrw =
@@ -234,14 +502,15 @@ Message: ${
 
   if (
     submittedKrwValue !== null &&
-    String(submittedKrwValue).trim() !== ""
+    submittedKrwValue.trim() !== ""
   ) {
-    const parsedAmountKrw = Number(
-      String(submittedKrwValue).trim()
-    );
+    const parsedAmountKrw =
+      parseNumber(
+        submittedKrwValue
+      );
 
     if (
-      !Number.isFinite(parsedAmountKrw) ||
+      parsedAmountKrw === null ||
       parsedAmountKrw < 0
     ) {
       return new NextResponse(
@@ -250,12 +519,23 @@ Message: ${
       );
     }
 
-    amountKrw = parsedAmountKrw;
+    amountKrw =
+      parsedAmountKrw;
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 7: PHP AMOUNT                                                        */
-  /* -------------------------------------------------------------------------- */
+  if (
+    !Number.isFinite(amountKrw) ||
+    amountKrw < 0
+  ) {
+    return new NextResponse(
+      "Invalid KRW payment amount.",
+      { status: 400 }
+    );
+  }
+
+  /* ======================================================================== */
+  /* STEP 10: DETERMINE PHP AMOUNT                                            */
+  /* ======================================================================== */
 
   /*
    * PHP is stored independently from the primary KRW amount.
@@ -264,10 +544,7 @@ Message: ${
    *
    * 1. tuition_amount_php
    * 2. amount_php
-   * 3. existing payment amount_php
-   *
-   * We NEVER replace an existing PHP value with null
-   * simply because the confirmation form did not submit it.
+   * 3. existing amount_php
    */
 
   let amountPhp =
@@ -281,14 +558,15 @@ Message: ${
 
   if (
     submittedPhpValue !== null &&
-    String(submittedPhpValue).trim() !== ""
+    submittedPhpValue.trim() !== ""
   ) {
-    const parsedAmountPhp = Number(
-      String(submittedPhpValue).trim()
-    );
+    const parsedAmountPhp =
+      parseNumber(
+        submittedPhpValue
+      );
 
     if (
-      !Number.isFinite(parsedAmountPhp) ||
+      parsedAmountPhp === null ||
       parsedAmountPhp < 0
     ) {
       return new NextResponse(
@@ -297,79 +575,75 @@ Message: ${
       );
     }
 
-    amountPhp = parsedAmountPhp;
+    amountPhp =
+      parsedAmountPhp;
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 8: PRIMARY PAYMENT AMOUNT                                             */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 11: PRIMARY PAYMENT AMOUNT                                         */
+  /* ======================================================================== */
 
   /*
-   * The payments.amount column represents the primary KRW amount.
+   * payments.amount represents the primary KRW amount.
    */
-  const amount = amountKrw;
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 9: CURRENCY                                                           */
-  /* -------------------------------------------------------------------------- */
+  const amount =
+    amountKrw;
+
+  /* ======================================================================== */
+  /* STEP 12: CURRENCY                                                        */
+  /* ======================================================================== */
 
   const currency =
-    currencyValue !== null &&
-    String(currencyValue).trim() !== ""
-      ? String(currencyValue)
+    currencyValue &&
+    currencyValue.trim() !== ""
+      ? currencyValue
           .trim()
           .toUpperCase()
-      : payment.currency || "KRW";
+      : payment.currency ||
+        "KRW";
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 10: PAYMENT DATE                                                      */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 13: PAYMENT DATE                                                    */
+  /* ======================================================================== */
 
-  /*
-   * If a payment date is supplied during confirmation,
-   * use it.
-   *
-   * Otherwise preserve the existing date.
-   *
-   * If neither exists, use today's date because payment is
-   * being confirmed now.
-   */
-
-  const today = new Date()
-    .toISOString()
-    .slice(0, 10);
+  const today =
+    new Date()
+      .toISOString()
+      .slice(0, 10);
 
   const paymentDate =
-    paymentDateValue !== null &&
-    String(paymentDateValue).trim() !== ""
-      ? String(paymentDateValue).trim()
-      : payment.payment_date || today;
+    paymentDateValue &&
+    paymentDateValue.trim() !== ""
+      ? paymentDateValue.trim()
+      : payment.payment_date ||
+        today;
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 11: PAYMENT METHOD                                                    */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 14: PAYMENT METHOD                                                  */
+  /* ======================================================================== */
 
   /*
-   * "pending" is a status, not a payment method.
+   * "pending" is a payment status, not a payment method.
    *
-   * If the confirmation form supplies a real payment method,
-   * use it.
-   *
-   * Otherwise preserve the existing method.
+   * If the submitted payment method is "pending", we preserve
+   * the existing payment method instead.
    */
 
   let paymentMethod =
-    payment.payment_method || null;
+    payment.payment_method ||
+    null;
 
   if (
-    paymentMethodValue !== null &&
-    String(paymentMethodValue).trim() !== ""
+    paymentMethodValue &&
+    paymentMethodValue.trim() !== ""
   ) {
     const submittedPaymentMethod =
-      String(paymentMethodValue).trim();
+      paymentMethodValue.trim();
 
     if (
-      submittedPaymentMethod.toLowerCase() !==
+      submittedPaymentMethod
+        .toLowerCase() !==
       "pending"
     ) {
       paymentMethod =
@@ -377,70 +651,71 @@ Message: ${
     }
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 12: REFERENCE                                                        */
-  /* -------------------------------------------------------------------------- */
-
-  /*
-   * The form may submit:
-   *
-   * payment_reference
-   *
-   * or:
-   *
-   * reference
-   *
-   * Both are saved to:
-   *
-   * payments.reference
-   */
+  /* ======================================================================== */
+  /* STEP 15: REFERENCE                                                       */
+  /* ======================================================================== */
 
   const reference =
     referenceValue !== null
-      ? String(referenceValue).trim() || null
-      : payment.reference || null;
+      ? referenceValue.trim() || null
+      : payment.reference ||
+        null;
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 13: NOTES                                                            */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 16: NOTES                                                           */
+  /* ======================================================================== */
 
   const notes =
     notesValue !== null
-      ? String(notesValue).trim() || null
-      : payment.notes || null;
+      ? notesValue.trim() || null
+      : payment.notes ||
+        null;
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 14: CONFIRM PAYMENT                                                   */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 17: CONFIRM PAYMENT                                                */
+  /* ======================================================================== */
 
   /*
    * IMPORTANT:
    *
-   * This route does NOT:
+   * This route ONLY changes:
+   *
+   *     payment.status
+   *
+   * from:
+   *
+   *     pending
+   *
+   * to:
+   *
+   *     paid
+   *
+   * It does NOT manually:
    *
    * - activate the enrollment
    * - activate the contract
    * - generate lessons
+   * - modify another enrollment
    *
-   * It ONLY changes the payment:
-   *
-   *     pending → paid
-   *
-   * The existing database trigger:
+   * The database trigger:
    *
    *     payment_paid_activation
    *
-   * should then call:
+   * watches the payment status update.
+   *
+   * It should call:
    *
    *     handle_payment_paid()
    *
-   * and handle:
+   * which handles:
    *
-   * 1. THIS enrollment
-   * 2. THIS enrollment's contract
-   * 3. THIS enrollment's lessons
+   *     THIS enrollment
+   *         ↓
+   *     THIS contract
+   *         ↓
+   *     THIS enrollment's lessons
    *
-   * This keeps activation centralized in the database.
+   * This works for both individual and shared enrollments.
    */
 
   const {
@@ -448,66 +723,49 @@ Message: ${
   } = await supabase
     .from("payments")
     .update({
-      /*
-       * Primary KRW amount.
-       */
       amount,
-
-      /*
-       * Primary currency.
-       */
       currency,
-
-      /*
-       * Explicit KRW amount.
-       */
-      amount_krw: amountKrw,
-
-      /*
-       * Explicit PHP equivalent.
-       */
-      amount_php: amountPhp,
-
-      /*
-       * Actual payment date.
-       */
-      payment_date: paymentDate,
-
-      /*
-       * Actual payment method.
-       */
-      payment_method: paymentMethod,
-
-      /*
-       * Payment reference.
-       */
+      amount_krw:
+        amountKrw,
+      amount_php:
+        amountPhp,
+      payment_date:
+        paymentDate,
+      payment_method:
+        paymentMethod,
       reference,
-
-      /*
-       * Optional notes.
-       */
       notes,
-
-      /*
-       * This is the ONLY activation event.
-       */
-      status: "paid",
+      status:
+        "paid",
     })
-    .eq("id", payment.id)
-    .eq("enrollment_id", enrollmentId);
+    .eq(
+      "id",
+      payment.id
+    )
+    .eq(
+      "enrollment_id",
+      enrollmentId
+    );
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 15: HANDLE UPDATE ERROR                                               */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 18: HANDLE PAYMENT UPDATE ERROR                                    */
+  /* ======================================================================== */
 
   if (paymentUpdateError) {
     console.error(
       "PAYMENT UPDATE ERROR:",
       {
-        code: paymentUpdateError.code,
-        message: paymentUpdateError.message,
-        details: paymentUpdateError.details,
-        hint: paymentUpdateError.hint,
+        enrollmentId,
+        paymentId:
+          payment.id,
+        code:
+          paymentUpdateError.code,
+        message:
+          paymentUpdateError.message,
+        details:
+          paymentUpdateError.details,
+        hint:
+          paymentUpdateError.hint,
       }
     );
 
@@ -537,13 +795,9 @@ Hint: ${
     );
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 16: VERIFY PAYMENT                                                    */
-  /* -------------------------------------------------------------------------- */
-
-  /*
-   * Verify that the payment itself was actually changed to paid.
-   */
+  /* ======================================================================== */
+  /* STEP 19: VERIFY PAYMENT                                                  */
+  /* ======================================================================== */
 
   const {
     data: updatedPayment,
@@ -565,8 +819,14 @@ Hint: ${
         notes
       `
     )
-    .eq("id", payment.id)
-    .eq("enrollment_id", enrollmentId)
+    .eq(
+      "id",
+      payment.id
+    )
+    .eq(
+      "enrollment_id",
+      enrollmentId
+    )
     .single();
 
   if (
@@ -575,7 +835,13 @@ Hint: ${
   ) {
     console.error(
       "PAYMENT VERIFICATION ERROR:",
-      updatedPaymentError
+      {
+        enrollmentId,
+        paymentId:
+          payment.id,
+        error:
+          updatedPaymentError,
+      }
     );
 
     return new NextResponse(
@@ -584,11 +850,16 @@ Hint: ${
     );
   }
 
-  if (updatedPayment.status !== "paid") {
+  if (
+    updatedPayment.status !==
+    "paid"
+  ) {
     console.error(
       "PAYMENT STATUS VERIFICATION FAILED:",
       {
-        paymentId: payment.id,
+        enrollmentId,
+        paymentId:
+          payment.id,
         status:
           updatedPayment.status,
       }
@@ -600,16 +871,16 @@ Hint: ${
     );
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 17: VERIFY ENROLLMENT ACTIVATION                                      */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 20: VERIFY ENROLLMENT ACTIVATION                                    */
+  /* ======================================================================== */
 
   /*
-   * The database trigger should now have activated THIS enrollment.
+   * The trigger should have activated THIS enrollment.
    *
-   * We verify it.
+   * We do not manually activate it here.
    *
-   * We do not manually activate it.
+   * We only verify the result.
    */
 
   const {
@@ -624,14 +895,23 @@ Hint: ${
         status
       `
     )
-    .eq("id", enrollmentId)
-    .eq("student_id", id)
+    .eq(
+      "id",
+      enrollmentId
+    )
     .single();
 
-  if (updatedEnrollmentError) {
+  if (
+    updatedEnrollmentError ||
+    !updatedEnrollment
+  ) {
     console.error(
-      "ENROLLMENT VERIFICATION ERROR:",
-      updatedEnrollmentError
+      "ENROLLMENT ACTIVATION VERIFICATION ERROR:",
+      {
+        enrollmentId,
+        error:
+          updatedEnrollmentError,
+      }
     );
 
     return new NextResponse(
@@ -641,15 +921,19 @@ Hint: ${
   }
 
   if (
-    !updatedEnrollment ||
-    updatedEnrollment.status !== "active"
+    updatedEnrollment.status !==
+    "active"
   ) {
     console.error(
       "ENROLLMENT ACTIVATION FAILED:",
       {
         enrollmentId,
+        enrollmentType:
+          isShared
+            ? "shared"
+            : "individual",
         status:
-          updatedEnrollment?.status,
+          updatedEnrollment.status,
       }
     );
 
@@ -659,9 +943,236 @@ Hint: ${
     );
   }
 
-  /* -------------------------------------------------------------------------- */
-  /* STEP 18: RETURN TO STUDENT RECORD                                          */
-  /* -------------------------------------------------------------------------- */
+  /* ======================================================================== */
+  /* STEP 21: VERIFY CONTRACT ACTIVATION                                     */
+  /* ======================================================================== */
+
+  /*
+   * Payment activation should also activate THIS enrollment's contract.
+   *
+   * We verify it here.
+   */
+
+  const {
+    data: contract,
+    error: contractError,
+  } = await supabase
+    .from("contracts")
+    .select(
+      `
+        id,
+        enrollment_id,
+        status
+      `
+    )
+    .eq(
+      "enrollment_id",
+      enrollmentId
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false,
+      }
+    )
+    .limit(1)
+    .maybeSingle();
+
+  if (contractError) {
+    console.error(
+      "CONTRACT VERIFICATION ERROR:",
+      {
+        enrollmentId,
+        code:
+          contractError.code,
+        message:
+          contractError.message,
+        details:
+          contractError.details,
+        hint:
+          contractError.hint,
+      }
+    );
+
+    return new NextResponse(
+      "Payment was confirmed and enrollment was activated, but the contract could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  if (!contract) {
+    console.error(
+      "CONTRACT NOT FOUND AFTER ACTIVATION:",
+      {
+        enrollmentId,
+      }
+    );
+
+    return new NextResponse(
+      "Payment was confirmed and enrollment was activated, but its contract could not be found.",
+      { status: 500 }
+    );
+  }
+
+  if (
+    contract.enrollment_id !==
+    enrollmentId
+  ) {
+    console.error(
+      "CONTRACT ENROLLMENT MISMATCH:",
+      {
+        contractId:
+          contract.id,
+        contractEnrollmentId:
+          contract.enrollment_id,
+        enrollmentId,
+      }
+    );
+
+    return new NextResponse(
+      "The activated contract does not belong to this enrollment.",
+      { status: 500 }
+    );
+  }
+
+  if (
+    contract.status !==
+    "active"
+  ) {
+    console.error(
+      "CONTRACT ACTIVATION FAILED:",
+      {
+        enrollmentId,
+        contractId:
+          contract.id,
+        status:
+          contract.status,
+      }
+    );
+
+    return new NextResponse(
+      "Payment was confirmed and enrollment was activated, but the contract was not activated.",
+      { status: 500 }
+    );
+  }
+
+  /* ======================================================================== */
+  /* STEP 22: VERIFY LESSON GENERATION                                       */
+  /* ======================================================================== */
+
+  /*
+   * The database trigger/function should generate lessons for THIS
+   * enrollment.
+   *
+   * We verify that the expected number of lessons exists.
+   *
+   * For a shared enrollment, lessons remain associated with the
+   * enrollment and can be interpreted through enrollment_students.
+   */
+
+  const {
+    count: lessonCount,
+    error: lessonsError,
+  } = await supabase
+    .from("lessons")
+    .select(
+      "id",
+      {
+        count: "exact",
+        head: true,
+      }
+    )
+    .eq(
+      "enrollment_id",
+      enrollmentId
+    );
+
+  if (lessonsError) {
+    console.error(
+      "LESSON VERIFICATION ERROR:",
+      {
+        enrollmentId,
+        code:
+          lessonsError.code,
+        message:
+          lessonsError.message,
+        details:
+          lessonsError.details,
+        hint:
+          lessonsError.hint,
+      }
+    );
+
+    return new NextResponse(
+      "Payment was confirmed and enrollment was activated, but lessons could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  /*
+   * We do not require a hardcoded lesson count here because the database
+   * trigger/function is the authority for lesson generation.
+   *
+   * We only ensure that lessons actually exist.
+   */
+
+  if (
+    lessonCount === null ||
+    lessonCount < 1
+  ) {
+    console.error(
+      "LESSONS WERE NOT GENERATED:",
+      {
+        enrollmentId,
+        lessonCount,
+      }
+    );
+
+    return new NextResponse(
+      "Payment was confirmed and enrollment was activated, but no lessons were generated.",
+      { status: 500 }
+    );
+  }
+
+  /* ======================================================================== */
+  /* STEP 23: FINAL LOG                                                       */
+  /* ======================================================================== */
+
+  console.log(
+    "PAYMENT CONFIRMED AND ENROLLMENT ACTIVATED:",
+    {
+      enrollmentId,
+
+      enrollmentType:
+        isShared
+          ? "shared"
+          : "individual",
+
+      originatingStudentId:
+        id,
+
+      enrollmentStudentId:
+        updatedEnrollment.student_id,
+
+      paymentId:
+        updatedPayment.id,
+
+      paymentStatus:
+        updatedPayment.status,
+
+      contractId:
+        contract.id,
+
+      contractStatus:
+        contract.status,
+
+      lessonCount,
+    }
+  );
+
+  /* ======================================================================== */
+  /* STEP 24: RETURN TO STUDENT RECORD                                        */
+  /* ======================================================================== */
 
   return NextResponse.redirect(
     new URL(

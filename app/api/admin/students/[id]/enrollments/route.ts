@@ -7,17 +7,78 @@ interface RouteContext {
   }>;
 }
 
+interface ScheduleTimes {
+  [day: string]: string;
+}
+
 interface Participant {
   studentId: string;
   scheduleDays: string[];
   scheduleTime: string | null;
+  scheduleTimes: ScheduleTimes;
+}
+
+interface DatabaseError {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
 }
 
 /* ========================================================================== */
-/* HELPERS                                                                    */
+/* CONSTANTS                                                                  */
 /* ========================================================================== */
 
-function getString(formData: FormData, name: string): string {
+const VALID_DAYS = [
+  "mon",
+  "tue",
+  "wed",
+  "thu",
+  "fri",
+  "sat",
+  "sun",
+] as const;
+
+const VALID_PAYMENT_METHODS = [
+  "pending",
+  "bank_transfer",
+  "paypal",
+  "gcash",
+  "cash",
+  "other",
+] as const;
+
+type ValidDay = (typeof VALID_DAYS)[number];
+
+/*
+ * enrollment_schedules.day_of_week
+ *
+ * 0 = Sunday
+ * 1 = Monday
+ * 2 = Tuesday
+ * 3 = Wednesday
+ * 4 = Thursday
+ * 5 = Friday
+ * 6 = Saturday
+ */
+const DAY_TO_NUMBER: Record<ValidDay, number> = {
+  sun: 0,
+  mon: 1,
+  tue: 2,
+  wed: 3,
+  thu: 4,
+  fri: 5,
+  sat: 6,
+};
+
+/* ========================================================================== */
+/* BASIC HELPERS                                                              */
+/* ========================================================================== */
+
+function getString(
+  formData: FormData,
+  name: string
+): string {
   const value = formData.get(name);
 
   if (value === null) {
@@ -49,48 +110,317 @@ function getNumber(
       .replace(/[₩₱$]/g, "")
       .trim();
 
-    const number = Number(cleaned);
+    const parsed = Number(cleaned);
 
-    if (Number.isFinite(number)) {
-      return number;
+    if (Number.isFinite(parsed)) {
+      return parsed;
     }
   }
 
   return NaN;
 }
 
+function isValidUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
+function isValidDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value
+    .split("-")
+    .map(Number);
+
+  const date = new Date(
+    Date.UTC(year, month - 1, day)
+  );
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+function isValidTime(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(
+    value
+  );
+}
+
+/*
+ * PostgreSQL TIME values can be returned as:
+ *
+ *   19:30
+ *   19:30:00
+ *
+ * HTML time inputs normally send:
+ *
+ *   19:30
+ *
+ * Normalize both formats to HH:MM before comparing.
+ */
+function normalizeTime(
+  value: unknown
+): string {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  const text = String(value).trim();
+
+  if (!text) {
+    return "";
+  }
+
+  return text.slice(0, 5);
+}
+
+function databaseErrorResponse(
+  message: string,
+  error: DatabaseError | null
+) {
+  console.error(message, error);
+
+  return new NextResponse(
+    `${message}
+
+Code: ${error?.code || "unknown"}
+
+Message: ${error?.message || "unknown"}
+
+Details: ${error?.details || "none"}
+
+Hint: ${error?.hint || "none"}`,
+    {
+      status: 500,
+    }
+  );
+}
+
+/* ========================================================================== */
+/* SCHEDULE DAYS                                                              */
+/* ========================================================================== */
+
+function normalizeScheduleDays(
+  values: unknown[]
+): string[] {
+  const normalized: string[] = [];
+
+  const aliases: Record<string, string> = {
+    monday: "mon",
+    tuesday: "tue",
+    wednesday: "wed",
+    thursday: "thu",
+    friday: "fri",
+    saturday: "sat",
+    sunday: "sun",
+  };
+
+  for (const value of values) {
+    if (
+      value === null ||
+      value === undefined
+    ) {
+      continue;
+    }
+
+    let rawValues: unknown[] = [];
+
+    if (Array.isArray(value)) {
+      rawValues = value;
+    } else {
+      const text = String(value).trim();
+
+      if (!text) {
+        continue;
+      }
+
+      if (
+        text.startsWith("[") &&
+        text.endsWith("]")
+      ) {
+        try {
+          const parsed = JSON.parse(text);
+
+          if (Array.isArray(parsed)) {
+            rawValues = parsed;
+          } else {
+            rawValues = [text];
+          }
+        } catch {
+          rawValues = [text];
+        }
+      } else {
+        rawValues = [text];
+      }
+    }
+
+    for (const rawValue of rawValues) {
+      const text = String(rawValue).trim();
+
+      if (!text) {
+        continue;
+      }
+
+      for (const splitValue of text.split(",")) {
+        const day = splitValue
+          .trim()
+          .toLowerCase();
+
+        if (!day) {
+          continue;
+        }
+
+        const normalizedDay =
+          aliases[day] || day;
+
+        if (
+          VALID_DAYS.includes(
+            normalizedDay as ValidDay
+          )
+        ) {
+          normalized.push(normalizedDay);
+        }
+      }
+    }
+  }
+
+  return Array.from(
+    new Set(normalized)
+  ).sort(
+    (a, b) =>
+      VALID_DAYS.indexOf(
+        a as ValidDay
+      ) -
+      VALID_DAYS.indexOf(
+        b as ValidDay
+      )
+  );
+}
+
 function getScheduleDays(
   formData: FormData,
   name: string
 ): string[] {
-  return Array.from(
-    new Set(
-      formData
-        .getAll(name)
-        .map((value) =>
-          String(value).trim().toLowerCase()
-        )
-        .filter(Boolean)
-    )
+  return normalizeScheduleDays(
+    formData.getAll(name)
   );
 }
 
-function normalizeStudentIds(
-  formData: FormData
-): string[] {
-  const values = [
-    ...formData.getAll("student_ids"),
-    ...formData.getAll("student_id"),
-  ];
+/* ========================================================================== */
+/* INDIVIDUAL SCHEDULE TIMES                                                  */
+/* ========================================================================== */
 
-  return Array.from(
-    new Set(
-      values
-        .map((value) => String(value).trim())
-        .filter(Boolean)
+function getIndividualScheduleTimes(
+  formData: FormData,
+  scheduleDays: string[]
+): ScheduleTimes {
+  const scheduleTimes: ScheduleTimes = {};
+
+  /*
+   * JSON representation.
+   */
+  const jsonValue = getString(
+    formData,
+    "schedule_times"
+  );
+
+  if (jsonValue) {
+    try {
+      const parsed = JSON.parse(jsonValue);
+
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed)
+      ) {
+        for (const day of VALID_DAYS) {
+          const value = parsed[day];
+
+          if (
+            typeof value === "string" &&
+            value.trim()
+          ) {
+            scheduleTimes[day] =
+              normalizeTime(value);
+          }
+        }
+      }
+    } catch {
+      // Ignore malformed JSON.
+    }
+  }
+
+  /*
+   * Day-specific fields.
+   */
+  for (const day of VALID_DAYS) {
+    const possibleNames = [
+      `schedule_time_${day}`,
+      `schedule_times_${day}`,
+    ];
+
+    for (const name of possibleNames) {
+      const value = getString(
+        formData,
+        name
+      );
+
+      if (value) {
+        scheduleTimes[day] =
+          normalizeTime(value);
+        break;
+      }
+    }
+  }
+
+  /*
+   * Legacy single-time support.
+   */
+  const legacyTime = normalizeTime(
+    getString(
+      formData,
+      "schedule_time"
     )
   );
+
+  if (legacyTime) {
+    for (const day of scheduleDays) {
+      if (!scheduleTimes[day]) {
+        scheduleTimes[day] =
+          legacyTime;
+      }
+    }
+  }
+
+  /*
+   * Keep only selected days.
+   */
+  const filtered: ScheduleTimes = {};
+
+  for (const day of scheduleDays) {
+    if (scheduleTimes[day]) {
+      filtered[day] =
+        normalizeTime(
+          scheduleTimes[day]
+        );
+    }
+  }
+
+  return filtered;
 }
+
+/* ========================================================================== */
+/* PARTICIPANT SCHEDULE                                                       */
+/* ========================================================================== */
 
 function getParticipantScheduleDays(
   formData: FormData,
@@ -103,7 +433,15 @@ function getParticipantScheduleDays(
   ];
 
   for (const name of possibleNames) {
-    const days = getScheduleDays(formData, name);
+    const values =
+      formData.getAll(name);
+
+    if (values.length === 0) {
+      continue;
+    }
+
+    const days =
+      normalizeScheduleDays(values);
 
     if (days.length > 0) {
       return days;
@@ -113,30 +451,235 @@ function getParticipantScheduleDays(
   return [];
 }
 
-function getParticipantScheduleTime(
+function getParticipantScheduleTimes(
   formData: FormData,
-  studentId: string
-): string | null {
-  const possibleNames = [
+  studentId: string,
+  scheduleDays: string[]
+): ScheduleTimes {
+  const scheduleTimes: ScheduleTimes = {};
+
+  /*
+   * JSON representation.
+   */
+  const jsonNames = [
+    `schedule_times_${studentId}`,
+    `participant_schedule_times_${studentId}`,
+    `schedule_times[${studentId}]`,
+  ];
+
+  for (const name of jsonNames) {
+    const value = getString(
+      formData,
+      name
+    );
+
+    if (!value) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(value);
+
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed)
+      ) {
+        for (const day of scheduleDays) {
+          const time = parsed[day];
+
+          if (
+            typeof time === "string" &&
+            time.trim()
+          ) {
+            scheduleTimes[day] =
+              normalizeTime(time);
+          }
+        }
+      }
+    } catch {
+      // Ignore malformed JSON.
+    }
+  }
+
+  /*
+   * Day-specific fields.
+   */
+  for (const day of scheduleDays) {
+    const possibleNames = [
+      `schedule_time_${studentId}_${day}`,
+      `participant_schedule_time_${studentId}_${day}`,
+      `schedule_times_${studentId}_${day}`,
+      `schedule_time[${studentId}][${day}]`,
+    ];
+
+    for (const name of possibleNames) {
+      const value = getString(
+        formData,
+        name
+      );
+
+      if (value) {
+        scheduleTimes[day] =
+          normalizeTime(value);
+        break;
+      }
+    }
+  }
+
+  /*
+   * Legacy participant single time.
+   */
+  const legacyNames = [
     `schedule_time_${studentId}`,
     `participant_schedule_time_${studentId}`,
     `schedule_time[${studentId}]`,
   ];
 
-  for (const name of possibleNames) {
-    const value = getString(formData, name);
+  let legacyTime = "";
+
+  for (const name of legacyNames) {
+    const value = getString(
+      formData,
+      name
+    );
 
     if (value) {
-      return value;
+      legacyTime =
+        normalizeTime(value);
+      break;
+    }
+  }
+
+  if (legacyTime) {
+    for (const day of scheduleDays) {
+      if (!scheduleTimes[day]) {
+        scheduleTimes[day] =
+          legacyTime;
+      }
+    }
+  }
+
+  return scheduleTimes;
+}
+
+/* ========================================================================== */
+/* LEGACY SCHEDULE TIME                                                       */
+/* ========================================================================== */
+
+function getLegacyScheduleTimeValue(
+  scheduleDays: string[],
+  scheduleTimes: ScheduleTimes
+): string | null {
+  if (scheduleDays.length === 0) {
+    return null;
+  }
+
+  const firstTime =
+    normalizeTime(
+      scheduleTimes[scheduleDays[0]]
+    );
+
+  if (!firstTime) {
+    return null;
+  }
+
+  const allSame =
+    scheduleDays.every(
+      (day) =>
+        normalizeTime(
+          scheduleTimes[day]
+        ) === firstTime
+    );
+
+  return allSame
+    ? firstTime
+    : null;
+}
+
+/* ========================================================================== */
+/* STUDENT IDS                                                                */
+/* ========================================================================== */
+
+function normalizeStudentIds(
+  formData: FormData
+): string[] {
+  const values = [
+    ...formData.getAll("student_ids"),
+    ...formData.getAll("student_id"),
+  ];
+
+  return Array.from(
+    new Set(
+      values
+        .map((value) =>
+          String(value).trim()
+        )
+        .filter(Boolean)
+    )
+  );
+}
+
+/* ========================================================================== */
+/* VALIDATION                                                                 */
+/* ========================================================================== */
+
+function validateScheduleTimes(
+  scheduleDays: string[],
+  scheduleTimes: ScheduleTimes,
+  studentLabel: string
+): string | null {
+  if (scheduleDays.length === 0) {
+    return `At least one lesson day is required for ${studentLabel}.`;
+  }
+
+  for (const day of scheduleDays) {
+    const time = normalizeTime(
+      scheduleTimes[day]
+    );
+
+    if (!time) {
+      return `Lesson time is required for ${studentLabel} on ${day}.`;
+    }
+
+    if (!isValidTime(time)) {
+      return `Lesson time for ${studentLabel} on ${day} must use HH:MM format.`;
     }
   }
 
   return null;
 }
 
-function isValidUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
+/* ========================================================================== */
+/* BUILD ENROLLMENT SCHEDULE ROWS                                             */
+/* ========================================================================== */
+
+function buildEnrollmentScheduleRows(
+  enrollmentId: string,
+  participants: Participant[]
+) {
+  return participants.flatMap(
+    (participant) =>
+      participant.scheduleDays.map(
+        (day) => ({
+          enrollment_id:
+            enrollmentId,
+
+          student_id:
+            participant.studentId,
+
+          day_of_week:
+            DAY_TO_NUMBER[
+              day as ValidDay
+            ],
+
+          schedule_time:
+            normalizeTime(
+              participant
+                .scheduleTimes[day]
+            ),
+        })
+      )
   );
 }
 
@@ -150,32 +693,51 @@ export async function POST(
 ) {
   const { id } = await params;
 
-  const formData = await request.formData();
+  /* ======================================================================== */
+  /* BASIC VALIDATION                                                         */
+  /* ======================================================================== */
 
-  /* ======================================================================== */
-  /* BASIC CONTEXT                                                            */
-  /* ======================================================================== */
+  if (!isValidUuid(id)) {
+    return new NextResponse(
+      "Invalid student ID.",
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const formData =
+    await request.formData();
 
   const locale =
-    getString(formData, "locale") || "en";
+    getString(
+      formData,
+      "locale"
+    ) || "en";
 
   /* ======================================================================== */
   /* ENROLLMENT TYPE                                                          */
   /* ======================================================================== */
 
   const enrollmentType =
-    getString(
-      formData,
-      "enrollment_type"
-    ).toLowerCase() || "individual";
+    (
+      getString(
+        formData,
+        "enrollment_type"
+      ) || "individual"
+    ).toLowerCase();
 
   if (
-    enrollmentType !== "individual" &&
-    enrollmentType !== "shared"
+    enrollmentType !==
+      "individual" &&
+    enrollmentType !==
+      "shared"
   ) {
     return new NextResponse(
       "Invalid enrollment type.",
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 
@@ -183,41 +745,38 @@ export async function POST(
     enrollmentType === "shared";
 
   /* ======================================================================== */
-  /* PARTICIPATING STUDENTS                                                   */
+  /* STUDENTS                                                                 */
   /* ======================================================================== */
 
   let studentIds =
-    normalizeStudentIds(formData);
-
-  /*
-   * Individual enrollment:
-   *
-   * The enrollment belongs to the student whose
-   * record this page was opened from.
-   */
+    normalizeStudentIds(
+      formData
+    );
 
   if (!isShared) {
     studentIds = [id];
   }
 
-  /*
-   * Shared enrollment:
-   *
-   * The originating student must always be included.
-   */
-
-  if (isShared && !studentIds.includes(id)) {
+  if (
+    isShared &&
+    !studentIds.includes(id)
+  ) {
     studentIds.unshift(id);
   }
 
-  studentIds = Array.from(
-    new Set(studentIds)
-  );
+  studentIds =
+    Array.from(
+      new Set(studentIds)
+    );
 
-  if (studentIds.length === 0) {
+  if (
+    studentIds.length === 0
+  ) {
     return new NextResponse(
       "At least one student is required.",
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 
@@ -227,7 +786,9 @@ export async function POST(
   ) {
     return new NextResponse(
       "A shared enrollment requires at least two students.",
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 
@@ -239,7 +800,9 @@ export async function POST(
   ) {
     return new NextResponse(
       "One or more student IDs are invalid.",
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 
@@ -263,12 +826,6 @@ export async function POST(
     getNumber(
       formData,
       "lesson_duration"
-    );
-
-  const lessonsPerWeek =
-    getNumber(
-      formData,
-      "lessons_per_week"
     );
 
   const startDate =
@@ -301,59 +858,95 @@ export async function POST(
   /* PAYMENT                                                                  */
   /* ======================================================================== */
 
-  const paymentDateValue =
+  const submittedPaymentDate =
     getString(
       formData,
       "payment_date"
     );
 
+  /*
+   * payments.payment_date is NOT NULL.
+   *
+   * If the payment has not actually been made yet
+   * and the form leaves the field blank, we still need
+   * a database value.
+   *
+   * We use today's date as the date the pending
+   * payment record was created.
+   */
   const paymentDate =
-    paymentDateValue || null;
-
-  const paymentMethodValue =
-    getString(
-      formData,
-      "payment_method"
-    );
+    submittedPaymentDate &&
+    isValidDate(
+      submittedPaymentDate
+    )
+      ? submittedPaymentDate
+      : new Date()
+          .toISOString()
+          .slice(0, 10);
 
   const paymentMethod =
-    paymentMethodValue || "pending";
+    (
+      getString(
+        formData,
+        "payment_method"
+      ) || "pending"
+    ).toLowerCase();
 
-  const referenceValue =
+  if (
+    !VALID_PAYMENT_METHODS.includes(
+      paymentMethod as (typeof VALID_PAYMENT_METHODS)[number]
+    )
+  ) {
+    return new NextResponse(
+      "Invalid payment method.",
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const reference =
+    getString(
+      formData,
+      "payment_reference"
+    ) ||
     getString(
       formData,
       "reference"
-    );
-
-  const reference =
-    referenceValue || null;
+    ) ||
+    null;
 
   /*
-   * The form uses payment date and payment method to
-   * describe the payment record.
-   *
-   * Payment status remains pending at creation.
-   *
-   * The existing payment_paid_activation trigger is
-   * responsible for activation when status later changes
-   * from pending to paid.
+   * New enrollments always begin with
+   * a pending payment.
    */
+  const paymentStatus =
+    "pending";
 
   /* ======================================================================== */
   /* RENEWAL                                                                  */
   /* ======================================================================== */
 
-  const renewalOfValue =
+  const renewalOf =
     getString(
       formData,
       "renewal_of"
-    );
+    ) || null;
 
-  const renewalOf =
-    renewalOfValue || null;
+  if (
+    renewalOf &&
+    !isValidUuid(renewalOf)
+  ) {
+    return new NextResponse(
+      "Invalid previous enrollment ID.",
+      {
+        status: 400,
+      }
+    );
+  }
 
   /* ======================================================================== */
-  /* INDIVIDUAL SCHEDULE                                                      */
+  /* BUILD INDIVIDUAL SCHEDULE                                                */
   /* ======================================================================== */
 
   const individualScheduleDays =
@@ -362,67 +955,137 @@ export async function POST(
       "schedule_days"
     );
 
-  const individualScheduleTimeValue =
-    getString(
+  const individualScheduleTimes =
+    getIndividualScheduleTimes(
       formData,
-      "schedule_time"
+      individualScheduleDays
     );
 
-  const individualScheduleTime =
-    individualScheduleTimeValue || null;
+  const individualLegacyScheduleTime =
+    getLegacyScheduleTimeValue(
+      individualScheduleDays,
+      individualScheduleTimes
+    );
 
   /* ======================================================================== */
-  /* PARTICIPANT SCHEDULES                                                    */
+  /* BUILD PARTICIPANT SCHEDULES                                              */
   /* ======================================================================== */
 
   const participants: Participant[] =
-    studentIds.map((studentId) => {
-      /*
-       * Individual enrollment:
-       *
-       * The schedule is stored directly on the enrollment
-       * and duplicated onto its participant row.
-       */
+    studentIds.map(
+      (studentId) => {
+        if (!isShared) {
+          return {
+            studentId,
 
-      if (!isShared) {
-        return {
-          studentId,
-          scheduleDays:
-            individualScheduleDays,
-          scheduleTime:
-            individualScheduleTime,
-        };
-      }
+            scheduleDays:
+              individualScheduleDays,
 
-      /*
-       * Shared enrollment:
-       *
-       * Each participant must have their own schedule.
-       */
+            scheduleTime:
+              individualLegacyScheduleTime,
 
-      return {
-        studentId,
-        scheduleDays:
+            scheduleTimes:
+              individualScheduleTimes,
+          };
+        }
+
+        const scheduleDays =
           getParticipantScheduleDays(
             formData,
             studentId
-          ),
-        scheduleTime:
-          getParticipantScheduleTime(
+          );
+
+        const scheduleTimes =
+          getParticipantScheduleTimes(
             formData,
-            studentId
-          ),
-      };
-    });
+            studentId,
+            scheduleDays
+          );
+
+        const legacyScheduleTime =
+          getLegacyScheduleTimeValue(
+            scheduleDays,
+            scheduleTimes
+          );
+
+        return {
+          studentId,
+
+          scheduleDays,
+
+          scheduleTime:
+            legacyScheduleTime,
+
+          scheduleTimes,
+        };
+      }
+    );
 
   /* ======================================================================== */
-  /* VALIDATION                                                               */
+  /* VALIDATE SCHEDULES                                                       */
+  /* ======================================================================== */
+
+  for (const participant of participants) {
+    const studentLabel =
+      isShared
+        ? `student ${participant.studentId}`
+        : "this student";
+
+    const scheduleError =
+      validateScheduleTimes(
+        participant.scheduleDays,
+        participant.scheduleTimes,
+        studentLabel
+      );
+
+    if (scheduleError) {
+      return new NextResponse(
+        scheduleError,
+        {
+          status: 400,
+        }
+      );
+    }
+  }
+
+  /* ======================================================================== */
+  /* DERIVE LESSONS PER WEEK                                                  */
+  /* ======================================================================== */
+
+  const lessonsPerWeek =
+    isShared
+      ? Math.max(
+          ...participants.map(
+            (participant) =>
+              participant
+                .scheduleDays
+                .length
+          ),
+          0
+        )
+      : individualScheduleDays.length;
+
+  if (
+    lessonsPerWeek < 1
+  ) {
+    return new NextResponse(
+      "At least one lesson day is required.",
+      {
+        status: 400,
+      }
+    );
+  }
+
+  /* ======================================================================== */
+  /* OTHER VALIDATION                                                         */
   /* ======================================================================== */
 
   if (!packageName) {
     return new NextResponse(
       "Package name is required.",
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 
@@ -434,7 +1097,9 @@ export async function POST(
   ) {
     return new NextResponse(
       "Number of lessons must be at least 1.",
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 
@@ -446,26 +1111,27 @@ export async function POST(
   ) {
     return new NextResponse(
       "Lesson duration must be at least 1 minute.",
-      { status: 400 }
-    );
-  }
-
-  if (
-    !Number.isInteger(
-      lessonsPerWeek
-    ) ||
-    lessonsPerWeek < 1
-  ) {
-    return new NextResponse(
-      "Lessons per week must be at least 1.",
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 
   if (!startDate) {
     return new NextResponse(
       "Lesson start date is required.",
-      { status: 400 }
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (!isValidDate(startDate)) {
+    return new NextResponse(
+      "Start date must use a valid YYYY-MM-DD date.",
+      {
+        status: 400,
+      }
     );
   }
 
@@ -477,7 +1143,9 @@ export async function POST(
   ) {
     return new NextResponse(
       "KRW tuition amount is required.",
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 
@@ -489,61 +1157,10 @@ export async function POST(
   ) {
     return new NextResponse(
       "PHP tuition amount is required.",
-      { status: 400 }
-    );
-  }
-
-  /*
-   * Individual schedule.
-   */
-
-  if (
-    !isShared &&
-    individualScheduleDays.length === 0
-  ) {
-    return new NextResponse(
-      "At least one lesson day is required.",
-      { status: 400 }
-    );
-  }
-
-  if (
-    !isShared &&
-    !individualScheduleTime
-  ) {
-    return new NextResponse(
-      "Lesson time is required.",
-      { status: 400 }
-    );
-  }
-
-  /*
-   * Shared schedule.
-   *
-   * Every participant must have:
-   *
-   * - at least one lesson day
-   * - a lesson time
-   */
-
-  if (isShared) {
-    for (const participant of participants) {
-      if (
-        participant.scheduleDays.length === 0
-      ) {
-        return new NextResponse(
-          `At least one lesson day is required for student ${participant.studentId}.`,
-          { status: 400 }
-        );
+      {
+        status: 400,
       }
-
-      if (!participant.scheduleTime) {
-        return new NextResponse(
-          `Lesson time is required for student ${participant.studentId}.`,
-          { status: 400 }
-        );
-      }
-    }
+    );
   }
 
   /* ======================================================================== */
@@ -554,12 +1171,13 @@ export async function POST(
     await createClient();
 
   /* ======================================================================== */
-  /* STEP 1: VERIFY ORIGINATING STUDENT                                      */
+  /* VERIFY ORIGINATING STUDENT                                              */
   /* ======================================================================== */
 
   const {
     data: originatingStudent,
-    error: originatingStudentError,
+    error:
+      originatingStudentError,
   } = await supabase
     .from("students")
     .select(
@@ -574,21 +1192,19 @@ export async function POST(
   ) {
     console.error(
       "ORIGINATING STUDENT VERIFICATION ERROR:",
-      {
-        studentId: id,
-        error:
-          originatingStudentError,
-      }
+      originatingStudentError
     );
 
     return new NextResponse(
       "Student not found.",
-      { status: 404 }
+      {
+        status: 404,
+      }
     );
   }
 
   /* ======================================================================== */
-  /* STEP 2: VERIFY ALL PARTICIPANTS                                         */
+  /* VERIFY ALL STUDENTS                                                      */
   /* ======================================================================== */
 
   const {
@@ -597,16 +1213,9 @@ export async function POST(
   } = await supabase
     .from("students")
     .select(
-      `
-        id,
-        full_name,
-        preferred_name
-      `
+      "id, full_name, preferred_name"
     )
-    .in(
-      "id",
-      studentIds
-    );
+    .in("id", studentIds);
 
   if (
     studentsError ||
@@ -619,34 +1228,23 @@ export async function POST(
       {
         studentIds,
         students,
-        error:
-          studentsError,
+        error: studentsError,
       }
     );
 
     return new NextResponse(
       "One or more selected students could not be found.",
-      { status: 404 }
+      {
+        status: 404,
+      }
     );
   }
 
   /* ======================================================================== */
-  /* STEP 3: VALIDATE RENEWAL                                                */
+  /* VERIFY RENEWAL                                                          */
   /* ======================================================================== */
 
   if (renewalOf) {
-    /*
-     * A renewal belongs to the originating student's
-     * enrollment history.
-     *
-     * This intentionally checks student_id rather than
-     * attempting to infer ownership from participants.
-     *
-     * Shared enrollments have student_id = NULL, so a
-     * shared enrollment should not currently be used as
-     * the renewal target through this field.
-     */
-
     const {
       data: previousEnrollment,
       error:
@@ -654,81 +1252,81 @@ export async function POST(
     } = await supabase
       .from("enrollments")
       .select(
-        `
-          id,
-          student_id,
-          status
-        `
+        "id, student_id, status"
       )
-      .eq(
-        "id",
-        renewalOf
-      )
-      .eq(
-        "student_id",
-        id
-      )
-      .single();
+      .eq("id", renewalOf)
+      .maybeSingle();
 
     if (
       previousEnrollmentError ||
       !previousEnrollment
     ) {
-      console.error(
-        "RENEWAL VALIDATION ERROR:",
-        {
-          renewalOf,
-          studentId: id,
-          code:
-            previousEnrollmentError?.code,
-          message:
-            previousEnrollmentError?.message,
-          details:
-            previousEnrollmentError?.details,
-          hint:
-            previousEnrollmentError?.hint,
-        }
-      );
-
       return new NextResponse(
         "Previous enrollment not found.",
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    console.log(
-      "RENEWAL VALIDATED:",
-      previousEnrollment
-    );
+    if (
+      previousEnrollment.student_id &&
+      previousEnrollment.student_id !==
+        id
+    ) {
+      return new NextResponse(
+        "The previous enrollment does not belong to this student.",
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /*
+     * Shared enrollment:
+     * the originating student is stored
+     * in enrollment_students.
+     */
+    if (
+      previousEnrollment.student_id ===
+      null
+    ) {
+      const {
+        data: previousParticipant,
+        error:
+          previousParticipantError,
+      } = await supabase
+        .from("enrollment_students")
+        .select(
+          "id, enrollment_id, student_id"
+        )
+        .eq(
+          "enrollment_id",
+          renewalOf
+        )
+        .eq(
+          "student_id",
+          id
+        )
+        .maybeSingle();
+
+      if (
+        previousParticipantError ||
+        !previousParticipant
+      ) {
+        return new NextResponse(
+          "The previous shared enrollment does not include this student.",
+          {
+            status: 400,
+          }
+        );
+      }
+    }
   }
 
   /* ======================================================================== */
-  /* STEP 4: CREATE ONE ENROLLMENT                                            */
+  /* CREATE ENROLLMENT                                                        */
   /* ======================================================================== */
-
-  /*
-   * INDIVIDUAL:
-   *
-   * enrollments            = 1
-   * enrollment_students    = 1
-   * contracts              = 1
-   * payments               = 1
-   *
-   * SHARED:
-   *
-   * enrollments            = 1
-   * enrollment_students    = many
-   * contracts              = 1
-   * payments               = 1
-   *
-   * Shared enrollment:
-   *
-   * student_id = NULL
-   *
-   * Individual enrollment:
-   *
-   * student_id = originating student
-   */
 
   const {
     data: enrollment,
@@ -736,6 +1334,14 @@ export async function POST(
   } = await supabase
     .from("enrollments")
     .insert({
+      /*
+       * Individual enrollment:
+       * student_id = originating student
+       *
+       * Shared enrollment:
+       * student_id = null
+       * participants live in enrollment_students.
+       */
       student_id:
         isShared
           ? null
@@ -766,13 +1372,11 @@ export async function POST(
         "KRW",
 
       /*
-       * Individual enrollments keep the existing schedule
-       * fields for compatibility.
+       * Legacy summary fields.
        *
-       * Shared enrollments keep these fields empty because
-       * participant schedules live in enrollment_students.
+       * Exact daily schedules are stored in
+       * enrollment_schedules.
        */
-
       schedule_days:
         isShared
           ? []
@@ -781,7 +1385,7 @@ export async function POST(
       schedule_time:
         isShared
           ? null
-          : individualScheduleTime,
+          : individualLegacyScheduleTime,
 
       renewal_of:
         renewalOf,
@@ -823,56 +1427,15 @@ export async function POST(
       }
     );
 
-    return new NextResponse(
-      `Unable to create enrollment.
-
-Code: ${
-        enrollmentError?.code ||
-        "unknown"
-      }
-
-Message: ${
-        enrollmentError?.message ||
-        "unknown"
-      }
-
-Details: ${
-        enrollmentError?.details ||
-        "none"
-      }
-
-Hint: ${
-        enrollmentError?.hint ||
-        "none"
-      }`,
-      { status: 500 }
+    return databaseErrorResponse(
+      "Unable to create enrollment.",
+      enrollmentError
     );
   }
 
-  console.log(
-    "ENROLLMENT CREATED:",
-    {
-      enrollmentId:
-        enrollment.id,
-      enrollmentType,
-      studentIds,
-    }
-  );
-
   /* ======================================================================== */
-  /* STEP 5: CREATE PARTICIPANTS                                             */
+  /* CREATE ENROLLMENT PARTICIPANTS                                           */
   /* ======================================================================== */
-
-  /*
-   * These rows are authoritative for participation.
-   *
-   * Shared:
-   *   one row per participating student
-   *   each row contains its own schedule
-   *
-   * Individual:
-   *   one row for the originating student
-   */
 
   const participantRows =
     participants.map(
@@ -886,6 +1449,14 @@ Hint: ${
         schedule_days:
           participant.scheduleDays,
 
+        /*
+         * Legacy field.
+         *
+         * If Monday = 19:00 and Wednesday = 20:00,
+         * this is null.
+         *
+         * The exact times are in enrollment_schedules.
+         */
         schedule_time:
           participant.scheduleTime,
       })
@@ -947,39 +1518,131 @@ Hint: ${
         enrollment.id
       );
 
+    return databaseErrorResponse(
+      "Unable to create enrollment participants.",
+      participantError
+    );
+  }
+
+  /* ======================================================================== */
+  /* CREATE NORMALIZED ENROLLMENT SCHEDULES                                  */
+  /* ======================================================================== */
+
+  const enrollmentScheduleRows =
+    buildEnrollmentScheduleRows(
+      enrollment.id,
+      participants
+    );
+
+  if (
+    enrollmentScheduleRows.length ===
+    0
+  ) {
+    console.error(
+      "NO ENROLLMENT SCHEDULE ROWS CREATED."
+    );
+
+    await supabase
+      .from("enrollment_students")
+      .delete()
+      .eq(
+        "enrollment_id",
+        enrollment.id
+      );
+
+    await supabase
+      .from("enrollments")
+      .delete()
+      .eq(
+        "id",
+        enrollment.id
+      );
+
     return new NextResponse(
-      `Unable to create enrollment participants.
-
-Code: ${
-        participantError?.code ||
-        "unknown"
+      "Enrollment could not be created because no lesson schedules were found.",
+      {
+        status: 500,
       }
+    );
+  }
 
-Message: ${
-        participantError?.message ||
-        "unknown"
+  const {
+    data: createdSchedules,
+    error:
+      scheduleError,
+  } = await supabase
+    .from("enrollment_schedules")
+    .insert(
+      enrollmentScheduleRows
+    )
+    .select(
+      `
+        id,
+        enrollment_id,
+        student_id,
+        day_of_week,
+        schedule_time
+      `
+    );
+
+  if (
+    scheduleError ||
+    !createdSchedules ||
+    createdSchedules.length !==
+      enrollmentScheduleRows.length
+  ) {
+    console.error(
+      "ENROLLMENT SCHEDULE CREATION ERROR:",
+      {
+        code:
+          scheduleError?.code,
+        message:
+          scheduleError?.message,
+        details:
+          scheduleError?.details,
+        hint:
+          scheduleError?.hint,
+        enrollmentScheduleRows,
       }
+    );
 
-Details: ${
-        participantError?.details ||
-        "none"
-      }
+    await supabase
+      .from("enrollment_schedules")
+      .delete()
+      .eq(
+        "enrollment_id",
+        enrollment.id
+      );
 
-Hint: ${
-        participantError?.hint ||
-        "none"
-      }`,
-      { status: 500 }
+    await supabase
+      .from("enrollment_students")
+      .delete()
+      .eq(
+        "enrollment_id",
+        enrollment.id
+      );
+
+    await supabase
+      .from("enrollments")
+      .delete()
+      .eq(
+        "id",
+        enrollment.id
+      );
+
+    return databaseErrorResponse(
+      "Unable to create enrollment schedules.",
+      scheduleError
     );
   }
 
   console.log(
-    "ENROLLMENT PARTICIPANTS CREATED:",
-    createdParticipants
+    "ENROLLMENT SCHEDULES CREATED:",
+    createdSchedules
   );
 
   /* ======================================================================== */
-  /* STEP 6: CREATE ONE CONTRACT                                              */
+  /* CREATE CONTRACT                                                          */
   /* ======================================================================== */
 
   const {
@@ -1005,17 +1668,16 @@ Hint: ${
   ) {
     console.error(
       "CONTRACT CREATION ERROR:",
-      {
-        code:
-          contractError?.code,
-        message:
-          contractError?.message,
-        details:
-          contractError?.details,
-        hint:
-          contractError?.hint,
-      }
+      contractError
     );
+
+    await supabase
+      .from("enrollment_schedules")
+      .delete()
+      .eq(
+        "enrollment_id",
+        enrollment.id
+      );
 
     await supabase
       .from("enrollment_students")
@@ -1033,64 +1695,15 @@ Hint: ${
         enrollment.id
       );
 
-    return new NextResponse(
-      `Unable to create enrollment contract.
-
-Code: ${
-        contractError?.code ||
-        "unknown"
-      }
-
-Message: ${
-        contractError?.message ||
-        "unknown"
-      }
-
-Details: ${
-        contractError?.details ||
-        "none"
-      }
-
-Hint: ${
-        contractError?.hint ||
-        "none"
-      }`,
-      { status: 500 }
+    return databaseErrorResponse(
+      "Unable to create enrollment contract.",
+      contractError
     );
   }
 
-  console.log(
-    "CONTRACT CREATED:",
-    contract
-  );
-
   /* ======================================================================== */
-  /* STEP 7: CREATE ONE PAYMENT                                               */
+  /* CREATE PAYMENT                                                           */
   /* ======================================================================== */
-
-  /*
-   * ONE payment belongs to ONE enrollment.
-   *
-   * This is true for both individual and shared
-   * enrollments.
-   *
-   * The payment does NOT belong to individual
-   * participants.
-   *
-   * The trigger later watches this payment:
-   *
-   * pending → paid
-   *
-   * and then:
-   *
-   * payment_paid_activation
-   *        ↓
-   * handle_payment_paid()
-   *        ↓
-   * enrollment → active
-   * contract → active
-   * lessons generated
-   */
 
   const {
     data: payment,
@@ -1113,6 +1726,10 @@ Hint: ${
       amount_php:
         tuitionAmountPhp,
 
+      /*
+       * ALWAYS populated because payments.payment_date
+       * is NOT NULL.
+       */
       payment_date:
         paymentDate,
 
@@ -1120,7 +1737,7 @@ Hint: ${
         paymentMethod,
 
       status:
-        "pending",
+        paymentStatus,
 
       reference,
     })
@@ -1155,6 +1772,7 @@ Hint: ${
           paymentError?.details,
         hint:
           paymentError?.hint,
+        paymentDate,
       }
     );
 
@@ -1164,6 +1782,14 @@ Hint: ${
       .eq(
         "id",
         contract.id
+      );
+
+    await supabase
+      .from("enrollment_schedules")
+      .delete()
+      .eq(
+        "enrollment_id",
+        enrollment.id
       );
 
     await supabase
@@ -1182,39 +1808,14 @@ Hint: ${
         enrollment.id
       );
 
-    return new NextResponse(
-      `Unable to create payment record.
-
-Code: ${
-        paymentError?.code ||
-        "unknown"
-      }
-
-Message: ${
-        paymentError?.message ||
-        "unknown"
-      }
-
-Details: ${
-        paymentError?.details ||
-        "none"
-      }
-
-Hint: ${
-        paymentError?.hint ||
-        "none"
-      }`,
-      { status: 500 }
+    return databaseErrorResponse(
+      "Unable to create payment record.",
+      paymentError
     );
   }
 
-  console.log(
-    "PAYMENT CREATED:",
-    payment
-  );
-
   /* ======================================================================== */
-  /* STEP 8: VERIFY ENROLLMENT                                                */
+  /* VERIFY ENROLLMENT                                                        */
   /* ======================================================================== */
 
   const {
@@ -1249,26 +1850,30 @@ Hint: ${
     enrollmentVerificationError ||
     !enrollmentVerification
   ) {
-    console.error(
-      "ENROLLMENT VERIFICATION FAILED:",
-      {
-        enrollmentId:
-          enrollment.id,
-        verification:
-          enrollmentVerification,
-        error:
-          enrollmentVerificationError,
-      }
-    );
-
     return new NextResponse(
       "Enrollment was created, but could not be verified.",
-      { status: 500 }
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    Number(
+      enrollmentVerification
+        .lessons_per_week
+    ) !== lessonsPerWeek
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but lessons per week could not be verified.",
+      {
+        status: 500,
+      }
     );
   }
 
   /* ======================================================================== */
-  /* STEP 9: VERIFY PARTICIPANTS                                             */
+  /* VERIFY PARTICIPANTS                                                      */
   /* ======================================================================== */
 
   const {
@@ -1295,65 +1900,183 @@ Hint: ${
     participantVerificationError ||
     !participantVerification ||
     participantVerification.length !==
-      studentIds.length
+      participants.length
   ) {
     console.error(
-      "PARTICIPANT VERIFICATION FAILED:",
-      {
-        enrollmentId:
-          enrollment.id,
-        expectedStudentIds:
-          studentIds,
-        actualParticipants:
-          participantVerification,
-        error:
-          participantVerificationError,
-      }
+      "PARTICIPANT VERIFICATION ERROR:",
+      participantVerificationError
     );
 
     return new NextResponse(
       "Enrollment was created, but its participating students could not be verified.",
-      { status: 500 }
-    );
-  }
-
-  const verifiedStudentIds =
-    participantVerification
-      .map(
-        (participant) =>
-          participant.student_id
-      )
-      .sort();
-
-  const expectedStudentIds =
-    [...studentIds].sort();
-
-  if (
-    JSON.stringify(
-      verifiedStudentIds
-    ) !==
-    JSON.stringify(
-      expectedStudentIds
-    )
-  ) {
-    console.error(
-      "PARTICIPANT STUDENT RELATIONSHIP MISMATCH:",
       {
-        expected:
-          expectedStudentIds,
-        actual:
-          verifiedStudentIds,
+        status: 500,
       }
-    );
-
-    return new NextResponse(
-      "Enrollment was created, but the participating student relationships could not be verified.",
-      { status: 500 }
     );
   }
 
   /* ======================================================================== */
-  /* STEP 10: VERIFY INDIVIDUAL / SHARED STRUCTURE                           */
+  /* VERIFY NORMALIZED SCHEDULES                                              */
+  /* ======================================================================== */
+
+  const {
+    data: scheduleVerification,
+    error:
+      scheduleVerificationError,
+  } = await supabase
+    .from("enrollment_schedules")
+    .select(
+      `
+        id,
+        enrollment_id,
+        student_id,
+        day_of_week,
+        schedule_time
+      `
+    )
+    .eq(
+      "enrollment_id",
+      enrollment.id
+    );
+
+  if (
+    scheduleVerificationError ||
+    !scheduleVerification
+  ) {
+    console.error(
+      "SCHEDULE VERIFICATION ERROR:",
+      scheduleVerificationError
+    );
+
+    return new NextResponse(
+      "Enrollment was created, but its normalized schedules could not be verified.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    scheduleVerification.length !==
+    enrollmentScheduleRows.length
+  ) {
+    console.error(
+      "SCHEDULE COUNT MISMATCH:",
+      {
+        expected:
+          enrollmentScheduleRows.length,
+        actual:
+          scheduleVerification.length,
+      }
+    );
+
+    return new NextResponse(
+      "Enrollment was created, but the number of saved schedules could not be verified.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  /*
+   * Verify every participant/day/time.
+   *
+   * IMPORTANT:
+   * We normalize BOTH sides before comparing the time.
+   *
+   * Example:
+   *
+   * expected = 19:30
+   * database = 19:30:00
+   *
+   * Both become:
+   *
+   * 19:30
+   */
+  for (
+    const expectedSchedule of
+      enrollmentScheduleRows
+  ) {
+    const actualSchedule =
+      scheduleVerification.find(
+        (row) =>
+          row.student_id ===
+            expectedSchedule.student_id &&
+          Number(row.day_of_week) ===
+            Number(
+              expectedSchedule.day_of_week
+            )
+      );
+
+    if (!actualSchedule) {
+      console.error(
+        "MISSING SCHEDULE:",
+        expectedSchedule
+      );
+
+      return new NextResponse(
+        "Enrollment was created, but one or more lesson schedules could not be verified.",
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const expectedTime =
+      normalizeTime(
+        expectedSchedule.schedule_time
+      );
+
+    const actualTime =
+      normalizeTime(
+        actualSchedule.schedule_time
+      );
+
+    console.log(
+      "VERIFYING SCHEDULE TIME:",
+      {
+        studentId:
+          expectedSchedule.student_id,
+
+        day:
+          expectedSchedule.day_of_week,
+
+        expectedTime,
+
+        actualTime,
+      }
+    );
+
+    if (
+      actualTime !==
+      expectedTime
+    ) {
+      console.error(
+        "SCHEDULE TIME MISMATCH:",
+        {
+          expected:
+            expectedSchedule,
+
+          actual:
+            actualSchedule,
+
+          expectedTime,
+
+          actualTime,
+        }
+      );
+
+      return new NextResponse(
+        "Enrollment was created, but one or more lesson times could not be verified.",
+        {
+          status: 500,
+        }
+      );
+    }
+  }
+
+  /* ======================================================================== */
+  /* VERIFY INDIVIDUAL / SHARED STRUCTURE                                    */
   /* ======================================================================== */
 
   if (!isShared) {
@@ -1361,46 +2084,101 @@ Hint: ${
       enrollmentVerification.student_id !==
       id
     ) {
-      console.error(
-        "INDIVIDUAL STUDENT RELATIONSHIP VERIFICATION FAILED:",
+      return new NextResponse(
+        "Enrollment was created, but the student relationship could not be verified.",
         {
-          expectedStudentId:
-            id,
-          actualStudentId:
-            enrollmentVerification.student_id,
+          status: 500,
+        }
+      );
+    }
+
+    const storedDays =
+      normalizeScheduleDays(
+        Array.isArray(
+          enrollmentVerification
+            .schedule_days
+        )
+          ? enrollmentVerification
+              .schedule_days
+          : []
+      );
+
+    if (
+      JSON.stringify(
+        storedDays
+      ) !==
+      JSON.stringify(
+        individualScheduleDays
+      )
+    ) {
+      console.error(
+        "INDIVIDUAL DAY MISMATCH:",
+        {
+          expected:
+            individualScheduleDays,
+          actual:
+            storedDays,
         }
       );
 
       return new NextResponse(
-        "Enrollment was created, but the student relationship could not be verified.",
-        { status: 500 }
+        "Enrollment was created, but its lesson days could not be verified.",
+        {
+          status: 500,
+        }
       );
     }
   }
 
   if (
     isShared &&
-    enrollmentVerification.student_id !==
-      null
+    enrollmentVerification
+      .student_id !== null
   ) {
-    console.error(
-      "SHARED ENROLLMENT STUDENT_ID VERIFICATION FAILED:",
-      {
-        enrollmentId:
-          enrollment.id,
-        studentId:
-          enrollmentVerification.student_id,
-      }
-    );
-
     return new NextResponse(
       "Shared enrollment was created with an invalid student relationship.",
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 
   /* ======================================================================== */
-  /* STEP 11: VERIFY PAYMENT                                                  */
+  /* VERIFY RENEWAL                                                           */
+  /* ======================================================================== */
+
+  if (
+    renewalOf &&
+    enrollmentVerification
+      .renewal_of !==
+      renewalOf
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but the renewal relationship could not be verified.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  /* ======================================================================== */
+  /* VERIFY INITIAL STATUS                                                    */
+  /* ======================================================================== */
+
+  if (
+    enrollmentVerification.status !==
+    "pending"
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but its initial status is invalid.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  /* ======================================================================== */
+  /* VERIFY PAYMENT                                                           */
   /* ======================================================================== */
 
   const {
@@ -1441,86 +2219,159 @@ Hint: ${
     !paymentVerification
   ) {
     console.error(
-      "PAYMENT VERIFICATION FAILED:",
-      {
-        enrollmentId:
-          enrollment.id,
-        paymentVerification,
-        paymentVerificationError,
-      }
+      "PAYMENT VERIFICATION ERROR:",
+      paymentVerificationError
     );
 
     return new NextResponse(
       "Enrollment was created, but the payment record could not be verified.",
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 
   if (
     Number(
       paymentVerification.amount
-    ) !== tuitionAmountKrw
+    ) !==
+    tuitionAmountKrw
   ) {
-    console.error(
-      "PAYMENT AMOUNT MISMATCH:",
-      {
-        expected:
-          tuitionAmountKrw,
-        actual:
-          paymentVerification.amount,
-      }
-    );
-
     return new NextResponse(
       "Enrollment was created, but the payment amount could not be verified.",
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 
   if (
     Number(
       paymentVerification.amount_krw
-    ) !== tuitionAmountKrw
+    ) !==
+    tuitionAmountKrw
   ) {
-    console.error(
-      "KRW PAYMENT AMOUNT MISMATCH:",
-      {
-        expected:
-          tuitionAmountKrw,
-        actual:
-          paymentVerification.amount_krw,
-      }
-    );
-
     return new NextResponse(
       "Enrollment was created, but the KRW payment amount could not be verified.",
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 
   if (
     Number(
       paymentVerification.amount_php
-    ) !== tuitionAmountPhp
+    ) !==
+    tuitionAmountPhp
   ) {
-    console.error(
-      "PHP PAYMENT AMOUNT MISMATCH:",
-      {
-        expected:
-          tuitionAmountPhp,
-        actual:
-          paymentVerification.amount_php,
-      }
-    );
-
     return new NextResponse(
       "Enrollment was created, but the PHP payment amount could not be verified.",
-      { status: 500 }
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    paymentVerification.currency !==
+    "KRW"
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but the payment currency is invalid.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    paymentVerification.status !==
+    "pending"
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but its payment status is invalid.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  /*
+   * payment_date must never be null.
+   */
+  if (
+    !paymentVerification.payment_date
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but the payment date could not be verified.",
+      {
+        status: 500,
+      }
     );
   }
 
   /* ======================================================================== */
-  /* STEP 12: FINAL LOG                                                       */
+  /* VERIFY CONTRACT                                                          */
+  /* ======================================================================== */
+
+  const {
+    data: contractVerification,
+    error:
+      contractVerificationError,
+  } = await supabase
+    .from("contracts")
+    .select(
+      `
+        id,
+        enrollment_id,
+        status
+      `
+    )
+    .eq(
+      "enrollment_id",
+      enrollment.id
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false,
+      }
+    )
+    .limit(1)
+    .maybeSingle();
+
+  if (
+    contractVerificationError ||
+    !contractVerification
+  ) {
+    console.error(
+      "CONTRACT VERIFICATION ERROR:",
+      contractVerificationError
+    );
+
+    return new NextResponse(
+      "Enrollment was created, but its contract could not be verified.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    contractVerification.status !==
+    "for_review"
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but its contract status is invalid.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  /* ======================================================================== */
+  /* FINAL LOG                                                                */
   /* ======================================================================== */
 
   console.log(
@@ -1540,22 +2391,35 @@ Hint: ${
       participantCount:
         studentIds.length,
 
+      renewalOf,
+
+      lessonsPerWeek,
+
       contractId:
         contract.id,
 
       paymentId:
         payment.id,
 
+      paymentDate:
+        paymentDate,
+
       enrollmentStatus:
         enrollment.status,
 
       paymentStatus:
         payment.status,
+
+      contractStatus:
+        contract.status,
+
+      normalizedSchedules:
+        enrollmentScheduleRows,
     }
   );
 
   /* ======================================================================== */
-  /* STEP 13: REDIRECT                                                        */
+  /* REDIRECT                                                                 */
   /* ======================================================================== */
 
   return NextResponse.redirect(
