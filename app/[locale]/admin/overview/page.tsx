@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import SearchFilters from "./SearchFilters";
 
 interface OverviewPageProps {
   params: Promise<{
     locale: string;
+  }>;
+  searchParams: Promise<{
+    student?: string;
+    number?: string;
+    status?: string;
   }>;
 }
 
@@ -17,6 +23,7 @@ interface LessonRow {
 
 interface EnrollmentRow {
   id: string;
+  student_id: string | null;
   package_name: string | null;
   number_of_lessons: number | null;
   status: string | null;
@@ -175,8 +182,56 @@ function formatScheduleRows(
     .join("  /  ");
 }
 
+/* ========================================================================= */
+/* STATUS                                                                    */
+/* ========================================================================= */
+
+type OverviewStatus =
+  | "active"
+  | "renewal_soon"
+  | "due_for_renewal"
+  | "pending"
+  | "completed"
+  | "cancelled";
+
+function getOverviewStatus(
+  rawStatus: string | null,
+  remainingLessons: number | null
+): OverviewStatus {
+  if (rawStatus === "active") {
+    if (remainingLessons !== null) {
+      if (remainingLessons <= 0) {
+        return "due_for_renewal";
+      }
+
+      if (remainingLessons <= 3) {
+        return "renewal_soon";
+      }
+    }
+
+    return "active";
+  }
+
+  if (rawStatus === "pending") {
+    return "pending";
+  }
+
+  if (rawStatus === "completed") {
+    return "completed";
+  }
+
+  if (
+    rawStatus === "cancelled" ||
+    rawStatus === "canceled"
+  ) {
+    return "cancelled";
+  }
+
+  return "active";
+}
+
 function getStatusStyles(
-  status: string | null
+  status: OverviewStatus
 ) {
   switch (status) {
     case "active":
@@ -184,6 +239,26 @@ function getStatusStyles(
         label: "Active",
         className:
           "bg-[#E5EBDD] text-[#607963]",
+        ballClassName:
+          "bg-[#6F8F72]",
+      };
+
+    case "renewal_soon":
+      return {
+        label: "Renewal soon",
+        className:
+          "bg-[#F4EBDD] text-[#A07845]",
+        ballClassName:
+          "bg-[#B8874C]",
+      };
+
+    case "due_for_renewal":
+      return {
+        label: "Due for renewal",
+        className:
+          "bg-[#F1E3E0] text-[#95645C]",
+        ballClassName:
+          "bg-[#A66A61]",
       };
 
     case "pending":
@@ -191,6 +266,8 @@ function getStatusStyles(
         label: "Pending",
         className:
           "bg-[#F3EEDC] text-[#927B45]",
+        ballClassName:
+          "bg-[#A58A4E]",
       };
 
     case "completed":
@@ -198,24 +275,26 @@ function getStatusStyles(
         label: "Completed",
         className:
           "bg-[#EAE8E3] text-[#77736B]",
+        ballClassName:
+          "bg-[#8A8780]",
       };
 
     case "cancelled":
-    case "canceled":
       return {
         label: "Cancelled",
         className:
-          "bg-[#F1E3E0] text-[#95645C]",
+          "bg-[#E8E6E2] text-[#2F2F2F]",
+        ballClassName:
+          "bg-[#292929]",
       };
 
     default:
       return {
-        label: status
-          ? status.charAt(0).toUpperCase() +
-            status.slice(1)
-          : "Unknown",
+        label: "Unknown",
         className:
           "bg-[#ECEAE6] text-[#77736B]",
+        ballClassName:
+          "bg-[#8A8780]",
       };
   }
 }
@@ -246,8 +325,19 @@ function getMonthFullLabel(monthIndex: number) {
 
 export default async function OverviewPage({
   params,
+  searchParams,
 }: OverviewPageProps) {
   const { locale } = await params;
+  const filters = await searchParams;
+
+  const studentSearch =
+    filters.student?.trim() ?? "";
+
+  const numberSearch =
+    filters.number?.trim() ?? "";
+
+  const statusFilter =
+    filters.status?.trim() ?? "";
 
   const supabase = await createClient();
 
@@ -316,11 +406,7 @@ export default async function OverviewPage({
   }
 
   const enrollmentRows =
-    (enrollments ?? []) as (
-      EnrollmentRow & {
-        student_id: string | null;
-      }
-    )[];
+    (enrollments ?? []) as EnrollmentRow[];
 
   /* ----------------------------------------------------------------------- */
   /* ENROLLMENT PARTICIPANTS                                                 */
@@ -349,8 +435,7 @@ export default async function OverviewPage({
   }
 
   const enrollmentStudentRows =
-    (enrollmentStudents ??
-      []) as EnrollmentStudentRow[];
+    (enrollmentStudents ?? []) as EnrollmentStudentRow[];
 
   /* ----------------------------------------------------------------------- */
   /* LESSONS                                                                 */
@@ -413,8 +498,7 @@ export default async function OverviewPage({
   }
 
   const scheduleRows =
-    (enrollmentSchedules ??
-      []) as EnrollmentScheduleRow[];
+    (enrollmentSchedules ?? []) as EnrollmentScheduleRow[];
 
   /* ----------------------------------------------------------------------- */
   /* PAYMENTS                                                                */
@@ -523,23 +607,108 @@ export default async function OverviewPage({
     );
   }
 
+  function getRemainingLessons(
+    enrollment: EnrollmentRow
+  ) {
+    if (enrollment.status !== "active") {
+      return null;
+    }
+
+    const lessons =
+      getEnrollmentLessons(
+        enrollment.id
+      );
+
+    const consumedLessons =
+      lessons.filter(
+        (lesson) =>
+          lesson.consumes_lesson
+      ).length;
+
+    const totalLessons =
+      enrollment.number_of_lessons ?? 0;
+
+    return Math.max(
+      0,
+      totalLessons -
+        consumedLessons
+    );
+  }
+
+  function getEnrollmentOverviewStatus(
+    enrollment: EnrollmentRow
+  ) {
+    const remainingLessons =
+      getRemainingLessons(
+        enrollment
+      );
+
+    return getOverviewStatus(
+      enrollment.status,
+      remainingLessons
+    );
+  }
+
+  function getLatestEnrollment(
+    enrollmentsForStudent: EnrollmentRow[]
+  ) {
+    return [...enrollmentsForStudent].sort(
+      (a, b) => {
+        const dateA = a.start_date
+          ? new Date(a.start_date).getTime()
+          : 0;
+
+        const dateB = b.start_date
+          ? new Date(b.start_date).getTime()
+          : 0;
+
+        return dateB - dateA;
+      }
+    )[0] ?? null;
+  }
+
+  /*
+   * The active enrollment remains the primary
+   * enrollment whenever one exists.
+   *
+   * This prevents a pending renewal from
+   * replacing the student's current active
+   * enrollment in the Overview.
+   */
+  function getPrimaryEnrollment(
+    studentId: string
+  ) {
+    const enrollmentsForStudent =
+      getEnrollmentsForStudent(
+        studentId
+      );
+
+    const activeEnrollment =
+      enrollmentsForStudent.find(
+        (enrollment) =>
+          enrollment.status === "active"
+      );
+
+    if (activeEnrollment) {
+      return activeEnrollment;
+    }
+
+    return getLatestEnrollment(
+      enrollmentsForStudent
+    );
+  }
+
   /* ----------------------------------------------------------------------- */
   /* ACTIVE ENROLLMENT SCHEDULE                                              */
   /* ----------------------------------------------------------------------- */
 
   function getStudentSchedule(
-    enrollment: EnrollmentRow & {
-      student_id: string | null;
-    },
+    enrollment: EnrollmentRow,
     studentId: string
   ) {
     /*
      * Schedule is only valid for the student's
      * current/active enrollment.
-     *
-     * This guard prevents pending, completed,
-     * or cancelled enrollment schedules from
-     * appearing in the overview.
      */
     if (enrollment.status !== "active") {
       return "No schedule";
@@ -555,12 +724,6 @@ export default async function OverviewPage({
       );
 
     if (schedules.length > 0) {
-      /*
-       * IMPORTANT:
-       * Pass both enrollment ID and student ID
-       * so schedules from an older enrollment
-       * cannot leak into the current schedule.
-       */
       return formatScheduleRows(
         scheduleRows,
         enrollment.id,
@@ -570,9 +733,6 @@ export default async function OverviewPage({
 
     /*
      * Legacy individual enrollment schedule.
-     * This is only used for an active individual
-     * enrollment that does not yet have rows in
-     * enrollment_schedules.
      */
     if (
       enrollment.student_id ===
@@ -589,6 +749,101 @@ export default async function OverviewPage({
 
     return "No schedule";
   }
+
+  /* ----------------------------------------------------------------------- */
+  /* STUDENT FILTERING                                                       */
+  /* ----------------------------------------------------------------------- */
+
+  const normalizedNameSearch =
+    studentSearch.toLowerCase();
+
+  const normalizedNumberSearch =
+    numberSearch.replace(/\D/g, "");
+
+  const filteredStudentRows =
+    studentRows.filter((student) => {
+      const enrollmentsForStudent =
+        getEnrollmentsForStudent(
+          student.id
+        );
+
+      /*
+       * Name search
+       */
+      if (normalizedNameSearch) {
+        const fullName =
+          student.full_name.toLowerCase();
+
+        const preferredName =
+          (
+            student.preferred_name ?? ""
+          ).toLowerCase();
+
+        const nameMatches =
+          fullName.includes(
+            normalizedNameSearch
+          ) ||
+          preferredName.includes(
+            normalizedNameSearch
+          );
+
+        if (!nameMatches) {
+          return false;
+        }
+      }
+
+      /*
+       * Student number search.
+       *
+       * The UI accepts only the last four
+       * digits. This also works whether the
+       * database stores HK1234 or 1234.
+       */
+      if (normalizedNumberSearch) {
+        const studentNumber =
+          String(
+            student.student_number ?? ""
+          );
+
+        const studentNumberDigits =
+          studentNumber.replace(
+            /\D/g,
+            ""
+          );
+
+        if (
+          !studentNumberDigits.endsWith(
+            normalizedNumberSearch
+          )
+        ) {
+          return false;
+        }
+      }
+
+      /*
+       * Status filter.
+       *
+       * A student can have more than one
+       * enrollment. The student is included
+       * if ANY of their enrollments matches
+       * the selected status.
+       */
+      if (statusFilter) {
+        const matchesStatus =
+          enrollmentsForStudent.some(
+            (enrollment) =>
+              getEnrollmentOverviewStatus(
+                enrollment
+              ) === statusFilter
+          );
+
+        if (!matchesStatus) {
+          return false;
+        }
+      }
+
+      return true;
+    });
 
   /* ----------------------------------------------------------------------- */
   /* STUDENT COUNTS                                                          */
@@ -721,6 +976,44 @@ export default async function OverviewPage({
     getMonthFullLabel(
       currentMonth
     );
+
+  /* ----------------------------------------------------------------------- */
+  /* FILTER STATE                                                            */
+  /* ----------------------------------------------------------------------- */
+
+  const hasFilters =
+    Boolean(
+      studentSearch ||
+        numberSearch ||
+        statusFilter
+    );
+
+  const statusOptions = [
+    {
+      value: "active",
+      label: "Active",
+    },
+    {
+      value: "renewal_soon",
+      label: "Renewal soon",
+    },
+    {
+      value: "due_for_renewal",
+      label: "Due for renewal",
+    },
+    {
+      value: "pending",
+      label: "Pending",
+    },
+    {
+      value: "completed",
+      label: "Completed",
+    },
+    {
+      value: "cancelled",
+      label: "Cancelled",
+    },
+  ];
 
   /* ========================================================================= */
   /* RENDER                                                                    */
@@ -1305,7 +1598,23 @@ export default async function OverviewPage({
           </Link>
         </div>
 
-        {activeStudentRows.length > 0 ? (
+        {/* ================================================================= */}
+        {/* SEARCH + FILTERS                                                  */}
+        {/* ================================================================= */}
+
+        <SearchFilters
+          locale={locale}
+          statusOptions={statusOptions}
+          studentSearch={studentSearch}
+          numberSearch={numberSearch}
+          statusFilter={statusFilter}
+        />
+
+        {/* ================================================================= */}
+        {/* TABLE                                                              */}
+        {/* ================================================================= */}
+
+        {filteredStudentRows.length > 0 ? (
           <div
             className="
               overflow-x-auto
@@ -1322,16 +1631,9 @@ export default async function OverviewPage({
               "
             >
               <colgroup>
-                {/* Student is narrower so Schedule starts closer */}
                 <col className="w-[22%]" />
-
-                {/* Schedule gets the largest share of space */}
                 <col className="w-[43%]" />
-
-                {/* Progress remains compact and is pushed right */}
                 <col className="w-[21%]" />
-
-                {/* Status remains compact */}
                 <col className="w-[14%]" />
               </colgroup>
 
@@ -1427,68 +1729,72 @@ export default async function OverviewPage({
               </thead>
 
               <tbody>
-                {activeStudentRows.map(
+                {filteredStudentRows.map(
                   (student) => {
-                    /*
-                     * Only an ACTIVE enrollment is
-                     * considered for this table.
-                     *
-                     * This guarantees that the schedule,
-                     * progress, and status all belong to
-                     * the same current enrollment.
-                     */
-                    const activeEnrollment =
+                    const enrollmentsForStudent =
                       getEnrollmentsForStudent(
                         student.id
-                      ).find(
+                      );
+
+                    const primaryEnrollment =
+                      getPrimaryEnrollment(
+                        student.id
+                      );
+
+                    if (
+                      !primaryEnrollment
+                    ) {
+                      return null;
+                    }
+
+                    const activeEnrollment =
+                      enrollmentsForStudent.find(
                         (enrollment) =>
                           enrollment.status ===
                           "active"
                       );
 
-                    if (
-                      !activeEnrollment
-                    ) {
-                      return null;
-                    }
+                    const displayEnrollment =
+                      activeEnrollment ??
+                      primaryEnrollment;
 
                     const shared =
                       isSharedEnrollment(
-                        activeEnrollment.id
+                        displayEnrollment.id
                       );
 
-                    /*
-                     * Lessons are also taken from the
-                     * active enrollment only.
-                     *
-                     * For shared enrollments, this is
-                     * intentionally the entire shared
-                     * lesson pool rather than lessons
-                     * belonging only to this student.
-                     */
                     const lessons =
                       getEnrollmentLessons(
-                        activeEnrollment.id
+                        displayEnrollment.id
                       );
 
+                    const isActive =
+                      displayEnrollment.status ===
+                      "active";
+
                     const consumedLessons =
-                      lessons.filter(
-                        (lesson) =>
-                          lesson.consumes_lesson
-                      ).length;
+                      isActive
+                        ? lessons.filter(
+                            (lesson) =>
+                              lesson.consumes_lesson
+                          ).length
+                        : 0;
 
                     const totalLessons =
-                      activeEnrollment.number_of_lessons ??
+                      displayEnrollment.number_of_lessons ??
                       0;
 
                     const remainingLessons =
-                      Math.max(
-                        0,
-                        totalLessons -
-                          consumedLessons
-                      );
+                      isActive
+                        ? Math.max(
+                            0,
+                            totalLessons -
+                              consumedLessons
+                          )
+                        : null;
 
                     const progress =
+                      isActive &&
                       totalLessons > 0
                         ? Math.min(
                             100,
@@ -1500,27 +1806,30 @@ export default async function OverviewPage({
                           )
                         : 0;
 
+                    const overviewStatus =
+                      getOverviewStatus(
+                        displayEnrollment.status,
+                        remainingLessons
+                      );
+
                     const status =
                       getStatusStyles(
-                        activeEnrollment.status
+                        overviewStatus
                       );
 
                     const studentName =
                       student.preferred_name ||
                       student.full_name;
 
-                    /*
-                     * Schedule is explicitly retrieved
-                     * from this student's active enrollment.
-                     *
-                     * This prevents schedules from previous
-                     * enrollments from appearing here.
-                     */
                     const schedule =
                       getStudentSchedule(
-                        activeEnrollment,
+                        displayEnrollment,
                         student.id
                       );
+
+                    const displayStudentNumber =
+                      student.student_number ??
+                      "—";
 
                     return (
                       <tr
@@ -1572,8 +1881,7 @@ export default async function OverviewPage({
                               text-[#9A9790]
                             "
                           >
-                            {student.student_number ??
-                              "—"}
+                            {displayStudentNumber}
                           </p>
 
                           {shared && (
@@ -1637,85 +1945,97 @@ export default async function OverviewPage({
                             sm:pr-3
                           "
                         >
-                          <div
-                            className="
-                              w-full
-                              max-w-[180px]
-                            "
-                          >
+                          {isActive ? (
                             <div
                               className="
-                                mb-1.5
-                                flex
-                                items-center
-                                justify-between
-                                gap-2
-                              "
-                            >
-                              <span
-                                className="
-                                  font-serif
-                                  text-[14px]
-                                  leading-5
-                                  text-[#4E4D48]
-                                "
-                              >
-                                {consumedLessons}{" "}
-                                /{" "}
-                                {totalLessons}
-                              </span>
-
-                              <span
-                                className="
-                                  shrink-0
-                                  font-sans
-                                  text-[9px]
-                                  text-[#99958E]
-                                "
-                              >
-                                {progress}%
-                              </span>
-                            </div>
-
-                            <div
-                              className="
-                                h-[3px]
                                 w-full
-                                overflow-hidden
-                                rounded-full
-                                bg-[#E4E1DB]
+                                max-w-[180px]
                               "
                             >
                               <div
                                 className="
-                                  h-full
-                                  rounded-full
-                                  bg-[#7B927C]
-                                  transition-all
+                                  mb-1.5
+                                  flex
+                                  items-center
+                                  justify-between
+                                  gap-2
                                 "
-                                style={{
-                                  width: `${progress}%`,
-                                }}
-                              />
-                            </div>
+                              >
+                                <span
+                                  className="
+                                    font-serif
+                                    text-[14px]
+                                    leading-5
+                                    text-[#4E4D48]
+                                  "
+                                >
+                                  {consumedLessons}{" "}
+                                  /{" "}
+                                  {totalLessons}
+                                </span>
 
-                            <p
+                                <span
+                                  className="
+                                    shrink-0
+                                    font-sans
+                                    text-[9px]
+                                    text-[#99958E]
+                                  "
+                                >
+                                  {progress}%
+                                </span>
+                              </div>
+
+                              <div
+                                className="
+                                  h-[3px]
+                                  w-full
+                                  overflow-hidden
+                                  rounded-full
+                                  bg-[#E4E1DB]
+                                "
+                              >
+                                <div
+                                  className="
+                                    h-full
+                                    rounded-full
+                                    bg-[#7B927C]
+                                    transition-all
+                                  "
+                                  style={{
+                                    width: `${progress}%`,
+                                  }}
+                                />
+                              </div>
+
+                              <p
+                                className="
+                                  mt-1.5
+                                  font-sans
+                                  text-[9px]
+                                  leading-4
+                                  text-[#99958E]
+                                "
+                              >
+                                {remainingLessons}{" "}
+                                {remainingLessons ===
+                                1
+                                  ? "lesson"
+                                  : "lessons"}{" "}
+                                remaining
+                              </p>
+                            </div>
+                          ) : (
+                            <span
                               className="
-                                mt-1.5
-                                font-sans
-                                text-[9px]
-                                leading-4
+                                font-serif
+                                text-[13px]
                                 text-[#99958E]
                               "
                             >
-                              {remainingLessons}{" "}
-                              {remainingLessons ===
-                              1
-                                ? "lesson"
-                                : "lessons"}{" "}
-                              remaining
-                            </p>
-                          </div>
+                              —
+                            </span>
+                          )}
                         </td>
 
                         {/* ================================================= */}
@@ -1735,6 +2055,7 @@ export default async function OverviewPage({
                             className={`
                               inline-flex
                               items-center
+                              gap-1.5
                               rounded-full
                               px-2.5
                               py-1.5
@@ -1746,6 +2067,16 @@ export default async function OverviewPage({
                               ${status.className}
                             `}
                           >
+                            <span
+                              className={`
+                                h-[5px]
+                                w-[5px]
+                                shrink-0
+                                rounded-full
+                                ${status.ballClassName}
+                              `}
+                            />
+
                             {status.label}
                           </span>
                         </td>
@@ -1772,7 +2103,9 @@ export default async function OverviewPage({
                 font-normal
               "
             >
-              No active students
+              {hasFilters
+                ? "No students found"
+                : "No students"}
             </h3>
 
             <p
@@ -1786,13 +2119,14 @@ export default async function OverviewPage({
                 text-[#74716B]
               "
             >
-              Students will appear here once
-              they have an active enrollment.
+              {hasFilters
+                ? "Try adjusting your search or filters."
+                : "Students will appear here once they have been added."}
             </p>
 
-            {totalStudents > 0 && (
+            {hasFilters && (
               <Link
-                href={`/${locale}/admin/students`}
+                href={`/${locale}/admin`}
                 className="
                   mt-6
                   inline-block
@@ -1803,7 +2137,7 @@ export default async function OverviewPage({
                   underline-offset-4
                 "
               >
-                View all students
+                Clear filters
               </Link>
             )}
           </div>
