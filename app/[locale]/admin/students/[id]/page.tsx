@@ -143,33 +143,67 @@ export default async function StudentPage({
 
   const supabase = await createClient();
 
-  /* ------------------------------------------------------------------------ */
-  /* 1. LOAD STUDENT                                                          */
+    /* ------------------------------------------------------------------------ */
+  /* 1. LOAD STUDENT + ALL STUDENTS                                          */
   /* ------------------------------------------------------------------------ */
 
-  const {
-    data: student,
-    error: studentError,
-  } = await supabase
-    .from("students")
-    .select(`
-      id,
-      full_name,
-      preferred_name,
-      email,
-      country,
-      timezone,
-      contact_method,
-      preferred_language,
-      created_at
-    `)
-    .eq("id", id)
-    .single();
+  const [
+    {
+      data: student,
+      error: studentError,
+    },
+    {
+      data: allStudentsData,
+      error: allStudentsError,
+    },
+  ] = await Promise.all([
+    supabase
+      .from("students")
+      .select(`
+        id,
+        full_name,
+        preferred_name,
+        email,
+        country,
+        timezone,
+        contact_method,
+        preferred_language,
+        created_at
+      `)
+      .eq("id", id)
+      .single(),
+
+    supabase
+      .from("students")
+      .select(`
+        id,
+        full_name,
+        preferred_name
+      `)
+      .order("preferred_name", {
+        ascending: true,
+        nullsFirst: false,
+      })
+      .order("full_name", {
+        ascending: true,
+      }),
+  ]);
 
   if (studentError || !student) {
     notFound();
   }
 
+  const allStudents =
+    allStudentsError || !allStudentsData
+      ? [
+          {
+            id: student.id,
+            full_name: student.full_name,
+            preferred_name: student.preferred_name,
+          },
+        ]
+      : allStudentsData;
+      
   /* ------------------------------------------------------------------------ */
   /* 2. LOAD DIRECT + SHARED ENROLLMENTS                                      */
   /* ------------------------------------------------------------------------ */
