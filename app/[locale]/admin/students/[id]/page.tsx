@@ -143,7 +143,7 @@ export default async function StudentPage({
 
   const supabase = await createClient();
 
-    /* ------------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------------ */
   /* 1. LOAD STUDENT + ALL STUDENTS                                          */
   /* ------------------------------------------------------------------------ */
 
@@ -203,7 +203,7 @@ export default async function StudentPage({
           },
         ]
       : allStudentsData;
-      
+
   /* ------------------------------------------------------------------------ */
   /* 2. LOAD DIRECT + SHARED ENROLLMENTS                                      */
   /* ------------------------------------------------------------------------ */
@@ -595,25 +595,70 @@ export default async function StudentPage({
   /* 5. DETERMINE SHARED ENROLLMENTS                                          */
   /* ------------------------------------------------------------------------ */
 
-  const sharedEnrollmentIds =
-    new Set(
-      allEnrollmentStudents.map(
-        (row) => row.enrollment_id
-      )
-    );
+  /*
+   * An enrollment is shared only when it has more than one
+   * distinct participant.
+   *
+   * The existence of an enrollment_students row by itself
+   * does NOT mean the enrollment is shared. Individual
+   * enrollments may also have a participant row for the
+   * enrolled student.
+   */
 
-  for (const sharedId of uniqueSharedEnrollmentIds) {
-    sharedEnrollmentIds.add(
-      sharedId
-    );
-  }
+  const sharedEnrollmentIds =
+    new Set<string>();
 
   for (const enrollment of rawEnrollments) {
-    if (
-      enrollment.package_name
-        ?.toLowerCase()
-        .includes("shared")
-    ) {
+    const participantIds =
+      new Set<string>();
+
+    /*
+     * The enrollment's primary student.
+     */
+    if (enrollment.student_id) {
+      participantIds.add(
+        enrollment.student_id
+      );
+    }
+
+    /*
+     * Students explicitly attached through
+     * enrollment_students.
+     */
+    for (const row of allEnrollmentStudents) {
+      if (
+        row.enrollment_id ===
+        enrollment.id
+      ) {
+        participantIds.add(
+          row.student_id
+        );
+      }
+    }
+
+    /*
+     * Students attached to lessons.
+     * This also helps identify older shared
+     * enrollments where participant rows may
+     * not have been stored consistently.
+     */
+    for (const lesson of lessons) {
+      if (
+        lesson.enrollment_id ===
+          enrollment.id &&
+        lesson.student_id
+      ) {
+        participantIds.add(
+          lesson.student_id
+        );
+      }
+    }
+
+    /*
+     * More than one distinct student means
+     * this is genuinely a shared enrollment.
+     */
+    if (participantIds.size > 1) {
       sharedEnrollmentIds.add(
         enrollment.id
       );

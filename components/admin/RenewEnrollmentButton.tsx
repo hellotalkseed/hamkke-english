@@ -160,41 +160,6 @@ function formatTime(time: string) {
   }).format(date);
 }
 
-function formatCurrency(
-  amount: number | null | undefined,
-  currency: string
-) {
-  if (
-    amount === null ||
-    amount === undefined ||
-    !Number.isFinite(amount)
-  ) {
-    return "";
-  }
-
-  return (
-    new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 2,
-    }).format(amount) + ` ${currency}`
-  );
-}
-
-function getDayIndex(day: string) {
-  const normalized = normalizeDay(day);
-
-  const indexes: Record<string, number> = {
-    sun: 0,
-    mon: 1,
-    tue: 2,
-    wed: 3,
-    thu: 4,
-    fri: 5,
-    sat: 6,
-  };
-
-  return indexes[normalized];
-}
-
 function getDayValueFromIndex(dayOfWeek: number) {
   const values = [
     "sun",
@@ -1329,6 +1294,7 @@ export default function RenewEnrollmentButton({
                   <div className="space-y-6">
                     <TextField
                       label="Package Name"
+                      name="package_name"
                       value={packageNameState}
                       onChange={
                         setPackageNameState
@@ -1340,6 +1306,7 @@ export default function RenewEnrollmentButton({
                     <div className="grid gap-6 sm:grid-cols-2">
                       <TextField
                         label="Number of Lessons"
+                        name="number_of_lessons"
                         type="number"
                         value={
                           numberOfLessonsState
@@ -1353,6 +1320,7 @@ export default function RenewEnrollmentButton({
 
                       <TextField
                         label="Lesson Duration"
+                        name="lesson_duration"
                         type="number"
                         value={
                           lessonDurationState
@@ -1492,6 +1460,7 @@ export default function RenewEnrollmentButton({
                       <div className="mt-4 grid gap-6 sm:grid-cols-2">
                         <TextField
                           label="Tuition Amount (KRW)"
+                          name="tuition_amount_krw"
                           type="number"
                           value={tuitionKrwState}
                           onChange={
@@ -1504,6 +1473,7 @@ export default function RenewEnrollmentButton({
 
                         <TextField
                           label="Tuition Amount (PHP)"
+                          name="tuition_amount_php"
                           type="number"
                           value={tuitionPhpState}
                           onChange={
@@ -1733,6 +1703,7 @@ export default function RenewEnrollmentButton({
 
                       <TextField
                         label="Reference Number"
+                        name="reference"
                         value={reference}
                         onChange={setReference}
                         placeholder="Optional"
@@ -2159,6 +2130,7 @@ function ParticipantScheduleCard({
 
 function TextField({
   label,
+  name,
   value,
   onChange,
   type = "text",
@@ -2168,6 +2140,7 @@ function TextField({
   required,
 }: {
   label: string;
+  name?: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
@@ -2190,6 +2163,7 @@ function TextField({
       </label>
 
       <input
+        name={name}
         type={type}
         value={value}
         onChange={(event) =>
