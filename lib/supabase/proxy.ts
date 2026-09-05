@@ -16,11 +16,9 @@ export async function updateSession(request: NextRequest) {
         },
 
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(
-            ({ name, value }) => {
-              request.cookies.set(name, value);
-            }
-          );
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
+          });
 
           response = NextResponse.next({
             request,
@@ -45,12 +43,14 @@ export async function updateSession(request: NextRequest) {
   const isAdminRoute =
     /^\/(en|ko|zh)\/admin(?:\/|$)/.test(pathname);
 
+  const isApiRoute = pathname.startsWith("/api/");
+
   const isLoginPage =
     /^\/(en|ko|zh)\/admin\/login(?:\/|$)/.test(
       pathname
     );
 
-  if (isAdminRoute && !isLoginPage) {
+  if (isAdminRoute && !isLoginPage && !isApiRoute) {
     const { data } = await supabase.auth.getClaims();
 
     if (!data?.claims) {
