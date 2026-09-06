@@ -45,6 +45,24 @@ interface TeacherLessonsResponse {
   lessons: TeacherLesson[];
 }
 
+interface AvailabilityBlock {
+  id: string;
+  teacher_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface AvailabilityResponse {
+  teacher: {
+    id: string;
+    full_name: string | null;
+  };
+  availability: AvailabilityBlock[];
+}
+
 interface TeacherLessonsPageProps {
   params: Promise<{
     locale: string;
@@ -52,27 +70,14 @@ interface TeacherLessonsPageProps {
 }
 
 const DAYS = [
-  { key: "sun", label: "Sun" },
-  { key: "mon", label: "Mon" },
-  { key: "tue", label: "Tue" },
-  { key: "wed", label: "Wed" },
-  { key: "thu", label: "Thu" },
-  { key: "fri", label: "Fri" },
-  { key: "sat", label: "Sat" },
+  { key: "sun", label: "Sun", dayOfWeek: 0 },
+  { key: "mon", label: "Mon", dayOfWeek: 1 },
+  { key: "tue", label: "Tue", dayOfWeek: 2 },
+  { key: "wed", label: "Wed", dayOfWeek: 3 },
+  { key: "thu", label: "Thu", dayOfWeek: 4 },
+  { key: "fri", label: "Fri", dayOfWeek: 5 },
+  { key: "sat", label: "Sat", dayOfWeek: 6 },
 ];
-
-/*
- * Calendar settings
- *
- * The visible calendar starts at 5:00 AM
- * and uses 30-minute intervals.
- *
- * 30-minute grid = 1 interval
- * 60-minute lesson = 2 intervals
- *
- * Lesson positions still use their exact start minute.
- * For example, 9:30 PM appears exactly at 21:30.
- */
 
 const START_HOUR = 5;
 const END_HOUR = 24;
@@ -83,12 +88,11 @@ const INTERVAL_HEIGHT = 42;
 const START_MINUTES = START_HOUR * 60;
 const END_MINUTES = END_HOUR * 60;
 
-const TOTAL_MINUTES =
-  END_MINUTES - START_MINUTES;
-
 const INTERVALS = Array.from(
   {
-    length: TOTAL_MINUTES / INTERVAL_MINUTES,
+    length:
+      (END_MINUTES - START_MINUTES) /
+      INTERVAL_MINUTES,
   },
   (_, index) => index
 );
@@ -165,6 +169,33 @@ function formatWeekRange(date: Date) {
   return `${startText} – ${endText}`;
 }
 
+function formatTime(
+  time: string
+) {
+  const [hourString, minuteString] =
+    time.split(":");
+
+  const hour = Number(hourString);
+  const minute = Number(minuteString);
+
+  if (
+    !Number.isFinite(hour) ||
+    !Number.isFinite(minute)
+  ) {
+    return time;
+  }
+
+  const period =
+    hour >= 12 ? "PM" : "AM";
+
+  const displayHour =
+    hour % 12 || 12;
+
+  return `${displayHour}:${String(
+    minute
+  ).padStart(2, "0")} ${period}`;
+}
+
 function formatInterval(index: number) {
   const totalMinutes =
     START_MINUTES +
@@ -177,47 +208,15 @@ function formatInterval(index: number) {
   const minute =
     totalMinutes % 60;
 
-  return `${String(hour).padStart(
-    2,
-    "0"
-  )}:${String(minute).padStart(
-    2,
-    "0"
-  )}`;
-}
-
-function getEventHour(
-  lesson: TeacherLesson
-) {
-  if (!lesson.philippine_time) {
-    return null;
-  }
-
-  const [hour] =
-    lesson.philippine_time
-      .split(":")
-      .map(Number);
-
-  return Number.isFinite(hour)
-    ? hour
-    : null;
-}
-
-function getEventMinute(
-  lesson: TeacherLesson
-) {
-  if (!lesson.philippine_time) {
-    return 0;
-  }
-
-  const [, minute] =
-    lesson.philippine_time
-      .split(":")
-      .map(Number);
-
-  return Number.isFinite(minute)
-    ? minute
-    : 0;
+  return formatTime(
+    `${String(hour).padStart(
+      2,
+      "0"
+    )}:${String(minute).padStart(
+      2,
+      "0"
+    )}`
+  );
 }
 
 function formatDayDate(date: Date) {
@@ -227,6 +226,40 @@ function formatDayDate(date: Date) {
       month: "short",
       day: "numeric",
     }
+  );
+}
+
+function timeToMinutes(
+  value: string
+) {
+  const [hourString, minuteString] =
+    value.split(":");
+
+  const hour = Number(hourString);
+  const minute = Number(minuteString);
+
+  if (
+    !Number.isFinite(hour) ||
+    !Number.isFinite(minute)
+  ) {
+    return null;
+  }
+
+  return (
+    hour * 60 +
+    minute
+  );
+}
+
+function getLessonStartMinutes(
+  lesson: TeacherLesson
+) {
+  if (!lesson.philippine_time) {
+    return null;
+  }
+
+  return timeToMinutes(
+    lesson.philippine_time
   );
 }
 
@@ -240,6 +273,9 @@ export default function TeacherLessonsPage({
       null
     );
 
+  const [availability, setAvailability] =
+    useState<AvailabilityBlock[]>([]);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -252,45 +288,75 @@ export default function TeacherLessonsPage({
     );
 
   useEffect(() => {
-    async function loadLessons() {
+    async function loadData() {
       try {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(
-          "/api/admin/teachers/lessons",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+        const [
+          lessonsResponse,
+          availabilityResponse,
+        ] = await Promise.all([
+          fetch(
+            "/api/admin/teachers/lessons",
+            {
+              method: "GET",
+              cache: "no-store",
+            }
+          ),
+          fetch(
+            "/api/admin/teachers/availability",
+            {
+              method: "GET",
+              cache: "no-store",
+            }
+          ),
+        ]);
 
-        const result =
-          await response.json();
+        const lessonsResult =
+          await lessonsResponse.json();
 
-        if (!response.ok) {
+        const availabilityResult =
+          await availabilityResponse.json();
+
+        if (!lessonsResponse.ok) {
           throw new Error(
-            result.error ||
+            lessonsResult.error ||
               "Failed to load lessons."
           );
         }
 
-        setData(result);
+        if (!availabilityResponse.ok) {
+          throw new Error(
+            availabilityResult.error ||
+              "Failed to load teacher availability."
+          );
+        }
+
+        setData(
+          lessonsResult
+        );
+
+        setAvailability(
+          availabilityResult.availability ??
+            []
+        );
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
-            : "Something went wrong while loading teacher lessons."
+            : "Something went wrong while loading the teacher calendar."
         );
       } finally {
         setLoading(false);
       }
     }
 
-    loadLessons();
+    loadData();
   }, []);
 
-  const lessons = data?.lessons ?? [];
+  const lessons =
+    data?.lessons ?? [];
 
   const weekDays = useMemo(() => {
     const start =
@@ -366,6 +432,112 @@ export default function TeacherLessonsPage({
     );
   }
 
+  function isSlotAvailable(
+    dayOfWeek: number,
+    slotStartMinutes: number
+  ) {
+    const slotEndMinutes =
+      slotStartMinutes +
+      INTERVAL_MINUTES;
+
+    const blocks =
+      availability.filter(
+        (block) =>
+          block.day_of_week ===
+          dayOfWeek
+      );
+
+    if (blocks.length === 0) {
+      return false;
+    }
+
+    return blocks.some(
+      (block) => {
+        const start =
+          timeToMinutes(
+            block.start_time
+          );
+
+        const end =
+          timeToMinutes(
+            block.end_time
+          );
+
+        if (
+          start === null ||
+          end === null
+        ) {
+          return false;
+        }
+
+        return (
+          slotStartMinutes >=
+            start &&
+          slotEndMinutes <= end
+        );
+      }
+    );
+  }
+
+  function getDayAvailabilityClass(
+    dayOfWeek: number,
+    interval: number
+  ) {
+    const slotStartMinutes =
+      START_MINUTES +
+      interval * INTERVAL_MINUTES;
+
+    const available =
+      isSlotAvailable(
+        dayOfWeek,
+        slotStartMinutes
+      );
+
+    return available
+      ? "bg-[#E4F0E3]"
+      : "bg-[#F3D9D5]";
+  }
+
+  function getLessonPosition(
+    lesson: TeacherLesson
+  ) {
+    const startMinutes =
+      getLessonStartMinutes(
+        lesson
+      );
+
+    if (startMinutes === null) {
+      return null;
+    }
+
+    const top =
+      ((startMinutes -
+        START_MINUTES) /
+        INTERVAL_MINUTES) *
+      INTERVAL_HEIGHT;
+
+    const height = Math.max(
+      38,
+      (lesson.duration /
+        INTERVAL_MINUTES) *
+        INTERVAL_HEIGHT
+    );
+
+    if (
+      startMinutes <
+        START_MINUTES ||
+      startMinutes >=
+        END_MINUTES
+    ) {
+      return null;
+    }
+
+    return {
+      top,
+      height,
+    };
+  }
+
   const Brand = () => (
     <Link
       href={`/${locale}/admin`}
@@ -426,15 +598,13 @@ export default function TeacherLessonsPage({
 
             </div>
 
-            {/* Brand aligned with Teacher */}
-
             <div className="shrink-0 pt-[52px]">
               <Brand />
             </div>
 
           </div>
 
-          <div className="mt-10 rounded-2xl border border-[#dedfd9] bg-[#fffefa] p-12 text-center shadow-[0_4px_20px_rgba(50,55,45,0.035)]">
+          <div className="mt-10 border-y border-[#dcd8d2] bg-[#fffefa] p-12 text-center">
 
             <p className="text-sm text-[#777a74]">
               Loading your lessons...
@@ -492,15 +662,13 @@ export default function TeacherLessonsPage({
 
             </div>
 
-            {/* Brand aligned with Teacher */}
-
             <div className="shrink-0 pt-[52px]">
               <Brand />
             </div>
 
           </div>
 
-          <div className="mt-10 rounded-2xl border border-[#e6d6d1] bg-[#fffaf8] px-5 py-4">
+          <div className="mt-10 border border-[#e6d6d1] bg-[#fffaf8] px-5 py-4">
 
             <p className="text-sm text-[#a45f58]">
               {error}
@@ -571,8 +739,6 @@ export default function TeacherLessonsPage({
 
           </div>
 
-          {/* Brand aligned with Teacher */}
-
           <div className="shrink-0 pt-[52px]">
             <Brand />
           </div>
@@ -608,12 +774,12 @@ export default function TeacherLessonsPage({
             <button
               type="button"
               onClick={goToToday}
-              className="rounded-xl border border-[#d9ddd5] bg-[#fffefa] px-4 py-2 text-sm font-medium text-[#596057] shadow-[0_2px_8px_rgba(50,55,45,0.025)] transition-colors hover:border-[#cbd5ca] hover:bg-[#eef2ed] hover:text-[#6f8f72]"
+              className="border border-[#d9ddd5] bg-[#fffefa] px-4 py-2 text-sm font-medium text-[#596057] transition-colors hover:bg-[#eef2ed] hover:text-[#6f8f72]"
             >
               Today
             </button>
 
-            <div className="flex overflow-hidden rounded-xl border border-[#d9ddd5] bg-[#fffefa] shadow-[0_2px_8px_rgba(50,55,45,0.025)]">
+            <div className="flex overflow-hidden border border-[#d9ddd5] bg-[#fffefa]">
 
               <button
                 type="button"
@@ -650,12 +816,13 @@ export default function TeacherLessonsPage({
         </div>
 
         {/* --------------------------------
-            No Lessons
+            No Lessons / Calendar
         -------------------------------- */}
 
-        {lessons.length === 0 ? (
+        {lessons.length === 0 &&
+        availability.length === 0 ? (
 
-          <div className="rounded-2xl border border-[#dedfd9] bg-[#fffefa] p-12 text-center shadow-[0_4px_20px_rgba(50,55,45,0.035)]">
+          <div className="border-y border-[#dcd8d2] bg-[#fffefa] p-12 text-center">
 
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#e9eee8] text-[#6f8f72]">
               <BookOpen
@@ -677,100 +844,91 @@ export default function TeacherLessonsPage({
         ) : (
 
           /* --------------------------------
-             Calendar
+             Owner-Style Weekly Calendar
           -------------------------------- */
 
-          <div className="overflow-hidden rounded-2xl border border-[#dedfd9] bg-[#fffefa] shadow-[0_5px_24px_rgba(50,55,45,0.04)]">
+          <div className="overflow-x-auto border-y border-[#dcd8d2] bg-[#fffefa]">
 
-            {/* Day Header */}
+            <div className="min-w-[980px]">
 
-            <div className="grid grid-cols-[68px_repeat(7,minmax(120px,1fr))] border-b border-[#dedfd9] bg-[#fafaf6]">
+              {/* Day Header */}
 
-              <div className="border-r border-[#e9eae5]" />
+              <div className="grid grid-cols-[78px_repeat(7,minmax(0,1fr))] border-b border-[#dcd8d2] bg-[#faf8f5]">
 
-              {weekDays.map(
-                (day) => {
+                <div className="border-r border-[#e4e1dc]" />
 
-                  const isToday =
-                    dateKey(
-                      day.date
-                    ) ===
-                    dateKey(
-                      new Date()
+                {weekDays.map(
+                  (day) => {
+
+                    const isToday =
+                      dateKey(
+                        day.date
+                      ) ===
+                      dateKey(
+                        new Date()
+                      );
+
+                    return (
+                      <div
+                        key={day.key}
+                        className={`border-r border-[#e4e1dc] px-2 py-3 text-center last:border-r-0 ${
+                          isToday
+                            ? "bg-[#f1f4ee]"
+                            : ""
+                        }`}
+                      >
+
+                        <p
+                          className={`text-[10px] font-medium uppercase tracking-[0.16em] ${
+                            isToday
+                              ? "text-[#6f8f72]"
+                              : "text-[#8b8d87]"
+                          }`}
+                        >
+                          {day.label}
+                        </p>
+
+                        <p
+                          className={`mt-1 text-xs font-medium ${
+                            isToday
+                              ? "text-[#55725a]"
+                              : "text-[#666a63]"
+                          }`}
+                        >
+                          {formatDayDate(
+                            day.date
+                          )}
+                        </p>
+
+                      </div>
                     );
+                  }
+                )}
 
-                  return (
-                    <div
-                      key={day.key}
-                      className={`border-r border-[#e9eae5] px-3 py-3.5 text-center last:border-r-0 ${
-                        isToday
-                          ? "bg-[#f0f4ee]"
-                          : ""
-                      }`}
-                    >
+              </div>
 
-                      <p
-                        className={`text-[10px] font-medium uppercase tracking-[0.16em] ${
-                          isToday
-                            ? "text-[#6f8f72]"
-                            : "text-[#999b95]"
-                        }`}
-                      >
-                        {day.label}
-                      </p>
+              {/* Calendar Body */}
 
-                      <p
-                        className={`mt-1 text-sm font-medium ${
-                          isToday
-                            ? "text-[#55725a]"
-                            : "text-[#555952]"
-                        }`}
-                      >
-                        {formatDayDate(
-                          day.date
-                        )}
-                      </p>
-
-                    </div>
-                  );
-                }
-              )}
-
-            </div>
-
-            {/* Calendar Body */}
-
-            <div className="overflow-x-auto">
-
-              <div
-                className="grid min-w-[960px] grid-cols-[68px_repeat(7,minmax(120px,1fr))]"
-                style={{
-                  height:
-                    INTERVALS.length *
-                    INTERVAL_HEIGHT,
-                }}
-              >
+              <div className="grid grid-cols-[78px_repeat(7,minmax(0,1fr))]">
 
                 {/* Time Column */}
 
-                <div className="relative border-r border-[#e7e8e3] bg-[#fafaf7]">
+                <div className="border-r border-[#e4e1dc] bg-[#faf8f5]">
 
                   {INTERVALS.map(
                     (interval) => (
 
                       <div
                         key={interval}
-                        className="absolute left-0 right-0 pr-3 text-right text-[10px] font-medium tabular-nums text-[#999b95]"
-                        style={{
-                          top:
-                            interval *
-                              INTERVAL_HEIGHT -
-                            6,
-                        }}
+                        className="flex h-[42px] items-center justify-end border-b border-[#e9e6e1] pr-2"
                       >
-                        {formatInterval(
-                          interval
-                        )}
+
+                        <span className="text-[10px] font-medium tabular-nums text-[#999b95]">
+                          {formatInterval(
+                            interval
+                          )}
+                        </span>
+
                       </div>
 
                     )
@@ -799,93 +957,45 @@ export default function TeacherLessonsPage({
                     return (
                       <div
                         key={day.key}
-                        className={`relative border-r border-[#e7e8e3] last:border-r-0 ${
+                        className={`relative border-r border-[#e4e1dc] last:border-r-0 ${
                           isToday
                             ? "bg-[#fcfdf9]"
-                            : "bg-[#fffefa]"
+                            : ""
                         }`}
                       >
 
-                        {/* 30-Minute Grid Lines */}
+                        {/* Availability Grid */}
 
                         {INTERVALS.map(
-                          (interval) => (
+                          (interval) => {
 
-                            <div
-                              key={interval}
-                              className="absolute left-0 right-0 border-t border-[#eeeeea]"
-                              style={{
-                                top:
-                                  interval *
-                                  INTERVAL_HEIGHT,
-                              }}
-                            />
+                            const availabilityClass =
+                              getDayAvailabilityClass(
+                                day.dayOfWeek,
+                                interval
+                              );
 
-                          )
+                            return (
+                              <div
+                                key={interval}
+                                className={`relative h-[42px] border-b border-[#e9e6e1] p-[3px] ${availabilityClass}`}
+                              />
+                            );
+                          }
                         )}
 
-                        {/* Lessons */}
+                        {/* Scheduled Lessons */}
 
                         {dayLessons.map(
                           (lesson) => {
 
-                            const hour =
-                              getEventHour(
+                            const position =
+                              getLessonPosition(
                                 lesson
                               );
 
                             if (
-                              hour ===
-                              null
-                            ) {
-                              return null;
-                            }
-
-                            const minute =
-                              getEventMinute(
-                                lesson
-                              );
-
-                            const startMinutes =
-                              hour * 60 +
-                              minute;
-
-                            /*
-                             * Translate the actual lesson
-                             * time into the visible calendar
-                             * starting at 5:00 AM.
-                             *
-                             * Example:
-                             * 05:00 = 0px
-                             * 05:30 = 42px
-                             * 21:30 = 1386px
-                             */
-
-                            const top =
-                              ((startMinutes -
-                                START_MINUTES) /
-                                INTERVAL_MINUTES) *
-                              INTERVAL_HEIGHT;
-
-                            const height =
-                              Math.max(
-                                38,
-                                (lesson.duration /
-                                  INTERVAL_MINUTES) *
-                                  INTERVAL_HEIGHT
-                              );
-
-                            /*
-                             * Don't render lessons that
-                             * fall outside the visible
-                             * 5:00 AM–midnight range.
-                             */
-
-                            if (
-                              startMinutes <
-                                START_MINUTES ||
-                              startMinutes >=
-                                END_MINUTES
+                              !position
                             ) {
                               return null;
                             }
@@ -901,18 +1011,29 @@ export default function TeacherLessonsPage({
 
                             return (
                               <Link
-                                key={`${lesson.id}-${lesson.enrollment_student_id}`}
+                                key={lesson.id}
                                 href={`/${locale}/admin/teachers/lessons/${lesson.id}`}
-                                aria-label={`Open lesson for ${studentName}`}
-                                className="group absolute left-1.5 right-1.5 z-10 overflow-hidden rounded-lg border border-[#d3ded2] bg-[#edf2eb] px-3 py-2 transition-all duration-150 hover:-translate-y-px hover:border-[#b9cbb9] hover:bg-[#e5ece3] hover:shadow-[0_4px_12px_rgba(50,55,45,0.07)]"
+                                aria-label={`Open lesson ${lesson.lesson_number} for ${studentName}`}
+                                className="group absolute left-1 right-1 z-20 overflow-hidden border border-[#d9be6a] bg-[#f3e8b8] px-2 py-1.5 transition-colors hover:border-[#c9aa4d] hover:bg-[#eddfa7]"
                                 style={{
-                                  top,
-                                  height,
+                                  top: position.top + 3,
+                                  height:
+                                    position.height - 6,
                                 }}
                               >
 
-                                <p className="truncate text-sm font-medium text-[#56705a]">
-                                  {studentName}
+                                <p className="truncate text-[11px] leading-tight text-[#665a31]">
+                                  <span className="font-bold">
+                                    {studentName}
+                                  </span>{" "}
+                                  - Lesson{" "}
+                                  {
+                                    lesson.lesson_number
+                                  }{" "}
+                                  {
+                                    lesson.duration
+                                  }{" "}
+                                  min.
                                 </p>
 
                               </Link>
@@ -933,11 +1054,46 @@ export default function TeacherLessonsPage({
         )}
 
         {/* --------------------------------
-            Footer Note
+            Legend / Footer
         -------------------------------- */}
 
-        {lessons.length > 0 && (
-          <div className="mt-4 flex flex-col gap-1 text-[11px] tracking-wide text-[#969891] sm:flex-row sm:items-center sm:justify-between">
+        {(lessons.length > 0 ||
+          availability.length > 0) && (
+          <div className="mt-4 flex flex-col gap-3 text-[11px] tracking-wide text-[#969891] lg:flex-row lg:items-center lg:justify-between">
+
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+
+              <div className="flex items-center gap-2">
+
+                <span className="h-3 w-3 border border-[#b7cdb5] bg-[#e4f0e3]" />
+
+                <span>
+                  Available
+                </span>
+
+              </div>
+
+              <div className="flex items-center gap-2">
+
+                <span className="h-3 w-3 border border-[#d9be6a] bg-[#f3e8b8]" />
+
+                <span>
+                  Scheduled
+                </span>
+
+              </div>
+
+              <div className="flex items-center gap-2">
+
+                <span className="h-3 w-3 border border-[#d2aaa4] bg-[#f3d9d5]" />
+
+                <span>
+                  Unavailable
+                </span>
+
+              </div>
+
+            </div>
 
             <p>
               Schedule shown in Philippine Time.
