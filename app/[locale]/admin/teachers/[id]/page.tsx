@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
+import TeacherAgreement from "@/components/admin/TeacherAgreement";
+
 /* ========================================================================= */
 /* TYPES                                                                     */
 /* ========================================================================= */
@@ -237,10 +239,7 @@ function createTimeSlots() {
     const minute = minutes % 60;
 
     slots.push(
-      `${String(hour).padStart(2, "0")}:${String(minute).padStart(
-        2,
-        "0"
-      )}`
+      `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
     );
   }
 
@@ -344,6 +343,7 @@ export default function ManageTeacherPage() {
     useState<AvailabilityBlock[]>([]);
 
   const [loading, setLoading] = useState(true);
+
   const [loadingAvailability, setLoadingAvailability] =
     useState(false);
 
@@ -861,16 +861,12 @@ export default function ManageTeacherPage() {
 
       <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
         <div className="flex w-full items-start justify-between gap-8">
-          {/* Back to Teachers */}
-
           <Link
             href={`/${locale}/admin/teachers`}
             className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
           >
             ← Teachers
           </Link>
-
-          {/* Hamkke Brand */}
 
           <Link
             href={`/${locale}`}
@@ -934,6 +930,14 @@ export default function ManageTeacherPage() {
       </section>
 
       {/* =================================================================== */}
+      {/* TEACHER AGREEMENT                                                   */}
+      {/* =================================================================== */}
+
+      <section className="mx-auto max-w-[1200px] px-6 pb-10 sm:px-8 sm:pb-12 lg:px-10">
+        <TeacherAgreement teacher={teacher} />
+      </section>
+
+      {/* =================================================================== */}
       {/* CALENDAR                                                             */}
       {/* =================================================================== */}
 
@@ -975,8 +979,6 @@ export default function ManageTeacherPage() {
 
         <div className="overflow-x-auto border-y border-[#DCD8D2]">
           <div className="min-w-[980px]">
-            {/* DAY HEADER */}
-
             <div className="grid grid-cols-[78px_repeat(7,minmax(120px,1fr))] border-b border-[#DCD8D2]">
               <div className="border-r border-[#E7E3DD] p-3" />
 
@@ -992,8 +994,6 @@ export default function ManageTeacherPage() {
               ))}
             </div>
 
-            {/* CALENDAR BODY */}
-
             {loadingAvailability ? (
               <div className="py-20 text-center">
                 <p className="font-serif text-[16px] text-[#74716B]">
@@ -1007,15 +1007,11 @@ export default function ManageTeacherPage() {
                     key={time}
                     className="grid grid-cols-[78px_repeat(7,minmax(120px,1fr))]"
                   >
-                    {/* TIME */}
-
                     <div className="border-r border-b border-[#E7E3DD] px-2 py-2 text-right">
                       <span className="font-sans text-[9px] text-[#99958D]">
                         {formatTime(time)}
                       </span>
                     </div>
-
-                    {/* DAYS */}
 
                     {DAYS.map((day) => {
                       const slot =
@@ -1031,10 +1027,6 @@ export default function ManageTeacherPage() {
                       const isAvailable =
                         slot.type ===
                         "available";
-
-                      const isUnavailable =
-                        slot.type ===
-                        "unavailable";
 
                       return (
                         <div
@@ -1343,7 +1335,7 @@ export default function ManageTeacherPage() {
 
                     const schedule =
                       scheduleDays.length > 0
-                        ? scheduleDays
+                        ? [...scheduleDays]
                             .sort(
                               (a, b) =>
                                 a - b
