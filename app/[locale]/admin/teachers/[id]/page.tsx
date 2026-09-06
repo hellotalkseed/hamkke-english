@@ -97,6 +97,12 @@ type AvailabilityBlock = {
   end_time: string;
 };
 
+type TeacherLessonProgress = {
+  enrollment_id: string;
+  lesson_number: number;
+  consumes_lesson: boolean;
+};
+
 /* ========================================================================= */
 /* CONSTANTS                                                                 */
 /* ========================================================================= */
@@ -348,6 +354,31 @@ function timeToMinutes(time: string | null | undefined) {
   }
 
   return hours * 60 + minutes;
+}
+
+/* ========================================================================= */
+/* STUDENT NUMBER DISPLAY                                                    */
+/* ========================================================================= */
+
+function formatStudentNumber(
+  studentNumber: string | null | undefined
+) {
+  if (!studentNumber) {
+    return "—";
+  }
+
+  /*
+   * Stored values currently look like:
+   *
+   * HK-2026-0003
+   *
+   * We only shorten the display to:
+   *
+   * HK-0003
+   *
+   * The database value itself is never changed.
+   */
+  return studentNumber.replace(/^HK-\d{4}-/, "HK-");
 }
 
 /* ========================================================================= */
@@ -684,6 +715,67 @@ function getAssignmentForSlot(
 }
 
 /* ========================================================================= */
+/* PROGRESS HELPERS                                                          */
+/* ========================================================================= */
+
+function getLessonProgress(
+  lessons: TeacherLessonProgress[],
+  enrollmentId: string | null | undefined
+) {
+  if (!enrollmentId) {
+    return {
+      consumed: 0,
+      total: 0,
+    };
+  }
+
+  const enrollmentLessons = lessons.filter(
+    (lesson) =>
+      lesson.enrollment_id === enrollmentId
+  );
+
+  /*
+   * A lesson counts toward progress only when
+   * consumes_lesson is true.
+   */
+  const consumed = enrollmentLessons.filter(
+    (lesson) =>
+      lesson.consumes_lesson === true
+  ).length;
+
+  /*
+   * The highest lesson_number represents the actual
+   * number of lessons generated for this enrollment.
+   *
+   * This means progress comes from the lesson records
+   * themselves, rather than assignment date or
+   * teacher assignment date.
+   */
+  const total = enrollmentLessons.reduce(
+    (highestLessonNumber, lesson) => {
+      const lessonNumber = Number(
+        lesson.lesson_number
+      );
+
+      if (Number.isNaN(lessonNumber)) {
+        return highestLessonNumber;
+      }
+
+      return Math.max(
+        highestLessonNumber,
+        lessonNumber
+      );
+    },
+    0
+  );
+
+  return {
+    consumed,
+    total,
+  };
+}
+
+/* ========================================================================= */
 /* PAGE                                                                      */
 /* ========================================================================= */
 
@@ -706,6 +798,11 @@ export default function ManageTeacherPage() {
 
   const [availability, setAvailability] =
     useState<AvailabilityBlock[]>([]);
+
+  const [
+    teacherLessons,
+    setTeacherLessons,
+  ] = useState<TeacherLessonProgress[]>([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -801,6 +898,7 @@ export default function ManageTeacherPage() {
         await Promise.all([
           loadAssignments(),
           loadAvailability(),
+          loadTeacherLessons(),
         ]);
       } catch (err) {
         console.error(
@@ -848,6 +946,99 @@ export default function ManageTeacherPage() {
         ? data.assignments
         : []
     );
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* LOAD TEACHER LESSON PROGRESS                                            */
+  /* ----------------------------------------------------------------------- */
+
+  async function loadTeacherLessons() {
+    try {
+      /*
+       * IMPORTANT:
+       *
+       * Do NOT use:
+       *
+       * /api/admin/teachers/lessons
+       *
+       * That route is scoped to the logged-in teacher.
+       *
+       * This page is the Owner/Admin teacher-management
+       * page, so progress is loaded through the
+       * teacher-specific Owner/Admin endpoint.
+       */
+      const response = await fetch(
+        `/api/admin/teachers/${teacherId}/progress`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Unable to load teacher lesson progress."
+        );
+      }
+
+      const lessons = Array.isArray(
+        data.lessons
+      )
+        ? data.lessons
+        : [];
+
+      const progressLessons: TeacherLessonProgress[] =
+        lessons
+          .filter(
+            (lesson: unknown) =>
+              lesson &&
+              typeof lesson === "object"
+          )
+          .map(
+            (
+              lesson: Record<string, unknown>
+            ) => ({
+              enrollment_id:
+                String(
+                  lesson.enrollment_id || ""
+                ),
+
+              lesson_number: Number(
+                lesson.lesson_number || 0
+              ),
+
+              consumes_lesson:
+                lesson.consumes_lesson === true,
+            })
+          )
+          .filter(
+            (
+              lesson: TeacherLessonProgress
+            ) =>
+              lesson.enrollment_id &&
+              lesson.lesson_number > 0
+          );
+
+      setTeacherLessons(
+        progressLessons
+      );
+    } catch (err) {
+      console.error(
+        "Error loading teacher lesson progress:",
+        err
+      );
+
+      /*
+       * Progress is supplementary information.
+       *
+       * We do not prevent the teacher management
+       * page from loading if lesson progress fails.
+       */
+      setTeacherLessons([]);
+    }
   }
 
   /* ----------------------------------------------------------------------- */
@@ -1283,7 +1474,7 @@ export default function ManageTeacherPage() {
           </div>
         </header>
 
-        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
+        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 sm:px-8 sm:pt-16 lg:px-10">
           <div className="border-y border-[#DCD8D2] py-20 text-center">
             <h1 className="font-serif text-[30px] font-normal">
               Unable to load teacher
@@ -1373,11 +1564,11 @@ export default function ManageTeacherPage() {
           </div>
 
           <Link
-            href={`/${locale}/admin/teachers/${teacher.id}/payroll`}
-            className="inline-flex w-fit items-center gap-2 border-b border-[#6F8F72] pb-1 font-sans text-[13px] text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55]"
-          >
-            Payroll →
-          </Link>
+  href={`/${locale}/admin/teachers/${teacher.id}/payroll`}
+  className="inline-flex w-fit items-center justify-center rounded-full border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[13px] font-medium text-white transition-colors hover:border-[#5F7E63] hover:bg-[#5F7E63]"
+>
+  Payroll →
+</Link>
         </div>
       </section>
 
@@ -1672,10 +1863,10 @@ export default function ManageTeacherPage() {
 
                           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
                             <span className="font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
-                              Student #
-                              {item.student
-                                ?.student_number ||
-                                "—"}
+                              {formatStudentNumber(
+                                item.student
+                                  ?.student_number
+                              )}
                             </span>
 
                             <span className="font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
@@ -1789,10 +1980,11 @@ export default function ManageTeacherPage() {
             </h2>
 
             <p className="mt-2 max-w-[650px] font-serif text-[14px] leading-6 text-[#74716B]">
-              Students are shown using their actual
-              recurring lesson schedule. The timezone shown
-              here belongs to the student, while the weekly
-              calendar above is always displayed in PHT.
+              Students are shown with their assigned class
+              schedule in PHT. The timezone shown under
+              each student belongs to the student, while
+              the weekly calendar above is always displayed
+              in PHT.
             </p>
           </div>
 
@@ -1813,7 +2005,7 @@ export default function ManageTeacherPage() {
 
         {activeAssignments.length > 0 ? (
           <div className="overflow-x-auto border-y border-[#DCD8D2]">
-            <table className="w-full min-w-[980px] border-collapse">
+            <table className="w-full min-w-[860px] border-collapse">
               <thead>
                 <tr className="border-b border-[#DCD8D2]">
                   <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84] sm:px-4">
@@ -1821,19 +2013,15 @@ export default function ManageTeacherPage() {
                   </th>
 
                   <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
-                    Student Schedule
-                  </th>
-
-                  <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
                     PHT Time
                   </th>
 
                   <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
-                    Package
+                    Duration
                   </th>
 
                   <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
-                    Duration
+                    Progress
                   </th>
 
                   <th className="px-3 py-4 text-right font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84] sm:px-4">
@@ -1848,16 +2036,6 @@ export default function ManageTeacherPage() {
                     const studentName =
                       getStudentName(
                         assignment.student
-                      );
-
-                    /*
-                     * Actual student schedule.
-                     */
-                    const studentSchedule =
-                      normalizeSchedule(
-                        getAssignmentStudentSchedule(
-                          assignment
-                        )
                       );
 
                     /*
@@ -1878,6 +2056,29 @@ export default function ManageTeacherPage() {
                           assignment.timezone
                       );
 
+                    /*
+                     * Progress comes from actual lesson
+                     * records associated with this enrollment.
+                     */
+                    const progress =
+                      getLessonProgress(
+                        teacherLessons,
+                        assignment
+                          .enrollment?.id
+                      );
+
+                    const progressPercent =
+                      progress.total > 0
+                        ? Math.min(
+                            100,
+                            Math.round(
+                              (progress.consumed /
+                                progress.total) *
+                                100
+                            )
+                          )
+                        : 0;
+
                     return (
                       <tr
                         key={
@@ -1885,17 +2086,21 @@ export default function ManageTeacherPage() {
                         }
                         className="border-b border-[#E7E3DD] last:border-b-0 hover:bg-[#F2F5F0]"
                       >
+                        {/* ================================================= */}
+                        {/* STUDENT                                           */}
+                        {/* ================================================= */}
+
                         <td className="px-3 py-4 sm:px-4 sm:py-[18px]">
                           <p className="font-serif text-[17px] leading-6 tracking-[-0.01em]">
                             {studentName}
                           </p>
 
                           <p className="mt-1 font-sans text-[10px] uppercase tracking-[0.12em] text-[#9A9790]">
-                            Student #
-                            {assignment
-                              .student
-                              ?.student_number ||
-                              "—"}
+                            {formatStudentNumber(
+                              assignment
+                                .student
+                                ?.student_number
+                            )}
                           </p>
 
                           <p className="mt-1 font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
@@ -1904,44 +2109,7 @@ export default function ManageTeacherPage() {
                         </td>
 
                         {/* ================================================= */}
-                        {/* ACTUAL STUDENT SCHEDULE                         */}
-                        {/* ================================================= */}
-
-                        <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
-                          {studentSchedule.length > 0 ? (
-                            <div className="flex flex-col gap-1">
-                              {studentSchedule.map(
-                                (item) => {
-                                  const day =
-                                    DAYS.find(
-                                      (
-                                        dayItem
-                                      ) =>
-                                        dayItem.value ===
-                                        item.day_of_week
-                                    )?.label ||
-                                    "—";
-
-                                  return (
-                                    <span
-                                      key={`${item.day_of_week}-${item.schedule_time}`}
-                                    >
-                                      {day}{" "}
-                                      {formatTime(
-                                        item.schedule_time
-                                      )}
-                                    </span>
-                                  );
-                                }
-                              )}
-                            </div>
-                          ) : (
-                            "No schedule"
-                          )}
-                        </td>
-
-                        {/* ================================================= */}
-                        {/* PHT CONVERTED SCHEDULE                           */}
+                        {/* PHT TIME                                          */}
                         {/* ================================================= */}
 
                         <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
@@ -1977,12 +2145,9 @@ export default function ManageTeacherPage() {
                           )}
                         </td>
 
-                        <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
-                          {assignment
-                            .enrollment
-                            ?.package_name ||
-                            "Private English Lessons"}
-                        </td>
+                        {/* ================================================= */}
+                        {/* DURATION                                          */}
+                        {/* ================================================= */}
 
                         <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
                           {assignment
@@ -1991,6 +2156,41 @@ export default function ManageTeacherPage() {
                             ? `${assignment.enrollment.lesson_duration} min`
                             : "—"}
                         </td>
+
+                        {/* ================================================= */}
+                        {/* PROGRESS                                           */}
+                        {/* ================================================= */}
+
+                        <td className="px-3 py-4 sm:py-[18px]">
+                          <div className="flex min-w-[145px] items-center gap-3">
+                            <div
+                              className="h-[5px] flex-1 overflow-hidden rounded-full bg-[#E5E1DB]"
+                              aria-label={`${progress.consumed} of ${progress.total} classes completed`}
+                            >
+                              <div
+                                className="h-full rounded-full bg-[#6F8F72] transition-[width] duration-300"
+                                style={{
+                                  width: `${progressPercent}%`,
+                                }}
+                              />
+                            </div>
+
+                            <span className="shrink-0 font-sans text-[11px] font-medium tabular-nums text-[#55544F]">
+                              {progress.consumed}/
+                              {progress.total}
+                            </span>
+                          </div>
+
+                          {progress.total > 0 && (
+                            <p className="mt-1.5 font-sans text-[8px] uppercase tracking-[0.1em] text-[#9A9790]">
+                              {progressPercent}%
+                            </p>
+                          )}
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* STATUS                                            */}
+                        {/* ================================================= */}
 
                         <td className="px-3 py-4 text-right sm:px-4 sm:py-[18px]">
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E5EBDD] px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#607963]">
