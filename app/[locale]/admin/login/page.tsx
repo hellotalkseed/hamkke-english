@@ -34,9 +34,9 @@ export default function AdminLoginPage() {
     urlError === "role_mismatch" &&
     (actualRole === "owner" || actualRole === "teacher")
       ? `This account is registered as a ${
-          actualRole === "owner" ? "Owner" : "Teacher"
+          actualRole === "owner" ? "Admin" : "Teacher"
         }. Please select ${
-          actualRole === "owner" ? "Owner" : "Teacher"
+          actualRole === "owner" ? "Admin" : "Teacher"
         } to continue.`
       : "";
 
@@ -91,7 +91,8 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // Only Owner and Teacher accounts are allowed.
+    // Only Admin and Teacher accounts are allowed.
+    // "owner" remains the actual database role.
     if (profile.role !== "owner" && profile.role !== "teacher") {
       await supabase.auth.signOut();
 
@@ -277,7 +278,7 @@ export default function AdminLoginPage() {
                   }
                 `}
               >
-                Owner
+                Admin
               </button>
 
               <button
@@ -510,7 +511,7 @@ export default function AdminLoginPage() {
               ? "Signing in..."
               : `Sign in as ${
                   role === "owner"
-                    ? "Owner"
+                    ? "Admin"
                     : "Teacher"
                 }`}
           </button>
