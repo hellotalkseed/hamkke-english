@@ -167,7 +167,10 @@ export default async function StudentsPage({
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      {/* HEADER */}
+      {/* =================================================================== */}
+      {/* HEADER                                                              */}
+      {/* =================================================================== */}
+
       <header
         className="
           w-full
@@ -179,7 +182,17 @@ export default async function StudentsPage({
           xl:px-12
         "
       >
-        <div className="relative flex w-full items-center justify-between">
+        <div
+          className="
+            flex
+            w-full
+            items-start
+            justify-between
+            gap-8
+          "
+        >
+          {/* Back to Administration */}
+
           <Link
             href={`/${locale}/admin`}
             className="
@@ -190,48 +203,51 @@ export default async function StudentsPage({
               transition-colors
               duration-200
               hover:text-[#6F8F72]
-            "
-          >
-            ← Admin
-          </Link>
-
-          <div
-            className="
-              absolute
-              left-1/2
-              hidden
-              -translate-x-1/2
-              whitespace-nowrap
-              font-sans
-              text-[15px]
-              font-medium
-              text-[#6F8F72]
-              sm:block
               sm:text-[16px]
             "
           >
-            Hamkke │ 함께
-          </div>
+            &larr; Administration
+          </Link>
 
-          <div
+          {/* Hamkke Brand */}
+
+          <Link
+            href={`/${locale}`}
             className="
-              flex
-              items-center
-              gap-3
-              font-sans
-              text-[14px]
-              text-[#5F655F]
-              sm:gap-4
-              sm:text-[15px]
+              shrink-0
+              text-right
+              transition-opacity
+              duration-200
+              hover:opacity-70
             "
           >
-            <span className="font-medium text-[#6F8F72]">
-              EN
-            </span>
+            <p
+              className="
+                font-sans
+                text-[16px]
+                font-semibold
+                leading-none
+                tracking-[0.18em]
+                text-[#6F8F72]
+              "
+            >
+              HAMKKE │ 함께
+            </p>
 
-            <span>한국어</span>
-            <span>中文</span>
-          </div>
+            <p
+              className="
+                mt-2
+                font-serif
+                text-[13px]
+                font-normal
+                leading-none
+                tracking-[0.02em]
+                text-[#6F8F72]
+              "
+            >
+              From Small Talk to Big Ideas
+            </p>
+          </Link>
         </div>
       </header>
 

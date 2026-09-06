@@ -41,32 +41,113 @@ export default async function ReflectionsAdminPage({
       className="
         min-h-screen
         bg-[#FAF8F5]
-        px-6
-        py-20
       "
     >
-      <div className="mx-auto max-w-4xl">
+
+      {/* =================================================================== */}
+      {/* HEADER                                                              */}
+      {/* =================================================================== */}
+
+      <header
+        className="
+          w-full
+          px-6
+          pt-7
+          sm:px-8
+          sm:pt-8
+          lg:px-10
+          xl:px-12
+        "
+      >
+        <div
+          className="
+            flex
+            w-full
+            items-start
+            justify-between
+            gap-8
+          "
+        >
+          {/* Back to Administration */}
+
+          <a
+            href={`/${locale}/admin`}
+            className="
+              shrink-0
+              font-sans
+              text-[15px]
+              text-[#5F655F]
+              transition-colors
+              duration-200
+              hover:text-[#6F8F72]
+              sm:text-[16px]
+            "
+          >
+            &larr; Administration
+          </a>
+
+          {/* Hamkke Brand */}
+
+          <a
+            href={`/${locale}`}
+            className="
+              shrink-0
+              text-right
+              transition-opacity
+              duration-200
+              hover:opacity-70
+            "
+          >
+            <p
+              className="
+                font-sans
+                text-[16px]
+                font-semibold
+                leading-none
+                tracking-[0.18em]
+                text-[#6F8F72]
+              "
+            >
+              HAMKKE │ 함께
+            </p>
+
+            <p
+              className="
+                mt-2
+                font-serif
+                text-[13px]
+                font-normal
+                leading-none
+                tracking-[0.02em]
+                text-[#6F8F72]
+              "
+            >
+              From Small Talk to Big Ideas
+            </p>
+          </a>
+        </div>
+      </header>
+
+      {/* =================================================================== */}
+      {/* CONTENT                                                             */}
+      {/* =================================================================== */}
+
+      <div
+        className="
+          mx-auto
+          max-w-4xl
+          px-6
+          py-20
+        "
+      >
 
         {/* =====================================================
-            HEADER
+            PAGE TITLE
             ===================================================== */}
 
         <div>
-          <p
-            className="
-              text-[12px]
-              font-medium
-              uppercase
-              tracking-[0.3em]
-              text-[#6F8F72]
-            "
-          >
-            Hamkke │ 함께
-          </p>
-
           <h1
             className="
-              mt-4
               text-5xl
               text-[#2B2B2B]
               [font-family:var(--font-cormorant)]
@@ -139,7 +220,7 @@ export default async function ReflectionsAdminPage({
                   >
                     {item.role}
                     {item.country
-                      ? ` ┬╖ ${item.country}`
+                      ? ` · ${item.country}`
                       : ""}
                   </p>
                 </div>
@@ -151,7 +232,7 @@ export default async function ReflectionsAdminPage({
                     text-[#6F8F72]
                   "
                 >
-                  Γ¡É {item.rating}/5
+                  ★ {item.rating}/5
                 </div>
 
               </div>

@@ -1033,52 +1033,81 @@ export default async function OverviewPage({
 
       <header
         className="
+          w-full
           px-6
           pt-7
           sm:px-8
           sm:pt-8
-          lg:px-12
-          xl:px-16
+          lg:px-10
+          xl:px-12
         "
       >
         <div
           className="
-            relative
             flex
-            items-center
+            w-full
+            items-start
             justify-between
+            gap-8
           "
         >
+          {/* Back to Administration */}
+
           <Link
             href={`/${locale}/admin`}
             className="
-              font-sans
-              text-[14px]
-              text-[#77736B]
-              transition-colors
-              hover:text-[#6F8F72]
-              sm:text-[15px]
-            "
-          >
-            ← Administration
-          </Link>
-
-          <div
-            className="
-              absolute
-              left-1/2
-              hidden
-              -translate-x-1/2
-              whitespace-nowrap
+              shrink-0
               font-sans
               text-[15px]
-              font-medium
-              text-[#6F8F72]
-              sm:block
+              text-[#5F655F]
+              transition-colors
+              duration-200
+              hover:text-[#6F8F72]
+              sm:text-[16px]
             "
           >
-            Hamkke │ 함께
-          </div>
+            &larr; Administration
+          </Link>
+
+          {/* Hamkke Brand */}
+
+          <Link
+            href={`/${locale}`}
+            className="
+              shrink-0
+              text-right
+              transition-opacity
+              duration-200
+              hover:opacity-70
+            "
+          >
+            <p
+              className="
+                font-sans
+                text-[16px]
+                font-semibold
+                leading-none
+                tracking-[0.18em]
+                text-[#6F8F72]
+              "
+            >
+              HAMKKE │ 함께
+            </p>
+
+            <p
+              className="
+                mt-2
+                font-serif
+                text-[13px]
+                font-normal
+                leading-none
+                tracking-[0.02em]
+                text-[#6F8F72]
+              "
+            >
+              From Small Talk to Big Ideas
+            </p>
+          </Link>
         </div>
       </header>
 

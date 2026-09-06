@@ -1119,7 +1119,10 @@ export default async function StudentPage({
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      {/* HEADER */}
+      {/* =================================================================== */}
+      {/* HEADER                                                              */}
+      {/* =================================================================== */}
+
       <header
         className="
           w-full
@@ -1129,48 +1132,74 @@ export default async function StudentPage({
           sm:pt-8
           lg:px-10
           xl:px-12
-          print:hidden
         "
       >
-        <div className="relative mx-auto flex w-full max-w-[1040px] items-center">
+        <div
+          className="
+            flex
+            w-full
+            items-start
+            justify-between
+            gap-8
+          "
+        >
+          {/* Back to Administration */}
+
           <Link
-            href={`/${locale}/admin/students`}
+            href={`/${locale}/admin`}
             className="
-              flex
               shrink-0
-              items-center
-              gap-2
               font-sans
               text-[15px]
               text-[#5F655F]
               transition-colors
+              duration-200
               hover:text-[#6F8F72]
-            "
-          >
-            <ArrowLeft
-              size={16}
-              strokeWidth={1.5}
-            />
-            Students
-          </Link>
-
-          <div
-            className="
-              absolute
-              left-1/2
-              hidden
-              -translate-x-1/2
-              whitespace-nowrap
-              font-sans
-              text-[15px]
-              font-medium
-              text-[#6F8F72]
-              sm:block
               sm:text-[16px]
             "
           >
-            Hamkke │ 함께
-          </div>
+            &larr; Administration
+          </Link>
+
+          {/* Hamkke Brand */}
+
+          <Link
+            href={`/${locale}`}
+            className="
+              shrink-0
+              text-right
+              transition-opacity
+              duration-200
+              hover:opacity-70
+            "
+          >
+            <p
+              className="
+                font-sans
+                text-[16px]
+                font-semibold
+                leading-none
+                tracking-[0.18em]
+                text-[#6F8F72]
+              "
+            >
+              HAMKKE │ 함께
+            </p>
+
+            <p
+              className="
+                mt-2
+                font-serif
+                text-[13px]
+                font-normal
+                leading-none
+                tracking-[0.02em]
+                text-[#6F8F72]
+              "
+            >
+              From Small Talk to Big Ideas
+            </p>
+          </Link>
         </div>
       </header>
 
