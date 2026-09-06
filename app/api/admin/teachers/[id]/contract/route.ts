@@ -165,8 +165,23 @@ export async function GET(
     error,
   } = await getAuthenticatedProfile();
 
-  if (error || !user || !profile) {
+  /*
+   * Keep the error response handling explicit.
+   *
+   * Next.js route handlers must return a Response.
+   * The previous `return error` pattern could be inferred
+   * as returning `null`, which caused the production build
+   * type error.
+   */
+  if (error) {
     return error;
+  }
+
+  if (!user || !profile) {
+    return NextResponse.json(
+      { error: "Unauthorized." },
+      { status: 401 }
+    );
   }
 
   const { id: teacherId } =
@@ -289,8 +304,22 @@ export async function POST(
     error,
   } = await getAuthenticatedProfile();
 
-  if (error || !user || !profile) {
+  /*
+   * Keep the error response handling explicit.
+   *
+   * This guarantees that the POST handler also always returns
+   * a valid Response and avoids the same Next.js route-handler
+   * type error.
+   */
+  if (error) {
     return error;
+  }
+
+  if (!user || !profile) {
+    return NextResponse.json(
+      { error: "Unauthorized." },
+      { status: 401 }
+    );
   }
 
   const { id: teacherId } =
@@ -591,7 +620,7 @@ export async function POST(
   }
 
   /* ----------------------------------------------------------------------- */
-  /* CREATE                                                                   */
+  /* CREATE                                                                  */
   /* ----------------------------------------------------------------------- */
 
   if (action === "create") {
