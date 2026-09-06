@@ -566,22 +566,11 @@ export default function TeacherAgreement({
         {contract && (
           <div
             className={`teacher-contract-wrapper ${
-              showAgreement ? "teacher-contract-expanded" : "teacher-contract-collapsed"
+              showAgreement
+                ? "teacher-contract-expanded"
+                : "teacher-contract-collapsed"
             }`}
           >
-            {/* Print Controls */}
-            {showAgreement && (
-              <div className="no-print mt-7 flex items-center justify-end border-t border-[#E5E2DD] pt-5">
-                <button
-                  type="button"
-                  onClick={handlePrintContract}
-                  className="inline-flex items-center justify-center rounded-full border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[13px] font-medium text-white transition-colors hover:border-[#5F7E63] hover:bg-[#5F7E63]"
-                >
-                  Print Contract
-                </button>
-              </div>
-            )}
-
             {/* Printable Contract */}
             <div
               id="teacher-contract-print"
