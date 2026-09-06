@@ -90,7 +90,12 @@ async function getAssignedLesson(
       notes,
       teacher_observation,
       consumes_lesson,
-      actual_teacher_id
+      actual_teacher_id,
+      platform,
+      material,
+      lesson_page,
+      class_instructions,
+      class_info_updated_at
     `)
     .eq("id", lessonId)
     .single();
@@ -276,7 +281,8 @@ export async function GET(
         id,
         student_number,
         full_name,
-        preferred_name
+        preferred_name,
+        email
       `)
       .eq(
         "id",
@@ -359,6 +365,21 @@ export async function GET(
         actual_teacher_id:
           lesson.actual_teacher_id,
 
+        platform:
+          lesson.platform,
+
+        material:
+          lesson.material,
+
+        lesson_page:
+          lesson.lesson_page,
+
+        class_instructions:
+          lesson.class_instructions,
+
+        class_info_updated_at:
+          lesson.class_info_updated_at,
+
         student,
 
         enrollment,
@@ -420,6 +441,10 @@ export async function PATCH(
       attendance_status?: string;
       notes?: string | null;
       teacher_observation?: string | null;
+      platform?: string | null;
+      material?: string | null;
+      lesson_page?: string | null;
+      class_instructions?: string | null;
     };
 
     try {
@@ -452,10 +477,29 @@ export async function PATCH(
         "teacher_observation"
       );
 
+    const hasClassInfo =
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "platform"
+      ) ||
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "material"
+      ) ||
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "lesson_page"
+      ) ||
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "class_instructions"
+      );
+
     if (
       !hasAttendanceStatus &&
       !hasNotes &&
-      !hasTeacherObservation
+      !hasTeacherObservation &&
+      !hasClassInfo
     ) {
       return NextResponse.json(
         {
@@ -518,7 +562,12 @@ export async function PATCH(
           notes,
           teacher_observation,
           consumes_lesson,
-          actual_teacher_id
+          actual_teacher_id,
+          platform,
+          material,
+          lesson_page,
+          class_instructions,
+          class_info_updated_at
         `)
         .single();
 
@@ -582,7 +631,12 @@ export async function PATCH(
           notes,
           teacher_observation,
           consumes_lesson,
-          actual_teacher_id
+          actual_teacher_id,
+          platform,
+          material,
+          lesson_page,
+          class_instructions,
+          class_info_updated_at
         `)
         .single();
 
@@ -648,7 +702,12 @@ export async function PATCH(
           notes,
           teacher_observation,
           consumes_lesson,
-          actual_teacher_id
+          actual_teacher_id,
+          platform,
+          material,
+          lesson_page,
+          class_instructions,
+          class_info_updated_at
         `)
         .single();
 
@@ -665,6 +724,100 @@ export async function PATCH(
       return NextResponse.json({
         message:
           "Teacher observation saved successfully.",
+
+        lesson: updatedLesson,
+      });
+    }
+
+    /*
+     * --------------------------------
+     * CLASS INFO UPDATE
+     * --------------------------------
+     */
+
+    if (hasClassInfo) {
+      if (
+        (body.platform !== undefined &&
+          body.platform !== null &&
+          typeof body.platform !== "string") ||
+        (body.material !== undefined &&
+          body.material !== null &&
+          typeof body.material !== "string") ||
+        (body.lesson_page !== undefined &&
+          body.lesson_page !== null &&
+          typeof body.lesson_page !== "string") ||
+        (body.class_instructions !== undefined &&
+          body.class_instructions !== null &&
+          typeof body.class_instructions !== "string")
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Class information must be text or null.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const cleanedPlatform =
+        body.platform?.trim() || null;
+
+      const cleanedMaterial =
+        body.material?.trim() || null;
+
+      const cleanedLessonPage =
+        body.lesson_page?.trim() || null;
+
+      const cleanedClassInstructions =
+        body.class_instructions?.trim() || null;
+
+      const {
+        data: updatedLesson,
+        error: updateError,
+      } = await admin
+        .from("lessons")
+        .update({
+          platform: cleanedPlatform,
+          material: cleanedMaterial,
+          lesson_page: cleanedLessonPage,
+          class_instructions:
+            cleanedClassInstructions,
+          class_info_updated_at:
+            new Date().toISOString(),
+        })
+        .eq("id", lessonId)
+        .select(`
+          id,
+          enrollment_id,
+          lesson_number,
+          lesson_date,
+          duration,
+          attendance_status,
+          notes,
+          teacher_observation,
+          consumes_lesson,
+          actual_teacher_id,
+          platform,
+          material,
+          lesson_page,
+          class_instructions,
+          class_info_updated_at
+        `)
+        .single();
+
+      if (updateError) {
+        return NextResponse.json(
+          {
+            error:
+              updateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        message:
+          "Class information saved successfully.",
 
         lesson: updatedLesson,
       });

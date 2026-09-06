@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET() {
   try {
@@ -24,11 +25,12 @@ export async function GET() {
     /* OWNER CHECK                                                           */
     /* --------------------------------------------------------------------- */
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role, status")
-      .eq("id", user.id)
-      .single();
+    const { data: profile, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("role, status")
+        .eq("id", user.id)
+        .single();
 
     if (
       profileError ||
@@ -38,23 +40,35 @@ export async function GET() {
     ) {
       return NextResponse.json(
         {
-          error: "Only active owners can view teachers.",
+          error:
+            "Only active owners can view teachers.",
         },
         { status: 403 }
       );
     }
 
     /* --------------------------------------------------------------------- */
+    /* ADMIN CLIENT                                                          */
+    /* --------------------------------------------------------------------- */
+
+    const admin = createAdminClient();
+
+    /* --------------------------------------------------------------------- */
     /* GET TEACHERS                                                          */
     /* --------------------------------------------------------------------- */
 
-    const { data: profiles, error: teachersError } = await supabase
+    const {
+      data: profiles,
+      error: teachersError,
+    } = await admin
       .from("profiles")
       .select(
         "id, full_name, role, status, created_at, teacher_number"
       )
       .eq("role", "teacher")
-      .order("created_at", { ascending: true });
+      .order("created_at", {
+        ascending: true,
+      });
 
     if (teachersError) {
       console.error(
@@ -83,13 +97,62 @@ export async function GET() {
     }
 
     /* --------------------------------------------------------------------- */
+    /* GET AUTH EMAILS                                                       */
+    /* --------------------------------------------------------------------- */
+
+    const teacherEmails = new Map<
+      string,
+      string | null
+    >();
+
+    for (const teacherId of teacherIds) {
+      try {
+        const {
+          data: authUser,
+          error: authUserError,
+        } = await admin.auth.admin.getUserById(
+          teacherId
+        );
+
+        if (authUserError) {
+          console.error(
+            `Unable to load auth email for teacher ${teacherId}:`,
+            authUserError
+          );
+
+          teacherEmails.set(
+            teacherId,
+            null
+          );
+
+          continue;
+        }
+
+        teacherEmails.set(
+          teacherId,
+          authUser.user?.email || null
+        );
+      } catch (error) {
+        console.error(
+          `Unexpected error loading auth email for teacher ${teacherId}:`,
+          error
+        );
+
+        teacherEmails.set(
+          teacherId,
+          null
+        );
+      }
+    }
+
+    /* --------------------------------------------------------------------- */
     /* GET ACTIVE TEACHER ASSIGNMENTS                                        */
     /* --------------------------------------------------------------------- */
 
     const {
       data: assignments,
       error: assignmentsError,
-    } = await supabase
+    } = await admin
       .from("teacher_assignments")
       .select(
         `
@@ -132,7 +195,7 @@ export async function GET() {
       const {
         data,
         error: enrollmentStudentsError,
-      } = await supabase
+      } = await admin
         .from("enrollment_students")
         .select("id, student_id")
         .in("id", enrollmentStudentIds);
@@ -162,7 +225,7 @@ export async function GET() {
     const {
       data: lessons,
       error: lessonsError,
-    } = await supabase
+    } = await admin
       .from("lessons")
       .select("id, actual_teacher_id")
       .in("actual_teacher_id", teacherIds);
@@ -227,11 +290,16 @@ export async function GET() {
           role: teacher.role,
           status: teacher.status,
           created_at: teacher.created_at,
+          email:
+            teacherEmails.get(
+              teacher.id
+            ) || null,
           teacher_number:
             teacher.teacher_number,
           student_count:
             uniqueStudentIds.length,
-          total_lessons: totalLessons,
+          total_lessons:
+            totalLessons,
           payable: 0,
         };
       }

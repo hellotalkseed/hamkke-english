@@ -13,6 +13,9 @@ import {
   FileText,
   MessageSquareText,
   Sparkles,
+  MonitorPlay,
+  BookMarked,
+  ListChecks,
 } from "lucide-react";
 
 const ATTENDANCE_OPTIONS = [
@@ -64,12 +67,21 @@ interface LessonDetail {
   teacher_observation: string | null;
   consumes_lesson: boolean;
   actual_teacher_id: string | null;
+
+  platform: string | null;
+  material: string | null;
+  lesson_page: string | null;
+  class_instructions: string | null;
+  class_info_updated_at: string | null;
+
   student: {
     id: string;
     student_number: string | null;
     full_name: string | null;
     preferred_name: string | null;
+    email: string | null;
   } | null;
+
   enrollment: {
     id: string;
     package_name: string | null;
@@ -159,6 +171,28 @@ export default function LessonDetailsPage({
     setObservationPolishError,
   ] = useState<string | null>(null);
 
+  /* --------------------------------
+   * Class Info
+   * -------------------------------- */
+
+  const [platform, setPlatform] =
+    useState("");
+
+  const [material, setMaterial] =
+    useState("");
+
+  const [lessonPage, setLessonPage] =
+    useState("");
+
+  const [classInstructions, setClassInstructions] =
+    useState("");
+
+  const [savingClassInfo, setSavingClassInfo] =
+    useState(false);
+
+  const [classInfoMessage, setClassInfoMessage] =
+    useState<string | null>(null);
+
   useEffect(() => {
     async function loadLesson() {
       try {
@@ -194,6 +228,22 @@ export default function LessonDetailsPage({
 
         setTeacherObservation(
           result.lesson.teacher_observation || ""
+        );
+
+        setPlatform(
+          result.lesson.platform || ""
+        );
+
+        setMaterial(
+          result.lesson.material || ""
+        );
+
+        setLessonPage(
+          result.lesson.lesson_page || ""
+        );
+
+        setClassInstructions(
+          result.lesson.class_instructions || ""
         );
 
         setPolishedNotes(null);
@@ -281,6 +331,95 @@ export default function LessonDetailsPage({
       );
     } finally {
       setSavingAttendance(false);
+    }
+  }
+
+  async function saveClassInfo() {
+    try {
+      setSavingClassInfo(true);
+      setClassInfoMessage(null);
+      setError(null);
+
+      const response = await fetch(
+        `/api/admin/teachers/lessons/${lessonId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            platform,
+            material,
+            lesson_page: lessonPage,
+            class_instructions:
+              classInstructions,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+            "Failed to save class information."
+        );
+      }
+
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              lesson: {
+                ...current.lesson,
+                platform:
+                  result.lesson.platform,
+                material:
+                  result.lesson.material,
+                lesson_page:
+                  result.lesson.lesson_page,
+                class_instructions:
+                  result.lesson
+                    .class_instructions,
+                class_info_updated_at:
+                  result.lesson
+                    .class_info_updated_at,
+              },
+            }
+          : current
+      );
+
+      setPlatform(
+        result.lesson.platform || ""
+      );
+
+      setMaterial(
+        result.lesson.material || ""
+      );
+
+      setLessonPage(
+        result.lesson.lesson_page || ""
+      );
+
+      setClassInstructions(
+        result.lesson.class_instructions || ""
+      );
+
+      setClassInfoMessage(
+        "Class information saved successfully."
+      );
+
+      setTimeout(() => {
+        setClassInfoMessage(null);
+      }, 3000);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while saving class information."
+      );
+    } finally {
+      setSavingClassInfo(false);
     }
   }
 
@@ -562,6 +701,27 @@ export default function LessonDetailsPage({
     );
   }
 
+  function formatLastUpdated(
+    dateString: string
+  ) {
+    const date = new Date(dateString);
+
+    return `${date.toLocaleDateString(
+      undefined,
+      {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }
+    )} · ${date.toLocaleTimeString(
+      undefined,
+      {
+        hour: "numeric",
+        minute: "2-digit",
+      }
+    )}`;
+  }
+
   function formatStatus(status: string) {
     return status
       .replaceAll("_", " ")
@@ -569,6 +729,19 @@ export default function LessonDetailsPage({
         /\b\w/g,
         (letter) => letter.toUpperCase()
       );
+  }
+
+  function formatStudentNumber(
+    studentNumber: string | null
+  ) {
+    if (!studentNumber) {
+      return "—";
+    }
+
+    return studentNumber.replace(
+      /^HK-2026-/,
+      "HK-"
+    );
   }
 
   if (loading) {
@@ -686,7 +859,9 @@ export default function LessonDetailsPage({
                     </span>
 
                     <span>
-                      {lesson.student.student_number}
+                      {formatStudentNumber(
+                        lesson.student.student_number
+                      )}
                     </span>
                   </>
                 )}
@@ -702,73 +877,254 @@ export default function LessonDetailsPage({
           </div>
         </div>
 
-        {/* Lesson Overview */}
-        <section className="mt-9 overflow-hidden rounded-[26px] border border-[#e7e1da] bg-white shadow-[0_8px_30px_rgba(70,65,58,0.04)]">
-          <div className="border-b border-[#eee9e3] px-6 py-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef3ee] text-[#6f8f72]">
-                <BookOpen size={18} />
+        {/* Top Lesson Information */}
+        <div className="mt-9 grid gap-6 lg:grid-cols-2">
+
+          {/* Lesson Overview */}
+          <section className="overflow-hidden rounded-[26px] border border-[#e7e1da] bg-white shadow-[0_8px_30px_rgba(70,65,58,0.04)]">
+            <div className="border-b border-[#eee9e3] px-6 py-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef3ee] text-[#6f8f72]">
+                  <BookOpen size={18} />
+                </div>
+
+                <div>
+                  <h2 className="font-medium text-[#2d2d2d]">
+                    Lesson Overview
+                  </h2>
+
+                  <p className="mt-0.5 text-sm text-[#7b8587]">
+                    The details for this lesson.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-3 lg:grid-cols-1">
+
+              {/* Student */}
+              <div className="border-b border-[#eee9e3] px-6 py-5 sm:border-b-0 sm:border-r lg:border-b lg:border-r-0">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
+                  <UserRound size={14} />
+                  Student
+                </div>
+
+                <p className="mt-2 font-medium text-[#2d2d2d]">
+                  {studentName}
+                </p>
+
+                {lesson.student?.student_number && (
+                  <p className="mt-0.5 text-xs text-[#7b8587]">
+                    {formatStudentNumber(
+                      lesson.student.student_number
+                    )}
+                  </p>
+                )}
+              </div>
+
+              {/* Date */}
+              <div className="border-b border-[#eee9e3] px-6 py-5 sm:border-b-0 sm:border-r lg:border-b lg:border-r-0">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
+                  <CalendarDays size={14} />
+                  Date
+                </div>
+
+                <p className="mt-2 font-medium text-[#2d2d2d]">
+                  {formatDate(
+                    lesson.lesson_date
+                  )}
+                </p>
+              </div>
+
+              {/* Duration */}
+              <div className="px-6 py-5">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
+                  <Clock3 size={14} />
+                  Duration
+                </div>
+
+                <p className="mt-2 font-medium text-[#2d2d2d]">
+                  {lesson.duration} minutes
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Class Info */}
+          <section className="rounded-[26px] border border-[#e7e1da] bg-white p-6 shadow-[0_8px_30px_rgba(70,65,58,0.04)] sm:p-7">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef3ee] text-[#6f8f72]">
+                <MonitorPlay size={18} />
               </div>
 
               <div>
                 <h2 className="font-medium text-[#2d2d2d]">
-                  Lesson Overview
+                  Class Info
                 </h2>
 
-                <p className="mt-0.5 text-sm text-[#7b8587]">
-                  The details for this lesson.
+                <p className="mt-1 text-sm leading-6 text-[#7b8587]">
+                  Keep the information a teacher needs
+                  to conduct this class.
                 </p>
               </div>
             </div>
-          </div>
 
-          <div className="grid sm:grid-cols-3">
+            <div className="mt-6 space-y-4">
 
-            {/* Student */}
-            <div className="border-b border-[#eee9e3] px-6 py-5 sm:border-b-0 sm:border-r">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
-                <UserRound size={14} />
-                Student
+              {/* Platform */}
+              <div>
+                <label
+                  htmlFor="platform"
+                  className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]"
+                >
+                  <MonitorPlay size={13} />
+                  Platform
+                </label>
+
+                <input
+                  id="platform"
+                  type="text"
+                  value={platform}
+                  onChange={(event) => {
+                    setPlatform(
+                      event.target.value
+                    );
+                    setClassInfoMessage(null);
+                  }}
+                  placeholder="e.g. Zoom"
+                  className="w-full rounded-xl border border-[#e7e1da] bg-[#fbfaf8] px-4 py-3 text-sm text-[#3c484b] outline-none transition placeholder:text-[#aaa9a5] focus:border-[#9eb19f] focus:bg-white focus:ring-2 focus:ring-[#eef3ee]"
+                />
               </div>
 
-              <p className="mt-2 font-medium text-[#2d2d2d]">
-                {studentName}
-              </p>
+              {/* Student Email */}
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
+                  <UserRound size={13} />
+                  Student Email
+                </div>
 
-              {lesson.student?.student_number && (
-                <p className="mt-0.5 text-xs text-[#7b8587]">
-                  {lesson.student.student_number}
+                <p className="rounded-xl border border-[#e7e1da] bg-[#fbfaf8] px-4 py-3 text-sm text-[#3c484b]">
+                  {lesson.student?.email ||
+                    "No email available"}
+                </p>
+              </div>
+
+              {/* Material */}
+              <div>
+                <label
+                  htmlFor="material"
+                  className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]"
+                >
+                  <BookMarked size={13} />
+                  Material
+                </label>
+
+                <input
+                  id="material"
+                  type="text"
+                  value={material}
+                  onChange={(event) => {
+                    setMaterial(
+                      event.target.value
+                    );
+                    setClassInfoMessage(null);
+                  }}
+                  placeholder="e.g. English Conversation Book"
+                  className="w-full rounded-xl border border-[#e7e1da] bg-[#fbfaf8] px-4 py-3 text-sm text-[#3c484b] outline-none transition placeholder:text-[#aaa9a5] focus:border-[#9eb19f] focus:bg-white focus:ring-2 focus:ring-[#eef3ee]"
+                />
+              </div>
+
+              {/* Lesson / Page */}
+              <div>
+                <label
+                  htmlFor="lesson-page"
+                  className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]"
+                >
+                  <BookOpen size={13} />
+                  Lesson / Page
+                </label>
+
+                <input
+                  id="lesson-page"
+                  type="text"
+                  value={lessonPage}
+                  onChange={(event) => {
+                    setLessonPage(
+                      event.target.value
+                    );
+                    setClassInfoMessage(null);
+                  }}
+                  placeholder="e.g. Unit 4, pp. 32–33"
+                  className="w-full rounded-xl border border-[#e7e1da] bg-[#fbfaf8] px-4 py-3 text-sm text-[#3c484b] outline-none transition placeholder:text-[#aaa9a5] focus:border-[#9eb19f] focus:bg-white focus:ring-2 focus:ring-[#eef3ee]"
+                />
+              </div>
+
+              {/* Class Instructions */}
+              <div>
+                <label
+                  htmlFor="class-instructions"
+                  className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]"
+                >
+                  <ListChecks size={13} />
+                  Class Instructions
+                </label>
+
+                <textarea
+                  id="class-instructions"
+                  value={classInstructions}
+                  onChange={(event) => {
+                    setClassInstructions(
+                      event.target.value
+                    );
+                    setClassInfoMessage(null);
+                  }}
+                  placeholder="Any specific material or notes the teacher needs."
+                  rows={3}
+                  className="w-full resize-y rounded-xl border border-[#e7e1da] bg-[#fbfaf8] px-4 py-3 text-sm leading-6 text-[#3c484b] outline-none transition placeholder:text-[#aaa9a5] focus:border-[#9eb19f] focus:bg-white focus:ring-2 focus:ring-[#eef3ee]"
+                />
+              </div>
+            </div>
+
+            {/* Save Class Info */}
+            <div className="mt-5 flex flex-col gap-3 border-t border-[#eee9e3] pt-5 sm:flex-row sm:items-center sm:justify-between">
+              {lesson.class_info_updated_at ? (
+                <p className="text-[11px] text-[#9a9790]">
+                  Last updated:{" "}
+                  {formatLastUpdated(
+                    lesson.class_info_updated_at
+                  )}
+                </p>
+              ) : (
+                <p className="text-[11px] text-[#9a9790]">
+                  Class information has not been saved yet.
                 </p>
               )}
-            </div>
 
-            {/* Date */}
-            <div className="border-b border-[#eee9e3] px-6 py-5 sm:border-b-0 sm:border-r">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
-                <CalendarDays size={14} />
-                Date
-              </div>
-
-              <p className="mt-2 font-medium text-[#2d2d2d]">
-                {formatDate(
-                  lesson.lesson_date
+              <button
+                type="button"
+                onClick={saveClassInfo}
+                disabled={savingClassInfo}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#6f8f72] px-5 py-2.5 text-sm font-medium text-white shadow-[0_5px_14px_rgba(111,143,114,0.20)] transition hover:bg-[#628267] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingClassInfo ? (
+                  "Saving..."
+                ) : (
+                  <>
+                    <Check size={15} />
+                    Save Class Info
+                  </>
                 )}
-              </p>
+              </button>
             </div>
 
-            {/* Duration */}
-            <div className="px-6 py-5">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
-                <Clock3 size={14} />
-                Duration
+            {classInfoMessage && (
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#5f7f64]">
+                <Check size={15} />
+                {classInfoMessage}
               </div>
-
-              <p className="mt-2 font-medium text-[#2d2d2d]">
-                {lesson.duration} minutes
-              </p>
-            </div>
-          </div>
-        </section>
+            )}
+          </section>
+        </div>
 
         {/* Attendance */}
         <section className="mt-6 rounded-[26px] border border-[#e7e1da] bg-white p-6 shadow-[0_8px_30px_rgba(70,65,58,0.04)] sm:p-7">

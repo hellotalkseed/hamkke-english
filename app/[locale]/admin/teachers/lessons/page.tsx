@@ -567,7 +567,7 @@ export default function TeacherLessonsPage({
             <div className="min-w-0">
 
               <Link
-                href={`/${locale}/admin`}
+                href={`/${locale}/admin/teachers`}
                 className="mb-5 inline-flex items-center text-sm text-[#7b7d77] transition-colors hover:text-[#6f8f72]"
               >
                 ← Back to Dashboard
@@ -631,7 +631,7 @@ export default function TeacherLessonsPage({
             <div className="min-w-0">
 
               <Link
-                href={`/${locale}/admin`}
+                href={`/${locale}/admin/teachers`}
                 className="mb-5 inline-flex items-center text-sm text-[#7b7d77] transition-colors hover:text-[#6f8f72]"
               >
                 ← Back to Dashboard
@@ -699,7 +699,7 @@ export default function TeacherLessonsPage({
           <div className="min-w-0">
 
             <Link
-              href={`/${locale}/admin`}
+              href={`/${locale}/admin/teachers`}
               className="mb-5 inline-flex items-center text-sm text-[#7b7d77] transition-colors hover:text-[#6f8f72]"
             >
               ← Back to Dashboard
