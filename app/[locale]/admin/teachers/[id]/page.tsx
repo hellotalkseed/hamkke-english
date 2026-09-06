@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
+/* ========================================================================= */
+/* TYPES                                                                     */
+/* ========================================================================= */
+
 type Teacher = {
   id: string;
   full_name: string | null;
@@ -11,6 +15,7 @@ type Teacher = {
   status: string;
   created_at: string;
   email: string | null;
+  teacher_number?: string | null;
 };
 
 type Assignment = {
@@ -30,6 +35,9 @@ type Assignment = {
     id: string;
     package_name: string | null;
     status: string;
+    schedule_days?: number[] | null;
+    schedule_time?: string | null;
+    lesson_duration?: number | null;
   } | null;
 };
 
@@ -37,16 +45,21 @@ type AvailableEnrollment = {
   enrollment_student_id: string;
   enrollment_id: string;
   student_id: string;
+
   student: {
     id: string;
     student_number: string | null;
     full_name: string | null;
     preferred_name: string | null;
   } | null;
+
   enrollment: {
     id: string;
     package_name: string | null;
     status: string;
+    schedule_days?: number[] | null;
+    schedule_time?: string | null;
+    lesson_duration?: number | null;
   } | null;
 };
 
@@ -56,6 +69,10 @@ type AvailabilityBlock = {
   start_time: string;
   end_time: string;
 };
+
+/* ========================================================================= */
+/* CONSTANTS                                                                 */
+/* ========================================================================= */
 
 const DAYS = [
   { value: 0, label: "Sun" },
@@ -71,59 +88,186 @@ const START_HOUR = 5;
 const END_HOUR = 24;
 const INTERVAL_MINUTES = 30;
 
+/* ========================================================================= */
+/* ICONS                                                                     */
+/* ========================================================================= */
+
+function ArrowLeftIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[15px] w-[15px]"
+      aria-hidden="true"
+    >
+      <path d="M19 12H5" />
+      <path d="m11 18-6-6 6-6" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[17px] w-[17px]"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h18" />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[17px] w-[17px]"
+      aria-hidden="true"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function WalletIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[17px] w-[17px]"
+      aria-hidden="true"
+    >
+      <path d="M20 7V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v10a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V6" />
+      <path d="M16 14h.01" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[14px] w-[14px]"
+      aria-hidden="true"
+    >
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[15px] w-[15px]"
+      aria-hidden="true"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[16px] w-[16px]"
+      aria-hidden="true"
+    >
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  );
+}
+
+/* ========================================================================= */
+/* HELPERS                                                                   */
+/* ========================================================================= */
+
 function createTimeSlots() {
   const slots: string[] = [];
 
   for (
-    let hour = START_HOUR;
-    hour < END_HOUR;
-    hour++
+    let minutes = START_HOUR * 60;
+    minutes < END_HOUR * 60;
+    minutes += INTERVAL_MINUTES
   ) {
+    const hour = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+
     slots.push(
-      `${String(hour).padStart(2, "0")}:00`
-    );
-    slots.push(
-      `${String(hour).padStart(2, "0")}:30`
+      `${String(hour).padStart(2, "0")}:${String(minute).padStart(
+        2,
+        "0"
+      )}`
     );
   }
 
   return slots;
 }
 
-const TIME_SLOTS = createTimeSlots();
+function formatTime(time: string | null | undefined) {
+  if (!time) return "—";
 
-function formatTime(time: string) {
-  const [hourString, minuteString] =
-    time.split(":");
-
+  const [hourString, minuteString] = time.split(":");
   const hour = Number(hourString);
   const minute = Number(minuteString);
 
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const displayHour =
-    hour % 12 === 0 ? 12 : hour % 12;
+  if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    return time;
+  }
 
-  return `${displayHour}:${String(minute).padStart(
-    2,
-    "0"
-  )} ${suffix}`;
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+
+  return `${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
 }
 
 function timeToMinutes(time: string) {
-  const [hour, minute] = time
-    .split(":")
-    .map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
 
-  return hour * 60 + minute;
-}
-
-function minutesToTime(minutes: number) {
-  const hour = Math.floor(minutes / 60);
-  const minute = minutes % 60;
-
-  return `${String(hour).padStart(2, "0")}:${String(
-    minute
-  ).padStart(2, "0")}`;
+  return hours * 60 + minutes;
 }
 
 function isTimeWithinBlock(
@@ -131,26 +275,61 @@ function isTimeWithinBlock(
   block: AvailabilityBlock
 ) {
   const current = timeToMinutes(time);
-  const start = timeToMinutes(
-    block.start_time
-  );
+  const start = timeToMinutes(block.start_time);
   const end = timeToMinutes(block.end_time);
 
   return current >= start && current < end;
 }
 
-export default function TeacherManagePage() {
+function normalizeTime(time: string | null | undefined) {
+  if (!time) return "";
+
+  return time.slice(0, 5);
+}
+
+function getStudentName(
+  student: AvailableEnrollment["student"] | Assignment["student"]
+) {
+  return (
+    student?.preferred_name ||
+    student?.full_name ||
+    "Unnamed student"
+  );
+}
+
+function getAssignmentForSlot(
+  assignments: Assignment[],
+  day: number,
+  time: string
+) {
+  return assignments.find((assignment) => {
+    if (assignment.status !== "active") {
+      return false;
+    }
+
+    const days =
+      assignment.enrollment?.schedule_days || [];
+
+    const scheduleTime = normalizeTime(
+      assignment.enrollment?.schedule_time
+    );
+
+    return (
+      days.includes(day) &&
+      scheduleTime === normalizeTime(time)
+    );
+  });
+}
+
+/* ========================================================================= */
+/* PAGE                                                                      */
+/* ========================================================================= */
+
+export default function ManageTeacherPage() {
   const params = useParams();
 
-  const teacherId =
-    typeof params.id === "string"
-      ? params.id
-      : "";
-
-  const locale =
-    typeof params.locale === "string"
-      ? params.locale
-      : "en";
+  const locale = String(params.locale);
+  const teacherId = String(params.id);
 
   const [teacher, setTeacher] =
     useState<Teacher | null>(null);
@@ -164,20 +343,9 @@ export default function TeacherManagePage() {
   const [availability, setAvailability] =
     useState<AvailabilityBlock[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
-
+  const [loading, setLoading] = useState(true);
   const [loadingAvailability, setLoadingAvailability] =
     useState(false);
-
-  const [savingAvailability, setSavingAvailability] =
-    useState(false);
-
-  const [availabilityMessage, setAvailabilityMessage] =
-    useState("");
-
-  const [availabilityError, setAvailabilityError] =
-    useState("");
 
   const [loadingEnrollments, setLoadingEnrollments] =
     useState(false);
@@ -188,57 +356,65 @@ export default function TeacherManagePage() {
   const [selectedEnrollmentStudentId, setSelectedEnrollmentStudentId] =
     useState("");
 
-  const [assigning, setAssigning] =
-    useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{
+    day: number;
+    time: string;
+  } | null>(null);
 
-  const [error, setError] =
-    useState("");
+  const [assigning, setAssigning] = useState(false);
 
+  const [error, setError] = useState("");
   const [assignmentError, setAssignmentError] =
     useState("");
 
-  const [success, setSuccess] =
-    useState("");
+  const [success, setSuccess] = useState("");
 
-  /*
-   * -------------------------------------------------------------------------
-   * LOAD TEACHER + ASSIGNMENTS + AVAILABILITY
-   * -------------------------------------------------------------------------
-   */
+  /* ----------------------------------------------------------------------- */
+  /* TIME SLOTS                                                              */
+  /* ----------------------------------------------------------------------- */
+
+  const timeSlots = useMemo(
+    () => createTimeSlots(),
+    []
+  );
+
+  /* ----------------------------------------------------------------------- */
+  /* LOAD TEACHER                                                            */
+  /* ----------------------------------------------------------------------- */
 
   useEffect(() => {
     async function loadTeacher() {
-      if (!teacherId) {
-        setError("Teacher could not be found.");
-        setLoading(false);
-        return;
-      }
-
       try {
+        setLoading(true);
+        setError("");
+
         const response = await fetch(
-          "/api/admin/teachers"
+          "/api/admin/teachers",
+          {
+            method: "GET",
+            cache: "no-store",
+          }
         );
 
         const data = await response.json();
 
         if (!response.ok) {
-          setError(
+          throw new Error(
             data.error ||
-              "We couldn't load this teacher right now."
+              "Unable to load teachers."
           );
-          return;
         }
 
-        const foundTeacher = (
-          data.teachers || []
-        ).find(
-          (item: Teacher) =>
-            item.id === teacherId
-        );
+        const foundTeacher =
+          (data.teachers || []).find(
+            (item: Teacher) =>
+              item.id === teacherId
+          );
 
         if (!foundTeacher) {
-          setError("Teacher could not be found.");
-          return;
+          throw new Error(
+            "This teacher could not be found."
+          );
         }
 
         setTeacher(foundTeacher);
@@ -247,23 +423,64 @@ export default function TeacherManagePage() {
           loadAssignments(),
           loadAvailability(),
         ]);
-      } catch (error) {
+      } catch (err) {
         console.error(
-          "Teacher manage error:",
-          error
+          "Error loading teacher:",
+          err
         );
 
         setError(
-          "We couldn't load this teacher right now."
+          err instanceof Error
+            ? err.message
+            : "We couldn't load this teacher right now."
         );
       } finally {
         setLoading(false);
       }
     }
 
-    async function loadAssignments() {
+    loadTeacher();
+  }, [teacherId]);
+
+  /* ----------------------------------------------------------------------- */
+  /* LOAD ASSIGNMENTS                                                        */
+  /* ----------------------------------------------------------------------- */
+
+  async function loadAssignments() {
+    const response = await fetch(
+      `/api/admin/teachers/${teacherId}/assignments`,
+      {
+        method: "GET",
+        cache: "no-store",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+          "Unable to load teacher assignments."
+      );
+    }
+
+    setAssignments(data.assignments || []);
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* LOAD AVAILABILITY                                                       */
+  /* ----------------------------------------------------------------------- */
+
+  async function loadAvailability() {
+    try {
+      setLoadingAvailability(true);
+
       const response = await fetch(
-        `/api/admin/teachers/${teacherId}/assignments`
+        `/api/admin/teachers/${teacherId}/availability`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
       );
 
       const data = await response.json();
@@ -271,334 +488,157 @@ export default function TeacherManagePage() {
       if (!response.ok) {
         throw new Error(
           data.error ||
-            "We couldn't load the teacher's assignments."
+            "Unable to load teacher availability."
         );
-      }
-
-      setAssignments(
-        data.assignments || []
-      );
-    }
-
-    async function loadAvailability() {
-      setLoadingAvailability(true);
-
-      try {
-        const response = await fetch(
-          `/api/admin/teachers/${teacherId}/availability`
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error ||
-              "We couldn't load the teacher's availability."
-          );
-        }
-
-        setAvailability(
-          data.availability || []
-        );
-      } finally {
-        setLoadingAvailability(false);
-      }
-    }
-
-    loadTeacher();
-  }, [teacherId]);
-
-  /*
-   * -------------------------------------------------------------------------
-   * AVAILABILITY HELPERS
-   * -------------------------------------------------------------------------
-   */
-
-  const availabilityByDay = useMemo(() => {
-    const result: Record<
-      number,
-      AvailabilityBlock[]
-    > = {
-      0: [],
-      1: [],
-      2: [],
-      3: [],
-      4: [],
-      5: [],
-      6: [],
-    };
-
-    availability.forEach((block) => {
-      if (!result[block.day_of_week]) {
-        result[block.day_of_week] = [];
-      }
-
-      result[block.day_of_week].push(block);
-    });
-
-    return result;
-  }, [availability]);
-
-  function addAvailabilityBlock(
-    dayOfWeek: number,
-    startTime: string
-  ) {
-    const startMinutes =
-      timeToMinutes(startTime);
-
-    const endMinutes =
-      startMinutes + INTERVAL_MINUTES;
-
-    if (endMinutes > END_HOUR * 60) {
-      return;
-    }
-
-    const newBlock: AvailabilityBlock = {
-      day_of_week: dayOfWeek,
-      start_time: startTime,
-      end_time: minutesToTime(
-        endMinutes
-      ),
-    };
-
-    setAvailability((current) => [
-      ...current,
-      newBlock,
-    ]);
-
-    setAvailabilityMessage("");
-    setAvailabilityError("");
-  }
-
-  function removeAvailabilityBlock(
-    dayOfWeek: number,
-    startTime: string
-  ) {
-    setAvailability((current) =>
-      current.filter(
-        (block) =>
-          !(
-            block.day_of_week === dayOfWeek &&
-            block.start_time === startTime
-          )
-      )
-    );
-
-    setAvailabilityMessage("");
-    setAvailabilityError("");
-  }
-
-  function toggleAvailabilitySlot(
-    dayOfWeek: number,
-    time: string
-  ) {
-    const existingBlock =
-      availabilityByDay[dayOfWeek]?.find(
-        (block) =>
-          isTimeWithinBlock(time, block)
-      );
-
-    if (existingBlock) {
-      removeAvailabilityBlock(
-        dayOfWeek,
-        existingBlock.start_time
-      );
-      return;
-    }
-
-    addAvailabilityBlock(
-      dayOfWeek,
-      time
-    );
-  }
-
-  function mergeAvailabilityBlocks(
-    blocks: AvailabilityBlock[]
-  ) {
-    const sorted = [...blocks].sort(
-      (a, b) => {
-        if (
-          a.day_of_week !==
-          b.day_of_week
-        ) {
-          return (
-            a.day_of_week -
-            b.day_of_week
-          );
-        }
-
-        return (
-          timeToMinutes(a.start_time) -
-          timeToMinutes(b.start_time)
-        );
-      }
-    );
-
-    const merged: AvailabilityBlock[] = [];
-
-    for (const block of sorted) {
-      const previous =
-        merged[merged.length - 1];
-
-      if (
-        previous &&
-        previous.day_of_week ===
-          block.day_of_week &&
-        timeToMinutes(
-          previous.end_time
-        ) >=
-          timeToMinutes(
-            block.start_time
-          )
-      ) {
-        if (
-          timeToMinutes(
-            block.end_time
-          ) >
-          timeToMinutes(
-            previous.end_time
-          )
-        ) {
-          previous.end_time =
-            block.end_time;
-        }
-      } else {
-        merged.push({
-          day_of_week:
-            block.day_of_week,
-          start_time:
-            block.start_time,
-          end_time:
-            block.end_time,
-        });
-      }
-    }
-
-    return merged;
-  }
-
-  async function saveAvailability() {
-    setAvailabilityError("");
-    setAvailabilityMessage("");
-    setSavingAvailability(true);
-
-    try {
-      const cleanedAvailability =
-        mergeAvailabilityBlocks(
-          availability
-        );
-
-      const response = await fetch(
-        `/api/admin/teachers/${teacherId}/availability`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            availability:
-              cleanedAvailability,
-          }),
-        }
-      );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        setAvailabilityError(
-          data.error ||
-            "We couldn't save the teacher's availability."
-        );
-        return;
       }
 
       setAvailability(
-        data.availability ||
-          cleanedAvailability
-      );
-
-      setAvailabilityMessage(
-        "Weekly availability saved."
-      );
-    } catch (error) {
-      console.error(
-        "Save availability error:",
-        error
-      );
-
-      setAvailabilityError(
-        "Something went wrong while saving availability."
+        data.availability || []
       );
     } finally {
-      setSavingAvailability(false);
+      setLoadingAvailability(false);
     }
   }
 
-  /*
-   * -------------------------------------------------------------------------
-   * ASSIGN STUDENT
-   * -------------------------------------------------------------------------
-   */
+  /* ----------------------------------------------------------------------- */
+  /* AVAILABILITY BY DAY                                                     */
+  /* ----------------------------------------------------------------------- */
 
-  async function openAssignPanel() {
-    setShowAssignPanel(true);
+  const availabilityByDay = useMemo(() => {
+    const grouped: Record<
+      number,
+      AvailabilityBlock[]
+    > = {};
+
+    DAYS.forEach((day) => {
+      grouped[day.value] = [];
+    });
+
+    availability.forEach((block) => {
+      if (!grouped[block.day_of_week]) {
+        grouped[block.day_of_week] = [];
+      }
+
+      grouped[block.day_of_week].push(block);
+    });
+
+    return grouped;
+  }, [availability]);
+
+  /* ----------------------------------------------------------------------- */
+  /* OPEN ASSIGNMENT PANEL                                                   */
+  /* ----------------------------------------------------------------------- */
+
+  async function openAssignPanel(
+    day: number,
+    time: string
+  ) {
+    setSelectedSlot({
+      day,
+      time,
+    });
+
+    setSelectedEnrollmentStudentId("");
     setAssignmentError("");
     setSuccess("");
-    setSelectedEnrollmentStudentId("");
+    setShowAssignPanel(true);
 
-    if (availableEnrollments.length > 0) {
+    if (
+      availableEnrollments.length > 0
+    ) {
       return;
     }
 
-    setLoadingEnrollments(true);
-
     try {
+      setLoadingEnrollments(true);
+
       const response = await fetch(
-        "/api/admin/teachers/available-enrollments"
+        "/api/admin/teachers/available-enrollments",
+        {
+          method: "GET",
+          cache: "no-store",
+        }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        setAssignmentError(
+        throw new Error(
           data.error ||
-            "We couldn't load the available enrollments."
+            "Unable to load available students."
         );
-        return;
       }
 
       setAvailableEnrollments(
-        data.enrollments || []
+        data.enrollments ||
+          data.availableEnrollments ||
+          []
       );
-    } catch (error) {
+    } catch (err) {
       console.error(
-        "Available enrollments error:",
-        error
+        "Error loading available enrollments:",
+        err
       );
 
       setAssignmentError(
-        "We couldn't load the available enrollments."
+        err instanceof Error
+          ? err.message
+          : "Unable to load available students."
       );
     } finally {
       setLoadingEnrollments(false);
     }
   }
 
+  /* ----------------------------------------------------------------------- */
+  /* FILTER STUDENTS FOR SELECTED SLOT                                      */
+  /* ----------------------------------------------------------------------- */
+
+  const slotEnrollments = useMemo(() => {
+    if (!selectedSlot) {
+      return availableEnrollments;
+    }
+
+    return availableEnrollments.filter(
+      (item) => {
+        const days =
+          item.enrollment?.schedule_days ||
+          [];
+
+        const scheduleTime =
+          normalizeTime(
+            item.enrollment?.schedule_time
+          );
+
+        return (
+          days.includes(selectedSlot.day) &&
+          scheduleTime ===
+            normalizeTime(selectedSlot.time)
+        );
+      }
+    );
+  }, [
+    availableEnrollments,
+    selectedSlot,
+  ]);
+
+  /* ----------------------------------------------------------------------- */
+  /* ASSIGN STUDENT                                                          */
+  /* ----------------------------------------------------------------------- */
+
   async function handleAssign() {
     if (!selectedEnrollmentStudentId) {
       setAssignmentError(
-        "Please select a student first."
+        "Please select a student."
       );
       return;
     }
 
-    setAssignmentError("");
-    setSuccess("");
-    setAssigning(true);
-
     try {
+      setAssigning(true);
+      setAssignmentError("");
+      setSuccess("");
+
       const response = await fetch(
         `/api/admin/teachers/${teacherId}/assignments`,
         {
@@ -614,148 +654,233 @@ export default function TeacherManagePage() {
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        setAssignmentError(
+        throw new Error(
           data.error ||
-            "We couldn't assign this student."
-        );
-        return;
-      }
-
-      const assignmentsResponse =
-        await fetch(
-          `/api/admin/teachers/${teacherId}/assignments`
-        );
-
-      const assignmentsData =
-        await assignmentsResponse.json();
-
-      if (assignmentsResponse.ok) {
-        setAssignments(
-          assignmentsData.assignments ||
-            []
+            "Unable to assign this student."
         );
       }
 
-      setSuccess(
-        "Student assigned successfully."
+      await loadAssignments();
+
+      setAvailableEnrollments((current) =>
+        current.filter(
+          (item) =>
+            item.enrollment_student_id !==
+            selectedEnrollmentStudentId
+        )
       );
 
       setSelectedEnrollmentStudentId("");
-
-      setAvailableEnrollments(
-        (current) =>
-          current.filter(
-            (enrollment) =>
-              enrollment.enrollment_student_id !==
-              selectedEnrollmentStudentId
-          )
+      setSuccess(
+        "Student assigned successfully."
       );
-    } catch (error) {
+    } catch (err) {
       console.error(
-        "Teacher assignment error:",
-        error
+        "Error assigning student:",
+        err
       );
 
       setAssignmentError(
-        "Something went wrong while assigning the student."
+        err instanceof Error
+          ? err.message
+          : "Unable to assign this student."
       );
     } finally {
       setAssigning(false);
     }
   }
 
-  /*
-   * -------------------------------------------------------------------------
-   * RENDER
-   * -------------------------------------------------------------------------
-   */
+  /* ----------------------------------------------------------------------- */
+  /* ASSIGNED STUDENTS                                                       */
+  /* ----------------------------------------------------------------------- */
+
+  const activeAssignments =
+    assignments.filter(
+      (assignment) =>
+        assignment.status === "active"
+    );
+
+  /* ----------------------------------------------------------------------- */
+  /* CALENDAR SLOT STATE                                                     */
+  /* ----------------------------------------------------------------------- */
+
+  function getSlotState(
+    day: number,
+    time: string
+  ) {
+    const assignment =
+      getAssignmentForSlot(
+        assignments,
+        day,
+        time
+      );
+
+    if (assignment) {
+      return {
+        type: "scheduled" as const,
+        assignment,
+      };
+    }
+
+    const blocks =
+      availabilityByDay[day] || [];
+
+    const isAvailable = blocks.some(
+      (block) =>
+        isTimeWithinBlock(
+          time,
+          block
+        )
+    );
+
+    if (isAvailable) {
+      return {
+        type: "available" as const,
+      };
+    }
+
+    return {
+      type: "unavailable" as const,
+    };
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* STATUS                                                                  */
+  /* ----------------------------------------------------------------------- */
+
+  const statusLabel =
+    teacher?.status === "active"
+      ? "Active"
+      : teacher?.status
+        ? teacher.status
+            .charAt(0)
+            .toUpperCase() +
+          teacher.status.slice(1)
+        : "Unknown";
+
+  /* ========================================================================= */
+  /* RENDER                                                                    */
+  /* ========================================================================= */
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
+        <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
+          <div className="flex w-full items-start justify-between gap-8">
+            <Link
+              href={`/${locale}/admin/teachers`}
+              className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
+            >
+              ← Teachers
+            </Link>
+
+            <Link
+              href={`/${locale}`}
+              className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
+            >
+              <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
+                HAMKKE │ 함께
+              </p>
+
+              <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
+                From Small Talk to Big Ideas
+              </p>
+            </Link>
+          </div>
+        </header>
+
+        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
+          <div className="border-y border-[#DCD8D2] py-20 text-center">
+            <p className="font-serif text-[17px] text-[#74716B]">
+              Loading teacher...
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (error || !teacher) {
+    return (
+      <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
+        <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
+          <div className="flex w-full items-start justify-between gap-8">
+            <Link
+              href={`/${locale}/admin/teachers`}
+              className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
+            >
+              ← Teachers
+            </Link>
+
+            <Link
+              href={`/${locale}`}
+              className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
+            >
+              <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
+                HAMKKE │ 함께
+              </p>
+
+              <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
+                From Small Talk to Big Ideas
+              </p>
+            </Link>
+          </div>
+        </header>
+
+        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
+          <div className="border-y border-[#DCD8D2] py-20 text-center">
+            <h1 className="font-serif text-[30px] font-normal">
+              Unable to load teacher
+            </h1>
+
+            <p className="mx-auto mt-3 max-w-[520px] font-serif text-[16px] leading-7 text-[#74716B]">
+              {error ||
+                "This teacher could not be found."}
+            </p>
+
+            <Link
+              href={`/${locale}/admin/teachers`}
+              className="mt-6 inline-block font-sans text-[13px] text-[#6F8F72] underline underline-offset-4"
+            >
+              Back to Teachers
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
-    <main
-      className="
-        min-h-screen
-        bg-[#FAF8F5]
-        text-[#292929]
-      "
-    >
+    <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
       {/* =================================================================== */}
       {/* HEADER                                                              */}
       {/* =================================================================== */}
 
-      <header
-        className="
-          w-full
-          px-6
-          pt-7
-          sm:px-8
-          sm:pt-8
-          lg:px-10
-          xl:px-12
-        "
-      >
-        <div
-          className="
-            flex
-            w-full
-            items-start
-            justify-between
-            gap-8
-          "
-        >
+      <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
+        <div className="flex w-full items-start justify-between gap-8">
+          {/* Back to Teachers */}
+
           <Link
             href={`/${locale}/admin/teachers`}
-            className="
-              shrink-0
-              font-sans
-              text-[15px]
-              text-[#5F655F]
-              transition-colors
-              duration-200
-              hover:text-[#6F8F72]
-              sm:text-[16px]
-            "
+            className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
           >
-            &larr; Teachers
+            ← Teachers
           </Link>
+
+          {/* Hamkke Brand */}
 
           <Link
             href={`/${locale}`}
-            className="
-              shrink-0
-              text-right
-              transition-opacity
-              duration-200
-              hover:opacity-70
-            "
+            className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
           >
-            <p
-              className="
-                font-sans
-                text-[16px]
-                font-semibold
-                leading-none
-                tracking-[0.18em]
-                text-[#6F8F72]
-              "
-            >
+            <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
               HAMKKE │ 함께
             </p>
 
-            <p
-              className="
-                mt-2
-                font-serif
-                text-[13px]
-                font-normal
-                leading-none
-                tracking-[0.02em]
-                text-[#6F8F72]
-              "
-            >
+            <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
               From Small Talk to Big Ideas
             </p>
           </Link>
@@ -763,936 +888,540 @@ export default function TeacherManagePage() {
       </header>
 
       {/* =================================================================== */}
-      {/* CONTENT                                                             */}
+      {/* INTRO                                                               */}
       {/* =================================================================== */}
 
-      <div
-        className="
-          mx-auto
-          max-w-5xl
-          px-6
-          pb-20
-          pt-12
-          sm:px-8
-          sm:pb-24
-          sm:pt-16
-          lg:px-10
-        "
-      >
-        {/* ----------------------------------------------------------------- */}
-        {/* PAGE HEADER                                                       */}
-        {/* ----------------------------------------------------------------- */}
-
-        {loading ? (
-          <div className="pt-8">
-            <p
-              className="
-                font-sans
-                text-[14px]
-                text-[#777]
-              "
-            >
-              Loading teacher...
+      <section className="mx-auto max-w-[1200px] px-6 pb-10 pt-12 sm:px-8 sm:pb-12 sm:pt-16 lg:px-10 lg:pt-20">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-[760px]">
+            <p className="mb-4 font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
+              Teaching team
             </p>
-          </div>
-        ) : error ? (
-          <div
-            className="
-              mt-8
-              rounded-3xl
-              border
-              border-[#E7DDD1]
-              bg-white
-              p-8
-              shadow-[0_5px_24px_rgba(70,60,45,0.035)]
-            "
-          >
-            <p
-              className="
-                font-sans
-                text-[14px]
-                leading-6
-                text-[#8A5148]
-              "
-            >
-              {error}
-            </p>
-          </div>
-        ) : teacher ? (
-          <div className="pt-8">
-            {/* Teacher Information */}
 
-            <div>
-              <h1
-                className="
-                  font-serif
-                  text-[42px]
-                  font-normal
-                  leading-tight
-                  tracking-[-0.03em]
-                  text-[#292929]
-                  sm:text-[48px]
-                "
-              >
-                {teacher.full_name ||
-                  "Unnamed Teacher"}
-              </h1>
+            <h1 className="font-serif text-[45px] font-normal leading-[1] tracking-[-0.035em] sm:text-[56px] lg:text-[64px]">
+              {teacher.full_name ||
+                "Unnamed teacher"}
+            </h1>
 
-              <p
-                className="
-                  mt-3
-                  font-sans
-                  text-[15px]
-                  text-[#777]
-                "
-              >
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <p className="font-sans text-[12px] uppercase tracking-[0.12em] text-[#8A8A84]">
+                Teacher #
+                {teacher.teacher_number ||
+                  "—"}
+              </p>
+
+              <span className="h-[3px] w-[3px] rounded-full bg-[#B6B2AA]" />
+
+              <p className="font-sans text-[12px] text-[#74716B]">
                 {teacher.email ||
                   "No email available"}
               </p>
 
-              <span
-                className={`
-                  mt-4
-                  inline-flex
-                  rounded-full
-                  px-3
-                  py-1.5
-                  font-sans
-                  text-[12px]
-                  font-medium
-                  ${
-                    teacher.status ===
-                    "active"
-                      ? "bg-[#EAF1E7] text-[#55705A]"
-                      : "bg-[#F1ECE7] text-[#777]"
-                  }
-                `}
-              >
-                {teacher.status ===
-                "active"
-                  ? "Active"
-                  : "Inactive"}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E5EBDD] px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#607963]">
+                <span className="h-[5px] w-[5px] rounded-full bg-[#6F8F72]" />
+                {statusLabel}
               </span>
             </div>
           </div>
-        ) : null}
 
-        {/* ================================================================= */}
-        {/* TEACHER CONTENT                                                   */}
-        {/* ================================================================= */}
+          <Link
+            href={`/${locale}/admin/teachers/${teacher.id}/payroll`}
+            className="inline-flex w-fit items-center gap-2 border-b border-[#6F8F72] pb-1 font-sans text-[13px] text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55]"
+          >
+            Payroll →
+          </Link>
+        </div>
+      </section>
 
-        {!loading &&
-          !error &&
-          teacher && (
-            <section className="mt-14">
-              {/* =========================================================== */}
-              {/* WEEKLY AVAILABILITY                                         */}
-              {/* =========================================================== */}
+      {/* =================================================================== */}
+      {/* CALENDAR                                                             */}
+      {/* =================================================================== */}
 
-              <div>
+      <section className="mx-auto max-w-[1200px] px-6 pb-16 sm:px-8 lg:px-10">
+        <div className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
+              Teaching schedule
+            </p>
+
+            <h2 className="mt-2 font-serif text-[29px] font-normal tracking-[-0.025em]">
+              Weekly Calendar
+            </h2>
+
+            <p className="mt-2 max-w-[600px] font-serif text-[15px] leading-7 text-[#74716B]">
+              Philippine Time. This calendar reflects the
+              availability set by the teacher and the
+              students currently assigned to them.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 font-sans text-[10px] uppercase tracking-[0.1em] text-[#77736B]">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-[2px] border border-[#B9CBB5] bg-[#E8EFE5]" />
+              Available
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-[2px] border border-[#D9BE6A] bg-[#F3E8B8]" />
+              Scheduled
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-[2px] border border-[#D9B6B1] bg-[#F1DEDB]" />
+              Unavailable
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto border-y border-[#DCD8D2]">
+          <div className="min-w-[980px]">
+            {/* DAY HEADER */}
+
+            <div className="grid grid-cols-[78px_repeat(7,minmax(120px,1fr))] border-b border-[#DCD8D2]">
+              <div className="border-r border-[#E7E3DD] p-3" />
+
+              {DAYS.map((day) => (
                 <div
-                  className="
-                    flex
-                    flex-col
-                    gap-4
-                    sm:flex-row
-                    sm:items-end
-                    sm:justify-between
-                  "
+                  key={day.value}
+                  className="border-r border-[#E7E3DD] px-3 py-4 text-center last:border-r-0"
                 >
-                  <div>
-                    <h2
-                      className="
-                        font-serif
-                        text-[28px]
-                        font-normal
-                        tracking-[-0.02em]
-                        text-[#292929]
-                      "
-                    >
-                      Weekly Availability
-                    </h2>
-
-                    <p
-                      className="
-                        mt-2
-                        max-w-2xl
-                        font-serif
-                        text-[17px]
-                        leading-7
-                        text-[#666]
-                      "
-                    >
-                      Set the teacher&apos;s
-                      regular weekly teaching
-                      hours. This schedule repeats
-                      each week.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={saveAvailability}
-                    disabled={
-                      savingAvailability
-                    }
-                    className="
-                      w-fit
-                      shrink-0
-                      rounded-full
-                      bg-[#6F8F72]
-                      px-5
-                      py-3
-                      font-sans
-                      text-[14px]
-                      font-medium
-                      text-white
-                      shadow-[0_3px_10px_rgba(111,143,114,0.12)]
-                      transition
-                      hover:bg-[#5F7F63]
-                      hover:shadow-[0_5px_14px_rgba(111,143,114,0.16)]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-50
-                    "
-                  >
-                    {savingAvailability
-                      ? "Saving..."
-                      : "Save Availability"}
-                  </button>
+                  <p className="font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
+                    {day.label}
+                  </p>
                 </div>
+              ))}
+            </div>
 
-                {/* Availability messages */}
+            {/* CALENDAR BODY */}
 
-                {availabilityError && (
-                  <p
-                    className="
-                      mt-5
-                      rounded-xl
-                      bg-[#F8ECE8]
-                      px-4
-                      py-3
-                      font-sans
-                      text-[14px]
-                      leading-6
-                      text-[#8A5148]
-                    "
+            {loadingAvailability ? (
+              <div className="py-20 text-center">
+                <p className="font-serif text-[16px] text-[#74716B]">
+                  Loading availability...
+                </p>
+              </div>
+            ) : (
+              <div>
+                {timeSlots.map((time) => (
+                  <div
+                    key={time}
+                    className="grid grid-cols-[78px_repeat(7,minmax(120px,1fr))]"
                   >
-                    {availabilityError}
-                  </p>
-                )}
+                    {/* TIME */}
 
-                {availabilityMessage && (
-                  <p
-                    className="
-                      mt-5
-                      rounded-xl
-                      bg-[#EAF1E7]
-                      px-4
-                      py-3
-                      font-sans
-                      text-[14px]
-                      leading-6
-                      text-[#55705A]
-                    "
-                  >
-                    {availabilityMessage}
-                  </p>
-                )}
-
-                {/* Calendar */}
-
-                <div
-                  className="
-                    mt-6
-                    overflow-hidden
-                    rounded-3xl
-                    border
-                    border-[#DCD8D2]
-                    bg-white
-                    shadow-[0_5px_24px_rgba(70,60,45,0.035)]
-                  "
-                >
-                  {loadingAvailability ? (
-                    <div className="p-8">
-                      <p
-                        className="
-                          font-sans
-                          text-[14px]
-                          text-[#777]
-                        "
-                      >
-                        Loading availability...
-                      </p>
+                    <div className="border-r border-b border-[#E7E3DD] px-2 py-2 text-right">
+                      <span className="font-sans text-[9px] text-[#99958D]">
+                        {formatTime(time)}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <div
-                        className="
-                          min-w-[760px]
-                        "
-                      >
-                        {/* Calendar header */}
 
+                    {/* DAYS */}
+
+                    {DAYS.map((day) => {
+                      const slot =
+                        getSlotState(
+                          day.value,
+                          time
+                        );
+
+                      const isScheduled =
+                        slot.type ===
+                        "scheduled";
+
+                      const isAvailable =
+                        slot.type ===
+                        "available";
+
+                      const isUnavailable =
+                        slot.type ===
+                        "unavailable";
+
+                      return (
                         <div
-                          className="
-                            grid
-                            grid-cols-[76px_repeat(7,minmax(94px,1fr))]
-                            border-b
-                            border-[#DCD8D2]
-                            bg-[#FAF8F5]
-                          "
+                          key={`${day.value}-${time}`}
+                          className="border-r border-b border-[#E7E3DD] p-[3px] last:border-r-0"
                         >
-                          <div
-                            className="
-                              border-r
-                              border-[#DCD8D2]
-                              px-3
-                              py-4
-                            "
-                          />
+                          {isScheduled ? (
+                            <div className="flex min-h-[39px] flex-col justify-center rounded-[3px] border border-[#D9BE6A] bg-[#F3E8B8] px-2 py-1.5">
+                              <p className="truncate font-sans text-[10px] font-medium text-[#6F6440]">
+                                {getStudentName(
+                                  slot.assignment
+                                    .student
+                                )}
+                              </p>
 
-                          {DAYS.map((day) => (
-                            <div
-                              key={day.value}
-                              className="
-                                border-r
-                                border-[#DCD8D2]
-                                px-2
-                                py-4
-                                text-center
-                                last:border-r-0
-                              "
-                            >
-                              <p
-                                className="
-                                  font-sans
-                                  text-[12px]
-                                  font-medium
-                                  uppercase
-                                  tracking-[0.08em]
-                                  text-[#777]
-                                "
-                              >
-                                {day.label}
+                              <p className="mt-0.5 truncate font-sans text-[8px] uppercase tracking-[0.08em] text-[#8C8057]">
+                                Scheduled
                               </p>
                             </div>
-                          ))}
-                        </div>
-
-                        {/* Calendar body */}
-
-                        <div>
-                          {TIME_SLOTS.map(
-                            (time) => (
-                              <div
-                                key={time}
-                                className="
-                                  grid
-                                  grid-cols-[76px_repeat(7,minmax(94px,1fr))]
-                                "
-                              >
-                                {/* Time */}
-
-                                <div
-                                  className="
-                                    relative
-                                    border-r
-                                    border-b
-                                    border-[#E7E4DE]
-                                    bg-[#FCFBF8]
-                                    px-3
-                                    py-2
-                                  "
-                                >
-                                  <span
-                                    className="
-                                      absolute
-                                      -top-[8px]
-                                      left-3
-                                      whitespace-nowrap
-                                      font-sans
-                                      text-[10px]
-                                      text-[#999]
-                                    "
-                                  >
-                                    {formatTime(
-                                      time
-                                    )}
-                                  </span>
-                                </div>
-
-                                {/* Days */}
-
-                                {DAYS.map(
-                                  (day) => {
-                                    const blocks =
-                                      availabilityByDay[
-                                        day.value
-                                      ] || [];
-
-                                    const active =
-                                      blocks.some(
-                                        (
-                                          block
-                                        ) =>
-                                          isTimeWithinBlock(
-                                            time,
-                                            block
-                                          )
-                                      );
-
-                                    const blockStartingHere =
-                                      blocks.find(
-                                        (
-                                          block
-                                        ) =>
-                                          block.start_time ===
-                                          time
-                                      );
-
-                                    return (
-                                      <button
-                                        key={`${day.value}-${time}`}
-                                        type="button"
-                                        onClick={() =>
-                                          toggleAvailabilitySlot(
-                                            day.value,
-                                            time
-                                          )
-                                        }
-                                        aria-label={`${day.label} ${formatTime(
-                                          time
-                                        )}`}
-                                        className={`
-                                          relative
-                                          h-[42px]
-                                          border-r
-                                          border-b
-                                          border-[#E7E4DE]
-                                          transition-colors
-                                          last:border-r-0
-                                          ${
-                                            active
-                                              ? "bg-[#E8EFE5] hover:bg-[#DDE8DA]"
-                                              : "bg-white hover:bg-[#F8F7F3]"
-                                          }
-                                        `}
-                                      >
-                                        {blockStartingHere && (
-                                          <span
-                                            className="
-                                              absolute
-                                              left-2
-                                              right-2
-                                              top-1/2
-                                              h-[3px]
-                                              -translate-y-1/2
-                                              rounded-full
-                                              bg-[#6F8F72]
-                                              opacity-60
-                                            "
-                                          />
-                                        )}
-                                      </button>
-                                    );
-                                  }
-                                )}
-                              </div>
-                            )
+                          ) : isAvailable ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openAssignPanel(
+                                  day.value,
+                                  time
+                                )
+                              }
+                              className="group flex min-h-[39px] w-full items-center justify-center rounded-[3px] border border-[#B9CBB5] bg-[#E8EFE5] px-2 transition-colors hover:border-[#6F8F72] hover:bg-[#DDE9D9]"
+                              aria-label={`Assign student on ${day.label} at ${formatTime(
+                                time
+                              )}`}
+                            >
+                              <span className="hidden font-sans text-[8px] font-medium uppercase tracking-[0.08em] text-[#607963] group-hover:block">
+                                + Assign
+                              </span>
+                            </button>
+                          ) : (
+                            <div
+                              className="min-h-[39px] rounded-[3px] border border-[#D9B6B1] bg-[#F1DEDB]"
+                              aria-label={`Unavailable on ${day.label} at ${formatTime(
+                                time
+                              )}`}
+                            />
                           )}
                         </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Legend */}
-
-                <div
-                  className="
-                    mt-4
-                    flex
-                    flex-wrap
-                    items-center
-                    gap-x-6
-                    gap-y-3
-                    font-sans
-                    text-[12px]
-                    text-[#777]
-                  "
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="
-                        h-3
-                        w-3
-                        rounded-[3px]
-                        border
-                        border-[#D2DDD0]
-                        bg-[#E8EFE5]
-                      "
-                    />
-                    <span>
-                      Available
-                    </span>
+                      );
+                    })}
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
-                  <p>
-                    Click or tap a time slot to
-                    mark it available.
-                  </p>
-                </div>
+        <p className="mt-4 font-serif text-[13px] italic text-[#8A8780]">
+          Click an available green slot to assign a
+          student whose existing lesson schedule matches
+          that time.
+        </p>
+      </section>
+
+      {/* =================================================================== */}
+      {/* ASSIGNMENT PANEL                                                    */}
+      {/* =================================================================== */}
+
+      {showAssignPanel && (
+        <section className="mx-auto max-w-[1200px] px-6 pb-16 sm:px-8 lg:px-10">
+          <div className="border-y border-[#DCD8D2] bg-[#F7F5F1] px-6 py-7 sm:px-8 sm:py-8">
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
+                  Assign from calendar
+                </p>
+
+                <h3 className="mt-2 font-serif text-[27px] font-normal tracking-[-0.02em]">
+                  {selectedSlot
+                    ? `${DAYS[selectedSlot.day].label}, ${formatTime(
+                        selectedSlot.time
+                      )}`
+                    : "Select a student"}
+                </h3>
+
+                <p className="mt-2 max-w-[600px] font-serif text-[14px] leading-6 text-[#74716B]">
+                  Only active enrollments scheduled for
+                  this day and time are shown.
+                </p>
               </div>
 
-              {/* =========================================================== */}
-              {/* ASSIGNED STUDENTS HEADER                                    */}
-              {/* =========================================================== */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAssignPanel(false);
+                  setAssignmentError("");
+                  setSuccess("");
+                }}
+                className="shrink-0 text-[#8A8780] transition-colors hover:text-[#6F8F72]"
+                aria-label="Close assignment panel"
+              >
+                <CloseIcon />
+              </button>
+            </div>
 
-              <div className="mt-16">
-                <div
-                  className="
-                    flex
-                    flex-col
-                    gap-4
-                    sm:flex-row
-                    sm:items-end
-                    sm:justify-between
-                  "
-                >
-                  <div>
-                    <h2
-                      className="
-                        font-serif
-                        text-[28px]
-                        font-normal
-                        tracking-[-0.02em]
-                        text-[#292929]
-                      "
-                    >
-                      Assigned Students
-                    </h2>
+            {success && (
+              <div className="mt-6 border-l-2 border-[#6F8F72] bg-[#EDF2EA] px-4 py-3">
+                <p className="font-sans text-[12px] text-[#607963]">
+                  {success}
+                </p>
+              </div>
+            )}
 
-                    <p
-                      className="
-                        mt-2
-                        font-serif
-                        text-[17px]
-                        leading-7
-                        text-[#666]
-                      "
-                    >
-                      Students currently assigned
-                      to this teacher.
-                    </p>
-                  </div>
+            {assignmentError && (
+              <div className="mt-6 border-l-2 border-[#B87368] bg-[#F4E5E2] px-4 py-3">
+                <p className="font-sans text-[12px] text-[#8B5C55]">
+                  {assignmentError}
+                </p>
+              </div>
+            )}
 
-                  <button
-                    type="button"
-                    onClick={openAssignPanel}
-                    className="
-                      w-fit
-                      rounded-full
-                      bg-[#6F8F72]
-                      px-5
-                      py-3
-                      font-sans
-                      text-[14px]
-                      font-medium
-                      text-white
-                      shadow-[0_3px_10px_rgba(111,143,114,0.12)]
-                      transition
-                      hover:bg-[#5F7F63]
-                      hover:shadow-[0_5px_14px_rgba(111,143,114,0.16)]
-                    "
-                  >
-                    + Assign Student
-                  </button>
-                </div>
+            {loadingEnrollments ? (
+              <div className="py-12 text-center">
+                <p className="font-serif text-[16px] text-[#74716B]">
+                  Loading available students...
+                </p>
+              </div>
+            ) : slotEnrollments.length > 0 ? (
+              <div className="mt-7 divide-y divide-[#E0DCD6] border-y border-[#DCD8D2]">
+                {slotEnrollments.map(
+                  (item) => {
+                    const studentName =
+                      getStudentName(
+                        item.student
+                      );
 
-                {/* --------------------------------------------------------- */}
-                {/* ASSIGN STUDENT PANEL                                      */}
-                {/* --------------------------------------------------------- */}
+                    const isSelected =
+                      selectedEnrollmentStudentId ===
+                      item.enrollment_student_id;
 
-                {showAssignPanel && (
-                  <div
-                    className="
-                      mt-6
-                      rounded-3xl
-                      border
-                      border-[#E7DDD1]
-                      bg-white
-                      p-7
-                      shadow-[0_5px_24px_rgba(70,60,45,0.035)]
-                      sm:p-8
-                    "
-                  >
-                    <div
-                      className="
-                        flex
-                        items-start
-                        justify-between
-                        gap-6
-                      "
-                    >
-                      <div>
-                        <h3
-                          className="
-                            font-serif
-                            text-[24px]
-                            font-normal
-                            text-[#292929]
-                          "
-                        >
-                          Assign Student
-                        </h3>
-
-                        <p
-                          className="
-                            mt-2
-                            font-serif
-                            text-[16px]
-                            leading-6
-                            text-[#666]
-                          "
-                        >
-                          Choose an active enrollment
-                          to assign to this teacher.
-                        </p>
-                      </div>
-
+                    return (
                       <button
+                        key={
+                          item.enrollment_student_id
+                        }
                         type="button"
                         onClick={() =>
-                          setShowAssignPanel(
-                            false
+                          setSelectedEnrollmentStudentId(
+                            item.enrollment_student_id
                           )
                         }
-                        className="
-                          font-sans
-                          text-[14px]
-                          text-[#777]
-                          transition-colors
-                          hover:text-[#6F8F72]
-                        "
+                        className={`flex w-full items-center justify-between gap-5 px-3 py-4 text-left transition-colors sm:px-4 ${
+                          isSelected
+                            ? "bg-[#E8EFE5]"
+                            : "hover:bg-[#F2F5F0]"
+                        }`}
                       >
-                        Cancel
-                      </button>
-                    </div>
+                        <div className="min-w-0">
+                          <p className="font-serif text-[17px] leading-6 tracking-[-0.01em]">
+                            {studentName}
+                          </p>
 
-                    {loadingEnrollments ? (
-                      <p
-                        className="
-                          mt-7
-                          font-sans
-                          text-[14px]
-                          text-[#777]
-                        "
-                      >
-                        Loading students...
-                      </p>
-                    ) : availableEnrollments.length ===
-                      0 ? (
-                      <p
-                        className="
-                          mt-7
-                          rounded-xl
-                          bg-[#FAF8F5]
-                          px-4
-                          py-4
-                          font-sans
-                          text-[14px]
-                          leading-6
-                          text-[#777]
-                        "
-                      >
-                        There are no active
-                        enrollments available to
-                        assign.
-                      </p>
-                    ) : (
-                      <div className="mt-7 space-y-3">
-                        {availableEnrollments.map(
-                          (enrollment) => {
-                            const student =
-                              enrollment.student;
+                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                            <span className="font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                              Student #
+                              {item.student
+                                ?.student_number ||
+                                "—"}
+                            </span>
 
-                            const isSelected =
-                              selectedEnrollmentStudentId ===
-                              enrollment.enrollment_student_id;
-
-                            return (
-                              <button
-                                key={
-                                  enrollment.enrollment_student_id
-                                }
-                                type="button"
-                                onClick={() =>
-                                  setSelectedEnrollmentStudentId(
-                                    enrollment.enrollment_student_id
-                                  )
-                                }
-                                className={`
-                                  w-full
-                                  rounded-2xl
-                                  border
-                                  p-5
-                                  text-left
-                                  transition
-                                  ${
-                                    isSelected
-                                      ? "border-[#6F8F72] bg-[#F3F7F1]"
-                                      : "border-[#E7DDD1] bg-white hover:border-[#BFCDBF]"
-                                  }
-                                `}
-                              >
-                                <div
-                                  className="
-                                    flex
-                                    flex-col
-                                    gap-3
-                                    sm:flex-row
-                                    sm:items-center
-                                    sm:justify-between
-                                  "
-                                >
-                                  <div>
-                                    <p
-                                      className="
-                                        font-serif
-                                        text-[19px]
-                                        text-[#292929]
-                                      "
-                                    >
-                                      {student?.preferred_name ||
-                                        student?.full_name ||
-                                        "Unnamed Student"}
-                                    </p>
-
-                                    <p
-                                      className="
-                                        mt-1
-                                        font-sans
-                                        text-[13px]
-                                        text-[#777]
-                                      "
-                                    >
-                                      {student?.student_number
-                                        ? `Student #${student.student_number}`
-                                        : "No student number"}
-                                    </p>
-                                  </div>
-
-                                  <p
-                                    className="
-                                      font-sans
-                                      text-[13px]
-                                      text-[#666]
-                                    "
-                                  >
-                                    {enrollment
-                                      .enrollment
-                                      ?.package_name ||
-                                      "Enrollment"}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          }
-                        )}
-                      </div>
-                    )}
-
-                    {assignmentError && (
-                      <p
-                        className="
-                          mt-5
-                          rounded-xl
-                          bg-[#F8ECE8]
-                          px-4
-                          py-3
-                          font-sans
-                          text-[14px]
-                          leading-6
-                          text-[#8A5148]
-                        "
-                      >
-                        {assignmentError}
-                      </p>
-                    )}
-
-                    {success && (
-                      <p
-                        className="
-                          mt-5
-                          rounded-xl
-                          bg-[#EAF1E7]
-                          px-4
-                          py-3
-                          font-sans
-                          text-[14px]
-                          leading-6
-                          text-[#55705A]
-                        "
-                      >
-                        {success}
-                      </p>
-                    )}
-
-                    {availableEnrollments.length >
-                      0 && (
-                      <button
-                        type="button"
-                        onClick={handleAssign}
-                        disabled={
-                          !selectedEnrollmentStudentId ||
-                          assigning
-                        }
-                        className="
-                          mt-6
-                          w-full
-                          rounded-full
-                          bg-[#6F8F72]
-                          px-6
-                          py-3.5
-                          font-sans
-                          text-[15px]
-                          font-medium
-                          text-white
-                          transition
-                          hover:bg-[#5F7F63]
-                          disabled:cursor-not-allowed
-                          disabled:opacity-50
-                        "
-                      >
-                        {assigning
-                          ? "Assigning..."
-                          : "Assign Student"}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* --------------------------------------------------------- */}
-                {/* ASSIGNED STUDENTS LIST                                    */}
-                {/* --------------------------------------------------------- */}
-
-                <div
-                  className="
-                    mt-6
-                    overflow-hidden
-                    rounded-3xl
-                    border
-                    border-[#E7DDD1]
-                    bg-white
-                    shadow-[0_5px_24px_rgba(70,60,45,0.035)]
-                  "
-                >
-                  {assignments.length ===
-                  0 ? (
-                    <div className="p-8">
-                      <p
-                        className="
-                          font-sans
-                          text-[14px]
-                          leading-6
-                          text-[#777]
-                        "
-                      >
-                        No students have been
-                        assigned to this teacher yet.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-[#E7DDD1]">
-                      {assignments.map(
-                        (assignment) => (
-                          <div
-                            key={assignment.id}
-                            className="
-                              flex
-                              flex-col
-                              gap-4
-                              px-8
-                              py-6
-                              transition-colors
-                              hover:bg-[#FCFBF8]
-                              sm:flex-row
-                              sm:items-center
-                              sm:justify-between
-                            "
-                          >
-                            <div>
-                              <p
-                                className="
-                                  font-serif
-                                  text-[20px]
-                                  text-[#292929]
-                                "
-                              >
-                                {assignment
-                                  .student
-                                  ?.preferred_name ||
-                                  assignment
-                                    .student
-                                    ?.full_name ||
-                                  "Unnamed Student"}
-                              </p>
-
-                              <p
-                                className="
-                                  mt-1
-                                  font-sans
-                                  text-[13px]
-                                  text-[#777]
-                                "
-                              >
-                                {assignment
-                                  .student
-                                  ?.student_number
-                                  ? `Student #${assignment.student.student_number}`
-                                  : "No student number"}
-                              </p>
-
-                              <p
-                                className="
-                                  mt-2
-                                  font-sans
-                                  text-[14px]
-                                  text-[#666]
-                                "
-                              >
-                                {assignment
-                                  .enrollment
-                                  ?.package_name ||
-                                  "Enrollment"}
-                              </p>
-                            </div>
-
-                            <span
-                              className="
-                                w-fit
-                                rounded-full
-                                bg-[#EAF1E7]
-                                px-3
-                                py-1.5
-                                font-sans
-                                text-[12px]
-                                font-medium
-                                text-[#55705A]
-                              "
-                            >
-                              Active
+                            <span className="font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                              {item.enrollment
+                                ?.package_name ||
+                                "Private English Lessons"}
                             </span>
                           </div>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
+                        </div>
+
+                        <span
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                            isSelected
+                              ? "border-[#6F8F72] bg-[#6F8F72] text-white"
+                              : "border-[#CFCBC5] text-transparent"
+                          }`}
+                        >
+                          <CheckIcon />
+                        </span>
+                      </button>
+                    );
+                  }
+                )}
               </div>
-            </section>
-          )}
-      </div>
+            ) : (
+              <div className="mt-7 border-y border-[#DCD8D2] py-12 text-center">
+                <h4 className="font-serif text-[22px] font-normal">
+                  No matching students
+                </h4>
+
+                <p className="mx-auto mt-3 max-w-[480px] font-serif text-[14px] leading-6 text-[#74716B]">
+                  There are no unassigned active
+                  enrollments currently scheduled for
+                  this day and time.
+                </p>
+              </div>
+            )}
+
+            {slotEnrollments.length > 0 && (
+              <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAssignPanel(false);
+                    setSelectedEnrollmentStudentId("");
+                    setAssignmentError("");
+                    setSuccess("");
+                  }}
+                  className="font-sans text-[12px] text-[#77736B] transition-colors hover:text-[#6F8F72]"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAssign}
+                  disabled={
+                    assigning ||
+                    !selectedEnrollmentStudentId
+                  }
+                  className="inline-flex w-fit items-center gap-2 border-b border-[#6F8F72] pb-1 font-sans text-[13px] text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55] disabled:cursor-not-allowed disabled:border-[#CFCBC5] disabled:text-[#AAA69F]"
+                >
+                  <PlusIcon />
+
+                  {assigning
+                    ? "Assigning..."
+                    : "Assign Student"}
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* =================================================================== */}
+      {/* ASSIGNED STUDENTS                                                   */}
+      {/* =================================================================== */}
+
+      <section className="mx-auto max-w-[1200px] px-6 pb-20 sm:px-8 sm:pb-24 lg:px-10">
+        <div className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
+              Teaching team
+            </p>
+
+            <h2 className="mt-2 font-serif text-[29px] font-normal tracking-[-0.025em]">
+              Assigned Students
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              openAssignPanel(
+                0,
+                "05:00"
+              )
+            }
+            className="inline-flex w-fit items-center gap-2 border-b border-[#6F8F72] pb-1 font-sans text-[13px] text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55]"
+          >
+            <PlusIcon />
+            Assign Student
+          </button>
+        </div>
+
+        {activeAssignments.length > 0 ? (
+          <div className="overflow-x-auto border-y border-[#DCD8D2]">
+            <table className="w-full min-w-[700px] border-collapse">
+              <thead>
+                <tr className="border-b border-[#DCD8D2]">
+                  <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84] sm:px-4">
+                    Student
+                  </th>
+
+                  <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
+                    Schedule
+                  </th>
+
+                  <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
+                    Package
+                  </th>
+
+                  <th className="px-3 py-4 text-right font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84] sm:px-4">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {activeAssignments.map(
+                  (assignment) => {
+                    const studentName =
+                      getStudentName(
+                        assignment.student
+                      );
+
+                    const scheduleDays =
+                      assignment.enrollment
+                        ?.schedule_days || [];
+
+                    const schedule =
+                      scheduleDays.length > 0
+                        ? scheduleDays
+                            .sort(
+                              (a, b) =>
+                                a - b
+                            )
+                            .map(
+                              (day) =>
+                                DAYS.find(
+                                  (item) =>
+                                    item.value ===
+                                    day
+                                )?.label
+                            )
+                            .filter(Boolean)
+                            .join(" / ")
+                        : "No schedule";
+
+                    return (
+                      <tr
+                        key={assignment.id}
+                        className="border-b border-[#E7E3DD] last:border-b-0 hover:bg-[#F2F5F0]"
+                      >
+                        <td className="px-3 py-4 sm:px-4 sm:py-[18px]">
+                          <p className="font-serif text-[17px] leading-6 tracking-[-0.01em]">
+                            {studentName}
+                          </p>
+
+                          <p className="mt-1 font-sans text-[10px] uppercase tracking-[0.12em] text-[#9A9790]">
+                            Student #
+                            {assignment.student
+                              ?.student_number ||
+                              "—"}
+                          </p>
+                        </td>
+
+                        <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
+                          {schedule}
+
+                          <span className="ml-2 font-sans text-[11px] text-[#8A8780]">
+                            {formatTime(
+                              assignment
+                                .enrollment
+                                ?.schedule_time
+                            )}
+                          </span>
+                        </td>
+
+                        <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
+                          {assignment.enrollment
+                            ?.package_name ||
+                            "Private English Lessons"}
+                        </td>
+
+                        <td className="px-3 py-4 text-right sm:px-4 sm:py-[18px]">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E5EBDD] px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#607963]">
+                            <span className="h-[5px] w-[5px] rounded-full bg-[#6F8F72]" />
+                            Active
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  }
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="border-y border-[#DCD8D2] py-16 text-center">
+            <h3 className="font-serif text-[25px] font-normal">
+              No assigned students
+            </h3>
+
+            <p className="mx-auto mt-3 max-w-[460px] font-serif text-[15px] leading-7 text-[#74716B]">
+              Students assigned to this teacher will
+              appear here.
+            </p>
+          </div>
+        )}
+      </section>
     </main>
   );
 }
