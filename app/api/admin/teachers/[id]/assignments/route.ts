@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+/* ========================================================================= */
+/* AUTHENTICATION                                                            */
+/* ========================================================================= */
 
 async function getActiveOwner() {
   const supabase = await createClient();
@@ -15,6 +18,7 @@ async function getActiveOwner() {
 
   if (!user) {
     return {
+      supabase,
       error: NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -22,10 +26,8 @@ async function getActiveOwner() {
     };
   }
 
-  const admin = createAdminClient();
-
   const { data: profile, error: profileError } =
-    await admin
+    await supabase
       .from("profiles")
       .select("role, status")
       .eq("id", user.id)
@@ -38,6 +40,7 @@ async function getActiveOwner() {
     profile.status !== "active"
   ) {
     return {
+      supabase,
       error: NextResponse.json(
         {
           error:
@@ -48,51 +51,102 @@ async function getActiveOwner() {
     };
   }
 
-  return { admin };
+  return {
+    supabase,
+    error: null,
+  };
 }
 
-/*
- * GET
- * Load this teacher's active assignments.
- */
+/* ========================================================================= */
+/* GET                                                                       */
+/* Load this teacher's active assignments.                                   */
+/* ========================================================================= */
+
 export async function GET(
-  request: Request,
+  _request: Request,
   context: RouteContext
 ) {
   try {
     const ownerResult = await getActiveOwner();
 
-    if ("error" in ownerResult) {
+    if (ownerResult.error) {
       return ownerResult.error;
     }
 
-    const { admin } = ownerResult;
+    const { supabase } = ownerResult;
     const { id: teacherId } = await context.params;
+
+    if (!teacherId) {
+      return NextResponse.json(
+        { error: "Teacher ID is required." },
+        { status: 400 }
+      );
+    }
+
+    /* --------------------------------------------------------------------- */
+    /* VERIFY TEACHER                                                        */
+    /* --------------------------------------------------------------------- */
+
+    const {
+      data: teacher,
+      error: teacherError,
+    } = await supabase
+      .from("profiles")
+      .select(
+        "id, full_name, role, status, teacher_number, created_at"
+      )
+      .eq("id", teacherId)
+      .eq("role", "teacher")
+      .single();
+
+    if (teacherError || !teacher) {
+      return NextResponse.json(
+        {
+          error: "Teacher could not be found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    /* --------------------------------------------------------------------- */
+    /* GET ACTIVE ASSIGNMENTS                                                */
+    /* --------------------------------------------------------------------- */
 
     const {
       data: assignments,
       error: assignmentsError,
-    } = await admin
+    } = await supabase
       .from("teacher_assignments")
-      .select(`
-        id,
-        enrollment_student_id,
-        teacher_id,
-        start_date,
-        end_date,
-        status,
-        created_at
-      `)
+      .select(
+        `
+          id,
+          enrollment_student_id,
+          teacher_id,
+          start_date,
+          end_date,
+          status,
+          created_at
+        `
+      )
       .eq("teacher_id", teacherId)
       .eq("status", "active")
       .order("created_at", { ascending: true });
 
     if (assignmentsError) {
+      console.error(
+        "Teacher assignments fetch error:",
+        assignmentsError
+      );
+
       return NextResponse.json(
         { error: assignmentsError.message },
         { status: 500 }
       );
     }
+
+    /* --------------------------------------------------------------------- */
+    /* GET ENROLLMENT-STUDENT RECORDS                                        */
+    /* --------------------------------------------------------------------- */
 
     const enrollmentStudentIds =
       (assignments || []).map(
@@ -102,6 +156,14 @@ export async function GET(
 
     if (enrollmentStudentIds.length === 0) {
       return NextResponse.json({
+        teacher: {
+          id: teacher.id,
+          full_name: teacher.full_name,
+          role: teacher.role,
+          status: teacher.status,
+          teacher_number: teacher.teacher_number,
+          created_at: teacher.created_at,
+        },
         assignments: [],
       });
     }
@@ -109,27 +171,34 @@ export async function GET(
     const {
       data: enrollmentStudents,
       error: enrollmentStudentsError,
-    } = await admin
+    } = await supabase
       .from("enrollment_students")
-      .select(`
-        id,
-        enrollment_id,
-        student_id,
-        students (
+      .select(
+        `
           id,
-          student_number,
-          full_name,
-          preferred_name
-        ),
-        enrollments (
-          id,
-          package_name,
-          status
-        )
-      `)
+          enrollment_id,
+          student_id,
+          students (
+            id,
+            student_number,
+            full_name,
+            preferred_name
+          ),
+          enrollments (
+            id,
+            package_name,
+            status
+          )
+        `
+      )
       .in("id", enrollmentStudentIds);
 
     if (enrollmentStudentsError) {
+      console.error(
+        "Enrollment students fetch error:",
+        enrollmentStudentsError
+      );
+
       return NextResponse.json(
         {
           error:
@@ -138,6 +207,10 @@ export async function GET(
         { status: 500 }
       );
     }
+
+    /* --------------------------------------------------------------------- */
+    /* FORMAT ASSIGNMENTS                                                   */
+    /* --------------------------------------------------------------------- */
 
     const formattedAssignments =
       (assignments || []).map(
@@ -163,14 +236,21 @@ export async function GET(
 
           return {
             id: assignment.id,
+
             enrollment_student_id:
               assignment.enrollment_student_id,
-            teacher_id: assignment.teacher_id,
+
+            teacher_id:
+              assignment.teacher_id,
+
             start_date:
               assignment.start_date,
+
             end_date:
               assignment.end_date,
-            status: assignment.status,
+
+            status:
+              assignment.status,
 
             student: student
               ? {
@@ -198,6 +278,17 @@ export async function GET(
       );
 
     return NextResponse.json({
+      teacher: {
+        id: teacher.id,
+        full_name: teacher.full_name,
+        role: teacher.role,
+        status: teacher.status,
+        teacher_number:
+          teacher.teacher_number,
+        created_at:
+          teacher.created_at,
+      },
+
       assignments:
         formattedAssignments,
     });
@@ -219,10 +310,11 @@ export async function GET(
   }
 }
 
-/*
- * POST
- * Assign an enrollment/student to this teacher.
- */
+/* ========================================================================= */
+/* POST                                                                      */
+/* Assign an enrollment/student to this teacher.                            */
+/* ========================================================================= */
+
 export async function POST(
   request: Request,
   context: RouteContext
@@ -230,20 +322,28 @@ export async function POST(
   try {
     const ownerResult = await getActiveOwner();
 
-    if ("error" in ownerResult) {
+    if (ownerResult.error) {
       return ownerResult.error;
     }
 
-    const { admin } = ownerResult;
+    const { supabase } = ownerResult;
     const { id: teacherId } = await context.params;
 
-    /*
-     * Verify the selected teacher.
-     */
+    if (!teacherId) {
+      return NextResponse.json(
+        { error: "Teacher ID is required." },
+        { status: 400 }
+      );
+    }
+
+    /* --------------------------------------------------------------------- */
+    /* VERIFY TEACHER                                                        */
+    /* --------------------------------------------------------------------- */
+
     const {
       data: teacher,
       error: teacherError,
-    } = await admin
+    } = await supabase
       .from("profiles")
       .select("id, role, status")
       .eq("id", teacherId)
@@ -273,9 +373,10 @@ export async function POST(
       );
     }
 
-    /*
-     * Read selected enrollment/student.
-     */
+    /* --------------------------------------------------------------------- */
+    /* READ SELECTED ENROLLMENT/STUDENT                                      */
+    /* --------------------------------------------------------------------- */
+
     const body = await request.json();
 
     const enrollmentStudentId =
@@ -296,24 +397,26 @@ export async function POST(
     const {
       data: enrollmentStudent,
       error: enrollmentStudentError,
-    } = await admin
+    } = await supabase
       .from("enrollment_students")
-      .select(`
-        id,
-        enrollment_id,
-        student_id,
-        enrollments (
+      .select(
+        `
           id,
-          package_name,
-          status
-        ),
-        students (
-          id,
-          student_number,
-          full_name,
-          preferred_name
-        )
-      `)
+          enrollment_id,
+          student_id,
+          enrollments (
+            id,
+            package_name,
+            status
+          ),
+          students (
+            id,
+            student_number,
+            full_name,
+            preferred_name
+          )
+        `
+      )
       .eq("id", enrollmentStudentId)
       .single();
 
@@ -329,6 +432,10 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    /* --------------------------------------------------------------------- */
+    /* VERIFY ENROLLMENT                                                     */
+    /* --------------------------------------------------------------------- */
 
     const enrollment = Array.isArray(
       enrollmentStudent.enrollments
@@ -356,19 +463,21 @@ export async function POST(
       );
     }
 
-    /*
-     * Check whether this student is already assigned
-     * to any active teacher.
-     */
+    /* --------------------------------------------------------------------- */
+    /* CHECK EXISTING ACTIVE ASSIGNMENT                                      */
+    /* --------------------------------------------------------------------- */
+
     const {
       data: existingAssignment,
       error: existingAssignmentError,
-    } = await admin
+    } = await supabase
       .from("teacher_assignments")
-      .select(`
-        id,
-        teacher_id
-      `)
+      .select(
+        `
+          id,
+          teacher_id
+        `
+      )
       .eq(
         "enrollment_student_id",
         enrollmentStudentId
@@ -377,6 +486,11 @@ export async function POST(
       .maybeSingle();
 
     if (existingAssignmentError) {
+      console.error(
+        "Existing assignment check error:",
+        existingAssignmentError
+      );
+
       return NextResponse.json(
         {
           error:
@@ -387,10 +501,10 @@ export async function POST(
     }
 
     if (existingAssignment) {
-      /*
-       * If the student is already assigned to
-       * this teacher.
-       */
+      /* ------------------------------------------------------------------- */
+      /* ALREADY ASSIGNED TO THIS TEACHER                                    */
+      /* ------------------------------------------------------------------- */
+
       if (
         existingAssignment.teacher_id ===
         teacherId
@@ -404,14 +518,13 @@ export async function POST(
         );
       }
 
-      /*
-       * Otherwise find the other teacher's name
-       * separately instead of relying on a Supabase
-       * relationship.
-       */
+      /* ------------------------------------------------------------------- */
+      /* ASSIGNED TO ANOTHER TEACHER                                         */
+      /* ------------------------------------------------------------------- */
+
       const {
         data: existingTeacher,
-      } = await admin
+      } = await supabase
         .from("profiles")
         .select("full_name")
         .eq(
@@ -431,9 +544,10 @@ export async function POST(
       );
     }
 
-    /*
-     * Create the assignment.
-     */
+    /* --------------------------------------------------------------------- */
+    /* CREATE ASSIGNMENT                                                     */
+    /* --------------------------------------------------------------------- */
+
     const today = new Date()
       .toISOString()
       .split("T")[0];
@@ -441,26 +555,39 @@ export async function POST(
     const {
       data: assignment,
       error: assignmentError,
-    } = await admin
+    } = await supabase
       .from("teacher_assignments")
       .insert({
         enrollment_student_id:
           enrollmentStudentId,
-        teacher_id: teacherId,
-        start_date: today,
-        status: "active",
+
+        teacher_id:
+          teacherId,
+
+        start_date:
+          today,
+
+        status:
+          "active",
       })
-      .select(`
-        id,
-        enrollment_student_id,
-        teacher_id,
-        start_date,
-        end_date,
-        status
-      `)
+      .select(
+        `
+          id,
+          enrollment_student_id,
+          teacher_id,
+          start_date,
+          end_date,
+          status
+        `
+      )
       .single();
 
     if (assignmentError) {
+      console.error(
+        "Teacher assignment insert error:",
+        assignmentError
+      );
+
       return NextResponse.json(
         {
           error:
