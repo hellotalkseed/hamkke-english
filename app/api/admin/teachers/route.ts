@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET() {
   try {
-    // Check the currently signed-in user
     const supabase = await createClient();
+
+    /* --------------------------------------------------------------------- */
+    /* AUTHENTICATION                                                        */
+    /* --------------------------------------------------------------------- */
 
     const {
       data: { user },
@@ -18,11 +20,11 @@ export async function GET() {
       );
     }
 
-    // Use the server-only Supabase admin client
-    const admin = createAdminClient();
+    /* --------------------------------------------------------------------- */
+    /* OWNER CHECK                                                           */
+    /* --------------------------------------------------------------------- */
 
-    // Check that the signed-in user is an active owner
-    const { data: profile, error: profileError } = await admin
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role, status")
       .eq("id", user.id)
@@ -35,13 +37,18 @@ export async function GET() {
       profile.status !== "active"
     ) {
       return NextResponse.json(
-        { error: "Only active owners can view teachers." },
+        {
+          error: "Only active owners can view teachers.",
+        },
         { status: 403 }
       );
     }
 
-    // Get teacher profiles
-    const { data: profiles, error: teachersError } = await admin
+    /* --------------------------------------------------------------------- */
+    /* GET TEACHERS                                                          */
+    /* --------------------------------------------------------------------- */
+
+    const { data: profiles, error: teachersError } = await supabase
       .from("profiles")
       .select(
         "id, full_name, role, status, created_at, teacher_number"
@@ -50,34 +57,70 @@ export async function GET() {
       .order("created_at", { ascending: true });
 
     if (teachersError) {
+      console.error(
+        "Teacher profiles fetch error:",
+        teachersError
+      );
+
       return NextResponse.json(
         { error: teachersError.message },
         { status: 500 }
       );
     }
 
-    const teacherIds = (profiles || []).map((teacher) => teacher.id);
+    const teacherIds = (profiles || []).map(
+      (teacher) => teacher.id
+    );
 
-    // Get active teacher assignments
-    const { data: assignments, error: assignmentsError } = await admin
+    /* --------------------------------------------------------------------- */
+    /* NO TEACHERS                                                           */
+    /* --------------------------------------------------------------------- */
+
+    if (teacherIds.length === 0) {
+      return NextResponse.json({
+        teachers: [],
+      });
+    }
+
+    /* --------------------------------------------------------------------- */
+    /* GET ACTIVE TEACHER ASSIGNMENTS                                        */
+    /* --------------------------------------------------------------------- */
+
+    const {
+      data: assignments,
+      error: assignmentsError,
+    } = await supabase
       .from("teacher_assignments")
-      .select(`
-        teacher_id,
-        enrollment_student_id
-      `)
+      .select(
+        `
+          teacher_id,
+          enrollment_student_id
+        `
+      )
       .in("teacher_id", teacherIds)
       .eq("status", "active");
 
     if (assignmentsError) {
+      console.error(
+        "Teacher assignments fetch error:",
+        assignmentsError
+      );
+
       return NextResponse.json(
         { error: assignmentsError.message },
         { status: 500 }
       );
     }
 
-    // Get enrollment-student records so we can identify unique students
-    const enrollmentStudentIds = (assignments || []).map(
-      (assignment) => assignment.enrollment_student_id
+    /* --------------------------------------------------------------------- */
+    /* GET ENROLLMENT-STUDENT RECORDS                                        */
+    /* --------------------------------------------------------------------- */
+
+    const enrollmentStudentIds = (
+      assignments || []
+    ).map(
+      (assignment) =>
+        assignment.enrollment_student_id
     );
 
     let enrollmentStudents: {
@@ -86,14 +129,25 @@ export async function GET() {
     }[] = [];
 
     if (enrollmentStudentIds.length > 0) {
-      const { data, error: enrollmentStudentsError } = await admin
+      const {
+        data,
+        error: enrollmentStudentsError,
+      } = await supabase
         .from("enrollment_students")
         .select("id, student_id")
         .in("id", enrollmentStudentIds);
 
       if (enrollmentStudentsError) {
+        console.error(
+          "Enrollment students fetch error:",
+          enrollmentStudentsError
+        );
+
         return NextResponse.json(
-          { error: enrollmentStudentsError.message },
+          {
+            error:
+              enrollmentStudentsError.message,
+          },
           { status: 500 }
         );
       }
@@ -101,60 +155,100 @@ export async function GET() {
       enrollmentStudents = data || [];
     }
 
-    // Get all lessons attributed to each teacher
-    const { data: lessons, error: lessonsError } = await admin
+    /* --------------------------------------------------------------------- */
+    /* GET TEACHER LESSONS                                                   */
+    /* --------------------------------------------------------------------- */
+
+    const {
+      data: lessons,
+      error: lessonsError,
+    } = await supabase
       .from("lessons")
       .select("id, actual_teacher_id")
       .in("actual_teacher_id", teacherIds);
 
     if (lessonsError) {
+      console.error(
+        "Teacher lessons fetch error:",
+        lessonsError
+      );
+
       return NextResponse.json(
         { error: lessonsError.message },
         { status: 500 }
       );
     }
 
-    // Build teacher statistics
-    const teachers = (profiles || []).map((teacher) => {
-      const teacherAssignments = (assignments || []).filter(
-        (assignment) => assignment.teacher_id === teacher.id
-      );
+    /* --------------------------------------------------------------------- */
+    /* BUILD TEACHER STATISTICS                                              */
+    /* --------------------------------------------------------------------- */
 
-      const assignedEnrollmentStudentIds =
-        teacherAssignments.map(
-          (assignment) => assignment.enrollment_student_id
-        );
+    const teachers = (profiles || []).map(
+      (teacher) => {
+        const teacherAssignments =
+          (assignments || []).filter(
+            (assignment) =>
+              assignment.teacher_id ===
+              teacher.id
+          );
 
-      const studentIds = enrollmentStudents
-        .filter((enrollmentStudent) =>
-          assignedEnrollmentStudentIds.includes(enrollmentStudent.id)
-        )
-        .map((enrollmentStudent) => enrollmentStudent.student_id);
+        const assignedEnrollmentStudentIds =
+          teacherAssignments.map(
+            (assignment) =>
+              assignment.enrollment_student_id
+          );
 
-      const uniqueStudentIds = [...new Set(studentIds)];
+        const studentIds =
+          enrollmentStudents
+            .filter((enrollmentStudent) =>
+              assignedEnrollmentStudentIds.includes(
+                enrollmentStudent.id
+              )
+            )
+            .map(
+              (enrollmentStudent) =>
+                enrollmentStudent.student_id
+            );
 
-      const totalLessons = (lessons || []).filter(
-        (lesson) => lesson.actual_teacher_id === teacher.id
-      ).length;
+        const uniqueStudentIds = [
+          ...new Set(studentIds),
+        ];
 
-      return {
-        id: teacher.id,
-        full_name: teacher.full_name,
-        role: teacher.role,
-        status: teacher.status,
-        created_at: teacher.created_at,
-        teacher_number: teacher.teacher_number,
-        student_count: uniqueStudentIds.length,
-        total_lessons: totalLessons,
-        payable: 0,
-      };
-    });
+        const totalLessons =
+          (lessons || []).filter(
+            (lesson) =>
+              lesson.actual_teacher_id ===
+              teacher.id
+          ).length;
+
+        return {
+          id: teacher.id,
+          full_name: teacher.full_name,
+          role: teacher.role,
+          status: teacher.status,
+          created_at: teacher.created_at,
+          teacher_number:
+            teacher.teacher_number,
+          student_count:
+            uniqueStudentIds.length,
+          total_lessons: totalLessons,
+          payable: 0,
+        };
+      }
+    );
+
+    /* --------------------------------------------------------------------- */
+    /* RESPONSE                                                              */
+    /* --------------------------------------------------------------------- */
 
     return NextResponse.json({
       teachers,
     });
   } catch (error) {
-    console.error("Teacher list error:", error);
+    console.error(
+      "Teacher list error:",
+      error
+    );
 
     return NextResponse.json(
       {
