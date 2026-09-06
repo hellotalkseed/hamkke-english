@@ -1034,7 +1034,6 @@ export default function TeachersManagement({
                             text-[#9A9790]
                           "
                         >
-                          Teacher #
                           {teacher.teacher_number ||
                             "—"}
                         </p>

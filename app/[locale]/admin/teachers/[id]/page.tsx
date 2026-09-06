@@ -901,7 +901,6 @@ export default function ManageTeacherPage() {
 
             <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
               <p className="font-sans text-[12px] uppercase tracking-[0.12em] text-[#8A8A84]">
-                Teacher #
                 {teacher.teacher_number ||
                   "—"}
               </p>

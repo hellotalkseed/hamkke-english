@@ -6,49 +6,109 @@ type RouteContext = {
 };
 
 /* ========================================================================= */
-/* AUTHENTICATION                                                            */
+/* TYPES                                                                     */
 /* ========================================================================= */
 
-async function getActiveOwner() {
+type AuthenticatedProfile = {
+  id: string;
+  full_name: string | null;
+  role: string;
+  status: string;
+  teacher_number: string | null;
+};
+
+type TeacherContract = {
+  id: string;
+  teacher_id: string;
+  contract_number: string;
+  version: string;
+  status:
+    | "draft"
+    | "pending_acceptance"
+    | "accepted"
+    | "terminated";
+  agreement_date: string | null;
+  accepted_at: string | null;
+  accepted_ip: string | null;
+  accepted_user_agent: string | null;
+  terminated_at: string | null;
+  termination_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  sent_at: string | null;
+  sent_by: string | null;
+};
+
+/* ========================================================================= */
+/* HELPERS                                                                   */
+/* ========================================================================= */
+
+async function getAuthenticatedProfile() {
   const supabase = await createClient();
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     return {
       supabase,
       user: null,
+      profile: null as AuthenticatedProfile | null,
       error: NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized." },
         { status: 401 }
       ),
     };
   }
 
-  const { data: profile, error: profileError } =
-    await supabase
-      .from("profiles")
-      .select("role, status")
-      .eq("id", user.id)
-      .single();
+  /*
+   * Only load the currently authenticated user's profile.
+   *
+   * We intentionally do NOT load the target teacher's profile here.
+   * The Owner may be able to authenticate successfully while RLS
+   * prevents reading another teacher's profile row.
+   */
+  const {
+    data: profileData,
+    error: profileError,
+  } = await supabase
+    .from("profiles")
+    .select(
+      "id, full_name, role, status, teacher_number"
+    )
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if (
-    profileError ||
-    !profile ||
-    profile.role !== "owner" ||
-    profile.status !== "active"
-  ) {
+  if (profileError) {
+    console.error(
+      "Failed to load authenticated profile:",
+      profileError
+    );
+
     return {
       supabase,
       user,
+      profile: null as AuthenticatedProfile | null,
       error: NextResponse.json(
-        {
-          error:
-            "Only active owners can manage teacher agreements.",
-        },
-        { status: 403 }
+        { error: "Failed to load your profile." },
+        { status: 500 }
+      ),
+    };
+  }
+
+  const profile =
+    profileData as AuthenticatedProfile | null;
+
+  if (!profile) {
+    return {
+      supabase,
+      user,
+      profile: null as AuthenticatedProfile | null,
+      error: NextResponse.json(
+        { error: "Profile not found." },
+        { status: 404 }
       ),
     };
   }
@@ -56,567 +116,656 @@ async function getActiveOwner() {
   return {
     supabase,
     user,
+    profile,
     error: null,
   };
 }
 
+function getClientIp(request: Request) {
+  const forwardedFor =
+    request.headers.get("x-forwarded-for");
+
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0].trim();
+  }
+
+  return request.headers.get("x-real-ip");
+}
+
+const CONTRACT_SELECT = `
+  id,
+  teacher_id,
+  contract_number,
+  version,
+  status,
+  agreement_date,
+  accepted_at,
+  accepted_ip,
+  accepted_user_agent,
+  terminated_at,
+  termination_reason,
+  created_at,
+  updated_at,
+  sent_at,
+  sent_by
+`;
+
 /* ========================================================================= */
 /* GET                                                                       */
-/* Load the teacher's current agreement.                                     */
 /* ========================================================================= */
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: RouteContext
 ) {
-  try {
-    const ownerResult = await getActiveOwner();
+  const {
+    supabase,
+    user,
+    profile,
+    error,
+  } = await getAuthenticatedProfile();
 
-    if (ownerResult.error) {
-      return ownerResult.error;
-    }
+  if (error || !user || !profile) {
+    return error;
+  }
 
-    const { supabase } = ownerResult;
-    const { id: teacherId } = await context.params;
+  const { id: teacherId } =
+    await context.params;
 
-    if (!teacherId) {
-      return NextResponse.json(
-        { error: "Teacher ID is required." },
-        { status: 400 }
-      );
-    }
+  if (!teacherId) {
+    return NextResponse.json(
+      { error: "Teacher ID is required." },
+      { status: 400 }
+    );
+  }
 
-    /* --------------------------------------------------------------------- */
-    /* VERIFY TEACHER                                                        */
-    /* --------------------------------------------------------------------- */
+  const isOwner =
+    profile.role === "owner" &&
+    profile.status === "active";
 
-    const {
-      data: teacher,
-      error: teacherError,
-    } = await supabase
-      .from("profiles")
-      .select(
-        "id, full_name, role, status, teacher_number"
-      )
-      .eq("id", teacherId)
-      .eq("role", "teacher")
-      .single();
+  const isTeacher =
+    profile.role === "teacher" &&
+    profile.status === "active";
 
-    if (teacherError || !teacher) {
-      return NextResponse.json(
-        {
-          error: "Teacher could not be found.",
-        },
-        { status: 404 }
-      );
-    }
+  if (!isOwner && !isTeacher) {
+    return NextResponse.json(
+      { error: "Access denied." },
+      { status: 403 }
+    );
+  }
 
-    /* --------------------------------------------------------------------- */
-    /* GET CURRENT AGREEMENT                                                 */
-    /* --------------------------------------------------------------------- */
-
-    const {
-      data: contract,
-      error: contractError,
-    } = await supabase
-      .from("teacher_contracts")
-      .select(
-        `
-          id,
-          teacher_id,
-          contract_number,
-          version,
-          status,
-          agreement_date,
-          sent_at,
-          sent_by,
-          accepted_at,
-          accepted_ip,
-          accepted_user_agent,
-          terminated_at,
-          termination_reason,
-          created_at,
-          updated_at
-        `
-      )
-      .eq("teacher_id", teacherId)
-      .in("status", [
-        "draft",
-        "pending_acceptance",
-        "accepted",
-      ])
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(1)
-      .maybeSingle();
-
-    if (contractError) {
-      console.error(
-        "Teacher contract GET error:",
-        contractError
-      );
-
-      return NextResponse.json(
-        { error: contractError.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      teacher: {
-        id: teacher.id,
-        full_name: teacher.full_name,
-        role: teacher.role,
-        status: teacher.status,
-        teacher_number: teacher.teacher_number,
+  /*
+   * A teacher can only access their own agreement.
+   */
+  if (isTeacher && teacherId !== user.id) {
+    return NextResponse.json(
+      {
+        error:
+          "You may only access your own agreement.",
       },
-      contract: contract || null,
-    });
-  } catch (error) {
+      { status: 403 }
+    );
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* LOAD CONTRACT                                                           */
+  /* ----------------------------------------------------------------------- */
+
+  let contractQuery = supabase
+    .from("teacher_contracts")
+    .select(CONTRACT_SELECT)
+    .eq("teacher_id", teacherId);
+
+  /*
+   * Teachers must never see drafts.
+   */
+  if (isTeacher) {
+    contractQuery = contractQuery.in("status", [
+      "pending_acceptance",
+      "accepted",
+    ]);
+  } else {
+    /*
+     * Owners can see drafts, pending agreements,
+     * and accepted agreements.
+     */
+    contractQuery = contractQuery.in("status", [
+      "draft",
+      "pending_acceptance",
+      "accepted",
+    ]);
+  }
+
+  const {
+    data: contractData,
+    error: contractError,
+  } = await contractQuery
+    .order("created_at", {
+      ascending: false,
+    })
+    .limit(1)
+    .maybeSingle();
+
+  if (contractError) {
     console.error(
-      "Teacher contract GET error:",
-      error
+      "Failed to load teacher contract:",
+      contractError
     );
 
     return NextResponse.json(
       {
         error:
-          error instanceof Error
-            ? error.message
-            : "Something went wrong while loading the teacher agreement.",
+          "Failed to load teacher agreement.",
       },
       { status: 500 }
     );
   }
+
+  const contract =
+    contractData as TeacherContract | null;
+
+  /*
+   * The TeacherAgreement component already receives the teacher
+   * information from the page. It only needs the contract from
+   * this endpoint.
+   */
+  return NextResponse.json({
+    contract: contract ?? null,
+  });
 }
 
 /* ========================================================================= */
 /* POST                                                                      */
-/* Create or send a teacher agreement.                                       */
-/*                                                                           */
-/* action:                                                                   */
-/*   "create" → creates a draft agreement                                    */
-/*   "send"   → creates/updates the agreement as pending acceptance          */
 /* ========================================================================= */
 
 export async function POST(
   request: Request,
   context: RouteContext
 ) {
+  const {
+    supabase,
+    user,
+    profile,
+    error,
+  } = await getAuthenticatedProfile();
+
+  if (error || !user || !profile) {
+    return error;
+  }
+
+  const { id: teacherId } =
+    await context.params;
+
+  if (!teacherId) {
+    return NextResponse.json(
+      { error: "Teacher ID is required." },
+      { status: 400 }
+    );
+  }
+
+  let body: {
+    action?: "create" | "send" | "accept";
+    contractId?: string | null;
+  };
+
   try {
-    const ownerResult = await getActiveOwner();
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body." },
+      { status: 400 }
+    );
+  }
 
-    if (ownerResult.error) {
-      return ownerResult.error;
-    }
+  const action = body.action;
 
-    const {
-      supabase,
-      user,
-    } = ownerResult;
+  if (!action) {
+    return NextResponse.json(
+      { error: "Action is required." },
+      { status: 400 }
+    );
+  }
 
-    const { id: teacherId } = await context.params;
+  const isOwner =
+    profile.role === "owner" &&
+    profile.status === "active";
 
-    if (!teacherId) {
-      return NextResponse.json(
-        { error: "Teacher ID is required." },
-        { status: 400 }
-      );
-    }
+  const isTeacher =
+    profile.role === "teacher" &&
+    profile.status === "active";
 
-    /* --------------------------------------------------------------------- */
-    /* VERIFY TEACHER                                                        */
-    /* --------------------------------------------------------------------- */
+  /* ----------------------------------------------------------------------- */
+  /* AUTHORIZATION                                                           */
+  /* ----------------------------------------------------------------------- */
 
-    const {
-      data: teacher,
-      error: teacherError,
-    } = await supabase
-      .from("profiles")
-      .select(
-        "id, full_name, role, status, teacher_number"
-      )
-      .eq("id", teacherId)
-      .eq("role", "teacher")
-      .single();
-
-    if (teacherError || !teacher) {
-      return NextResponse.json(
-        {
-          error: "Teacher could not be found.",
-        },
-        { status: 404 }
-      );
-    }
-
-    if (teacher.status !== "active") {
+  /*
+   * CREATE and SEND are Owner-only.
+   */
+  if (
+    action === "create" ||
+    action === "send"
+  ) {
+    if (!isOwner) {
       return NextResponse.json(
         {
           error:
-            "An agreement cannot be sent to an inactive teacher.",
+            "Only an active owner may manage teacher agreements.",
         },
-        { status: 400 }
+        { status: 403 }
       );
     }
+  }
 
-    /* --------------------------------------------------------------------- */
-    /* READ ACTION                                                           */
-    /* --------------------------------------------------------------------- */
-
-    let body: {
-      action?: string;
-    } = {};
-
-    try {
-      body = await request.json();
-    } catch {
-      body = {};
-    }
-
-    const action =
-      String(body.action || "create")
-        .trim()
-        .toLowerCase();
-
-    if (
-      action !== "create" &&
-      action !== "send"
-    ) {
+  /*
+   * ACCEPT is Teacher-only.
+   */
+  if (action === "accept") {
+    if (!isTeacher) {
       return NextResponse.json(
         {
           error:
-            "Invalid action. Use 'create' or 'send'.",
+            "Only the teacher may accept their agreement.",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (teacherId !== user.id) {
+      return NextResponse.json(
+        {
+          error:
+            "You may only accept your own agreement.",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* TEACHER ACCEPTANCE                                                      */
+  /* ----------------------------------------------------------------------- */
+
+  if (action === "accept") {
+    if (!body.contractId) {
+      return NextResponse.json(
+        {
+          error:
+            "Contract ID is required.",
         },
         { status: 400 }
       );
     }
 
-    /* --------------------------------------------------------------------- */
-    /* CHECK EXISTING CURRENT AGREEMENT                                      */
-    /* --------------------------------------------------------------------- */
-
     const {
-      data: existingContract,
-      error: existingContractError,
+      data: contractData,
+      error: contractError,
     } = await supabase
       .from("teacher_contracts")
-      .select(
-        `
-          id,
-          teacher_id,
-          contract_number,
-          version,
-          status,
-          agreement_date,
-          sent_at,
-          sent_by,
-          accepted_at,
-          accepted_ip,
-          accepted_user_agent,
-          terminated_at,
-          termination_reason,
-          created_at,
-          updated_at
-        `
-      )
+      .select(CONTRACT_SELECT)
+      .eq("id", body.contractId)
       .eq("teacher_id", teacherId)
-      .in("status", [
-        "draft",
-        "pending_acceptance",
-        "accepted",
-      ])
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(1)
       .maybeSingle();
 
-    if (existingContractError) {
+    if (contractError) {
       console.error(
-        "Existing teacher contract check error:",
-        existingContractError
+        "Failed to load teacher contract for acceptance:",
+        contractError
       );
 
       return NextResponse.json(
         {
           error:
-            existingContractError.message,
+            "Failed to load teacher agreement.",
         },
         { status: 500 }
       );
     }
 
-    /* --------------------------------------------------------------------- */
-    /* CREATE                                                                 */
-    /* --------------------------------------------------------------------- */
+    const contract =
+      contractData as TeacherContract | null;
 
-    if (!existingContract) {
-      const today = new Date()
-        .toISOString()
-        .split("T")[0];
-
-      const {
-        data: contract,
-        error: insertError,
-      } = await supabase
-        .from("teacher_contracts")
-        .insert({
-          teacher_id: teacherId,
-          version: "1.0",
-          status:
-            action === "send"
-              ? "pending_acceptance"
-              : "draft",
-          agreement_date: today,
-          sent_at:
-            action === "send"
-              ? new Date().toISOString()
-              : null,
-          sent_by:
-            action === "send"
-              ? user?.id
-              : null,
-        })
-        .select(
-          `
-            id,
-            teacher_id,
-            contract_number,
-            version,
-            status,
-            agreement_date,
-            sent_at,
-            sent_by,
-            accepted_at,
-            accepted_ip,
-            accepted_user_agent,
-            terminated_at,
-            termination_reason,
-            created_at,
-            updated_at
-          `
-        )
-        .single();
-
-      if (insertError) {
-        console.error(
-          "Teacher contract insert error:",
-          insertError
-        );
-
-        return NextResponse.json(
-          {
-            error:
-              insertError.message,
-          },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          success: true,
-          action,
-          teacher: {
-            id: teacher.id,
-            full_name: teacher.full_name,
-            teacher_number:
-              teacher.teacher_number,
-          },
-          contract,
-        },
-        { status: 201 }
-      );
-    }
-
-    /* --------------------------------------------------------------------- */
-    /* PREVENT CHANGING AN ACCEPTED AGREEMENT                                */
-    /* --------------------------------------------------------------------- */
-
-    if (
-      existingContract.status === "accepted"
-    ) {
+    if (!contract) {
       return NextResponse.json(
         {
           error:
-            "This teacher already has an accepted agreement. Create a new version instead of modifying the accepted agreement.",
-          contract:
-            existingContract,
+            "Teacher agreement not found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    /*
+     * Do not accept an already accepted agreement.
+     */
+    if (contract.status === "accepted") {
+      return NextResponse.json(
+        {
+          error:
+            "This agreement has already been accepted.",
+          contract,
         },
         { status: 409 }
       );
     }
 
-    /* --------------------------------------------------------------------- */
-    /* EXISTING PENDING AGREEMENT                                             */
-    /* --------------------------------------------------------------------- */
-
+    /*
+     * Only a sent agreement can be accepted.
+     */
     if (
-      action === "send" &&
-      existingContract.status ===
-        "pending_acceptance"
+      contract.status !==
+      "pending_acceptance"
     ) {
-      const {
-        data: resentContract,
-        error: resendError,
-      } = await supabase
-        .from("teacher_contracts")
-        .update({
-          sent_at:
-            new Date().toISOString(),
-          sent_by: user?.id,
-        })
-        .eq("id", existingContract.id)
-        .select(
-          `
-            id,
-            teacher_id,
-            contract_number,
-            version,
-            status,
-            agreement_date,
-            sent_at,
-            sent_by,
-            accepted_at,
-            accepted_ip,
-            accepted_user_agent,
-            terminated_at,
-            termination_reason,
-            created_at,
-            updated_at
-          `
-        )
-        .single();
-
-      if (resendError) {
-        console.error(
-          "Teacher contract resend error:",
-          resendError
-        );
-
-        return NextResponse.json(
-          {
-            error:
-              resendError.message,
-          },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        action: "send",
-        resent: true,
-        teacher: {
-          id: teacher.id,
-          full_name: teacher.full_name,
-          teacher_number:
-            teacher.teacher_number,
+      return NextResponse.json(
+        {
+          error:
+            "This agreement is not currently available for acceptance.",
         },
-        contract: resentContract,
-      });
+        { status: 409 }
+      );
     }
 
-    /* --------------------------------------------------------------------- */
-    /* SEND EXISTING DRAFT                                                   */
-    /* --------------------------------------------------------------------- */
+    const acceptedAt =
+      new Date().toISOString();
+
+    const acceptedIp =
+      getClientIp(request);
+
+    const acceptedUserAgent =
+      request.headers.get("user-agent");
+
+    const {
+      data: updatedContractData,
+      error: updateError,
+    } = await supabase
+      .from("teacher_contracts")
+      .update({
+        status: "accepted",
+        accepted_at: acceptedAt,
+        accepted_ip: acceptedIp,
+        accepted_user_agent:
+          acceptedUserAgent,
+        updated_at: acceptedAt,
+      })
+      .eq("id", contract.id)
+      .eq("teacher_id", teacherId)
+      .eq("status", "pending_acceptance")
+      .select(CONTRACT_SELECT)
+      .single();
 
     if (
-      action === "send" &&
-      existingContract.status === "draft"
+      updateError ||
+      !updatedContractData
     ) {
-      const {
-        data: sentContract,
-        error: sendError,
-      } = await supabase
-        .from("teacher_contracts")
-        .update({
-          status: "pending_acceptance",
-          sent_at:
-            new Date().toISOString(),
-          sent_by: user?.id,
-        })
-        .eq("id", existingContract.id)
-        .select(
-          `
-            id,
-            teacher_id,
-            contract_number,
-            version,
-            status,
-            agreement_date,
-            sent_at,
-            sent_by,
-            accepted_at,
-            accepted_ip,
-            accepted_user_agent,
-            terminated_at,
-            termination_reason,
-            created_at,
-            updated_at
-          `
-        )
-        .single();
+      console.error(
+        "Failed to accept teacher contract:",
+        updateError
+      );
 
-      if (sendError) {
-        console.error(
-          "Teacher contract send error:",
-          sendError
-        );
-
-        return NextResponse.json(
-          {
-            error:
-              sendError.message,
-          },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        action: "send",
-        resent: false,
-        teacher: {
-          id: teacher.id,
-          full_name: teacher.full_name,
-          teacher_number:
-            teacher.teacher_number,
+      return NextResponse.json(
+        {
+          error:
+            "Failed to accept teacher agreement.",
         },
-        contract: sentContract,
-      });
+        { status: 500 }
+      );
     }
 
-    /* --------------------------------------------------------------------- */
-    /* EXISTING DRAFT / DEFAULT RESPONSE                                     */
-    /* --------------------------------------------------------------------- */
+    const updatedContract =
+      updatedContractData as TeacherContract;
 
     return NextResponse.json({
       success: true,
-      action: "create",
-      teacher: {
-        id: teacher.id,
-        full_name: teacher.full_name,
-        teacher_number:
-          teacher.teacher_number,
-      },
-      contract: existingContract,
+      message:
+        "Teacher agreement accepted successfully.",
+      contract: updatedContract,
     });
-  } catch (error) {
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* OWNER CONTRACT MANAGEMENT                                               */
+  /* ----------------------------------------------------------------------- */
+
+  if (!isOwner) {
+    return NextResponse.json(
+      { error: "Access denied." },
+      { status: 403 }
+    );
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* LOAD EXISTING CONTRACT                                                  */
+  /* ----------------------------------------------------------------------- */
+
+  const {
+    data: existingContractData,
+    error: existingError,
+  } = await supabase
+    .from("teacher_contracts")
+    .select(CONTRACT_SELECT)
+    .eq("teacher_id", teacherId)
+    .in("status", [
+      "draft",
+      "pending_acceptance",
+      "accepted",
+    ])
+    .order("created_at", {
+      ascending: false,
+    })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) {
     console.error(
-      "Teacher contract POST error:",
-      error
+      "Failed to load existing teacher contract:",
+      existingError
     );
 
     return NextResponse.json(
       {
         error:
-          error instanceof Error
-            ? error.message
-            : "Something went wrong while creating the teacher agreement.",
+          "Failed to load teacher agreement.",
       },
       { status: 500 }
     );
   }
+
+  const existingContract =
+    existingContractData as TeacherContract | null;
+
+  /* ----------------------------------------------------------------------- */
+  /* ACCEPTED CONTRACT PROTECTION                                            */
+  /* ----------------------------------------------------------------------- */
+
+  if (
+    existingContract?.status ===
+    "accepted"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "This agreement has already been accepted. Create a new version instead of modifying the accepted agreement.",
+        contract: existingContract,
+      },
+      { status: 409 }
+    );
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* CREATE                                                                   */
+  /* ----------------------------------------------------------------------- */
+
+  if (action === "create") {
+    /*
+     * Do not create duplicates.
+     */
+    if (existingContract) {
+      return NextResponse.json({
+        success: true,
+        contract: existingContract,
+      });
+    }
+
+    const today =
+      new Date()
+        .toISOString()
+        .slice(0, 10);
+
+    const {
+      data: contractNumberData,
+      error: numberError,
+    } = await supabase.rpc(
+      "generate_teacher_contract_number"
+    );
+
+    if (numberError) {
+      console.error(
+        "Failed to generate teacher contract number:",
+        numberError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Failed to create teacher agreement.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const contractNumber =
+      contractNumberData as string;
+
+    const {
+      data: newContractData,
+      error: createError,
+    } = await supabase
+      .from("teacher_contracts")
+      .insert({
+        teacher_id: teacherId,
+        contract_number:
+          contractNumber,
+        version: "1.0",
+        status: "draft",
+        agreement_date: today,
+      })
+      .select(CONTRACT_SELECT)
+      .single();
+
+    if (
+      createError ||
+      !newContractData
+    ) {
+      console.error(
+        "Failed to create teacher contract:",
+        createError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Failed to create teacher agreement.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const newContract =
+      newContractData as TeacherContract;
+
+    return NextResponse.json({
+      success: true,
+      contract: newContract,
+    });
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* SEND                                                                     */
+  /* ----------------------------------------------------------------------- */
+
+  if (action === "send") {
+    if (!existingContract) {
+      return NextResponse.json(
+        {
+          error:
+            "Create the teacher agreement before sending it.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const sentAt =
+      new Date().toISOString();
+
+    const updatePayload: Record<
+      string,
+      unknown
+    > = {
+      sent_at: sentAt,
+      sent_by: user.id,
+      updated_at: sentAt,
+    };
+
+    /*
+     * A draft becomes pending acceptance
+     * when first sent.
+     *
+     * Resending a pending agreement keeps
+     * it pending.
+     */
+    if (
+      existingContract.status ===
+      "draft"
+    ) {
+      updatePayload.status =
+        "pending_acceptance";
+    }
+
+    const {
+      data: updatedContractData,
+      error: updateError,
+    } = await supabase
+      .from("teacher_contracts")
+      .update(updatePayload)
+      .eq("id", existingContract.id)
+      .eq("teacher_id", teacherId)
+      .select(CONTRACT_SELECT)
+      .single();
+
+    if (
+      updateError ||
+      !updatedContractData
+    ) {
+      console.error(
+        "Failed to send teacher contract:",
+        updateError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Failed to send teacher agreement.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const updatedContract =
+      updatedContractData as TeacherContract;
+
+    return NextResponse.json({
+      success: true,
+      message:
+        "Teacher agreement sent successfully.",
+      contract: updatedContract,
+    });
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* UNSUPPORTED                                                              */
+  /* ----------------------------------------------------------------------- */
+
+  return NextResponse.json(
+    { error: "Unsupported action." },
+    { status: 400 }
+  );
 }

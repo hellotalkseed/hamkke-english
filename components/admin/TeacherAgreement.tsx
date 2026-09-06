@@ -33,7 +33,14 @@ type TeacherContract = {
 
 type TeacherAgreementProps = {
   teacher: Teacher;
+  viewer?: "owner" | "teacher";
 };
+
+/* ========================================================================= */
+/* HAMKKE OWNER                                                             */
+/* ========================================================================= */
+
+const HAMKKE_REPRESENTATIVE = "Jesica Jumao-as Abejaron";
 
 /* ========================================================================= */
 /* AGREEMENT CONTENT                                                         */
@@ -239,13 +246,18 @@ function getStatusLabel(status: TeacherContract["status"]) {
 
 export default function TeacherAgreement({
   teacher,
+  viewer = "owner",
 }: TeacherAgreementProps) {
   const [contract, setContract] = useState<TeacherContract | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
+  const [acceptConfirmed, setAcceptConfirmed] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const isTeacherViewer = viewer === "teacher";
+  const isOwnerViewer = viewer === "owner";
 
   /* ----------------------------------------------------------------------- */
   /* LOAD CONTRACT                                                           */
@@ -272,7 +284,18 @@ export default function TeacherAgreement({
         );
       }
 
-      setContract(data.contract ?? data.teacherContract ?? null);
+      const loadedContract =
+        data.contract ?? data.teacherContract ?? null;
+
+      setContract(loadedContract);
+
+      /*
+       * Teachers should immediately see an agreement that has been
+       * sent to them. Owners retain the existing collapsed behavior.
+       */
+      if (isTeacherViewer && loadedContract) {
+        setShowAgreement(true);
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -286,13 +309,15 @@ export default function TeacherAgreement({
 
   useEffect(() => {
     loadContract();
-  }, [teacher.id]);
+  }, [teacher.id, isTeacherViewer]);
 
   /* ----------------------------------------------------------------------- */
   /* CONTRACT ACTIONS                                                        */
   /* ----------------------------------------------------------------------- */
 
-  async function handleContractAction(action: "create" | "send") {
+  async function handleContractAction(
+    action: "create" | "send" | "accept"
+  ) {
     try {
       setActionLoading(true);
       setError("");
@@ -335,6 +360,14 @@ export default function TeacherAgreement({
       if (action === "send") {
         setSuccess("Teacher Agreement sent to the teacher.");
       }
+
+      if (action === "accept") {
+        setSuccess(
+          "Your Teacher Agreement has been accepted successfully."
+        );
+        setAcceptConfirmed(false);
+        setShowAgreement(true);
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -351,6 +384,18 @@ export default function TeacherAgreement({
   /* ----------------------------------------------------------------------- */
 
   function handlePrintContract() {
+    /*
+     * IMPORTANT:
+     *
+     * The contract is always mounted in the DOM, even when collapsed.
+     * This means printing does NOT need to change showAgreement.
+     *
+     * The print stylesheet overrides the collapsed visual state and
+     * prints the complete contract immediately.
+     *
+     * After printing, the page remains in whatever state it was in
+     * before the print button was clicked.
+     */
     window.print();
   }
 
@@ -390,9 +435,9 @@ export default function TeacherAgreement({
             </h2>
 
             <p className="mt-2 font-sans text-[14px] leading-6 text-[#777A75]">
-              The agreement covering this teacher’s teaching responsibilities,
-              compensation, lesson policies, and professional expectations with
-              Hamkke.
+              {isTeacherViewer
+                ? "Review the agreement covering your teaching responsibilities, compensation, lesson policies, and professional expectations with Hamkke."
+                : "The agreement covering this teacher’s teaching responsibilities, compensation, lesson policies, and professional expectations with Hamkke."}
             </p>
           </div>
 
@@ -414,30 +459,48 @@ export default function TeacherAgreement({
                 {getStatusLabel(contract.status)}
               </span>
 
-              {/* View Contract */}
-              <button
-                type="button"
-                onClick={() => setShowAgreement((current) => !current)}
-                className="no-print inline-flex w-fit items-center border-b border-[#6F8F72] pb-1 font-sans text-[13px] font-medium text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55]"
-              >
-                {showAgreement ? "Hide Contract ↑" : "View Contract →"}
-              </button>
-
-              {/* Send */}
-              {(contract.status === "draft" ||
-                contract.status === "pending_acceptance") && (
+              {/* Accepted — Compact Print Action */}
+              {contract.status === "accepted" ? (
                 <button
                   type="button"
-                  onClick={() => handleContractAction("send")}
-                  disabled={actionLoading}
-                  className="no-print font-sans text-[12px] text-[#777A75] transition-colors hover:text-[#6F8F72] disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={handlePrintContract}
+                  className="no-print inline-flex w-fit items-center justify-center rounded-full border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[13px] font-medium text-white transition-colors hover:border-[#5F7E63] hover:bg-[#5F7E63]"
                 >
-                  {actionLoading
-                    ? "Sending..."
-                    : contract.status === "draft"
-                      ? "Send to Teacher →"
-                      : "Send Again →"}
+                  Print Contract
                 </button>
+              ) : (
+                <>
+                  {/* View Contract */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowAgreement((current) => !current)
+                    }
+                    className="no-print inline-flex w-fit items-center border-b border-[#6F8F72] pb-1 font-sans text-[13px] font-medium text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55]"
+                  >
+                    {showAgreement
+                      ? "Hide Contract ↑"
+                      : "View Contract →"}
+                  </button>
+
+                  {/* Send — Owner Only */}
+                  {isOwnerViewer &&
+                    (contract.status === "draft" ||
+                      contract.status === "pending_acceptance") && (
+                      <button
+                        type="button"
+                        onClick={() => handleContractAction("send")}
+                        disabled={actionLoading}
+                        className="no-print font-sans text-[12px] text-[#777A75] transition-colors hover:text-[#6F8F72] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {actionLoading
+                          ? "Sending..."
+                          : contract.status === "draft"
+                            ? "Send to Teacher →"
+                            : "Send Again →"}
+                      </button>
+                    )}
+                </>
               )}
             </div>
           )}
@@ -462,43 +525,62 @@ export default function TeacherAgreement({
           <div className="mt-7 flex flex-col gap-5 border-t border-[#E5E2DD] pt-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-serif text-[19px] text-[#292929]">
-                No Teacher Agreement yet
+                {isTeacherViewer
+                  ? "Your Teacher Agreement is not available yet"
+                  : "No Teacher Agreement yet"}
               </p>
 
               <p className="mt-2 max-w-[700px] font-sans text-[14px] leading-6 text-[#777A75]">
-                Create a Teacher Agreement for{" "}
-                <span className="font-medium text-[#4D514D]">
-                  {teacher.full_name || "this teacher"}
-                </span>{" "}
-                before sending it for review and acceptance.
+                {isTeacherViewer ? (
+                  "Hamkke has not sent a Teacher Agreement to your account yet. Please contact Hamkke if you believe your agreement should already be available."
+                ) : (
+                  <>
+                    Create a Teacher Agreement for{" "}
+                    <span className="font-medium text-[#4D514D]">
+                      {teacher.full_name || "this teacher"}
+                    </span>{" "}
+                    before sending it for review and acceptance.
+                  </>
+                )}
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => handleContractAction("create")}
-              disabled={actionLoading}
-              className="no-print inline-flex w-fit shrink-0 items-center gap-2 border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[13px] font-medium text-white transition hover:bg-[#5F7E63] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {actionLoading ? "Creating..." : "+ Create Agreement"}
-            </button>
+            {/* Create — Owner Only */}
+            {isOwnerViewer && (
+              <button
+                type="button"
+                onClick={() => handleContractAction("create")}
+                disabled={actionLoading}
+                className="no-print inline-flex w-fit shrink-0 items-center gap-2 border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[13px] font-medium text-white transition hover:bg-[#5F7E63] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {actionLoading ? "Creating..." : "+ Create Agreement"}
+              </button>
+            )}
           </div>
         )}
 
-        {/* Expanded Contract */}
-        {contract && showAgreement && (
-          <>
+        {/* ================================================================= */}
+        {/* CONTRACT                                                         */}
+        {/* ================================================================= */}
+
+        {contract && (
+          <div
+            className={`teacher-contract-wrapper ${
+              showAgreement ? "teacher-contract-expanded" : "teacher-contract-collapsed"
+            }`}
+          >
             {/* Print Controls */}
-            <div className="no-print mt-7 flex items-center justify-end border-t border-[#E5E2DD] pt-5">
-              <button
-                type="button"
-                onClick={handlePrintContract}
-                className="inline-flex items-center gap-2 border border-[#6F8F72] px-4 py-2 font-sans text-[12px] font-medium text-[#6F8F72] transition-colors hover:bg-[#F1F5F0] hover:text-[#526B55]"
-              >
-                <span aria-hidden="true">↗</span>
-                Print Contract
-              </button>
-            </div>
+            {showAgreement && (
+              <div className="no-print mt-7 flex items-center justify-end border-t border-[#E5E2DD] pt-5">
+                <button
+                  type="button"
+                  onClick={handlePrintContract}
+                  className="inline-flex items-center justify-center rounded-full border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[13px] font-medium text-white transition-colors hover:border-[#5F7E63] hover:bg-[#5F7E63]"
+                >
+                  Print Contract
+                </button>
+              </div>
+            )}
 
             {/* Printable Contract */}
             <div
@@ -559,7 +641,9 @@ export default function TeacherAgreement({
                 {contract.status === "pending_acceptance" && (
                   <div>
                     <p className="font-sans text-[12px] text-[#55745A]">
-                      Teacher Agreement sent to the teacher.
+                      {isTeacherViewer
+                        ? "This agreement is ready for your review and acceptance."
+                        : "Teacher Agreement sent to the teacher."}
                     </p>
 
                     {contract.sent_at && (
@@ -860,40 +944,123 @@ export default function TeacherAgreement({
                               </div>
                             </div>
 
+                            {/* Hamkke Representative */}
                             <div>
                               <p className="font-sans text-[8.5px] font-medium uppercase tracking-[0.12em] text-[#666]">
                                 Hamkke Representative
                               </p>
 
-                              <div className="mt-5 border-b border-[#BDBAB4] pb-2 font-sans text-[12.5px] text-[#444743]" />
+                              <div className="mt-5 border-b border-[#BDBAB4] pb-2 font-sans text-[12.5px] text-[#444743]">
+                                {HAMKKE_REPRESENTATIVE}
+                              </div>
                             </div>
 
+                            {/* Representative Date */}
                             <div>
                               <p className="font-sans text-[8.5px] font-medium uppercase tracking-[0.12em] text-[#666]">
                                 Date
                               </p>
 
-                              <div className="mt-5 border-b border-[#BDBAB4] pb-2 font-sans text-[12.5px] text-[#444743]" />
+                              <div className="mt-5 border-b border-[#BDBAB4] pb-2 font-sans text-[12.5px] text-[#444743]">
+                                {contract.accepted_at
+                                  ? formatDateTime(contract.accepted_at)
+                                  : ""}
+                              </div>
                             </div>
                           </div>
+
+                          {/* ------------------------------------------------- */}
+                          {/* TEACHER ACCEPTANCE CONTROL                       */}
+                          {/* ------------------------------------------------- */}
+
+                          {isTeacherViewer &&
+                            contract.status === "pending_acceptance" && (
+                              <div className="no-print mt-8 border-t border-[#E1E0DC] pt-7">
+                                <label className="flex cursor-pointer items-start gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={acceptConfirmed}
+                                    onChange={(event) =>
+                                      setAcceptConfirmed(
+                                        event.target.checked
+                                      )
+                                    }
+                                    disabled={actionLoading}
+                                    className="mt-[3px] h-4 w-4 shrink-0 accent-[#6F8F72]"
+                                  />
+
+                                  <span className="font-sans text-[13px] leading-6 text-[#4D514D]">
+                                    I have read and understood this Teacher
+                                    Agreement and agree to the terms and
+                                    policies described above.
+                                  </span>
+                                </label>
+
+                                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                  <p className="max-w-[600px] font-sans text-[11px] leading-5 text-[#8A8B87]">
+                                    Your acceptance will be recorded under your
+                                    authenticated teacher account together with
+                                    the date and time of acceptance.
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleContractAction("accept")
+                                    }
+                                    disabled={
+                                      !acceptConfirmed || actionLoading
+                                    }
+                                    className="inline-flex w-fit shrink-0 items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[13px] font-medium text-white transition hover:bg-[#5F7E63] disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    {actionLoading
+                                      ? "Accepting..."
+                                      : "Accept Agreement"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                          {/* ------------------------------------------------- */}
+                          {/* ACCEPTED NOTICE                                  */}
+                          {/* ------------------------------------------------- */}
+
+                          {isTeacherViewer &&
+                            contract.status === "accepted" && (
+                              <div className="no-print mt-8 border-t border-[#E1E0DC] pt-6">
+                                <div className="border border-[#C9D8CB] bg-[#F1F6F1] px-5 py-4">
+                                  <p className="font-sans text-[12px] font-medium text-[#55745A]">
+                                    Agreement accepted
+                                  </p>
+
+                                  {contract.accepted_at && (
+                                    <p className="mt-1.5 font-sans text-[11px] leading-5 text-[#777A75]">
+                                      You accepted this agreement on{" "}
+                                      {formatDateTime(contract.accepted_at)}.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                         </div>
                       </div>
                     </div>
                   </section>
 
                   {/* Footer */}
-<footer className="pt-5 text-center">
-  <div className="font-serif text-[13px] text-[#444]">
-    Hamkke │ 함께
-  </div>
-  <p className="mt-1 font-sans text-[8px] uppercase tracking-[0.14em] text-[#444]">
-    From Small Talk to Big Ideas
-  </p>
-</footer>
+                  <footer className="pt-5 text-center">
+                    <div className="font-serif text-[13px] text-[#444]">
+                      Hamkke │ 함께
+                    </div>
+
+                    <p className="mt-1 font-sans text-[8px] uppercase tracking-[0.14em] text-[#444]">
+                      From Small Talk to Big Ideas
+                    </p>
+                  </footer>
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
       </section>
 
@@ -902,6 +1069,28 @@ export default function TeacherAgreement({
       {/* =================================================================== */}
 
       <style jsx global>{`
+        /* ----------------------------------------------------------------- */
+        /* COLLAPSED CONTRACT                                                */
+        /* ----------------------------------------------------------------- */
+
+        .teacher-contract-collapsed {
+          max-height: 0;
+          overflow: hidden;
+          opacity: 0;
+          pointer-events: none;
+          margin: 0;
+        }
+
+        .teacher-contract-expanded {
+          max-height: none;
+          overflow: visible;
+          opacity: 1;
+        }
+
+        /* ----------------------------------------------------------------- */
+        /* PRINT                                                              */
+        /* ----------------------------------------------------------------- */
+
         @media print {
           @page {
             size: A4;
@@ -924,6 +1113,16 @@ export default function TeacherAgreement({
 
           body * {
             visibility: hidden !important;
+          }
+
+          /*
+           * Make the contract visible even when the page is collapsed.
+           */
+          .teacher-contract-wrapper {
+            max-height: none !important;
+            overflow: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
           }
 
           .teacher-contract-print-area,
