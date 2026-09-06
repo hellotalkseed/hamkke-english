@@ -49,14 +49,12 @@ export async function GET() {
 
     /*
      * ---------------------------------------------------------
-     * LOAD ACTIVE ENROLLMENT PARTICIPANTS
+     * LOAD ENROLLMENT PARTICIPANTS
      * ---------------------------------------------------------
      *
-     * Every enrollment currently has an enrollment_students
-     * record, including individual enrollments.
-     *
-     * We use enrollment_students as the assignment unit
-     * because shared enrollments can contain multiple students.
+     * enrollment_students is the assignment unit.
+     * This is important for shared enrollments because each
+     * participant can have their own recurring schedule.
      */
 
     const {
@@ -72,12 +70,14 @@ export async function GET() {
           id,
           student_number,
           full_name,
-          preferred_name
+          preferred_name,
+          timezone
         ),
         enrollments (
           id,
           package_name,
-          status
+          status,
+          lesson_duration
         )
       `)
       .order("id", { ascending: true });
@@ -85,8 +85,7 @@ export async function GET() {
     if (enrollmentStudentsError) {
       return NextResponse.json(
         {
-          error:
-            enrollmentStudentsError.message,
+          error: enrollmentStudentsError.message,
         },
         { status: 500 }
       );
@@ -94,11 +93,8 @@ export async function GET() {
 
     /*
      * ---------------------------------------------------------
-     * LOAD CURRENT ACTIVE TEACHER ASSIGNMENTS
+     * LOAD ACTIVE TEACHER ASSIGNMENTS
      * ---------------------------------------------------------
-     *
-     * If an enrollment/student already has an active teacher,
-     * it should not appear as available for another teacher.
      */
 
     const {
@@ -112,8 +108,7 @@ export async function GET() {
     if (activeAssignmentsError) {
       return NextResponse.json(
         {
-          error:
-            activeAssignmentsError.message,
+          error: activeAssignmentsError.message,
         },
         { status: 500 }
       );
@@ -129,29 +124,112 @@ export async function GET() {
 
     /*
      * ---------------------------------------------------------
+     * FILTER ACTIVE + UNASSIGNED
+     * ---------------------------------------------------------
+     */
+
+    const availableParticipants =
+      (enrollmentStudents || [])
+        .filter(
+          (item) =>
+            !assignedEnrollmentStudentIds.has(
+              item.id
+            )
+        )
+        .filter((item) => {
+          const enrollment = Array.isArray(
+            item.enrollments
+          )
+            ? item.enrollments[0]
+            : item.enrollments;
+
+          return enrollment?.status === "active";
+        });
+
+    /*
+     * ---------------------------------------------------------
+     * LOAD EXACT RECURRING SCHEDULES
+     * ---------------------------------------------------------
+     *
+     * enrollment_schedules is the source of truth.
+     *
+     * We intentionally do NOT use:
+     *   enrollments.schedule_days
+     *   enrollments.schedule_time
+     *
+     * because shared enrollment participants can have
+     * different schedules.
+     */
+
+    const enrollmentIds = [
+      ...new Set(
+        availableParticipants.map(
+          (item) => item.enrollment_id
+        )
+      ),
+    ];
+
+    const studentIds = [
+      ...new Set(
+        availableParticipants.map(
+          (item) => item.student_id
+        )
+      ),
+    ];
+
+    let schedules: {
+      enrollment_id: string;
+      student_id: string;
+      day_of_week: number;
+      schedule_time: string;
+    }[] = [];
+
+    if (
+      enrollmentIds.length > 0 &&
+      studentIds.length > 0
+    ) {
+      const {
+        data: scheduleRows,
+        error: schedulesError,
+      } = await admin
+        .from("enrollment_schedules")
+        .select(
+          `
+            enrollment_id,
+            student_id,
+            day_of_week,
+            schedule_time
+          `
+        )
+        .in("enrollment_id", enrollmentIds)
+        .in("student_id", studentIds)
+        .order("day_of_week", {
+          ascending: true,
+        })
+        .order("schedule_time", {
+          ascending: true,
+        });
+
+      if (schedulesError) {
+        return NextResponse.json(
+          {
+            error: schedulesError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      schedules = scheduleRows || [];
+    }
+
+    /*
+     * ---------------------------------------------------------
      * FORMAT AVAILABLE ENROLLMENTS
      * ---------------------------------------------------------
      */
 
-    const availableEnrollments = (
-      enrollmentStudents || []
-    )
-      .filter(
-        (item) =>
-          !assignedEnrollmentStudentIds.has(
-            item.id
-          )
-      )
-      .filter((item) => {
-        const enrollment = Array.isArray(
-          item.enrollments
-        )
-          ? item.enrollments[0]
-          : item.enrollments;
-
-        return enrollment?.status === "active";
-      })
-      .map((item) => {
+    const availableEnrollments =
+      availableParticipants.map((item) => {
         const student = Array.isArray(
           item.students
         )
@@ -164,10 +242,30 @@ export async function GET() {
           ? item.enrollments[0]
           : item.enrollments;
 
+        const studentSchedules =
+          schedules
+            .filter(
+              (schedule) =>
+                schedule.enrollment_id ===
+                  item.enrollment_id &&
+                schedule.student_id ===
+                  item.student_id
+            )
+            .map((schedule) => ({
+              day_of_week:
+                schedule.day_of_week,
+              schedule_time:
+                schedule.schedule_time,
+            }));
+
         return {
           enrollment_student_id: item.id,
-          enrollment_id: item.enrollment_id,
-          student_id: item.student_id,
+
+          enrollment_id:
+            item.enrollment_id,
+
+          student_id:
+            item.student_id,
 
           student: student
             ? {
@@ -178,6 +276,8 @@ export async function GET() {
                   student.full_name,
                 preferred_name:
                   student.preferred_name,
+                timezone:
+                  student.timezone,
               }
             : null,
 
@@ -186,14 +286,21 @@ export async function GET() {
                 id: enrollment.id,
                 package_name:
                   enrollment.package_name,
-                status: enrollment.status,
+                status:
+                  enrollment.status,
+                lesson_duration:
+                  enrollment.lesson_duration,
               }
             : null,
+
+          schedules:
+            studentSchedules,
         };
       });
 
     return NextResponse.json({
-      enrollments: availableEnrollments,
+      enrollments:
+        availableEnrollments,
     });
   } catch (error) {
     console.error(

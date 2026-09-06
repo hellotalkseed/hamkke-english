@@ -7,6 +7,10 @@ interface AvailabilityBlock {
   end_time: string;
 }
 
+function isValidTime(value: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value);
+}
+
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -22,11 +26,17 @@ export async function GET() {
       );
     }
 
+    console.log("Teacher availability GET user:", user.id);
+
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id, full_name, role, status")
       .eq("id", user.id)
       .single();
+
+    if (profileError) {
+      console.error("Profile fetch error:", profileError);
+    }
 
     if (profileError || !profile) {
       return NextResponse.json(
@@ -55,7 +65,12 @@ export async function GET() {
       console.error("Availability fetch error:", error);
 
       return NextResponse.json(
-        { error: "Failed to load availability" },
+        {
+          error: "Failed to load availability",
+          details: error.message,
+          code: error.code,
+          hint: error.hint,
+        },
         { status: 500 }
       );
     }
@@ -71,7 +86,12 @@ export async function GET() {
     console.error("Teacher availability GET error:", error);
 
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Internal server error",
+      },
       { status: 500 }
     );
   }
@@ -92,11 +112,19 @@ export async function PUT(request: Request) {
       );
     }
 
+    console.log("========================================");
+    console.log("Teacher availability PUT");
+    console.log("Authenticated user ID:", user.id);
+
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id, full_name, role, status")
       .eq("id", user.id)
       .single();
+
+    if (profileError) {
+      console.error("Profile fetch error:", profileError);
+    }
 
     if (profileError || !profile) {
       return NextResponse.json(
@@ -104,6 +132,10 @@ export async function PUT(request: Request) {
         { status: 404 }
       );
     }
+
+    console.log("Profile ID:", profile.id);
+    console.log("Profile role:", profile.role);
+    console.log("Profile status:", profile.status);
 
     if (profile.role !== "teacher" || profile.status !== "active") {
       return NextResponse.json(
@@ -117,6 +149,8 @@ export async function PUT(request: Request) {
     const availability = Array.isArray(body?.availability)
       ? body.availability
       : [];
+
+    console.log("Availability blocks received:", availability);
 
     for (const block of availability as AvailabilityBlock[]) {
       if (
@@ -140,15 +174,28 @@ export async function PUT(request: Request) {
         );
       }
 
+      if (
+        !isValidTime(block.start_time) ||
+        !isValidTime(block.end_time)
+      ) {
+        return NextResponse.json(
+          {
+            error: `Invalid time format: ${block.start_time} - ${block.end_time}`,
+          },
+          { status: 400 }
+        );
+      }
+
       if (block.end_time <= block.start_time) {
         return NextResponse.json(
-          { error: "End time must be after start time" },
+          {
+            error: `End time must be after start time: ${block.start_time} - ${block.end_time}`,
+          },
           { status: 400 }
         );
       }
     }
 
-    // Replace the teacher's complete weekly availability.
     const { error: deleteError } = await supabase
       .from("teacher_availability")
       .delete()
@@ -158,7 +205,12 @@ export async function PUT(request: Request) {
       console.error("Availability delete error:", deleteError);
 
       return NextResponse.json(
-        { error: "Failed to update availability" },
+        {
+          error: "Failed to update availability",
+          details: deleteError.message,
+          code: deleteError.code,
+          hint: deleteError.hint,
+        },
         { status: 500 }
       );
     }
@@ -170,6 +222,10 @@ export async function PUT(request: Request) {
         start_time: block.start_time,
         end_time: block.end_time,
       }));
+
+      console.log("Rows about to be inserted:", rows);
+      console.log("Insert teacher_id:", user.id);
+      console.log("========================================");
 
       const { data: savedAvailability, error: insertError } =
         await supabase
@@ -183,7 +239,12 @@ export async function PUT(request: Request) {
         console.error("Availability insert error:", insertError);
 
         return NextResponse.json(
-          { error: "Failed to save availability" },
+          {
+            error: insertError.message || "Failed to save availability",
+            details: insertError.details,
+            hint: insertError.hint,
+            code: insertError.code,
+          },
           { status: 500 }
         );
       }
@@ -202,7 +263,12 @@ export async function PUT(request: Request) {
     console.error("Teacher availability PUT error:", error);
 
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Internal server error",
+      },
       { status: 500 }
     );
   }

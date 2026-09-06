@@ -10,6 +10,11 @@ import TeacherAgreement from "@/components/admin/TeacherAgreement";
 /* TYPES                                                                     */
 /* ========================================================================= */
 
+type ScheduleItem = {
+  day_of_week: number;
+  schedule_time: string;
+};
+
 type Teacher = {
   id: string;
   full_name: string | null;
@@ -27,20 +32,36 @@ type Assignment = {
   start_date: string;
   end_date: string | null;
   status: string;
+
   student: {
     id: string;
     student_number: string | null;
     full_name: string | null;
     preferred_name: string | null;
+    timezone?: string | null;
   } | null;
+
   enrollment: {
     id: string;
     package_name: string | null;
     status: string;
-    schedule_days?: number[] | null;
-    schedule_time?: string | null;
     lesson_duration?: number | null;
   } | null;
+
+  /*
+   * Actual recurring schedule in the student's timezone.
+   */
+  schedule?: ScheduleItem[];
+  schedules?: ScheduleItem[];
+
+  /*
+   * Converted recurring schedule in Philippine Time.
+   *
+   * This is ONLY used by the teacher calendar.
+   */
+  pht_schedules?: ScheduleItem[];
+
+  timezone?: string | null;
 };
 
 type AvailableEnrollment = {
@@ -53,16 +74,20 @@ type AvailableEnrollment = {
     student_number: string | null;
     full_name: string | null;
     preferred_name: string | null;
+    timezone?: string | null;
   } | null;
 
   enrollment: {
     id: string;
     package_name: string | null;
     status: string;
-    schedule_days?: number[] | null;
-    schedule_time?: string | null;
     lesson_duration?: number | null;
   } | null;
+
+  schedules?: ScheduleItem[];
+  schedule?: ScheduleItem[];
+
+  timezone?: string | null;
 };
 
 type AvailabilityBlock = {
@@ -246,10 +271,52 @@ function createTimeSlots() {
   return slots;
 }
 
-function formatTime(time: string | null | undefined) {
-  if (!time) return "—";
+function normalizeTime(time: string | null | undefined) {
+  if (!time) {
+    return "";
+  }
 
-  const [hourString, minuteString] = time.split(":");
+  const value = String(time).trim();
+
+  const match = value.match(/^(\d{1,2}):(\d{2})/);
+
+  if (!match) {
+    return value.slice(0, 5);
+  }
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+
+  if (
+    Number.isNaN(hour) ||
+    Number.isNaN(minute) ||
+    hour < 0 ||
+    hour > 24 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return "";
+  }
+
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(
+    2,
+    "0"
+  )}`;
+}
+
+function formatTime(time: string | null | undefined) {
+  if (!time) {
+    return "—";
+  }
+
+  const normalized = normalizeTime(time);
+
+  if (!normalized) {
+    return time;
+  }
+
+  const [hourString, minuteString] = normalized.split(":");
+
   const hour = Number(hourString);
   const minute = Number(minuteString);
 
@@ -263,11 +330,151 @@ function formatTime(time: string | null | undefined) {
   return `${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
 }
 
-function timeToMinutes(time: string) {
-  const [hours, minutes] = time.split(":").map(Number);
+function timeToMinutes(time: string | null | undefined) {
+  if (!time) {
+    return NaN;
+  }
+
+  const normalized = normalizeTime(time);
+
+  if (!normalized) {
+    return NaN;
+  }
+
+  const [hours, minutes] = normalized.split(":").map(Number);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return NaN;
+  }
 
   return hours * 60 + minutes;
 }
+
+/* ========================================================================= */
+/* DAY NORMALIZATION                                                         */
+/* ========================================================================= */
+
+function normalizeDayOfWeek(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    if (Number.isInteger(value) && value >= 0 && value <= 6) {
+      return value;
+    }
+
+    return null;
+  }
+
+  const raw = String(value).trim().toLowerCase();
+
+  if (/^\d+$/.test(raw)) {
+    const numeric = Number(raw);
+
+    return Number.isInteger(numeric) &&
+      numeric >= 0 &&
+      numeric <= 6
+      ? numeric
+      : null;
+  }
+
+  const dayMap: Record<string, number> = {
+    sunday: 0,
+    sun: 0,
+
+    monday: 1,
+    mon: 1,
+
+    tuesday: 2,
+    tue: 2,
+    tues: 2,
+
+    wednesday: 3,
+    wed: 3,
+
+    thursday: 4,
+    thu: 4,
+    thurs: 4,
+
+    friday: 5,
+    fri: 5,
+
+    saturday: 6,
+    sat: 6,
+  };
+
+  return dayMap[raw] ?? null;
+}
+
+/* ========================================================================= */
+/* AVAILABILITY NORMALIZATION                                                */
+/* ========================================================================= */
+
+function normalizeAvailability(
+  availability: unknown
+): AvailabilityBlock[] {
+  if (!Array.isArray(availability)) {
+    return [];
+  }
+
+  const normalized: AvailabilityBlock[] = [];
+
+  for (const rawBlock of availability) {
+    if (!rawBlock || typeof rawBlock !== "object") {
+      continue;
+    }
+
+    const block = rawBlock as Record<string, unknown>;
+
+    const day = normalizeDayOfWeek(block.day_of_week);
+
+    const startTime = normalizeTime(
+      typeof block.start_time === "string"
+        ? block.start_time
+        : null
+    );
+
+    const endTime = normalizeTime(
+      typeof block.end_time === "string"
+        ? block.end_time
+        : null
+    );
+
+    if (day === null || !startTime || !endTime) {
+      continue;
+    }
+
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+
+    if (
+      Number.isNaN(startMinutes) ||
+      Number.isNaN(endMinutes) ||
+      endMinutes <= startMinutes
+    ) {
+      continue;
+    }
+
+    const normalizedBlock: AvailabilityBlock = {
+      day_of_week: day,
+      start_time: startTime,
+      end_time: endTime,
+    };
+
+    if (typeof block.id === "string") {
+      normalizedBlock.id = block.id;
+    }
+
+    normalized.push(normalizedBlock);
+  }
+
+  return normalized;
+}
+
+/* ========================================================================= */
+/* AVAILABILITY SLOT CHECK                                                   */
+/* ========================================================================= */
 
 function isTimeWithinBlock(
   time: string,
@@ -277,17 +484,27 @@ function isTimeWithinBlock(
   const start = timeToMinutes(block.start_time);
   const end = timeToMinutes(block.end_time);
 
-  return current >= start && current < end;
+  if (
+    Number.isNaN(current) ||
+    Number.isNaN(start) ||
+    Number.isNaN(end)
+  ) {
+    return false;
+  }
+
+  const slotEnd = current + INTERVAL_MINUTES;
+
+  return current >= start && slotEnd <= end;
 }
 
-function normalizeTime(time: string | null | undefined) {
-  if (!time) return "";
-
-  return time.slice(0, 5);
-}
+/* ========================================================================= */
+/* STUDENT HELPERS                                                           */
+/* ========================================================================= */
 
 function getStudentName(
-  student: AvailableEnrollment["student"] | Assignment["student"]
+  student:
+    | AvailableEnrollment["student"]
+    | Assignment["student"]
 ) {
   return (
     student?.preferred_name ||
@@ -296,26 +513,172 @@ function getStudentName(
   );
 }
 
+function getTimezoneLabel(
+  timezone: string | null | undefined
+) {
+  if (!timezone) {
+    return "Timezone unknown";
+  }
+
+  if (timezone === "Asia/Seoul") {
+    return "KST";
+  }
+
+  if (timezone === "Asia/Manila") {
+    return "PHT";
+  }
+
+  return timezone;
+}
+
+/* ========================================================================= */
+/* SCHEDULE HELPERS                                                          */
+/* ========================================================================= */
+
+function normalizeSchedule(
+  schedule: ScheduleItem[] | null | undefined
+): ScheduleItem[] {
+  if (!Array.isArray(schedule)) {
+    return [];
+  }
+
+  const normalized: ScheduleItem[] = [];
+
+  for (const rawItem of schedule) {
+    if (!rawItem || typeof rawItem !== "object") {
+      continue;
+    }
+
+    const day = normalizeDayOfWeek(rawItem.day_of_week);
+    const scheduleTime = normalizeTime(rawItem.schedule_time);
+
+    if (day === null || !scheduleTime) {
+      continue;
+    }
+
+    normalized.push({
+      day_of_week: day,
+      schedule_time: scheduleTime,
+    });
+  }
+
+  return normalized.sort((a, b) => {
+    if (a.day_of_week !== b.day_of_week) {
+      return a.day_of_week - b.day_of_week;
+    }
+
+    return (
+      timeToMinutes(a.schedule_time) -
+      timeToMinutes(b.schedule_time)
+    );
+  });
+}
+
+function formatSchedule(
+  schedule: ScheduleItem[] | null | undefined
+) {
+  const normalized = normalizeSchedule(schedule);
+
+  if (normalized.length === 0) {
+    return "No schedule";
+  }
+
+  return normalized
+    .map((item) => {
+      const day =
+        DAYS.find(
+          (dayItem) =>
+            dayItem.value === item.day_of_week
+        )?.label || "—";
+
+      return `${day} ${formatTime(item.schedule_time)}`;
+    })
+    .join(" / ");
+}
+
+function getAvailableEnrollmentSchedule(
+  item: AvailableEnrollment
+) {
+  if (Array.isArray(item.schedules)) {
+    return item.schedules;
+  }
+
+  if (Array.isArray(item.schedule)) {
+    return item.schedule;
+  }
+
+  return [];
+}
+
+/*
+ * IMPORTANT:
+ *
+ * This is the student's authoritative schedule.
+ *
+ * It is used by the Assigned Students table.
+ */
+function getAssignmentStudentSchedule(
+  assignment: Assignment
+) {
+  if (Array.isArray(assignment.schedules)) {
+    return assignment.schedules;
+  }
+
+  if (Array.isArray(assignment.schedule)) {
+    return assignment.schedule;
+  }
+
+  return [];
+}
+
+/*
+ * IMPORTANT:
+ *
+ * This is the converted Philippine Time schedule.
+ *
+ * It is used ONLY by the teacher calendar.
+ */
+function getAssignmentCalendarSchedule(
+  assignment: Assignment
+) {
+  if (Array.isArray(assignment.pht_schedules)) {
+    return assignment.pht_schedules;
+  }
+
+  return [];
+}
+
+/* ========================================================================= */
+/* ASSIGNMENT HELPERS                                                        */
+/* ========================================================================= */
+
 function getAssignmentForSlot(
   assignments: Assignment[],
   day: number,
   time: string
 ) {
+  const normalizedTime = normalizeTime(time);
+
   return assignments.find((assignment) => {
     if (assignment.status !== "active") {
       return false;
     }
 
-    const days =
-      assignment.enrollment?.schedule_days || [];
-
-    const scheduleTime = normalizeTime(
-      assignment.enrollment?.schedule_time
+    /*
+     * The teacher calendar is in PHT.
+     *
+     * Therefore we MUST use pht_schedules here,
+     * not the student's original schedule.
+     */
+    const schedule = normalizeSchedule(
+      getAssignmentCalendarSchedule(assignment)
     );
 
-    return (
-      days.includes(day) &&
-      scheduleTime === normalizeTime(time)
+    return schedule.some(
+      (item) =>
+        item.day_of_week === day &&
+        normalizeTime(item.schedule_time) ===
+          normalizedTime
     );
   });
 }
@@ -336,36 +699,51 @@ export default function ManageTeacherPage() {
   const [assignments, setAssignments] =
     useState<Assignment[]>([]);
 
-  const [availableEnrollments, setAvailableEnrollments] =
-    useState<AvailableEnrollment[]>([]);
+  const [
+    availableEnrollments,
+    setAvailableEnrollments,
+  ] = useState<AvailableEnrollment[]>([]);
 
   const [availability, setAvailability] =
     useState<AvailabilityBlock[]>([]);
 
   const [loading, setLoading] = useState(true);
 
-  const [loadingAvailability, setLoadingAvailability] =
+  const [
+    loadingAvailability,
+    setLoadingAvailability,
+  ] = useState(false);
+
+  const [
+    loadingEnrollments,
+    setLoadingEnrollments,
+  ] = useState(false);
+
+  const [
+    showAssignPanel,
+    setShowAssignPanel,
+  ] = useState(false);
+
+  const [
+    selectedEnrollmentStudentId,
+    setSelectedEnrollmentStudentId,
+  ] = useState("");
+
+  const [selectedSlot, setSelectedSlot] =
+    useState<{
+      day: number;
+      time: string;
+    } | null>(null);
+
+  const [assigning, setAssigning] =
     useState(false);
-
-  const [loadingEnrollments, setLoadingEnrollments] =
-    useState(false);
-
-  const [showAssignPanel, setShowAssignPanel] =
-    useState(false);
-
-  const [selectedEnrollmentStudentId, setSelectedEnrollmentStudentId] =
-    useState("");
-
-  const [selectedSlot, setSelectedSlot] = useState<{
-    day: number;
-    time: string;
-  } | null>(null);
-
-  const [assigning, setAssigning] = useState(false);
 
   const [error, setError] = useState("");
-  const [assignmentError, setAssignmentError] =
-    useState("");
+
+  const [
+    assignmentError,
+    setAssignmentError,
+  ] = useState("");
 
   const [success, setSuccess] = useState("");
 
@@ -405,11 +783,12 @@ export default function ManageTeacherPage() {
           );
         }
 
-        const foundTeacher =
-          (data.teachers || []).find(
-            (item: Teacher) =>
-              item.id === teacherId
-          );
+        const foundTeacher = (
+          data.teachers || []
+        ).find(
+          (item: Teacher) =>
+            item.id === teacherId
+        );
 
         if (!foundTeacher) {
           throw new Error(
@@ -464,7 +843,11 @@ export default function ManageTeacherPage() {
       );
     }
 
-    setAssignments(data.assignments || []);
+    setAssignments(
+      Array.isArray(data.assignments)
+        ? data.assignments
+        : []
+    );
   }
 
   /* ----------------------------------------------------------------------- */
@@ -492,8 +875,31 @@ export default function ManageTeacherPage() {
         );
       }
 
-      setAvailability(
-        data.availability || []
+      const rawAvailability =
+        Array.isArray(data.availability)
+          ? data.availability
+          : Array.isArray(data.blocks)
+            ? data.blocks
+            : Array.isArray(data.data)
+              ? data.data
+              : [];
+
+      const normalized =
+        normalizeAvailability(
+          rawAvailability
+        );
+
+      setAvailability(normalized);
+    } catch (err) {
+      console.error(
+        "Error loading teacher availability:",
+        err
+      );
+
+      setAssignmentError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load teacher availability."
       );
     } finally {
       setLoadingAvailability(false);
@@ -504,26 +910,64 @@ export default function ManageTeacherPage() {
   /* AVAILABILITY BY DAY                                                     */
   /* ----------------------------------------------------------------------- */
 
-  const availabilityByDay = useMemo(() => {
-    const grouped: Record<
-      number,
-      AvailabilityBlock[]
-    > = {};
+  const availabilityByDay =
+    useMemo(() => {
+      const grouped: Record<
+        number,
+        AvailabilityBlock[]
+      > = {
+        0: [],
+        1: [],
+        2: [],
+        3: [],
+        4: [],
+        5: [],
+        6: [],
+      };
 
-    DAYS.forEach((day) => {
-      grouped[day.value] = [];
-    });
+      const normalized =
+        normalizeAvailability(
+          availability
+        );
 
-    availability.forEach((block) => {
-      if (!grouped[block.day_of_week]) {
-        grouped[block.day_of_week] = [];
-      }
+      normalized.forEach((block) => {
+        const day =
+          normalizeDayOfWeek(
+            block.day_of_week
+          );
 
-      grouped[block.day_of_week].push(block);
-    });
+        if (day === null) {
+          return;
+        }
 
-    return grouped;
-  }, [availability]);
+        grouped[day].push({
+          ...block,
+          day_of_week: day,
+          start_time:
+            normalizeTime(
+              block.start_time
+            ),
+          end_time:
+            normalizeTime(
+              block.end_time
+            ),
+        });
+      });
+
+      DAYS.forEach((day) => {
+        grouped[day.value].sort(
+          (a, b) =>
+            timeToMinutes(
+              a.start_time
+            ) -
+            timeToMinutes(
+              b.start_time
+            )
+        );
+      });
+
+      return grouped;
+    }, [availability]);
 
   /* ----------------------------------------------------------------------- */
   /* OPEN ASSIGNMENT PANEL                                                   */
@@ -539,13 +983,18 @@ export default function ManageTeacherPage() {
     });
 
     setSelectedEnrollmentStudentId("");
+
     setAssignmentError("");
     setSuccess("");
     setShowAssignPanel(true);
 
-    if (
-      availableEnrollments.length > 0
-    ) {
+    /*
+     * The clicked calendar slot is only a reference.
+     *
+     * It does NOT modify the student's schedule.
+     */
+
+    if (availableEnrollments.length > 0) {
       return;
     }
 
@@ -570,9 +1019,13 @@ export default function ManageTeacherPage() {
       }
 
       setAvailableEnrollments(
-        data.enrollments ||
-          data.availableEnrollments ||
-          []
+        Array.isArray(data.enrollments)
+          ? data.enrollments
+          : Array.isArray(
+                data.availableEnrollments
+              )
+            ? data.availableEnrollments
+            : []
       );
     } catch (err) {
       console.error(
@@ -591,36 +1044,11 @@ export default function ManageTeacherPage() {
   }
 
   /* ----------------------------------------------------------------------- */
-  /* FILTER STUDENTS FOR SELECTED SLOT                                      */
+  /* AVAILABLE STUDENTS                                                      */
   /* ----------------------------------------------------------------------- */
 
-  const slotEnrollments = useMemo(() => {
-    if (!selectedSlot) {
-      return availableEnrollments;
-    }
-
-    return availableEnrollments.filter(
-      (item) => {
-        const days =
-          item.enrollment?.schedule_days ||
-          [];
-
-        const scheduleTime =
-          normalizeTime(
-            item.enrollment?.schedule_time
-          );
-
-        return (
-          days.includes(selectedSlot.day) &&
-          scheduleTime ===
-            normalizeTime(selectedSlot.time)
-        );
-      }
-    );
-  }, [
-    availableEnrollments,
-    selectedSlot,
-  ]);
+  const slotEnrollments =
+    availableEnrollments;
 
   /* ----------------------------------------------------------------------- */
   /* ASSIGN STUDENT                                                          */
@@ -631,6 +1059,7 @@ export default function ManageTeacherPage() {
       setAssignmentError(
         "Please select a student."
       );
+
       return;
     }
 
@@ -644,12 +1073,19 @@ export default function ManageTeacherPage() {
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             enrollmentStudentId:
               selectedEnrollmentStudentId,
+
+            /*
+             * Context only.
+             *
+             * The server does NOT use this to modify
+             * the student's recurring schedule.
+             */
+            selectedSlot,
           }),
         }
       );
@@ -665,15 +1101,17 @@ export default function ManageTeacherPage() {
 
       await loadAssignments();
 
-      setAvailableEnrollments((current) =>
-        current.filter(
-          (item) =>
-            item.enrollment_student_id !==
-            selectedEnrollmentStudentId
-        )
+      setAvailableEnrollments(
+        (current) =>
+          current.filter(
+            (item) =>
+              item.enrollment_student_id !==
+              selectedEnrollmentStudentId
+          )
       );
 
       setSelectedEnrollmentStudentId("");
+
       setSuccess(
         "Student assigned successfully."
       );
@@ -691,6 +1129,21 @@ export default function ManageTeacherPage() {
     } finally {
       setAssigning(false);
     }
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* CLOSE ASSIGNMENT PANEL                                                  */
+  /* ----------------------------------------------------------------------- */
+
+  function closeAssignPanel() {
+    if (assigning) {
+      return;
+    }
+
+    setShowAssignPanel(false);
+    setSelectedEnrollmentStudentId("");
+    setAssignmentError("");
+    setSuccess("");
   }
 
   /* ----------------------------------------------------------------------- */
@@ -728,13 +1181,13 @@ export default function ManageTeacherPage() {
     const blocks =
       availabilityByDay[day] || [];
 
-    const isAvailable = blocks.some(
-      (block) =>
+    const isAvailable =
+      blocks.some((block) =>
         isTimeWithinBlock(
           time,
           block
         )
-    );
+      );
 
     if (isAvailable) {
       return {
@@ -771,10 +1224,10 @@ export default function ManageTeacherPage() {
         <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
           <div className="flex w-full items-start justify-between gap-8">
             <Link
-              href={`/${locale}/admin/teachers`}
+              href={`/${locale}/admin`}
               className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
             >
-              ← Teachers
+              ← Administration
             </Link>
 
             <Link
@@ -809,10 +1262,10 @@ export default function ManageTeacherPage() {
         <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
           <div className="flex w-full items-start justify-between gap-8">
             <Link
-              href={`/${locale}/admin/teachers`}
+              href={`/${locale}/admin`}
               className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
             >
-              ← Teachers
+              ← Administration
             </Link>
 
             <Link
@@ -862,10 +1315,10 @@ export default function ManageTeacherPage() {
       <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
         <div className="flex w-full items-start justify-between gap-8">
           <Link
-            href={`/${locale}/admin/teachers`}
+            href={`/${locale}/admin`}
             className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
           >
-            ← Teachers
+            ← Administration
           </Link>
 
           <Link
@@ -951,10 +1404,11 @@ export default function ManageTeacherPage() {
               Weekly Calendar
             </h2>
 
-            <p className="mt-2 max-w-[600px] font-serif text-[15px] leading-7 text-[#74716B]">
-              Philippine Time. This calendar reflects the
-              availability set by the teacher and the
-              students currently assigned to them.
+            <p className="mt-2 max-w-[650px] font-serif text-[15px] leading-7 text-[#74716B]">
+              Philippine Time. This calendar reflects
+              the teacher&apos;s availability and each
+              student&apos;s existing recurring lesson
+              schedule after timezone conversion.
             </p>
           </div>
 
@@ -1042,7 +1496,7 @@ export default function ManageTeacherPage() {
                               </p>
 
                               <p className="mt-0.5 truncate font-sans text-[8px] uppercase tracking-[0.08em] text-[#8C8057]">
-                                Scheduled
+                                Scheduled · PHT
                               </p>
                             </div>
                           ) : isAvailable ? (
@@ -1055,7 +1509,7 @@ export default function ManageTeacherPage() {
                                 )
                               }
                               className="group flex min-h-[39px] w-full items-center justify-center rounded-[3px] border border-[#B9CBB5] bg-[#E8EFE5] px-2 transition-colors hover:border-[#6F8F72] hover:bg-[#DDE9D9]"
-                              aria-label={`Assign student on ${day.label} at ${formatTime(
+                              aria-label={`Open assignment panel from ${day.label} at ${formatTime(
                                 time
                               )}`}
                             >
@@ -1082,9 +1536,12 @@ export default function ManageTeacherPage() {
         </div>
 
         <p className="mt-4 font-serif text-[13px] italic text-[#8A8780]">
-          Click an available green slot to assign a
-          student whose existing lesson schedule matches
-          that time.
+          Click an available green slot to open the
+          assignment panel. The selected slot is only a
+          reference point. Students keep their existing
+          recurring lesson schedules, and assignment is
+          allowed only when the full schedule fits this
+          teacher&apos;s availability.
         </p>
       </section>
 
@@ -1093,71 +1550,98 @@ export default function ManageTeacherPage() {
       {/* =================================================================== */}
 
       {showAssignPanel && (
-        <section className="mx-auto max-w-[1200px] px-6 pb-16 sm:px-8 lg:px-10">
-          <div className="border-y border-[#DCD8D2] bg-[#F7F5F1] px-6 py-7 sm:px-8 sm:py-8">
-            <div className="flex items-start justify-between gap-6">
-              <div>
-                <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
-                  Assign from calendar
-                </p>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#292929]/25 px-4 py-6 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="assign-panel-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeAssignPanel();
+            }
+          }}
+        >
+          <section className="w-full max-w-[760px] overflow-hidden border border-[#DCD8D2] bg-[#F7F5F1] shadow-[0_20px_60px_rgba(41,41,41,0.16)]">
+            <div className="max-h-[88vh] overflow-y-auto px-6 py-7 sm:px-8 sm:py-8">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
+                    Assign from calendar
+                  </p>
 
-                <h3 className="mt-2 font-serif text-[27px] font-normal tracking-[-0.02em]">
-                  {selectedSlot
-                    ? `${DAYS[selectedSlot.day].label}, ${formatTime(
-                        selectedSlot.time
-                      )}`
-                    : "Select a student"}
-                </h3>
+                  <h3
+                    id="assign-panel-title"
+                    className="mt-2 font-serif text-[27px] font-normal tracking-[-0.02em]"
+                  >
+                    {selectedSlot
+                      ? `${DAYS[selectedSlot.day].label}, ${formatTime(
+                          selectedSlot.time
+                        )} PHT`
+                      : "Select a student"}
+                  </h3>
 
-                <p className="mt-2 max-w-[600px] font-serif text-[14px] leading-6 text-[#74716B]">
-                  Only active enrollments scheduled for
-                  this day and time are shown.
-                </p>
+                  <p className="mt-2 max-w-[650px] font-serif text-[14px] leading-6 text-[#74716B]">
+                    The selected PHT slot is only a
+                    reference point. Students keep their
+                    existing lesson schedules in their own
+                    timezones. A student can be assigned
+                    only if their complete recurring
+                    schedule fits within this teacher&apos;s
+                    availability.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeAssignPanel}
+                  disabled={assigning}
+                  className="shrink-0 text-[#8A8780] transition-colors hover:text-[#6F8F72] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Close assignment panel"
+                >
+                  <CloseIcon />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAssignPanel(false);
-                  setAssignmentError("");
-                  setSuccess("");
-                }}
-                className="shrink-0 text-[#8A8780] transition-colors hover:text-[#6F8F72]"
-                aria-label="Close assignment panel"
-              >
-                <CloseIcon />
-              </button>
-            </div>
+              {success && (
+                <div className="mt-6 border-l-2 border-[#6F8F72] bg-[#EDF2EA] px-4 py-3">
+                  <p className="font-sans text-[12px] text-[#607963]">
+                    {success}
+                  </p>
+                </div>
+              )}
 
-            {success && (
-              <div className="mt-6 border-l-2 border-[#6F8F72] bg-[#EDF2EA] px-4 py-3">
-                <p className="font-sans text-[12px] text-[#607963]">
-                  {success}
-                </p>
-              </div>
-            )}
+              {assignmentError && (
+                <div className="mt-6 border-l-2 border-[#B87368] bg-[#F4E5E2] px-4 py-3">
+                  <p className="font-sans text-[12px] text-[#8B5C55]">
+                    {assignmentError}
+                  </p>
+                </div>
+              )}
 
-            {assignmentError && (
-              <div className="mt-6 border-l-2 border-[#B87368] bg-[#F4E5E2] px-4 py-3">
-                <p className="font-sans text-[12px] text-[#8B5C55]">
-                  {assignmentError}
-                </p>
-              </div>
-            )}
-
-            {loadingEnrollments ? (
-              <div className="py-12 text-center">
-                <p className="font-serif text-[16px] text-[#74716B]">
-                  Loading available students...
-                </p>
-              </div>
-            ) : slotEnrollments.length > 0 ? (
-              <div className="mt-7 divide-y divide-[#E0DCD6] border-y border-[#DCD8D2]">
-                {slotEnrollments.map(
-                  (item) => {
+              {loadingEnrollments ? (
+                <div className="py-12 text-center">
+                  <p className="font-serif text-[16px] text-[#74716B]">
+                    Loading available students...
+                  </p>
+                </div>
+              ) : slotEnrollments.length > 0 ? (
+                <div className="mt-7 divide-y divide-[#E0DCD6] border-y border-[#DCD8D2]">
+                  {slotEnrollments.map((item) => {
                     const studentName =
                       getStudentName(
                         item.student
+                      );
+
+                    const schedule =
+                      getAvailableEnrollmentSchedule(
+                        item
+                      );
+
+                    const timezone =
+                      getTimezoneLabel(
+                        item.student
+                          ?.timezone ||
+                          item.timezone
                       );
 
                     const isSelected =
@@ -1199,6 +1683,31 @@ export default function ManageTeacherPage() {
                                 ?.package_name ||
                                 "Private English Lessons"}
                             </span>
+
+                            {item.enrollment
+                              ?.lesson_duration && (
+                              <span className="font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                                {
+                                  item
+                                    .enrollment
+                                    .lesson_duration
+                                }{" "}
+                                min
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mt-2">
+                            <p className="font-sans text-[9px] font-medium uppercase tracking-[0.1em] text-[#8A8A84]">
+                              Existing schedule ·{" "}
+                              {timezone}
+                            </p>
+
+                            <p className="mt-1 font-serif text-[13px] leading-5 text-[#55544F]">
+                              {formatSchedule(
+                                schedule
+                              )}
+                            </p>
                           </div>
                         </div>
 
@@ -1213,57 +1722,55 @@ export default function ManageTeacherPage() {
                         </span>
                       </button>
                     );
-                  }
-                )}
-              </div>
-            ) : (
-              <div className="mt-7 border-y border-[#DCD8D2] py-12 text-center">
-                <h4 className="font-serif text-[22px] font-normal">
-                  No matching students
-                </h4>
+                  })}
+                </div>
+              ) : (
+                <div className="mt-7 border-y border-[#DCD8D2] py-12 text-center">
+                  <h4 className="font-serif text-[22px] font-normal">
+                    No available students
+                  </h4>
 
-                <p className="mx-auto mt-3 max-w-[480px] font-serif text-[14px] leading-6 text-[#74716B]">
-                  There are no unassigned active
-                  enrollments currently scheduled for
-                  this day and time.
-                </p>
-              </div>
-            )}
+                  <p className="mx-auto mt-3 max-w-[520px] font-serif text-[14px] leading-6 text-[#74716B]">
+                    There are no active, unassigned
+                    enrollments available to assign to
+                    this teacher right now. Students are
+                    not filtered by the selected calendar
+                    slot.
+                  </p>
+                </div>
+              )}
 
-            {slotEnrollments.length > 0 && (
-              <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAssignPanel(false);
-                    setSelectedEnrollmentStudentId("");
-                    setAssignmentError("");
-                    setSuccess("");
-                  }}
-                  className="font-sans text-[12px] text-[#77736B] transition-colors hover:text-[#6F8F72]"
-                >
-                  Cancel
-                </button>
+              {slotEnrollments.length > 0 && (
+                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={closeAssignPanel}
+                    disabled={assigning}
+                    className="font-sans text-[12px] text-[#77736B] transition-colors hover:text-[#6F8F72] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleAssign}
-                  disabled={
-                    assigning ||
-                    !selectedEnrollmentStudentId
-                  }
-                  className="inline-flex w-fit items-center gap-2 border-b border-[#6F8F72] pb-1 font-sans text-[13px] text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55] disabled:cursor-not-allowed disabled:border-[#CFCBC5] disabled:text-[#AAA69F]"
-                >
-                  <PlusIcon />
+                  <button
+                    type="button"
+                    onClick={handleAssign}
+                    disabled={
+                      assigning ||
+                      !selectedEnrollmentStudentId
+                    }
+                    className="inline-flex w-fit items-center gap-2 border-b border-[#6F8F72] pb-1 font-sans text-[13px] text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55] disabled:cursor-not-allowed disabled:border-[#CFCBC5] disabled:text-[#AAA69F]"
+                  >
+                    <PlusIcon />
 
-                  {assigning
-                    ? "Assigning..."
-                    : "Assign Student"}
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
+                    {assigning
+                      ? "Assigning..."
+                      : "Assign Student"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
       )}
 
       {/* =================================================================== */}
@@ -1280,6 +1787,13 @@ export default function ManageTeacherPage() {
             <h2 className="mt-2 font-serif text-[29px] font-normal tracking-[-0.025em]">
               Assigned Students
             </h2>
+
+            <p className="mt-2 max-w-[650px] font-serif text-[14px] leading-6 text-[#74716B]">
+              Students are shown using their actual
+              recurring lesson schedule. The timezone shown
+              here belongs to the student, while the weekly
+              calendar above is always displayed in PHT.
+            </p>
           </div>
 
           <button
@@ -1299,7 +1813,7 @@ export default function ManageTeacherPage() {
 
         {activeAssignments.length > 0 ? (
           <div className="overflow-x-auto border-y border-[#DCD8D2]">
-            <table className="w-full min-w-[700px] border-collapse">
+            <table className="w-full min-w-[980px] border-collapse">
               <thead>
                 <tr className="border-b border-[#DCD8D2]">
                   <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84] sm:px-4">
@@ -1307,11 +1821,19 @@ export default function ManageTeacherPage() {
                   </th>
 
                   <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
-                    Schedule
+                    Student Schedule
+                  </th>
+
+                  <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
+                    PHT Time
                   </th>
 
                   <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
                     Package
+                  </th>
+
+                  <th className="px-3 py-4 text-left font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
+                    Duration
                   </th>
 
                   <th className="px-3 py-4 text-right font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84] sm:px-4">
@@ -1328,32 +1850,39 @@ export default function ManageTeacherPage() {
                         assignment.student
                       );
 
-                    const scheduleDays =
-                      assignment.enrollment
-                        ?.schedule_days || [];
+                    /*
+                     * Actual student schedule.
+                     */
+                    const studentSchedule =
+                      normalizeSchedule(
+                        getAssignmentStudentSchedule(
+                          assignment
+                        )
+                      );
 
-                    const schedule =
-                      scheduleDays.length > 0
-                        ? [...scheduleDays]
-                            .sort(
-                              (a, b) =>
-                                a - b
-                            )
-                            .map(
-                              (day) =>
-                                DAYS.find(
-                                  (item) =>
-                                    item.value ===
-                                    day
-                                )?.label
-                            )
-                            .filter(Boolean)
-                            .join(" / ")
-                        : "No schedule";
+                    /*
+                     * Converted schedule used by the
+                     * teacher calendar.
+                     */
+                    const phtSchedule =
+                      normalizeSchedule(
+                        getAssignmentCalendarSchedule(
+                          assignment
+                        )
+                      );
+
+                    const studentTimezone =
+                      getTimezoneLabel(
+                        assignment.student
+                          ?.timezone ||
+                          assignment.timezone
+                      );
 
                     return (
                       <tr
-                        key={assignment.id}
+                        key={
+                          assignment.id
+                        }
                         className="border-b border-[#E7E3DD] last:border-b-0 hover:bg-[#F2F5F0]"
                       >
                         <td className="px-3 py-4 sm:px-4 sm:py-[18px]">
@@ -1363,28 +1892,104 @@ export default function ManageTeacherPage() {
 
                           <p className="mt-1 font-sans text-[10px] uppercase tracking-[0.12em] text-[#9A9790]">
                             Student #
-                            {assignment.student
+                            {assignment
+                              .student
                               ?.student_number ||
                               "—"}
                           </p>
+
+                          <p className="mt-1 font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                            {studentTimezone}
+                          </p>
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* ACTUAL STUDENT SCHEDULE                         */}
+                        {/* ================================================= */}
+
+                        <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
+                          {studentSchedule.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {studentSchedule.map(
+                                (item) => {
+                                  const day =
+                                    DAYS.find(
+                                      (
+                                        dayItem
+                                      ) =>
+                                        dayItem.value ===
+                                        item.day_of_week
+                                    )?.label ||
+                                    "—";
+
+                                  return (
+                                    <span
+                                      key={`${item.day_of_week}-${item.schedule_time}`}
+                                    >
+                                      {day}{" "}
+                                      {formatTime(
+                                        item.schedule_time
+                                      )}
+                                    </span>
+                                  );
+                                }
+                              )}
+                            </div>
+                          ) : (
+                            "No schedule"
+                          )}
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* PHT CONVERTED SCHEDULE                           */}
+                        {/* ================================================= */}
+
+                        <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
+                          {phtSchedule.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {phtSchedule.map(
+                                (item) => {
+                                  const day =
+                                    DAYS.find(
+                                      (
+                                        dayItem
+                                      ) =>
+                                        dayItem.value ===
+                                        item.day_of_week
+                                    )?.label ||
+                                    "—";
+
+                                  return (
+                                    <span
+                                      key={`${item.day_of_week}-${item.schedule_time}`}
+                                    >
+                                      {day}{" "}
+                                      {formatTime(
+                                        item.schedule_time
+                                      )}
+                                    </span>
+                                  );
+                                }
+                              )}
+                            </div>
+                          ) : (
+                            "No PHT schedule"
+                          )}
                         </td>
 
                         <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
-                          {schedule}
-
-                          <span className="ml-2 font-sans text-[11px] text-[#8A8780]">
-                            {formatTime(
-                              assignment
-                                .enrollment
-                                ?.schedule_time
-                            )}
-                          </span>
-                        </td>
-
-                        <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
-                          {assignment.enrollment
+                          {assignment
+                            .enrollment
                             ?.package_name ||
                             "Private English Lessons"}
+                        </td>
+
+                        <td className="px-3 py-4 font-serif text-[14px] text-[#55544F] sm:py-[18px]">
+                          {assignment
+                            .enrollment
+                            ?.lesson_duration
+                            ? `${assignment.enrollment.lesson_duration} min`
+                            : "—"}
                         </td>
 
                         <td className="px-3 py-4 text-right sm:px-4 sm:py-[18px]">
