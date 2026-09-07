@@ -311,6 +311,14 @@ export default function TeacherPayrollPage() {
   const [selectedPayroll, setSelectedPayroll] =
     useState<PayrollRecord | null>(null);
 
+  const [payrollActionLoading, setPayrollActionLoading] =
+    useState(false);
+  const [payrollActionError, setPayrollActionError] =
+    useState("");
+  const [paymentDate, setPaymentDate] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
+
   /* ----------------------------------------------------------------------- */
   /* LOAD PAYROLL                                                            */
   /* ----------------------------------------------------------------------- */
@@ -363,6 +371,136 @@ export default function TeacherPayrollPage() {
 
     loadPayroll();
   }, [teacherId]);
+
+  async function reloadPayroll() {
+    const response = await fetch(
+      `/api/admin/teachers/${teacherId}/payroll`,
+      {
+        method: "GET",
+        cache: "no-store",
+      }
+    );
+
+    const data: PayrollApiResponse | { error?: string } =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        "error" in data && data.error
+          ? data.error
+          : "Unable to reload teacher payroll."
+      );
+    }
+
+    const payrollData = data as PayrollApiResponse;
+
+    setTeacher(payrollData.teacher);
+    setCurrentPayroll(payrollData.current);
+    setPayrollHistory(payrollData.history || []);
+
+    if (selectedPayroll) {
+      const refreshedSelected =
+        (payrollData.history || []).find(
+          (record) => record.id === selectedPayroll.id
+        ) || null;
+
+      setSelectedPayroll(refreshedSelected);
+    }
+  }
+
+  async function runPayrollAction(
+    payload:
+      | {
+          action: "approve";
+          payrollId: string;
+        }
+      | {
+          action: "mark_paid";
+          payrollId: string;
+          paymentDate: string;
+          paymentMethod: string;
+          paymentReference: string | null;
+        }
+  ) {
+    try {
+      setPayrollActionLoading(true);
+      setPayrollActionError("");
+
+      const response = await fetch(
+        `/api/admin/teachers/${teacherId}/payroll`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || "Unable to update payroll."
+        );
+      }
+
+      await reloadPayroll();
+
+      return true;
+    } catch (err) {
+      console.error("Payroll action error:", err);
+
+      setPayrollActionError(
+        err instanceof Error
+          ? err.message
+          : "We couldn't update this payroll right now."
+      );
+
+      return false;
+    } finally {
+      setPayrollActionLoading(false);
+    }
+  }
+
+  async function approvePayroll(record: PayrollRecord) {
+    const approved = await runPayrollAction({
+      action: "approve",
+      payrollId: record.id,
+    });
+
+    if (approved) {
+      setPaymentDate("");
+      setPaymentMethod("");
+      setPaymentReference("");
+    }
+  }
+
+  async function markPayrollPaid(record: PayrollRecord) {
+    if (!paymentDate) {
+      setPayrollActionError("Please enter the payment date.");
+      return;
+    }
+
+    if (!paymentMethod.trim()) {
+      setPayrollActionError("Please enter the payment method.");
+      return;
+    }
+
+    const paid = await runPayrollAction({
+      action: "mark_paid",
+      payrollId: record.id,
+      paymentDate,
+      paymentMethod: paymentMethod.trim(),
+      paymentReference: paymentReference.trim() || null,
+    });
+
+    if (paid) {
+      setPaymentDate("");
+      setPaymentMethod("");
+      setPaymentReference("");
+    }
+  }
 
   /* ----------------------------------------------------------------------- */
   /* CURRENT PAYROLL PERIOD                                                  */
@@ -1162,7 +1300,9 @@ export default function TeacherPayrollPage() {
                 Payment status
               </p>
 
-              <span className="mt-2 inline-flex rounded-full bg-[#EEECE7] px-3 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#817D75]">
+              <span className={`mt-2 inline-flex rounded-full px-3 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] ${getStatusClasses(
+                  currentPayroll.status
+                )}`}>
                 {formatStatus(currentPayroll.status)}
               </span>
             </div>
@@ -1400,6 +1540,131 @@ export default function TeacherPayrollPage() {
             </div>
           </div>
 
+          {/* OWNER PAYROLL ACTIONS */}
+
+          {currentPayroll.payroll_record &&
+            currentPayroll.status !== "paid" && (
+              <div className="border-t border-[#DCD8D2] px-6 py-7 sm:px-8">
+                <div className="max-w-[720px]">
+                  <p className="font-sans text-[9px] font-medium uppercase tracking-[0.15em] text-[#8A8A84]">
+                    Owner actions
+                  </p>
+
+                  {currentPayroll.status === "pending" && (
+                    <>
+                      <h3 className="mt-2 font-serif text-[21px] font-normal">
+                        Review and approve this payroll
+                      </h3>
+
+                      <p className="mt-2 font-serif text-[13px] leading-6 text-[#74716B]">
+                        Approval confirms that the frozen lesson
+                        breakdown, rates, and total payment have been
+                        reviewed. It does not mark the teacher as paid.
+                      </p>
+
+                      <button
+                        type="button"
+                        disabled={payrollActionLoading}
+                        onClick={() =>
+                          approvePayroll(
+                            currentPayroll.payroll_record as PayrollRecord
+                          )
+                        }
+                        className="mt-5 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {payrollActionLoading
+                          ? "Approving..."
+                          : "Approve Payroll"}
+                      </button>
+                    </>
+                  )}
+
+                  {currentPayroll.status === "approved" && (
+                    <>
+                      <h3 className="mt-2 font-serif text-[21px] font-normal">
+                        Record teacher payment
+                      </h3>
+
+                      <p className="mt-2 font-serif text-[13px] leading-6 text-[#74716B]">
+                        Enter the details after the payment has actually
+                        been sent. The payroll total remains unchanged.
+                      </p>
+
+                      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                        <label className="block">
+                          <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                            Payment date
+                          </span>
+
+                          <input
+                            type="date"
+                            value={paymentDate}
+                            onChange={(event) =>
+                              setPaymentDate(event.target.value)
+                            }
+                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors focus:border-[#6F8F72]"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                            Payment method
+                          </span>
+
+                          <input
+                            type="text"
+                            value={paymentMethod}
+                            onChange={(event) =>
+                              setPaymentMethod(event.target.value)
+                            }
+                            placeholder="e.g. Bank transfer"
+                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors placeholder:text-[#AAA69E] focus:border-[#6F8F72]"
+                          />
+                        </label>
+
+                        <label className="block sm:col-span-2">
+                          <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                            Payment reference
+                          </span>
+
+                          <input
+                            type="text"
+                            value={paymentReference}
+                            onChange={(event) =>
+                              setPaymentReference(event.target.value)
+                            }
+                            placeholder="Optional"
+                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors placeholder:text-[#AAA69E] focus:border-[#6F8F72]"
+                          />
+                        </label>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={payrollActionLoading}
+                        onClick={() =>
+                          markPayrollPaid(
+                            currentPayroll.payroll_record as PayrollRecord
+                          )
+                        }
+                        className="mt-5 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {payrollActionLoading
+                          ? "Saving Payment..."
+                          : "Mark as Paid"}
+                      </button>
+                    </>
+                  )}
+
+                  {payrollActionError && (
+                    <p className="mt-4 font-serif text-[12px] leading-5 text-[#A15F5F]">
+                      {payrollActionError}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
           {/* CURRENT PERIOD FOOTER + PRINT BUTTON */}
 
           <div className="flex flex-col gap-5 border-t border-[#E7E3DD] px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
@@ -1421,7 +1686,7 @@ export default function TeacherPayrollPage() {
         </div>
       </section>
 
-      {/* =================================================================== */}
+                  {/* =================================================================== */}
       {/* PAYROLL HISTORY                                                     */}
       {/* =================================================================== */}
 
@@ -1440,82 +1705,73 @@ export default function TeacherPayrollPage() {
               </div>
 
               <p className="mt-4 max-w-[680px] font-serif text-[14px] leading-6 text-[#74716B]">
-                Each paid payroll period is kept as its
-                own payment record with its lesson breakdown,
-                applicable rates, payment method, and
-                reference number.
+                Each paid payroll period is kept as its own payment
+                record with its lesson breakdown, applicable rates,
+                payment method, and reference number.
               </p>
             </div>
 
             <span className="inline-flex w-fit rounded-full bg-[#EEECE7] px-3 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#817D75]">
-              {payrollHistory.length} records
+              {payrollHistory.length}{" "}
+              {payrollHistory.length === 1 ? "record" : "records"}
             </span>
           </div>
 
-          {payrollHistory.length === 0 ? (
-            <div className="border-t border-[#E7E3DD] px-5 py-12 sm:px-7 sm:py-14">
-              <div className="max-w-[680px]">
-                <p className="font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
-                  No history yet
-                </p>
+          <div className="border-t border-[#E7E3DD]">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] table-fixed border-collapse">
+  <colgroup>
+    <col className="w-[31%]" />
+    <col className="w-[14%]" />
+    <col className="w-[17%]" />
+    <col className="w-[20%]" />
+    <col className="w-[18%]" />
+  </colgroup>
+                <thead>
+                  <tr className="border-b border-[#DCD8D2]">
+                    <th className="px-5 py-4 text-left font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84] sm:px-7">
+                      Payroll period
+                    </th>
 
-                <h4 className="mt-2 font-serif text-[22px] font-normal">
-                  Payroll history will appear here.
-                </h4>
+                    <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
+                      Lessons
+                    </th>
 
-                <p className="mt-3 font-serif text-[14px] leading-6 text-[#74716B]">
-                  Once a payroll period has been calculated,
-                  paid, and recorded, it will appear here with
-                  its lesson breakdown, applicable rates,
-                  payment details, and printable receipt.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="border-t border-[#E7E3DD]">
-              {/* DESKTOP TABLE */}
+                    <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
+                      Gross pay
+                    </th>
 
-              <div className="hidden overflow-x-auto md:block">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#DCD8D2]">
-                      <th className="px-5 py-4 text-left font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84] sm:px-7">
-                        Payroll period
-                      </th>
+                    <th className="px-5 py-4 text-center font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
+  Status
+</th>
 
-                      <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
-                        Lessons
-                      </th>
+                    <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84] sm:px-7">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
 
-                      <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
-                        Gross pay
-                      </th>
-
-                      <th className="px-5 py-4 text-left font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
-                        Status
-                      </th>
-
-                      <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84] sm:px-7">
-                        Actions
-                      </th>
+                <tbody>
+                  {payrollHistory.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-5 py-10 text-center font-serif text-[14px] text-[#8A8780] sm:px-7"
+                      >
+                        No payroll records yet.
+                      </td>
                     </tr>
-                  </thead>
-
-                  <tbody>
-                    {payrollHistory.map((record) => (
+                  ) : (
+                    payrollHistory.map((record) => (
                       <tr
                         key={record.id}
                         className="border-b border-[#E7E3DD] transition-colors duration-150 hover:bg-[#F2F5F0]"
                       >
                         <td className="px-5 py-4 sm:px-7">
                           <p className="font-serif text-[15px]">
-                            {formatShortDate(
-                              record.period_start
-                            )}
+                            {formatShortDate(record.period_start)}
                             {" – "}
-                            {formatShortDate(
-                              record.period_end
-                            )}
+                            {formatShortDate(record.period_end)}
                           </p>
                         </td>
 
@@ -1524,12 +1780,10 @@ export default function TeacherPayrollPage() {
                         </td>
 
                         <td className="px-5 py-4 text-right font-serif text-[15px]">
-                          {formatCurrency(
-                            record.gross_pay
-                          )}
+                          {formatCurrency(record.gross_pay)}
                         </td>
 
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 text-center">
                           <span
                             className={`inline-flex rounded-full px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] ${getStatusClasses(
                               record.status
@@ -1544,11 +1798,9 @@ export default function TeacherPayrollPage() {
                             <button
                               type="button"
                               onClick={() =>
-                                setSelectedPayroll(
-                                  record
-                                )
+                                setSelectedPayroll(record)
                               }
-                              className="inline-flex items-center gap-1.5 border border-[#DCD8D2] px-3 py-2 font-sans text-[10px] text-[#5F655F] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#DCD8D2] px-3 py-2 font-sans text-[10px] text-[#5F655F] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
                             >
                               <EyeIcon />
                               View
@@ -1559,7 +1811,7 @@ export default function TeacherPayrollPage() {
                               onClick={() =>
                                 printPayroll(record)
                               }
-                              className="inline-flex items-center gap-1.5 border border-[#6F8F72] px-3 py-2 font-sans text-[10px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#6F8F72] px-3 py-2 font-sans text-[10px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
                             >
                               <PrinterIcon />
                               Print
@@ -1567,95 +1819,12 @@ export default function TeacherPayrollPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* MOBILE RECORDS */}
-
-              <div className="divide-y divide-[#E7E3DD] md:hidden">
-                {payrollHistory.map((record) => (
-                  <div
-                    key={record.id}
-                    className="px-5 py-5"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="font-serif text-[17px] leading-tight">
-                          {formatShortDate(
-                            record.period_start
-                          )}
-                          {" – "}
-                          {formatShortDate(
-                            record.period_end
-                          )}
-                        </p>
-
-                        <div className="mt-3 grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
-                              Lessons
-                            </p>
-
-                            <p className="mt-1 font-serif text-[15px]">
-                              {getTotalLessonCount(
-                                record
-                              )}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
-                              Gross
-                            </p>
-
-                            <p className="mt-1 font-serif text-[15px]">
-                              {formatCurrency(
-                                record.gross_pay
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <span
-                        className={`inline-flex shrink-0 rounded-full px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] ${getStatusClasses(
-                          record.status
-                        )}`}
-                      >
-                        {formatStatus(record.status)}
-                      </span>
-                    </div>
-
-                    <div className="mt-5 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedPayroll(record)
-                        }
-                        className="inline-flex items-center gap-1.5 border border-[#DCD8D2] px-3 py-2 font-sans text-[10px] text-[#5F655F] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
-                      >
-                        <EyeIcon />
-                        View
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          printPayroll(record)
-                        }
-                        className="inline-flex items-center gap-1.5 border border-[#6F8F72] px-3 py-2 font-sans text-[10px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
-                      >
-                        <PrinterIcon />
-                        Print
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -1934,6 +2103,92 @@ export default function TeacherPayrollPage() {
                   </p>
                 </div>
               </div>
+
+              {selectedPayroll.status !== "paid" && (
+                <div className="mt-8 border-t border-[#DCD8D2] pt-7">
+                  <p className="font-sans text-[9px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
+                    Owner actions
+                  </p>
+
+                  {selectedPayroll.status === "pending" ? (
+                    <button
+                      type="button"
+                      disabled={payrollActionLoading}
+                      onClick={() => approvePayroll(selectedPayroll)}
+                      className="mt-4 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {payrollActionLoading
+                        ? "Approving..."
+                        : "Approve Payroll"}
+                    </button>
+                  ) : (
+                    <>
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <label className="block">
+                          <span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                            Payment date
+                          </span>
+                          <input
+                            type="date"
+                            value={paymentDate}
+                            onChange={(event) =>
+                              setPaymentDate(event.target.value)
+                            }
+                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                            Payment method
+                          </span>
+                          <input
+                            type="text"
+                            value={paymentMethod}
+                            onChange={(event) =>
+                              setPaymentMethod(event.target.value)
+                            }
+                            placeholder="e.g. Bank transfer"
+                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]"
+                          />
+                        </label>
+
+                        <label className="block sm:col-span-2">
+                          <span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                            Payment reference
+                          </span>
+                          <input
+                            type="text"
+                            value={paymentReference}
+                            onChange={(event) =>
+                              setPaymentReference(event.target.value)
+                            }
+                            placeholder="Optional"
+                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]"
+                          />
+                        </label>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={payrollActionLoading}
+                        onClick={() => markPayrollPaid(selectedPayroll)}
+                        className="mt-4 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {payrollActionLoading
+                          ? "Saving Payment..."
+                          : "Mark as Paid"}
+                      </button>
+                    </>
+                  )}
+
+                  {payrollActionError && (
+                    <p className="mt-4 font-serif text-[12px] leading-5 text-[#A15F5F]">
+                      {payrollActionError}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <button

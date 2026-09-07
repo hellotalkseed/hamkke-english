@@ -1,9 +1,10 @@
 import Link from "next/link";
+
 import {
-  LayoutDashboard,
   BookOpen,
   CalendarDays,
   FileText,
+  Wallet,
 } from "lucide-react";
 
 import TeachersManagement from "./TeachersManagement";
@@ -55,7 +56,7 @@ export default async function TeachersPage({
     .maybeSingle();
 
   /* ----------------------------------------------------------------------- */
-  /* OWNER                                                                    */
+  /* OWNER                                                                   */
   /* ----------------------------------------------------------------------- */
 
   if (
@@ -66,7 +67,7 @@ export default async function TeachersPage({
   }
 
   /* ----------------------------------------------------------------------- */
-  /* TEACHER                                                                  */
+  /* TEACHER                                                                 */
   /* ----------------------------------------------------------------------- */
 
   if (
@@ -75,7 +76,6 @@ export default async function TeachersPage({
   ) {
     return (
       <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-
         {/* HEADER */}
 
         <header
@@ -90,7 +90,6 @@ export default async function TeachersPage({
           "
         >
           <div className="flex w-full items-start justify-between gap-8">
-
             {/* Back to Hamkke */}
 
             <Link
@@ -148,7 +147,6 @@ export default async function TeachersPage({
                 From Small Talk to Big Ideas
               </p>
             </Link>
-
           </div>
         </header>
 
@@ -236,7 +234,6 @@ export default async function TeachersPage({
             lg:pb-24
           "
         >
-
           {/* MY LESSONS */}
 
           <Link
@@ -252,7 +249,6 @@ export default async function TeachersPage({
             "
           >
             <div className="flex gap-6">
-
               <span
                 className="
                   pt-1
@@ -277,7 +273,6 @@ export default async function TeachersPage({
                 "
               >
                 <div>
-
                   <h2
                     className="
                       font-serif
@@ -303,7 +298,6 @@ export default async function TeachersPage({
                     View your assigned students, lessons,
                     schedules, and attendance.
                   </p>
-
                 </div>
 
                 <div
@@ -326,9 +320,7 @@ export default async function TeachersPage({
                     strokeWidth={1.5}
                   />
                 </div>
-
               </div>
-
             </div>
           </Link>
 
@@ -347,7 +339,6 @@ export default async function TeachersPage({
             "
           >
             <div className="flex gap-6">
-
               <span
                 className="
                   pt-1
@@ -372,7 +363,6 @@ export default async function TeachersPage({
                 "
               >
                 <div>
-
                   <h2
                     className="
                       font-serif
@@ -398,7 +388,6 @@ export default async function TeachersPage({
                     Set the days and times when you are
                     available for teaching.
                   </p>
-
                 </div>
 
                 <div
@@ -421,9 +410,7 @@ export default async function TeachersPage({
                     strokeWidth={1.5}
                   />
                 </div>
-
               </div>
-
             </div>
           </Link>
 
@@ -442,7 +429,6 @@ export default async function TeachersPage({
             "
           >
             <div className="flex gap-6">
-
               <span
                 className="
                   pt-1
@@ -467,7 +453,6 @@ export default async function TeachersPage({
                 "
               >
                 <div>
-
                   <h2
                     className="
                       font-serif
@@ -493,7 +478,6 @@ export default async function TeachersPage({
                     Review and accept your teaching agreement
                     with Hamkke.
                   </p>
-
                 </div>
 
                 <div
@@ -516,23 +500,25 @@ export default async function TeachersPage({
                     strokeWidth={1.5}
                   />
                 </div>
-
               </div>
-
             </div>
           </Link>
 
           {/* PAYROLL */}
 
-          <div
+          <Link
+            href={`/${locale}/admin/teachers/payroll`}
             className="
+              group
+              block
               border-y
               border-[#DCD8D2]
               py-10
+              transition-colors
+              hover:bg-[#F0F4ED]
             "
           >
             <div className="flex gap-6">
-
               <span
                 className="
                   pt-1
@@ -557,7 +543,6 @@ export default async function TeachersPage({
                 "
               >
                 <div>
-
                   <h2
                     className="
                       font-serif
@@ -580,10 +565,9 @@ export default async function TeachersPage({
                       text-[#6B6B66]
                     "
                   >
-                    Your teaching records and payroll
-                    information will appear here.
+                    View your current earnings, payroll status,
+                    payment history, and receipts.
                   </p>
-
                 </div>
 
                 <div
@@ -597,19 +581,18 @@ export default async function TeachersPage({
                     rounded-full
                     bg-[#E2EBDD]
                     text-[#6F8F72]
+                    transition-transform
+                    group-hover:translate-x-1
                   "
                 >
-                  <LayoutDashboard
+                  <Wallet
                     size={19}
                     strokeWidth={1.5}
                   />
                 </div>
-
               </div>
-
             </div>
-          </div>
-
+          </Link>
         </section>
       </main>
     );
