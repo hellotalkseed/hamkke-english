@@ -12,6 +12,16 @@ interface EnrollmentParticipant {
   student_id: string;
 }
 
+const SUPPORTED_CURRENCIES = [
+  "KRW",
+  "CNY",
+  "USD",
+  "PHP",
+] as const;
+
+type SupportedCurrency =
+  (typeof SUPPORTED_CURRENCIES)[number];
+
 /* ========================================================================== */
 /* HELPERS                                                                    */
 /* ========================================================================== */
@@ -46,7 +56,7 @@ function parseNumber(
 
   const cleaned = value
     .replace(/,/g, "")
-    .replace(/[₩₱$]/g, "")
+    .replace(/[₩₱$¥]/g, "")
     .trim();
 
   const number = Number(cleaned);
@@ -56,6 +66,32 @@ function parseNumber(
   }
 
   return number;
+}
+
+function normalizeCurrency(
+  value: unknown
+): SupportedCurrency | null {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return null;
+  }
+
+  const normalized =
+    String(value)
+      .trim()
+      .toUpperCase();
+
+  if (
+    SUPPORTED_CURRENCIES.includes(
+      normalized as SupportedCurrency
+    )
+  ) {
+    return normalized as SupportedCurrency;
+  }
+
+  return null;
 }
 
 /* ========================================================================== */
@@ -79,8 +115,6 @@ export async function POST(
   /* ======================================================================== */
 
   /*
-   * IMPORTANT:
-   *
    * Individual enrollment:
    *
    *   enrollments.student_id = originating student
@@ -89,14 +123,9 @@ export async function POST(
    *
    *   enrollments.student_id = NULL
    *
-   * Therefore we cannot simply use:
-   *
-   *   .eq("student_id", id)
-   *
-   * because that would reject shared enrollments.
-   *
-   * We first find the enrollment by ID, then determine whether
-   * the originating student is allowed to manage it.
+   * We therefore find the enrollment by ID first,
+   * then verify whether the selected student may
+   * manage it.
    */
 
   const {
@@ -108,7 +137,9 @@ export async function POST(
       `
         id,
         student_id,
-        status
+        status,
+        tuition_amount,
+        currency
       `
     )
     .eq("id", enrollmentId)
@@ -133,6 +164,18 @@ export async function POST(
     );
   }
 
+  const enrollmentCurrency =
+    normalizeCurrency(
+      enrollment.currency
+    );
+
+  if (!enrollmentCurrency) {
+    return new NextResponse(
+      "The enrollment has an unsupported tuition currency.",
+      { status: 400 }
+    );
+  }
+
   /* ======================================================================== */
   /* STEP 2: DETERMINE ENROLLMENT TYPE                                        */
   /* ======================================================================== */
@@ -148,13 +191,6 @@ export async function POST(
   /* ======================================================================== */
 
   if (isIndividual) {
-    /*
-     * Individual enrollment:
-     *
-     * The enrollment must belong directly to the
-     * student whose record is being managed.
-     */
-
     if (enrollment.student_id !== id) {
       console.error(
         "INDIVIDUAL ENROLLMENT OWNERSHIP MISMATCH:",
@@ -174,15 +210,6 @@ export async function POST(
   }
 
   if (isShared) {
-    /*
-     * Shared enrollment:
-     *
-     * The enrollment itself has no student_id.
-     *
-     * Therefore we verify that the student whose record
-     * was opened is one of the participating students.
-     */
-
     const {
       data: participant,
       error: participantError,
@@ -235,14 +262,6 @@ export async function POST(
   /* ======================================================================== */
   /* STEP 4: VERIFY SHARED ENROLLMENT PARTICIPANTS                            */
   /* ======================================================================== */
-
-  /*
-   * For a shared enrollment, confirm that participant records actually exist.
-   *
-   * This is not strictly required for payment confirmation, but it protects
-   * the enrollment structure and gives us a clear audit trail if something
-   * is malformed.
-   */
 
   if (isShared) {
     const {
@@ -297,22 +316,6 @@ export async function POST(
   /* ======================================================================== */
   /* STEP 5: FIND PAYMENT FOR THIS ENROLLMENT                                 */
   /* ======================================================================== */
-
-  /*
-   * Every enrollment has its own payment record.
-   *
-   * IMPORTANT:
-   *
-   * We search ONLY by enrollment_id.
-   *
-   * This means:
-   *
-   * Enrollment A → Payment A
-   * Enrollment B → Payment B
-   *
-   * A payment from another enrollment can never be confirmed
-   * through this route.
-   */
 
   const {
     data: payment,
@@ -416,9 +419,14 @@ Message: ${
   const amountValue =
     getFormValue(
       formData,
-      "amount"
+      "amount",
+      "tuition_amount"
     );
 
+  /*
+   * Legacy KRW-specific aliases remain accepted
+   * so older forms can still confirm older payments.
+   */
   const tuitionAmountKrwValue =
     getFormValue(
       formData,
@@ -475,70 +483,124 @@ Message: ${
     );
 
   /* ======================================================================== */
-  /* STEP 9: DETERMINE KRW AMOUNT                                             */
+  /* STEP 9: DETERMINE PAYMENT CURRENCY                                       */
   /* ======================================================================== */
 
   /*
-   * Priority:
+   * The enrollment is the authority for the agreed
+   * tuition currency.
    *
-   * 1. amount
-   * 2. tuition_amount_krw
-   * 3. amount_krw
-   * 4. existing amount_krw
-   * 5. existing amount
+   * A submitted currency is accepted only when it
+   * matches the enrollment currency.
    */
 
-  let amountKrw =
-    payment.amount_krw !== null
-      ? Number(payment.amount_krw)
-      : payment.amount !== null
-        ? Number(payment.amount)
-        : 0;
-
-  const submittedKrwValue =
-    amountValue ??
-    tuitionAmountKrwValue ??
-    amountKrwValue;
+  const submittedCurrency =
+    currencyValue
+      ? normalizeCurrency(
+          currencyValue
+        )
+      : null;
 
   if (
-    submittedKrwValue !== null &&
-    submittedKrwValue.trim() !== ""
+    currencyValue &&
+    !submittedCurrency
   ) {
-    const parsedAmountKrw =
+    return new NextResponse(
+      "Invalid payment currency.",
+      { status: 400 }
+    );
+  }
+
+  if (
+    submittedCurrency &&
+    submittedCurrency !==
+      enrollmentCurrency
+  ) {
+    return new NextResponse(
+      "The payment currency does not match the enrollment currency.",
+      { status: 400 }
+    );
+  }
+
+  const currency =
+    enrollmentCurrency;
+
+  /* ======================================================================== */
+  /* STEP 10: DETERMINE ORIGINAL PAYMENT AMOUNT                              */
+  /* ======================================================================== */
+
+  /*
+   * payments.amount is the agreed / original amount
+   * in payments.currency.
+   *
+   * Priority:
+   *
+   * 1. submitted amount / tuition_amount
+   * 2. legacy KRW aliases when currency is KRW
+   * 3. existing payment.amount
+   * 4. enrollment.tuition_amount
+   */
+
+  let amount =
+    payment.amount !== null
+      ? Number(payment.amount)
+      : enrollment.tuition_amount !== null
+        ? Number(
+            enrollment.tuition_amount
+          )
+        : null;
+
+  let submittedAmountValue =
+    amountValue;
+
+  if (
+    submittedAmountValue === null &&
+    currency === "KRW"
+  ) {
+    submittedAmountValue =
+      tuitionAmountKrwValue ??
+      amountKrwValue;
+  }
+
+  if (
+    submittedAmountValue !== null
+  ) {
+    const parsedAmount =
       parseNumber(
-        submittedKrwValue
+        submittedAmountValue
       );
 
     if (
-      parsedAmountKrw === null ||
-      parsedAmountKrw < 0
+      parsedAmount === null ||
+      parsedAmount <= 0
     ) {
       return new NextResponse(
-        "Invalid KRW payment amount.",
+        `Invalid ${currency} payment amount.`,
         { status: 400 }
       );
     }
 
-    amountKrw =
-      parsedAmountKrw;
+    amount =
+      parsedAmount;
   }
 
   if (
-    !Number.isFinite(amountKrw) ||
-    amountKrw < 0
+    amount === null ||
+    !Number.isFinite(amount) ||
+    amount <= 0
   ) {
     return new NextResponse(
-      "Invalid KRW payment amount.",
+      `Invalid ${currency} payment amount.`,
       { status: 400 }
     );
   }
 
   /* ======================================================================== */
-  /* STEP 10: DETERMINE PHP AMOUNT                                            */
+  /* STEP 11: DETERMINE PHP AMOUNT                                            */
   /* ======================================================================== */
 
   /*
-   * PHP is stored independently from the primary KRW amount.
+   * amount_php is always Hamkke's actual PHP receipt.
    *
    * Priority:
    *
@@ -557,8 +619,7 @@ Message: ${
     amountPhpValue;
 
   if (
-    submittedPhpValue !== null &&
-    submittedPhpValue.trim() !== ""
+    submittedPhpValue !== null
   ) {
     const parsedAmountPhp =
       parseNumber(
@@ -567,7 +628,7 @@ Message: ${
 
     if (
       parsedAmountPhp === null ||
-      parsedAmountPhp < 0
+      parsedAmountPhp <= 0
     ) {
       return new NextResponse(
         "Invalid PHP payment amount.",
@@ -579,29 +640,35 @@ Message: ${
       parsedAmountPhp;
   }
 
+  if (
+    amountPhp === null ||
+    !Number.isFinite(amountPhp) ||
+    amountPhp <= 0
+  ) {
+    return new NextResponse(
+      "Actual PHP amount received is required before confirming payment.",
+      { status: 400 }
+    );
+  }
+
   /* ======================================================================== */
-  /* STEP 11: PRIMARY PAYMENT AMOUNT                                         */
+  /* STEP 12: LEGACY KRW COMPATIBILITY AMOUNT                                */
   /* ======================================================================== */
 
   /*
-   * payments.amount represents the primary KRW amount.
+   * amount_krw is now a compatibility field only.
+   *
+   * KRW payment:
+   *     amount_krw = amount
+   *
+   * CNY / USD / PHP payment:
+   *     amount_krw = null
    */
 
-  const amount =
-    amountKrw;
-
-  /* ======================================================================== */
-  /* STEP 12: CURRENCY                                                        */
-  /* ======================================================================== */
-
-  const currency =
-    currencyValue &&
-    currencyValue.trim() !== ""
-      ? currencyValue
-          .trim()
-          .toUpperCase()
-      : payment.currency ||
-        "KRW";
+  const amountKrw =
+    currency === "KRW"
+      ? amount
+      : null;
 
   /* ======================================================================== */
   /* STEP 13: PAYMENT DATE                                                    */
@@ -626,7 +693,7 @@ Message: ${
   /*
    * "pending" is a payment status, not a payment method.
    *
-   * If the submitted payment method is "pending", we preserve
+   * If the submitted payment method is "pending", preserve
    * the existing payment method instead.
    */
 
@@ -672,50 +739,19 @@ Message: ${
         null;
 
   /* ======================================================================== */
-  /* STEP 17: CONFIRM PAYMENT                                                */
+  /* STEP 17: CONFIRM PAYMENT                                                 */
   /* ======================================================================== */
 
   /*
-   * IMPORTANT:
+   * This route changes this payment to paid.
    *
-   * This route ONLY changes:
+   * The database trigger handles:
    *
-   *     payment.status
+   * - enrollment activation
+   * - contract activation
+   * - lesson generation
    *
-   * from:
-   *
-   *     pending
-   *
-   * to:
-   *
-   *     paid
-   *
-   * It does NOT manually:
-   *
-   * - activate the enrollment
-   * - activate the contract
-   * - generate lessons
-   * - modify another enrollment
-   *
-   * The database trigger:
-   *
-   *     payment_paid_activation
-   *
-   * watches the payment status update.
-   *
-   * It should call:
-   *
-   *     handle_payment_paid()
-   *
-   * which handles:
-   *
-   *     THIS enrollment
-   *         ↓
-   *     THIS contract
-   *         ↓
-   *     THIS enrollment's lessons
-   *
-   * This works for both individual and shared enrollments.
+   * Only the selected enrollment is affected.
    */
 
   const {
@@ -748,7 +784,7 @@ Message: ${
     );
 
   /* ======================================================================== */
-  /* STEP 18: HANDLE PAYMENT UPDATE ERROR                                    */
+  /* STEP 18: HANDLE PAYMENT UPDATE ERROR                                     */
   /* ======================================================================== */
 
   if (paymentUpdateError) {
@@ -871,17 +907,63 @@ Hint: ${
     );
   }
 
+  if (
+    Number(updatedPayment.amount) !==
+    amount
+  ) {
+    return new NextResponse(
+      "Payment was confirmed, but the original payment amount could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  if (
+    updatedPayment.currency !==
+    currency
+  ) {
+    return new NextResponse(
+      "Payment was confirmed, but the payment currency could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  if (
+    currency === "KRW" &&
+    Number(
+      updatedPayment.amount_krw
+    ) !== amount
+  ) {
+    return new NextResponse(
+      "Payment was confirmed, but the KRW compatibility amount could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  if (
+    currency !== "KRW" &&
+    updatedPayment.amount_krw !==
+      null
+  ) {
+    return new NextResponse(
+      "Payment was confirmed, but a non-KRW payment contains an invalid KRW amount.",
+      { status: 500 }
+    );
+  }
+
+  if (
+    Number(
+      updatedPayment.amount_php
+    ) !== amountPhp
+  ) {
+    return new NextResponse(
+      "Payment was confirmed, but the PHP amount received could not be verified.",
+      { status: 500 }
+    );
+  }
+
   /* ======================================================================== */
   /* STEP 20: VERIFY ENROLLMENT ACTIVATION                                    */
   /* ======================================================================== */
-
-  /*
-   * The trigger should have activated THIS enrollment.
-   *
-   * We do not manually activate it here.
-   *
-   * We only verify the result.
-   */
 
   const {
     data: updatedEnrollment,
@@ -944,14 +1026,8 @@ Hint: ${
   }
 
   /* ======================================================================== */
-  /* STEP 21: VERIFY CONTRACT ACTIVATION                                     */
+  /* STEP 21: VERIFY CONTRACT ACTIVATION                                      */
   /* ======================================================================== */
-
-  /*
-   * Payment activation should also activate THIS enrollment's contract.
-   *
-   * We verify it here.
-   */
 
   const {
     data: contract,
@@ -1057,18 +1133,8 @@ Hint: ${
   }
 
   /* ======================================================================== */
-  /* STEP 22: VERIFY LESSON GENERATION                                       */
+  /* STEP 22: VERIFY LESSON GENERATION                                        */
   /* ======================================================================== */
-
-  /*
-   * The database trigger/function should generate lessons for THIS
-   * enrollment.
-   *
-   * We verify that the expected number of lessons exists.
-   *
-   * For a shared enrollment, lessons remain associated with the
-   * enrollment and can be interpreted through enrollment_students.
-   */
 
   const {
     count: lessonCount,
@@ -1108,13 +1174,6 @@ Hint: ${
       { status: 500 }
     );
   }
-
-  /*
-   * We do not require a hardcoded lesson count here because the database
-   * trigger/function is the authority for lesson generation.
-   *
-   * We only ensure that lessons actually exist.
-   */
 
   if (
     lessonCount === null ||
@@ -1159,6 +1218,15 @@ Hint: ${
 
       paymentStatus:
         updatedPayment.status,
+
+      paymentCurrency:
+        updatedPayment.currency,
+
+      originalPaymentAmount:
+        updatedPayment.amount,
+
+      actualPhpReceived:
+        updatedPayment.amount_php,
 
       contractId:
         contract.id,

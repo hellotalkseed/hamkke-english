@@ -26,6 +26,54 @@ const DAYS = [
   ["Sunday", "sun"],
 ] as const;
 
+const SUPPORTED_CURRENCIES = [
+  "KRW",
+  "CNY",
+  "USD",
+  "PHP",
+] as const;
+
+type SupportedCurrency =
+  (typeof SUPPORTED_CURRENCIES)[number];
+
+function normalizeCurrency(
+  value: string | null | undefined
+): SupportedCurrency {
+  const normalized = String(value || "KRW")
+    .trim()
+    .toUpperCase();
+
+  return SUPPORTED_CURRENCIES.includes(
+    normalized as SupportedCurrency
+  )
+    ? (normalized as SupportedCurrency)
+    : "KRW";
+}
+
+function getCurrencyStep(
+  currency: SupportedCurrency
+) {
+  return currency === "KRW" ? "1" : "0.01";
+}
+
+function getCurrencyPlaceholder(
+  currency: SupportedCurrency
+) {
+  if (currency === "KRW") {
+    return "75000";
+  }
+
+  if (currency === "CNY") {
+    return "700";
+  }
+
+  if (currency === "USD") {
+    return "120";
+  }
+
+  return "7000";
+}
+
 export default function RenewEnrollmentForm({
   studentId,
   enrollmentId,
@@ -41,11 +89,22 @@ export default function RenewEnrollmentForm({
 }: RenewEnrollmentFormProps) {
   const [open, setOpen] = useState(false);
 
+  const previousCurrency =
+    normalizeCurrency(currency);
+
+  const [tuitionCurrency, setTuitionCurrency] =
+    useState<SupportedCurrency>(
+      previousCurrency
+    );
+
   if (!open) {
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setTuitionCurrency(previousCurrency);
+          setOpen(true);
+        }}
         className="
           rounded-full
           bg-[#6F8F72]
@@ -199,6 +258,21 @@ export default function RenewEnrollmentForm({
             {lessonsPerWeek ?? 3} lessons per week
           </p>
 
+          {tuitionAmount !== null && (
+            <p
+              className="
+                mt-1
+                font-sans
+                text-[13px]
+                leading-6
+                text-[#777771]
+              "
+            >
+              Previous tuition: {previousCurrency}{" "}
+              {Number(tuitionAmount).toLocaleString("en-US")}
+            </p>
+          )}
+
           {scheduleDays && scheduleDays.length > 0 && (
             <p
               className="
@@ -248,7 +322,7 @@ export default function RenewEnrollmentForm({
       {/* ================================================================== */}
 
       <form
-        action={`/api/admin/students/${studentId}/enrollments`}
+        action={`/${locale}/admin/students/${studentId}/enrollments/${enrollmentId}/renew`}
         method="POST"
         className="px-6 py-8 sm:px-8 sm:py-10"
       >
@@ -525,45 +599,111 @@ export default function RenewEnrollmentForm({
                   text-[#777771]
                 "
               >
-                Record the renewal tuition in both KRW
-                and PHP.
+                Record the agreed renewal tuition in the
+                student&apos;s payment currency and keep the PHP
+                amount separately for Hamkke&apos;s internal
+                records.
               </p>
 
-              <div
-                className="
-                  mt-5
-                  grid
-                  gap-5
-                  sm:grid-cols-2
-                "
-              >
-                <Field
-                  label="KRW Amount"
-                  id="renewal_tuition_amount_krw"
-                  name="tuition_amount_krw"
-                  type="number"
-                  defaultValue={
-                    currency?.toUpperCase() === "KRW"
-                      ? String(tuitionAmount ?? "")
-                      : ""
-                  }
-                  min="0"
-                  step="1"
-                  placeholder="75,000"
-                  required
-                />
+              <div className="mt-5 space-y-6">
+                <div>
+                  <label
+                    htmlFor="renewal_currency"
+                    className="
+                      block
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Payment Currency
+                  </label>
 
-                <Field
-                  label="PHP Amount"
-                  id="renewal_tuition_amount_php"
-                  name="tuition_amount_php"
-                  type="number"
-                  defaultValue=""
-                  min="0"
-                  step="0.01"
-                  placeholder="3,150"
-                  required
-                />
+                  <select
+                    id="renewal_currency"
+                    name="currency"
+                    value={tuitionCurrency}
+                    onChange={(event) =>
+                      setTuitionCurrency(
+                        normalizeCurrency(
+                          event.target.value
+                        )
+                      )
+                    }
+                    required
+                    className="
+                      mt-3
+                      w-full
+                      border-b
+                      border-[#CFCBC4]
+                      bg-transparent
+                      px-0
+                      py-3
+                      font-serif
+                      text-[19px]
+                      text-[#292929]
+                      outline-none
+                      focus:border-[#6F8F72]
+                    "
+                  >
+                    <option value="KRW">
+                      KRW · Korean Won
+                    </option>
+
+                    <option value="CNY">
+                      CNY · Chinese Yuan (RMB)
+                    </option>
+
+                    <option value="USD">
+                      USD · US Dollar
+                    </option>
+
+                    <option value="PHP">
+                      PHP · Philippine Peso
+                    </option>
+                  </select>
+                </div>
+
+                <div
+                  className="
+                    grid
+                    gap-5
+                    sm:grid-cols-2
+                  "
+                >
+                  <Field
+                    label={`Agreed Tuition (${tuitionCurrency})`}
+                    id="renewal_tuition_amount"
+                    name="tuition_amount"
+                    type="number"
+                    defaultValue={String(
+                      tuitionAmount ?? ""
+                    )}
+                    min="0.01"
+                    step={getCurrencyStep(
+                      tuitionCurrency
+                    )}
+                    placeholder={getCurrencyPlaceholder(
+                      tuitionCurrency
+                    )}
+                    required
+                  />
+
+                  <Field
+                    label="Actual / Expected Amount (PHP)"
+                    id="renewal_tuition_amount_php"
+                    name="tuition_amount_php"
+                    type="number"
+                    defaultValue=""
+                    min="0.01"
+                    step="0.01"
+                    placeholder="7000"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -722,7 +862,7 @@ export default function RenewEnrollmentForm({
             <WorkflowStep
               number="03"
               title="A new payment is created"
-              description="The payment belongs only to this new enrollment and starts as pending."
+              description="The payment stores the agreed tuition in the student's payment currency together with the PHP amount and starts as pending."
             />
 
             <WorkflowStep

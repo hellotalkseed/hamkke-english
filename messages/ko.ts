@@ -155,7 +155,6 @@ pricing: {
 
   privateLessons: {
     title: "1:1 개인 영어 수업",
-    price: "₩130,000",
     package: "20회 · 회당 25분",
 
     description:
@@ -268,7 +267,6 @@ pricing: {
 
       tuition: {
         label: "수업료",
-        value: "₩130,000",
       },
     },
 

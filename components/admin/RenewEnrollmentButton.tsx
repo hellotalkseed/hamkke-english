@@ -80,6 +80,52 @@ const DAYS = [
   ["Sunday", "sun"],
 ] as const;
 
+const SUPPORTED_TUITION_CURRENCIES = [
+  "KRW",
+  "CNY",
+  "USD",
+  "PHP",
+] as const;
+
+type TuitionCurrency =
+  (typeof SUPPORTED_TUITION_CURRENCIES)[number];
+
+function normalizeTuitionCurrency(
+  value: string | null | undefined
+): TuitionCurrency {
+  const normalized = String(value || "KRW")
+    .trim()
+    .toUpperCase();
+
+  return SUPPORTED_TUITION_CURRENCIES.includes(
+    normalized as TuitionCurrency
+  )
+    ? (normalized as TuitionCurrency)
+    : "KRW";
+}
+
+function getCurrencyStep(currency: TuitionCurrency) {
+  return currency === "KRW" ? "1" : "0.01";
+}
+
+function getCurrencyPlaceholder(
+  currency: TuitionCurrency
+) {
+  if (currency === "KRW") {
+    return "75000";
+  }
+
+  if (currency === "CNY") {
+    return "700";
+  }
+
+  if (currency === "USD") {
+    return "120";
+  }
+
+  return "7000";
+}
+
 const EMPTY_SCHEDULE = (
   studentId: string
 ): ParticipantSchedule => ({
@@ -395,12 +441,17 @@ export default function RenewEnrollmentButton({
     String(lessonDuration ?? 25)
   );
 
-  const [tuitionKrwState, setTuitionKrwState] =
+  const [tuitionCurrencyState, setTuitionCurrencyState] =
+    useState<TuitionCurrency>(
+      normalizeTuitionCurrency(currency)
+    );
+
+  const [tuitionAmountState, setTuitionAmountState] =
     useState(
       String(
-        tuitionAmountKrw ??
-          (currency.toUpperCase() === "KRW"
-            ? tuitionAmount
+        tuitionAmount ??
+          (normalizeTuitionCurrency(currency) === "KRW"
+            ? tuitionAmountKrw ?? ""
             : "")
       )
     );
@@ -531,11 +582,14 @@ export default function RenewEnrollmentButton({
     setLessonDurationState(
       String(lessonDuration ?? 25)
     );
-    setTuitionKrwState(
+    setTuitionCurrencyState(
+      normalizeTuitionCurrency(currency)
+    );
+    setTuitionAmountState(
       String(
-        tuitionAmountKrw ??
-          (currency.toUpperCase() === "KRW"
-            ? tuitionAmount
+        tuitionAmount ??
+          (normalizeTuitionCurrency(currency) === "KRW"
+            ? tuitionAmountKrw ?? ""
             : "")
       )
     );
@@ -776,17 +830,31 @@ export default function RenewEnrollmentButton({
       return false;
     }
 
-    if (!tuitionKrwState) {
+    const agreedTuition = Number(
+      tuitionAmountState
+    );
+
+    if (
+      !Number.isFinite(agreedTuition) ||
+      agreedTuition <= 0
+    ) {
       alert(
-        "Please enter the tuition amount in KRW."
+        `Please enter a valid tuition amount in ${tuitionCurrencyState}.`
       );
 
       return false;
     }
 
-    if (!tuitionPhpState) {
+    const phpAmount = Number(
+      tuitionPhpState
+    );
+
+    if (
+      !Number.isFinite(phpAmount) ||
+      phpAmount <= 0
+    ) {
       alert(
-        "Please enter the tuition amount in PHP."
+        "Please enter a valid PHP amount."
       );
 
       return false;
@@ -1457,32 +1525,103 @@ export default function RenewEnrollmentButton({
                         Tuition
                       </p>
 
-                      <div className="mt-4 grid gap-6 sm:grid-cols-2">
-                        <TextField
-                          label="Tuition Amount (KRW)"
-                          name="tuition_amount_krw"
-                          type="number"
-                          value={tuitionKrwState}
-                          onChange={
-                            setTuitionKrwState
-                          }
-                          min="0"
-                          step="1"
-                          required
-                        />
+                      <p
+                        className="
+                          mt-2 font-sans text-[11px]
+                          leading-5 text-[#777771]
+                        "
+                      >
+                        Record the agreed renewal tuition in
+                        the student&apos;s payment currency,
+                        together with the actual or expected
+                        PHP amount for Hamkke&apos;s internal
+                        records.
+                      </p>
 
-                        <TextField
-                          label="Tuition Amount (PHP)"
-                          name="tuition_amount_php"
-                          type="number"
-                          value={tuitionPhpState}
-                          onChange={
-                            setTuitionPhpState
-                          }
-                          min="0"
-                          step="0.01"
-                          required
-                        />
+                      <div className="mt-4 space-y-6">
+                        <div>
+                          <label
+                            htmlFor="renewal_currency"
+                            className="
+                              block font-sans text-[10px]
+                              font-medium uppercase
+                              tracking-[0.14em]
+                              text-[#6F8F72]
+                            "
+                          >
+                            Payment Currency
+                          </label>
+
+                          <select
+                            id="renewal_currency"
+                            name="currency"
+                            value={tuitionCurrencyState}
+                            onChange={(event) =>
+                              setTuitionCurrencyState(
+                                normalizeTuitionCurrency(
+                                  event.target.value
+                                )
+                              )
+                            }
+                            required
+                            className="
+                              mt-2 w-full
+                              border-b border-[#CFCBC4]
+                              bg-transparent px-0 py-2.5
+                              font-serif text-[18px]
+                              text-[#292929]
+                              outline-none
+                              focus:border-[#6F8F72]
+                            "
+                          >
+                            <option value="KRW">
+                              KRW · Korean Won
+                            </option>
+                            <option value="CNY">
+                              CNY · Chinese Yuan (RMB)
+                            </option>
+                            <option value="USD">
+                              USD · US Dollar
+                            </option>
+                            <option value="PHP">
+                              PHP · Philippine Peso
+                            </option>
+                          </select>
+                        </div>
+
+                        <div className="grid gap-6 sm:grid-cols-2">
+                          <TextField
+                            label={`Agreed Tuition (${tuitionCurrencyState})`}
+                            name="tuition_amount"
+                            type="number"
+                            value={tuitionAmountState}
+                            onChange={
+                              setTuitionAmountState
+                            }
+                            placeholder={getCurrencyPlaceholder(
+                              tuitionCurrencyState
+                            )}
+                            min="0.01"
+                            step={getCurrencyStep(
+                              tuitionCurrencyState
+                            )}
+                            required
+                          />
+
+                          <TextField
+                            label="Actual / Expected Amount (PHP)"
+                            name="tuition_amount_php"
+                            type="number"
+                            value={tuitionPhpState}
+                            onChange={
+                              setTuitionPhpState
+                            }
+                            placeholder="7000"
+                            min="0.01"
+                            step="0.01"
+                            required
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1750,7 +1889,7 @@ export default function RenewEnrollmentButton({
                     <WorkflowStep
                       number="03"
                       title="New payment recorded"
-                      description="A separate pending payment belongs only to this renewal."
+                      description="A separate pending payment stores the agreed tuition in the student's payment currency and the PHP amount for this renewal."
                     />
 
                     <WorkflowStep

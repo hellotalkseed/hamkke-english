@@ -48,7 +48,16 @@ const VALID_PAYMENT_METHODS = [
   "other",
 ] as const;
 
+const VALID_TUITION_CURRENCIES = [
+  "KRW",
+  "CNY",
+  "USD",
+  "PHP",
+] as const;
+
 type ValidDay = (typeof VALID_DAYS)[number];
+type TuitionCurrency =
+  (typeof VALID_TUITION_CURRENCIES)[number];
 
 /*
  * enrollment_schedules.day_of_week
@@ -107,7 +116,7 @@ function getNumber(
 
     const cleaned = text
       .replace(/,/g, "")
-      .replace(/[₩₱$]/g, "")
+      .replace(/[₩₱$¥]/g, "")
       .trim();
 
     const parsed = Number(cleaned);
@@ -838,14 +847,48 @@ export async function POST(
   /* TUITION                                                                  */
   /* ======================================================================== */
 
-  const tuitionAmountKrw =
+  const submittedCurrency =
+    (
+      getString(
+        formData,
+        "currency"
+      ) || "KRW"
+    ).toUpperCase();
+
+  if (
+    !VALID_TUITION_CURRENCIES.includes(
+      submittedCurrency as TuitionCurrency
+    )
+  ) {
+    return new NextResponse(
+      "Invalid tuition currency.",
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const tuitionCurrency =
+    submittedCurrency as TuitionCurrency;
+
+  /*
+   * Generic agreed tuition amount.
+   *
+   * New forms submit tuition_amount.
+   * The KRW-specific names remain as fallbacks so
+   * older forms/bookmarks continue to work.
+   */
+  const tuitionAmount =
     getNumber(
       formData,
-      "tuition_amount_krw",
       "tuition_amount",
+      "tuition_amount_krw",
       "amount_krw"
     );
 
+  /*
+   * Internal PHP amount received / expected.
+   */
   const tuitionAmountPhp =
     getNumber(
       formData,
@@ -1137,12 +1180,12 @@ export async function POST(
 
   if (
     !Number.isFinite(
-      tuitionAmountKrw
+      tuitionAmount
     ) ||
-    tuitionAmountKrw < 0
+    tuitionAmount <= 0
   ) {
     return new NextResponse(
-      "KRW tuition amount is required.",
+      "Agreed tuition amount is required.",
       {
         status: 400,
       }
@@ -1153,10 +1196,10 @@ export async function POST(
     !Number.isFinite(
       tuitionAmountPhp
     ) ||
-    tuitionAmountPhp < 0
+    tuitionAmountPhp <= 0
   ) {
     return new NextResponse(
-      "PHP tuition amount is required.",
+      "PHP amount is required.",
       {
         status: 400,
       }
@@ -1366,10 +1409,10 @@ export async function POST(
         "pending",
 
       tuition_amount:
-        tuitionAmountKrw,
+        tuitionAmount,
 
       currency:
-        "KRW",
+        tuitionCurrency,
 
       /*
        * Legacy summary fields.
@@ -1715,13 +1758,23 @@ export async function POST(
         enrollment.id,
 
       amount:
-        tuitionAmountKrw,
+        tuitionAmount,
 
       currency:
-        "KRW",
+        tuitionCurrency,
 
+      /*
+       * Legacy KRW field.
+       *
+       * Keep it populated for Korean payments so
+       * existing reports remain compatible.
+       * Non-KRW payments use amount + currency as
+       * the source of truth.
+       */
       amount_krw:
-        tuitionAmountKrw,
+        tuitionCurrency === "KRW"
+          ? tuitionAmount
+          : null,
 
       amount_php:
         tuitionAmountPhp,
@@ -1866,6 +1919,32 @@ export async function POST(
   ) {
     return new NextResponse(
       "Enrollment was created, but lessons per week could not be verified.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    Number(
+      enrollmentVerification
+        .tuition_amount
+    ) !== tuitionAmount
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but the tuition amount could not be verified.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    enrollmentVerification.currency !==
+    tuitionCurrency
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but the tuition currency could not be verified.",
       {
         status: 500,
       }
@@ -2235,7 +2314,7 @@ export async function POST(
     Number(
       paymentVerification.amount
     ) !==
-    tuitionAmountKrw
+    tuitionAmount
   ) {
     return new NextResponse(
       "Enrollment was created, but the payment amount could not be verified.",
@@ -2246,13 +2325,26 @@ export async function POST(
   }
 
   if (
+    tuitionCurrency === "KRW" &&
     Number(
       paymentVerification.amount_krw
     ) !==
-    tuitionAmountKrw
+    tuitionAmount
   ) {
     return new NextResponse(
-      "Enrollment was created, but the KRW payment amount could not be verified.",
+      "Enrollment was created, but the KRW compatibility amount could not be verified.",
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    tuitionCurrency !== "KRW" &&
+    paymentVerification.amount_krw !== null
+  ) {
+    return new NextResponse(
+      "Enrollment was created, but a non-KRW payment was stored with an invalid KRW amount.",
       {
         status: 500,
       }
@@ -2275,7 +2367,7 @@ export async function POST(
 
   if (
     paymentVerification.currency !==
-    "KRW"
+    tuitionCurrency
   ) {
     return new NextResponse(
       "Enrollment was created, but the payment currency is invalid.",

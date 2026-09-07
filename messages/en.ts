@@ -155,7 +155,6 @@ pricing: {
 
   privateLessons: {
     title: "Private 1:1 English",
-    price: "US$95",
     package: "20 lessons · 25 minutes each",
 
     description:
@@ -268,7 +267,6 @@ pricing: {
 
       tuition: {
         label: "Tuition",
-        value: "US$95",
       },
     },
 

@@ -9,15 +9,113 @@ interface RouteContext {
   }>;
 }
 
+const SUPPORTED_CURRENCIES = [
+  "KRW",
+  "CNY",
+  "USD",
+  "PHP",
+] as const;
+
+type SupportedCurrency =
+  (typeof SUPPORTED_CURRENCIES)[number];
+
+const SUPPORTED_SCHEDULE_DAYS = [
+  "mon",
+  "tue",
+  "wed",
+  "thu",
+  "fri",
+  "sat",
+  "sun",
+] as const;
+
+/* -------------------------------------------------------------------------- */
+/* HELPERS                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function getFormValue(
+  formData: FormData,
+  ...names: string[]
+): string | null {
+  for (const name of names) {
+    const value = formData.get(name);
+
+    if (value === null) {
+      continue;
+    }
+
+    const text = String(value).trim();
+
+    if (text !== "") {
+      return text;
+    }
+  }
+
+  return null;
+}
+
+function parseNumber(
+  value: string | null
+): number | null {
+  if (
+    value === null ||
+    value.trim() === ""
+  ) {
+    return null;
+  }
+
+  const cleaned = value
+    .replace(/,/g, "")
+    .replace(/[₩₱$¥]/g, "")
+    .trim();
+
+  const number = Number(cleaned);
+
+  return Number.isFinite(number)
+    ? number
+    : null;
+}
+
+function normalizeCurrency(
+  value: unknown
+): SupportedCurrency | null {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return null;
+  }
+
+  const normalized = String(value)
+    .trim()
+    .toUpperCase();
+
+  if (
+    SUPPORTED_CURRENCIES.includes(
+      normalized as SupportedCurrency
+    )
+  ) {
+    return normalized as SupportedCurrency;
+  }
+
+  return null;
+}
+
+/* ========================================================================== */
+/* POST                                                                       */
+/* ========================================================================== */
+
 export async function POST(
   request: Request,
   { params }: RouteContext
 ) {
-  const { locale, id, enrollmentId } = await params;
+  const { locale, id, enrollmentId } =
+    await params;
 
   const studentId = id;
 
-  const formData = await request.formData();
+  const formData =
+    await request.formData();
 
   /* ---------------------------------------------------------------------- */
   /* FORM DATA                                                              */
@@ -40,26 +138,87 @@ export async function POST(
   );
 
   /*
-   * IMPORTANT:
-   * Start date controls when lessons are generated.
+   * Start date controls when lessons are
+   * generated for this renewal.
    */
   const startDate = String(
     formData.get("start_date") ?? ""
   ).trim();
 
   /*
-   * Tuition is recorded separately in KRW and PHP.
+   * The renewal form carries the previous
+   * schedule into editable fields.
+   *
+   * The submitted schedule belongs to the
+   * NEW renewal enrollment.
    */
-  const tuitionAmountKrw = Number(
-    formData.get("tuition_amount_krw")
-  );
+  const scheduleDays = formData
+    .getAll("schedule_days")
+    .map((value) =>
+      String(value)
+        .trim()
+        .toLowerCase()
+    )
+    .filter(Boolean);
 
-  const tuitionAmountPhp = Number(
-    formData.get("tuition_amount_php")
+  const scheduleTimeValue =
+    getFormValue(
+      formData,
+      "schedule_time"
+    );
+
+  const scheduleTime =
+    scheduleTimeValue || null;
+
+  /*
+   * Generic agreed tuition amount.
+   *
+   * New renewal forms submit:
+   *
+   *   tuition_amount
+   *
+   * Older KRW-specific fields remain
+   * supported for backward compatibility.
+   */
+  const submittedTuitionValue =
+    getFormValue(
+      formData,
+      "tuition_amount",
+      "tuition_amount_krw",
+      "amount_krw"
+    );
+
+  const tuitionAmount = parseNumber(
+    submittedTuitionValue
   );
 
   /*
-   * Payment date is ONLY the date the payment was received.
+   * PHP is stored separately as Hamkke's
+   * actual / expected PHP receipt.
+   */
+  const submittedPhpValue =
+    getFormValue(
+      formData,
+      "tuition_amount_php",
+      "amount_php",
+      "php_amount"
+    );
+
+  const tuitionAmountPhp =
+    parseNumber(
+      submittedPhpValue
+    );
+
+  const submittedCurrencyValue =
+    getFormValue(
+      formData,
+      "currency"
+    );
+
+  /*
+   * Payment date is ONLY the date the
+   * payment was received.
+   *
    * It does not affect lesson generation.
    */
   const paymentDate = String(
@@ -67,59 +226,71 @@ export async function POST(
   ).trim();
 
   const paymentMethod = String(
-    formData.get("payment_method") || "pending"
+    formData.get("payment_method") ||
+      "pending"
   ).trim();
 
   const referenceValue = String(
     formData.get("reference") ?? ""
   ).trim();
 
-  const reference = referenceValue || null;
+  const reference =
+    referenceValue || null;
 
   /* ---------------------------------------------------------------------- */
-  /* VALIDATION                                                             */
+  /* BASIC VALIDATION                                                       */
   /* ---------------------------------------------------------------------- */
 
   if (!packageName) {
     return NextResponse.json(
       {
-        error: "Package name is required.",
+        error:
+          "Package name is required.",
       },
       { status: 400 }
     );
   }
 
   if (
-    !Number.isInteger(numberOfLessons) ||
+    !Number.isInteger(
+      numberOfLessons
+    ) ||
     numberOfLessons < 1
   ) {
     return NextResponse.json(
       {
-        error: "Number of lessons must be at least 1.",
+        error:
+          "Number of lessons must be at least 1.",
       },
       { status: 400 }
     );
   }
 
   if (
-    !Number.isInteger(lessonDuration) ||
+    !Number.isInteger(
+      lessonDuration
+    ) ||
     lessonDuration < 1
   ) {
     return NextResponse.json(
       {
-        error: "Lesson duration must be at least 1 minute.",
+        error:
+          "Lesson duration must be at least 1 minute.",
       },
       { status: 400 }
     );
   }
 
   if (
-    !Number.isInteger(lessonsPerWeek) ||
+    !Number.isInteger(
+      lessonsPerWeek
+    ) ||
     lessonsPerWeek < 1
   ) {
     return NextResponse.json(
       {
-        error: "Lessons per week must be at least 1.",
+        error:
+          "Lessons per week must be at least 1.",
       },
       { status: 400 }
     );
@@ -128,53 +299,125 @@ export async function POST(
   if (!startDate) {
     return NextResponse.json(
       {
-        error: "Start date is required.",
-      },
-      { status: 400 }
-    );
-  }
-
-  if (
-    !Number.isFinite(tuitionAmountKrw) ||
-    tuitionAmountKrw < 0
-  ) {
-    return NextResponse.json(
-      {
-        error: "KRW tuition amount is required.",
-      },
-      { status: 400 }
-    );
-  }
-
-  if (
-    !Number.isFinite(tuitionAmountPhp) ||
-    tuitionAmountPhp < 0
-  ) {
-    return NextResponse.json(
-      {
-        error: "PHP tuition amount is required.",
+        error:
+          "Start date is required.",
       },
       { status: 400 }
     );
   }
 
   /*
-   * Payment date is optional because the enrollment may be created
-   * before payment is actually received.
+   * A renewal needs at least one lesson day.
+   */
+  if (scheduleDays.length < 1) {
+    return NextResponse.json(
+      {
+        error:
+          "Please select at least one lesson day.",
+      },
+      { status: 400 }
+    );
+  }
+
+  /*
+   * Reject unexpected schedule values rather
+   * than storing arbitrary strings.
+   */
+  const invalidScheduleDay =
+    scheduleDays.find(
+      (day) =>
+        !SUPPORTED_SCHEDULE_DAYS.includes(
+          day as
+            (typeof SUPPORTED_SCHEDULE_DAYS)[number]
+        )
+    );
+
+  if (invalidScheduleDay) {
+    return NextResponse.json(
+      {
+        error:
+          "Invalid lesson day selected.",
+      },
+      { status: 400 }
+    );
+  }
+
+  /*
+   * lessons_per_week should match the number
+   * of selected lesson days.
    *
-   * If payment is already being recorded, the form can provide it.
+   * This prevents the renewal from saying
+   * "3 lessons per week" while only having
+   * two scheduled days, for example.
+   */
+  if (
+    scheduleDays.length !==
+    lessonsPerWeek
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          `Lessons per week is set to ${lessonsPerWeek}, but ${scheduleDays.length} lesson day${scheduleDays.length === 1 ? "" : "s"} ${scheduleDays.length === 1 ? "is" : "are"} selected.`,
+      },
+      { status: 400 }
+    );
+  }
+
+  if (
+    tuitionAmount === null ||
+    !Number.isFinite(
+      tuitionAmount
+    ) ||
+    tuitionAmount <= 0
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Agreed tuition amount is required.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (
+    tuitionAmountPhp === null ||
+    !Number.isFinite(
+      tuitionAmountPhp
+    ) ||
+    tuitionAmountPhp <= 0
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "PHP amount is required.",
+      },
+      { status: 400 }
+    );
+  }
+
+  /*
+   * Payment date remains optional because a
+   * renewal may be created before payment is
+   * actually received.
    */
 
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   /* ---------------------------------------------------------------------- */
   /* STEP 1: GET PREVIOUS ENROLLMENT                                       */
   /* ---------------------------------------------------------------------- */
 
   /*
-   * The previous enrollment supplies the existing schedule.
+   * The previous enrollment supplies its
+   * existing tuition currency as a fallback.
    *
-   * We intentionally do NOT modify the previous enrollment.
+   * Its schedule is loaded for reference only.
+   * The submitted renewal schedule is what
+   * will be saved to the new enrollment.
+   *
+   * The previous enrollment itself is never
+   * modified by this route.
    */
   const {
     data: previousEnrollment,
@@ -186,46 +429,120 @@ export async function POST(
         id,
         student_id,
         schedule_days,
-        schedule_time
+        schedule_time,
+        tuition_amount,
+        currency
       `
     )
-    .eq("id", enrollmentId)
-    .eq("student_id", studentId)
+    .eq(
+      "id",
+      enrollmentId
+    )
+    .eq(
+      "student_id",
+      studentId
+    )
     .single();
 
-  if (previousError || !previousEnrollment) {
+  if (
+    previousError ||
+    !previousEnrollment
+  ) {
     console.error(
       "RENEWAL PREVIOUS ENROLLMENT ERROR:",
       {
         enrollmentId,
         studentId,
-        code: previousError?.code,
-        message: previousError?.message,
-        details: previousError?.details,
-        hint: previousError?.hint,
+        code:
+          previousError?.code,
+        message:
+          previousError?.message,
+        details:
+          previousError?.details,
+        hint:
+          previousError?.hint,
       }
     );
 
     return NextResponse.json(
       {
-        error: "Previous enrollment not found.",
+        error:
+          "Previous enrollment not found.",
       },
       { status: 404 }
     );
   }
 
   /* ---------------------------------------------------------------------- */
-  /* STEP 2: CREATE NEW RENEWAL ENROLLMENT                                 */
+  /* STEP 2: DETERMINE RENEWAL CURRENCY                                    */
+  /* ---------------------------------------------------------------------- */
+
+  /*
+   * Priority:
+   *
+   * 1. submitted currency
+   * 2. previous enrollment currency
+   *
+   * This allows the renewal form to explicitly
+   * choose another supported currency, while
+   * preserving the student's existing currency
+   * when an older form sends no currency field.
+   */
+
+  const previousCurrency =
+    normalizeCurrency(
+      previousEnrollment.currency
+    );
+
+  const submittedCurrency =
+    submittedCurrencyValue
+      ? normalizeCurrency(
+          submittedCurrencyValue
+        )
+      : null;
+
+  if (
+    submittedCurrencyValue &&
+    !submittedCurrency
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Invalid tuition currency.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const currency =
+    submittedCurrency ??
+    previousCurrency;
+
+  if (!currency) {
+    return NextResponse.json(
+      {
+        error:
+          "The renewal currency could not be determined.",
+      },
+      { status: 400 }
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 3: CREATE NEW RENEWAL ENROLLMENT                                 */
   /* ---------------------------------------------------------------------- */
 
   /*
    * The renewal is its own enrollment.
    *
    * Important:
+   *
    * - status starts as pending
    * - start_date belongs to THIS renewal
    * - renewal_of points to the previous enrollment
    * - previous enrollment remains untouched
+   * - tuition_amount is stored in currency
+   * - submitted schedule belongs to THIS renewal
    */
   const {
     data: newEnrollment,
@@ -233,45 +550,47 @@ export async function POST(
   } = await supabase
     .from("enrollments")
     .insert({
-      student_id: studentId,
+      student_id:
+        studentId,
 
-      package_name: packageName,
+      package_name:
+        packageName,
 
-      number_of_lessons: numberOfLessons,
+      number_of_lessons:
+        numberOfLessons,
 
-      lesson_duration: lessonDuration,
+      lesson_duration:
+        lessonDuration,
 
-      lessons_per_week: lessonsPerWeek,
+      lessons_per_week:
+        lessonsPerWeek,
+
+      start_date:
+        startDate,
+
+      status:
+        "pending",
+
+      tuition_amount:
+        tuitionAmount,
+
+      currency,
 
       /*
-       * Lessons will eventually be generated from this date.
-       */
-      start_date: startDate,
-
-      status: "pending",
-
-      /*
-       * Keep the two currencies together on the enrollment.
+       * IMPORTANT:
        *
-       * The enrollment table has one tuition_amount field,
-       * so KRW is used as the primary enrollment tuition amount.
-       *
-       * The PHP amount is stored on the payment record below.
+       * Use the schedule submitted by the
+       * renewal form, not the old enrollment's
+       * schedule.
        */
-      tuition_amount: tuitionAmountKrw,
-
-      currency: "KRW",
-
       schedule_days:
-        previousEnrollment.schedule_days,
+        scheduleDays,
 
       schedule_time:
-        previousEnrollment.schedule_time,
+        scheduleTime,
 
-      /*
-       * This is what identifies this enrollment as a renewal.
-       */
-      renewal_of: enrollmentId,
+      renewal_of:
+        enrollmentId,
     })
     .select(
       `
@@ -292,20 +611,28 @@ export async function POST(
     )
     .single();
 
-  if (enrollmentError || !newEnrollment) {
+  if (
+    enrollmentError ||
+    !newEnrollment
+  ) {
     console.error(
       "RENEWAL ENROLLMENT CREATION ERROR:",
       {
-        code: enrollmentError?.code,
-        message: enrollmentError?.message,
-        details: enrollmentError?.details,
-        hint: enrollmentError?.hint,
+        code:
+          enrollmentError?.code,
+        message:
+          enrollmentError?.message,
+        details:
+          enrollmentError?.details,
+        hint:
+          enrollmentError?.hint,
       }
     );
 
     return NextResponse.json(
       {
-        error: "Failed to create renewal.",
+        error:
+          "Failed to create renewal.",
       },
       { status: 500 }
     );
@@ -317,7 +644,118 @@ export async function POST(
   );
 
   /* ---------------------------------------------------------------------- */
-  /* STEP 3: CREATE CONTRACT                                                */
+  /* STEP 4: VERIFY ENROLLMENT DETAILS                                     */
+  /* ---------------------------------------------------------------------- */
+
+  if (
+    Number(
+      newEnrollment.tuition_amount
+    ) !== tuitionAmount
+  ) {
+    await supabase
+      .from("enrollments")
+      .delete()
+      .eq(
+        "id",
+        newEnrollment.id
+      );
+
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created with an invalid tuition amount.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (
+    newEnrollment.currency !==
+    currency
+  ) {
+    await supabase
+      .from("enrollments")
+      .delete()
+      .eq(
+        "id",
+        newEnrollment.id
+      );
+
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created with an invalid tuition currency.",
+      },
+      { status: 500 }
+    );
+  }
+
+  /*
+   * Verify that the NEW schedule was actually
+   * stored on the renewal.
+   */
+  const storedScheduleDays =
+    Array.isArray(
+      newEnrollment.schedule_days
+    )
+      ? [
+          ...newEnrollment
+            .schedule_days,
+        ].sort()
+      : [];
+
+  const expectedScheduleDays =
+    [...scheduleDays].sort();
+
+  if (
+    JSON.stringify(
+      storedScheduleDays
+    ) !==
+    JSON.stringify(
+      expectedScheduleDays
+    )
+  ) {
+    await supabase
+      .from("enrollments")
+      .delete()
+      .eq(
+        "id",
+        newEnrollment.id
+      );
+
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created with an invalid lesson schedule.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (
+    (newEnrollment.schedule_time ||
+      null) !==
+    scheduleTime
+  ) {
+    await supabase
+      .from("enrollments")
+      .delete()
+      .eq(
+        "id",
+        newEnrollment.id
+      );
+
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created with an invalid lesson time.",
+      },
+      { status: 500 }
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 5: CREATE CONTRACT                                                */
   /* ---------------------------------------------------------------------- */
 
   const {
@@ -326,134 +764,259 @@ export async function POST(
   } = await supabase
     .from("contracts")
     .insert({
-      enrollment_id: newEnrollment.id,
-      status: "for_review",
+      enrollment_id:
+        newEnrollment.id,
+
+      status:
+        "for_review",
     })
     .select("id")
     .single();
 
-  if (contractError || !contract) {
+  if (
+    contractError ||
+    !contract
+  ) {
     console.error(
       "RENEWAL CONTRACT CREATION ERROR:",
       {
-        code: contractError?.code,
-        message: contractError?.message,
-        details: contractError?.details,
-        hint: contractError?.hint,
+        code:
+          contractError?.code,
+        message:
+          contractError?.message,
+        details:
+          contractError?.details,
+        hint:
+          contractError?.hint,
       }
     );
 
-    /*
-     * Roll back the renewal enrollment because its
-     * required contract could not be created.
-     */
     await supabase
       .from("enrollments")
       .delete()
-      .eq("id", newEnrollment.id);
+      .eq(
+        "id",
+        newEnrollment.id
+      );
 
     return NextResponse.json(
       {
-        error: "Failed to create renewal contract.",
+        error:
+          "Failed to create renewal contract.",
       },
       { status: 500 }
     );
   }
 
   /* ---------------------------------------------------------------------- */
-  /* STEP 4: CREATE PAYMENT RECORD                                          */
+  /* STEP 6: CREATE PAYMENT RECORD                                          */
   /* ---------------------------------------------------------------------- */
 
   /*
-   * Payment is kept separate from the enrollment.
+   * Payment model:
    *
-   * KRW:
-   *   amount_krw
+   * amount
+   *     Agreed tuition amount in currency.
    *
-   * PHP:
-   *   amount_php
+   * currency
+   *     KRW / CNY / USD / PHP.
    *
-   * payment_date:
-   *   actual payment date
+   * amount_krw
+   *     Compatibility field only.
+   *     Populated when currency is KRW.
    *
-   * start_date:
-   *   lesson-generation date
+   * amount_php
+   *     Actual / expected PHP amount.
    *
-   * These two dates are intentionally independent.
+   * payment_date
+   *     Actual payment date.
+   *
+   * start_date
+   *     Lesson-generation date.
    */
   const {
+    data: payment,
     error: paymentError,
   } = await supabase
     .from("payments")
     .insert({
-      enrollment_id: newEnrollment.id,
+      enrollment_id:
+        newEnrollment.id,
+
+      amount:
+        tuitionAmount,
+
+      currency,
 
       /*
-       * Keep amount as the primary payment amount in KRW.
-       */
-      amount: tuitionAmountKrw,
-
-      currency: "KRW",
-
-      /*
-       * This is the actual date the payment was received.
-       * If blank, use the enrollment start date only as a
-       * fallback for the initial pending record.
+       * payments.payment_date is NOT NULL.
        *
-       * It can later be edited to the precise payment date.
+       * If the renewal payment has not been
+       * received yet, use startDate only as
+       * the pending record's temporary date.
        */
       payment_date:
-        paymentDate || startDate,
+        paymentDate ||
+        startDate,
 
-      payment_method: paymentMethod,
+      payment_method:
+        paymentMethod,
 
-      status: "pending",
+      status:
+        "pending",
 
       reference,
 
       /*
-       * Store both currency amounts explicitly.
+       * Legacy compatibility field.
+       *
+       * Only KRW payments should populate it.
        */
-      amount_krw: tuitionAmountKrw,
+      amount_krw:
+        currency === "KRW"
+          ? tuitionAmount
+          : null,
 
-      amount_php: tuitionAmountPhp,
-    });
+      /*
+       * Internal PHP accounting amount.
+       */
+      amount_php:
+        tuitionAmountPhp,
+    })
+    .select(
+      `
+        id,
+        enrollment_id,
+        amount,
+        currency,
+        amount_krw,
+        amount_php,
+        payment_date,
+        payment_method,
+        status,
+        reference
+      `
+    )
+    .single();
 
-  if (paymentError) {
+  if (
+    paymentError ||
+    !payment
+  ) {
     console.error(
       "RENEWAL PAYMENT CREATION ERROR:",
       {
-        code: paymentError.code,
-        message: paymentError.message,
-        details: paymentError.details,
-        hint: paymentError.hint,
+        code:
+          paymentError?.code,
+        message:
+          paymentError?.message,
+        details:
+          paymentError?.details,
+        hint:
+          paymentError?.hint,
       }
     );
 
-    /*
-     * Roll back the contract and renewal enrollment
-     * if the payment record cannot be created.
-     */
     await supabase
       .from("contracts")
       .delete()
-      .eq("id", contract.id);
+      .eq(
+        "id",
+        contract.id
+      );
 
     await supabase
       .from("enrollments")
       .delete()
-      .eq("id", newEnrollment.id);
+      .eq(
+        "id",
+        newEnrollment.id
+      );
 
     return NextResponse.json(
       {
-        error: "Failed to create renewal payment record.",
+        error:
+          "Failed to create renewal payment record.",
       },
       { status: 500 }
     );
   }
 
   /* ---------------------------------------------------------------------- */
-  /* STEP 5: VERIFY RENEWAL RELATIONSHIP                                   */
+  /* STEP 7: VERIFY PAYMENT RECORD                                          */
+  /* ---------------------------------------------------------------------- */
+
+  if (
+    Number(
+      payment.amount
+    ) !== tuitionAmount
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but the payment amount could not be verified.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (
+    payment.currency !==
+    currency
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but the payment currency could not be verified.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (
+    currency === "KRW" &&
+    Number(
+      payment.amount_krw
+    ) !== tuitionAmount
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but the KRW compatibility amount could not be verified.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (
+    currency !== "KRW" &&
+    payment.amount_krw !== null
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but a non-KRW payment contains an invalid KRW amount.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (
+    Number(
+      payment.amount_php
+    ) !== tuitionAmountPhp
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but the PHP amount could not be verified.",
+      },
+      { status: 500 }
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 8: VERIFY RENEWAL RELATIONSHIP                                   */
   /* ---------------------------------------------------------------------- */
 
   const {
@@ -465,23 +1028,37 @@ export async function POST(
       `
         id,
         renewal_of,
-        start_date
+        start_date,
+        tuition_amount,
+        currency,
+        lessons_per_week,
+        schedule_days,
+        schedule_time
       `
     )
-    .eq("id", newEnrollment.id)
+    .eq(
+      "id",
+      newEnrollment.id
+    )
     .single();
 
   if (
     verificationError ||
     !verification ||
-    verification.renewal_of !== enrollmentId
+    verification.renewal_of !==
+      enrollmentId
   ) {
     console.error(
       "RENEWAL VERIFICATION FAILED:",
       {
-        createdEnrollmentId: newEnrollment.id,
-        expectedRenewalOf: enrollmentId,
+        createdEnrollmentId:
+          newEnrollment.id,
+
+        expectedRenewalOf:
+          enrollmentId,
+
         verification,
+
         verificationError,
       }
     );
@@ -495,13 +1072,104 @@ export async function POST(
     );
   }
 
+  if (
+    Number(
+      verification.tuition_amount
+    ) !== tuitionAmount ||
+    verification.currency !==
+      currency
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but its tuition details could not be verified.",
+      },
+      { status: 500 }
+    );
+  }
+
+  const verifiedScheduleDays =
+    Array.isArray(
+      verification.schedule_days
+    )
+      ? [
+          ...verification
+            .schedule_days,
+        ].sort()
+      : [];
+
+  if (
+    JSON.stringify(
+      verifiedScheduleDays
+    ) !==
+    JSON.stringify(
+      expectedScheduleDays
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but its lesson days could not be verified.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (
+    (verification.schedule_time ||
+      null) !==
+    scheduleTime
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but its lesson time could not be verified.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (
+    Number(
+      verification.lessons_per_week
+    ) !== lessonsPerWeek
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Renewal was created, but its weekly lesson frequency could not be verified.",
+      },
+      { status: 500 }
+    );
+  }
+
   console.log(
     "RENEWAL VERIFIED:",
-    verification
+    {
+      ...verification,
+
+      paymentId:
+        payment.id,
+
+      paymentCurrency:
+        payment.currency,
+
+      originalPaymentAmount:
+        payment.amount,
+
+      actualPhpAmount:
+        payment.amount_php,
+
+      scheduleDays:
+        verification.schedule_days,
+
+      scheduleTime:
+        verification.schedule_time,
+    }
   );
 
   /* ---------------------------------------------------------------------- */
-  /* STEP 6: REDIRECT                                                       */
+  /* STEP 9: REDIRECT                                                       */
   /* ---------------------------------------------------------------------- */
 
   return NextResponse.redirect(

@@ -30,6 +30,13 @@ interface Enrollment {
   schedule_time: string | null;
 }
 
+const SUPPORTED_CURRENCIES = [
+  "KRW",
+  "CNY",
+  "USD",
+  "PHP",
+] as const;
+
 export default async function NewRenewalPage({
   params,
 }: RenewalPageProps) {
@@ -67,15 +74,12 @@ export default async function NewRenewalPage({
   }
 
   const enrollments =
-    (student.enrollments ?? []) as unknown as Enrollment[];
+    (student.enrollments ??
+      []) as unknown as Enrollment[];
 
   /*
-   * Use the most recent enrollment as the enrollment
-   * being renewed.
-   *
-   * This is intentionally based on start_date rather
-   * than simply using the first record returned by
-   * Supabase.
+   * Use the most recent enrollment as the
+   * enrollment being renewed.
    */
   const previousEnrollment =
     [...enrollments].sort((a, b) => {
@@ -213,11 +217,35 @@ export default async function NewRenewalPage({
   }
 
   const studentName =
-    student.preferred_name || student.full_name;
+    student.preferred_name ||
+    student.full_name;
+
+  const previousCurrency =
+    SUPPORTED_CURRENCIES.includes(
+      (
+        previousEnrollment.currency ||
+        ""
+      ).toUpperCase() as
+        (typeof SUPPORTED_CURRENCIES)[number]
+    )
+      ? (
+          previousEnrollment.currency ||
+          "KRW"
+        ).toUpperCase()
+      : "KRW";
+
+  const previousTuition =
+    previousEnrollment.tuition_amount !==
+    null
+      ? String(
+          previousEnrollment.tuition_amount
+        )
+      : "";
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
       {/* HEADER */}
+
       <header
         className="
           w-full
@@ -277,6 +305,7 @@ export default async function NewRenewalPage({
       </header>
 
       {/* INTRO */}
+
       <section
         className="
           mx-auto
@@ -346,6 +375,7 @@ export default async function NewRenewalPage({
       </section>
 
       {/* FORM */}
+
       <section
         className="
           mx-auto
@@ -358,7 +388,7 @@ export default async function NewRenewalPage({
         "
       >
         <form
-          action={`/api/admin/students/${student.id}/enrollments`}
+          action={`/${locale}/admin/students/${student.id}/enrollments/${previousEnrollment.id}/renew`}
           method="POST"
           className="space-y-12"
         >
@@ -368,9 +398,7 @@ export default async function NewRenewalPage({
             value={locale}
           />
 
-          {/* ============================================================ */}
-          {/* RENEWAL RELATIONSHIP                                         */}
-          {/* ============================================================ */}
+          {/* RENEWAL RELATIONSHIP */}
 
           <section className="rounded-2xl bg-[#F0F4ED] p-6 sm:p-8">
             <div className="flex items-center gap-4">
@@ -450,6 +478,23 @@ export default async function NewRenewalPage({
                   previousEnrollment.start_date
                 )}
               </p>
+
+              <p
+                className="
+                  mt-2
+                  font-sans
+                  text-[13px]
+                  text-[#777771]
+                "
+              >
+                Previous tuition:{" "}
+                {previousCurrency}{" "}
+                {previousTuition
+                  ? Number(
+                      previousTuition
+                    ).toLocaleString()
+                  : "—"}
+              </p>
             </div>
 
             <input
@@ -459,9 +504,7 @@ export default async function NewRenewalPage({
             />
           </section>
 
-          {/* ============================================================ */}
-          {/* LESSON PACKAGE                                                */}
-          {/* ============================================================ */}
+          {/* LESSON PACKAGE */}
 
           <section>
             <div className="mb-8 flex items-center gap-4">
@@ -497,8 +540,6 @@ export default async function NewRenewalPage({
             </div>
 
             <div className="space-y-7">
-              {/* PACKAGE NAME */}
-
               <Field
                 label="Package Name"
                 id="package_name"
@@ -509,8 +550,6 @@ export default async function NewRenewalPage({
                 }
                 required
               />
-
-              {/* NUMBER OF LESSONS */}
 
               <Field
                 label="Number of Lessons"
@@ -523,8 +562,6 @@ export default async function NewRenewalPage({
                 min="1"
                 required
               />
-
-              {/* LESSON DURATION */}
 
               <Field
                 label="Lesson Duration"
@@ -539,8 +576,6 @@ export default async function NewRenewalPage({
                 required
               />
 
-              {/* LESSONS PER WEEK */}
-
               <Field
                 label="Lessons Per Week"
                 id="lessons_per_week"
@@ -554,9 +589,7 @@ export default async function NewRenewalPage({
                 required
               />
 
-              {/* ======================================================== */}
-              {/* LESSON START DATE                                         */}
-              {/* ======================================================== */}
+              {/* LESSON START DATE */}
 
               <div>
                 <label
@@ -605,17 +638,16 @@ export default async function NewRenewalPage({
                     text-[#777771]
                   "
                 >
-                  This is the date the renewed lessons begin.
-                  Lesson dates are generated from this date,
-                  the selected schedule, and the number of
-                  lessons. It is independent of the payment
+                  This is the date the renewed lessons
+                  begin. Lesson dates are generated
+                  from this date, the selected
+                  schedule, and the number of lessons.
+                  It is independent of the payment
                   date.
                 </p>
               </div>
 
-              {/* ======================================================== */}
-              {/* TUITION                                                   */}
-              {/* ======================================================== */}
+              {/* TUITION */}
 
               <div>
                 <p
@@ -640,40 +672,126 @@ export default async function NewRenewalPage({
                     text-[#777771]
                   "
                 >
-                  Record the agreed tuition in both KRW and
-                  PHP. The KRW amount is the Korean payment
-                  amount, while the PHP amount records its
-                  equivalent for your bookkeeping.
+                  Record the agreed tuition in the
+                  student's payment currency. The PHP
+                  amount records what Hamkke actually
+                  receives for bookkeeping.
                 </p>
 
                 <div className="mt-5 grid gap-6 sm:grid-cols-2">
-                  <Field
-                    label="Tuition Amount (KRW)"
-                    id="tuition_amount_krw"
-                    name="tuition_amount_krw"
-                    type="number"
-                    placeholder="75000"
-                    min="0"
-                    step="1"
-                    required
-                  />
+                  <div>
+                    <label
+                      htmlFor="currency"
+                      className="
+                        block
+                        font-sans
+                        text-[11px]
+                        font-medium
+                        uppercase
+                        tracking-[0.14em]
+                        text-[#6F8F72]
+                      "
+                    >
+                      Payment Currency
+                    </label>
+
+                    <select
+                      id="currency"
+                      name="currency"
+                      defaultValue={
+                        previousCurrency
+                      }
+                      required
+                      className="
+                        mt-3
+                        w-full
+                        border-b
+                        border-[#CFCBC4]
+                        bg-transparent
+                        px-0
+                        py-3
+                        font-serif
+                        text-[19px]
+                        text-[#292929]
+                        outline-none
+                        focus:border-[#6F8F72]
+                      "
+                    >
+                      <option value="KRW">
+                        KRW · Korean Won
+                      </option>
+
+                      <option value="CNY">
+                        CNY · Chinese Yuan (RMB)
+                      </option>
+
+                      <option value="USD">
+                        USD · US Dollar
+                      </option>
+
+                      <option value="PHP">
+                        PHP · Philippine Peso
+                      </option>
+                    </select>
+
+                    <p
+                      className="
+                        mt-3
+                        font-sans
+                        text-[12px]
+                        leading-5
+                        text-[#777771]
+                      "
+                    >
+                      The previous enrollment used{" "}
+                      {previousCurrency}.
+                    </p>
+                  </div>
 
                   <Field
-                    label="Tuition Amount (PHP)"
-                    id="tuition_amount_php"
-                    name="tuition_amount_php"
+                    label="Agreed Tuition Amount"
+                    id="tuition_amount"
+                    name="tuition_amount"
                     type="number"
-                    placeholder="2940"
-                    min="0"
+                    defaultValue={previousTuition}
+                    placeholder="Enter amount"
+                    min="0.01"
                     step="0.01"
                     required
                   />
                 </div>
+
+                <div className="mt-6">
+                  <Field
+                    label="Actual PHP Amount Received"
+                    id="tuition_amount_php"
+                    name="tuition_amount_php"
+                    type="number"
+                    placeholder="7000"
+                    min="0.01"
+                    step="0.01"
+                    required
+                  />
+                </div>
+
+                <p
+                  className="
+                    mt-3
+                    font-sans
+                    text-[12px]
+                    leading-5
+                    text-[#777771]
+                  "
+                >
+                  For example, a Korean student may
+                  have an agreed tuition of KRW
+                  75,000 while the PHP field records
+                  the actual peso amount received
+                  after conversion.
+                </p>
               </div>
 
-              {/* ======================================================== */}
-              {/* PAYMENT DETAILS                                           */}
-              {/* ======================================================== */}
+              {/* PAYMENT DETAILS */}
 
               <div
                 className="
@@ -725,16 +843,15 @@ export default async function NewRenewalPage({
                     text-[#6B6B66]
                   "
                 >
-                  Payment information is recorded separately
-                  from the lesson schedule. The payment date
-                  records when the payment was actually received
-                  or recorded. It does not determine when the
-                  renewed lessons begin.
+                  Payment information is recorded
+                  separately from the lesson schedule.
+                  The payment date records when the
+                  payment was actually received or
+                  recorded. It does not determine when
+                  the renewed lessons begin.
                 </p>
 
                 <div className="mt-7 space-y-7">
-                  {/* PAYMENT DATE */}
-
                   <div>
                     <label
                       htmlFor="payment_date"
@@ -755,7 +872,6 @@ export default async function NewRenewalPage({
                       id="payment_date"
                       name="payment_date"
                       type="date"
-                      required
                       className="
                         mt-3
                         w-full
@@ -782,14 +898,12 @@ export default async function NewRenewalPage({
                         text-[#777771]
                       "
                     >
-                      Enter the actual date the renewal payment
-                      was received or recorded. This date is for
-                      payment records only and does not change
-                      the lesson start date.
+                      Enter the payment date if payment
+                      has already been received. It can
+                      remain blank while the renewal is
+                      pending.
                     </p>
                   </div>
-
-                  {/* PAYMENT METHOD */}
 
                   <div>
                     <label
@@ -852,8 +966,6 @@ export default async function NewRenewalPage({
                     </select>
                   </div>
 
-                  {/* REFERENCE NUMBER */}
-
                   <Field
                     label="Reference Number"
                     id="reference"
@@ -866,9 +978,7 @@ export default async function NewRenewalPage({
             </div>
           </section>
 
-          {/* ============================================================ */}
-          {/* SCHEDULE                                                      */}
-          {/* ============================================================ */}
+          {/* SCHEDULE */}
 
           <section className="rounded-2xl bg-[#F0F4ED] p-6 sm:p-8">
             <div className="flex items-center gap-3">
@@ -913,13 +1023,11 @@ export default async function NewRenewalPage({
                 text-[#6B6B66]
               "
             >
-              The previous schedule has been carried over.
-              Change anything that needs updating. This
-              schedule is used together with the lesson start
-              date to generate the renewed lessons.
+              The previous schedule has been carried
+              over. Change anything that needs
+              updating. The schedule below will be
+              saved to the new renewal.
             </p>
-
-            {/* DAYS */}
 
             <div className="mt-7">
               <p
@@ -991,8 +1099,6 @@ export default async function NewRenewalPage({
               </div>
             </div>
 
-            {/* TIME */}
-
             <div className="mt-8">
               <label
                 htmlFor="schedule_time"
@@ -1043,16 +1149,14 @@ export default async function NewRenewalPage({
                   text-[#777771]
                 "
               >
-                Leave blank if the lesson time has not been
-                confirmed yet. The contract will show
-                "To be confirmed."
+                Leave blank if the lesson time has not
+                been confirmed yet. The contract will
+                show "To be confirmed."
               </p>
             </div>
           </section>
 
-          {/* ============================================================ */}
-          {/* WORKFLOW                                                      */}
-          {/* ============================================================ */}
+          {/* WORKFLOW */}
 
           <section className="rounded-2xl bg-[#F0F4ED] p-6 sm:p-8">
             <p
@@ -1084,7 +1188,7 @@ export default async function NewRenewalPage({
               <WorkflowStep
                 number="03"
                 title="Payment recorded"
-                description="The payment record stores the KRW amount, PHP amount, payment date, payment method, and reference number. The payment date is kept separately from the lesson start date."
+                description="The payment record stores the agreed tuition amount in the student's payment currency, the PHP amount, payment date, payment method, and reference number."
               />
 
               <WorkflowStep
@@ -1095,9 +1199,7 @@ export default async function NewRenewalPage({
             </div>
           </section>
 
-          {/* ============================================================ */}
-          {/* ACTIONS                                                       */}
-          {/* ============================================================ */}
+          {/* ACTIONS */}
 
           <div
             className="
@@ -1289,12 +1391,19 @@ function WorkflowStep({
 /* FORMATTERS                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function formatDate(date: string | null) {
+function formatDate(
+  date: string | null
+) {
   if (!date) return "Not set";
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${date}T00:00:00`));
+  return new Intl.DateTimeFormat(
+    "en-US",
+    {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }
+  ).format(
+    new Date(`${date}T00:00:00`)
+  );
 }

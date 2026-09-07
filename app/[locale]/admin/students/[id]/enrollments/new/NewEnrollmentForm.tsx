@@ -28,6 +28,30 @@ interface ParticipantSchedule {
   scheduleTimes: Record<string, string>;
 }
 
+type TuitionCurrency = "KRW" | "CNY" | "USD" | "PHP";
+
+const TUITION_CURRENCIES: {
+  value: TuitionCurrency;
+  label: string;
+}[] = [
+  {
+    value: "KRW",
+    label: "KRW — Korean Won",
+  },
+  {
+    value: "CNY",
+    label: "CNY — Chinese Yuan (RMB)",
+  },
+  {
+    value: "USD",
+    label: "USD — US Dollar",
+  },
+  {
+    value: "PHP",
+    label: "PHP — Philippine Peso",
+  },
+];
+
 const DAYS = [
   ["Monday", "mon"],
   ["Tuesday", "tue"],
@@ -64,6 +88,9 @@ export default function NewEnrollmentForm({
     });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [tuitionCurrency, setTuitionCurrency] =
+    useState<TuitionCurrency>("KRW");
 
   const studentName =
     student.preferred_name || student.full_name;
@@ -361,6 +388,58 @@ export default function NewEnrollmentForm({
 
       alert(
         "Please select a lesson start date."
+      );
+
+      return;
+    }
+
+    /*
+     * Validate tuition.
+     */
+    const currency = formData.get("currency");
+
+    const tuitionAmount = Number(
+      formData.get("tuition_amount")
+    );
+
+    const tuitionAmountPhp = Number(
+      formData.get("tuition_amount_php")
+    );
+
+    if (
+      typeof currency !== "string" ||
+      !["KRW", "CNY", "USD", "PHP"].includes(currency)
+    ) {
+      event.preventDefault();
+
+      alert(
+        "Please select a valid tuition currency."
+      );
+
+      return;
+    }
+
+    if (
+      !Number.isFinite(tuitionAmount) ||
+      tuitionAmount <= 0
+    ) {
+      event.preventDefault();
+
+      alert(
+        "Please enter a valid agreed tuition amount."
+      );
+
+      return;
+    }
+
+    if (
+      !Number.isFinite(tuitionAmountPhp) ||
+      tuitionAmountPhp <= 0
+    ) {
+      event.preventDefault();
+
+      alert(
+        "Please enter the actual or expected PHP amount."
       );
 
       return;
@@ -1028,33 +1107,110 @@ export default function NewEnrollmentForm({
                     leading-5 text-[#777771]
                   "
                 >
-                  Record the agreed package tuition
-                  in both KRW and PHP.
+                  Record the tuition agreed with the
+                  student in their payment currency,
+                  together with the actual or expected
+                  PHP amount.
                 </p>
 
-                <div className="mt-5 grid gap-6 sm:grid-cols-2">
-                  <Field
-                    label="Tuition Amount (KRW)"
-                    id="tuition_amount_krw"
-                    name="tuition_amount_krw"
-                    type="number"
-                    placeholder="75000"
-                    min="0"
-                    step="1"
-                    required
-                  />
+                <div className="mt-5 space-y-6">
+                  <div>
+                    <label
+                      htmlFor="currency"
+                      className="
+                        block font-sans text-[11px]
+                        font-medium uppercase
+                        tracking-[0.14em]
+                        text-[#6F8F72]
+                      "
+                    >
+                      Payment Currency
+                    </label>
 
-                  <Field
-                    label="Tuition Amount (PHP)"
-                    id="tuition_amount_php"
-                    name="tuition_amount_php"
-                    type="number"
-                    placeholder="2940"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
+                    <select
+                      id="currency"
+                      name="currency"
+                      value={tuitionCurrency}
+                      onChange={(event) =>
+                        setTuitionCurrency(
+                          event.target
+                            .value as TuitionCurrency
+                        )
+                      }
+                      required
+                      className="
+                        mt-3 w-full
+                        border-b border-[#CFCBC4]
+                        bg-transparent px-0 py-3
+                        font-serif text-[19px]
+                        text-[#292929]
+                        outline-none
+                        transition-colors
+                        focus:border-[#6F8F72]
+                      "
+                    >
+                      {TUITION_CURRENCIES.map(
+                        (currency) => (
+                          <option
+                            key={currency.value}
+                            value={currency.value}
+                          >
+                            {currency.label}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <Field
+                      label={`Agreed Tuition (${tuitionCurrency})`}
+                      id="tuition_amount"
+                      name="tuition_amount"
+                      type="number"
+                      placeholder={
+                        tuitionCurrency === "KRW"
+                          ? "75000"
+                          : tuitionCurrency === "CNY"
+                            ? "900"
+                            : tuitionCurrency === "USD"
+                              ? "120"
+                              : "7000"
+                      }
+                      min="0.01"
+                      step={
+                        tuitionCurrency === "KRW"
+                          ? "1"
+                          : "0.01"
+                      }
+                      required
+                    />
+
+                    <Field
+                      label="Actual / Expected Amount (PHP)"
+                      id="tuition_amount_php"
+                      name="tuition_amount_php"
+                      type="number"
+                      placeholder="7000"
+                      min="0.01"
+                      step="0.01"
+                      required
+                    />
+                  </div>
                 </div>
+
+                <p
+                  className="
+                    mt-4 font-sans text-[12px]
+                    leading-5 text-[#777771]
+                  "
+                >
+                  The agreed tuition is the amount
+                  shown on the student's enrollment
+                  and contract. The PHP amount is kept
+                  separately for Hamkke's internal
+                  payment and accounting records.
+                </p>
               </div>
 
               {/* ======================================================== */}

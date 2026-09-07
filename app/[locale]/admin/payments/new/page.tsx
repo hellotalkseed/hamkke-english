@@ -1,7 +1,15 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  FormEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  useParams,
+  useRouter,
+} from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -20,32 +28,144 @@ interface Enrollment {
   students: Student | null;
 }
 
+const SUPPORTED_CURRENCIES = [
+  "KRW",
+  "CNY",
+  "USD",
+  "PHP",
+] as const;
+
+type SupportedCurrency =
+  (typeof SUPPORTED_CURRENCIES)[number];
+
+function normalizeCurrency(
+  value: string | null | undefined
+): SupportedCurrency {
+  const normalized =
+    value?.toUpperCase() ?? "KRW";
+
+  return SUPPORTED_CURRENCIES.includes(
+    normalized as SupportedCurrency
+  )
+    ? (normalized as SupportedCurrency)
+    : "KRW";
+}
+
+function getCurrencySymbol(
+  currency: SupportedCurrency
+) {
+  switch (currency) {
+    case "KRW":
+      return "₩";
+
+    case "CNY":
+      return "¥";
+
+    case "USD":
+      return "$";
+
+    case "PHP":
+      return "₱";
+
+    default:
+      return "";
+  }
+}
+
+function getCurrencyLabel(
+  currency: SupportedCurrency
+) {
+  switch (currency) {
+    case "KRW":
+      return "Korean Won";
+
+    case "CNY":
+      return "Chinese Yuan (RMB)";
+
+    case "USD":
+      return "US Dollar";
+
+    case "PHP":
+      return "Philippine Peso";
+
+    default:
+      return currency;
+  }
+}
+
+function getCurrencyStep(
+  currency: SupportedCurrency
+) {
+  return currency === "KRW"
+    ? "1"
+    : "0.01";
+}
+
+function getCurrencyPlaceholder(
+  currency: SupportedCurrency
+) {
+  switch (currency) {
+    case "KRW":
+      return "75000";
+
+    case "CNY":
+      return "900";
+
+    case "USD":
+      return "120";
+
+    case "PHP":
+      return "7000";
+
+    default:
+      return "";
+  }
+}
+
 export default function NewPaymentPage() {
   const router = useRouter();
-  const supabase = createClient();
 
-  const [enrollments, setEnrollments] = useState<Enrollment[]>(
+  const params = useParams<{
+    locale?: string;
+  }>();
+
+  const locale =
+    typeof params?.locale === "string"
+      ? params.locale
+      : "en";
+
+  const supabase = useMemo(
+    () => createClient(),
     []
   );
 
-  const [loadingEnrollments, setLoadingEnrollments] =
-    useState(true);
+  const [enrollments, setEnrollments] =
+    useState<Enrollment[]>([]);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [
+    loadingEnrollments,
+    setLoadingEnrollments,
+  ] = useState(true);
 
-  const [form, setForm] = useState({
-    enrollmentId: "",
-    amountKrw: "",
-    amountPhp: "",
-    paymentDate: new Date()
-      .toISOString()
-      .split("T")[0],
-    paymentMethod: "Bank Transfer",
-    status: "pending",
-    reference: "",
-    notes: "",
-  });
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [form, setForm] =
+    useState({
+      enrollmentId: "",
+      amountOriginal: "",
+      amountPhp: "",
+      paymentDate: new Date()
+        .toISOString()
+        .split("T")[0],
+      paymentMethod: "Bank Transfer",
+      status: "pending",
+      reference: "",
+      notes: "",
+    });
 
   /* ========================================================================= */
   /* LOAD ENROLLMENTS                                                          */
@@ -56,23 +176,24 @@ export default function NewPaymentPage() {
       setLoadingEnrollments(true);
       setError("");
 
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select(`
-          id,
-          package_name,
-          tuition_amount,
-          currency,
-          status,
-          students (
+      const { data, error } =
+        await supabase
+          .from("enrollments")
+          .select(`
             id,
-            full_name,
-            preferred_name
-          )
-        `)
-        .order("created_at", {
-          ascending: false,
-        });
+            package_name,
+            tuition_amount,
+            currency,
+            status,
+            students (
+              id,
+              full_name,
+              preferred_name
+            )
+          `)
+          .order("created_at", {
+            ascending: false,
+          });
 
       if (error) {
         console.error(
@@ -89,34 +210,83 @@ export default function NewPaymentPage() {
       }
 
       const normalizedEnrollments: Enrollment[] =
-        (data ?? []).map((enrollment) => {
-          const student = Array.isArray(
-            enrollment.students
-          )
-            ? enrollment.students[0] ?? null
-            : enrollment.students ?? null;
+        (data ?? []).map(
+          (enrollment) => {
+            const student =
+              Array.isArray(
+                enrollment.students
+              )
+                ? enrollment.students[0] ??
+                  null
+                : enrollment.students ??
+                  null;
 
-          return {
-            id: enrollment.id,
-            package_name:
-              enrollment.package_name ?? "Enrollment",
-            tuition_amount: Number(
-              enrollment.tuition_amount ?? 0
-            ),
-            currency:
-              enrollment.currency ?? "KRW",
-            status:
-              enrollment.status ?? "pending",
-            students: student,
-          };
-        });
+            return {
+              id: enrollment.id,
 
-      setEnrollments(normalizedEnrollments);
+              package_name:
+                enrollment.package_name ??
+                "Enrollment",
+
+              tuition_amount: Number(
+                enrollment.tuition_amount ??
+                  0
+              ),
+
+              currency:
+                normalizeCurrency(
+                  enrollment.currency
+                ),
+
+              status:
+                enrollment.status ??
+                "pending",
+
+              students: student,
+            };
+          }
+        );
+
+      setEnrollments(
+        normalizedEnrollments
+      );
+
       setLoadingEnrollments(false);
     }
 
     loadEnrollments();
   }, [supabase]);
+
+  /* ========================================================================= */
+  /* SELECTED ENROLLMENT                                                       */
+  /* ========================================================================= */
+
+  const selectedEnrollment =
+    useMemo(() => {
+      return enrollments.find(
+        (enrollment) =>
+          enrollment.id ===
+          form.enrollmentId
+      );
+    }, [
+      enrollments,
+      form.enrollmentId,
+    ]);
+
+  const selectedCurrency =
+    normalizeCurrency(
+      selectedEnrollment?.currency
+    );
+
+  const selectedCurrencySymbol =
+    getCurrencySymbol(
+      selectedCurrency
+    );
+
+  const selectedCurrencyLabel =
+    getCurrencyLabel(
+      selectedCurrency
+    );
 
   /* ========================================================================= */
   /* FORM HELPERS                                                              */
@@ -135,41 +305,40 @@ export default function NewPaymentPage() {
   function handleEnrollmentChange(
     enrollmentId: string
   ) {
-    const selected = enrollments.find(
-      (enrollment) =>
-        enrollment.id === enrollmentId
-    );
+    const selected =
+      enrollments.find(
+        (enrollment) =>
+          enrollment.id ===
+          enrollmentId
+      );
 
     if (!selected) {
       setForm((current) => ({
         ...current,
         enrollmentId: "",
-        amountKrw: "",
+        amountOriginal: "",
         amountPhp: "",
       }));
 
       return;
     }
 
-    const isKrw =
-      selected.currency?.toUpperCase() === "KRW";
-
     setForm((current) => ({
       ...current,
+
       enrollmentId,
 
       /*
-       * KRW is the tuition amount attached
-       * to the enrollment.
+       * The enrollment already stores the
+       * agreed tuition in its own currency.
        */
-      amountKrw: isKrw
-        ? String(selected.tuition_amount)
-        : "",
+      amountOriginal: String(
+        selected.tuition_amount
+      ),
 
       /*
-       * PHP is ALWAYS entered separately.
-       *
-       * This is the actual amount received.
+       * PHP remains separate because this is
+       * the actual amount Hamkke received.
        */
       amountPhp: "",
     }));
@@ -184,11 +353,15 @@ export default function NewPaymentPage() {
       return "Please select an enrollment.";
     }
 
+    if (!selectedEnrollment) {
+      return "The selected enrollment could not be found.";
+    }
+
     if (
-      !form.amountKrw ||
-      Number(form.amountKrw) < 0
+      !form.amountOriginal ||
+      Number(form.amountOriginal) <= 0
     ) {
-      return "Please enter the KRW amount.";
+      return `Please enter the ${selectedCurrency} payment amount.`;
     }
 
     if (
@@ -217,7 +390,8 @@ export default function NewPaymentPage() {
     setError("");
     setLoading(true);
 
-    const validationError = validateForm();
+    const validationError =
+      validateForm();
 
     if (validationError) {
       setError(validationError);
@@ -225,63 +399,90 @@ export default function NewPaymentPage() {
       return;
     }
 
+    if (!selectedEnrollment) {
+      setError(
+        "The selected enrollment could not be found."
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
+      const currency =
+        normalizeCurrency(
+          selectedEnrollment.currency
+        );
+
+      const originalAmount =
+        Number(
+          form.amountOriginal
+        );
+
+      const phpAmount =
+        Number(form.amountPhp);
+
       /*
        * =======================================================================
-       * IMPORTANT PAYMENT STRUCTURE
+       * PAYMENT STRUCTURE
        * =======================================================================
        *
        * amount
-       *     Original compatibility field.
+       *     Agreed amount in the enrollment's
+       *     original payment currency.
        *
        * currency
-       *     Original payment currency.
+       *     KRW / CNY / USD / PHP.
        *
        * amount_krw
-       *     KRW tuition amount.
+       *     Legacy compatibility field.
+       *     Populated only for KRW payments.
        *
        * amount_php
-       *     ACTUAL PHP AMOUNT RECEIVED.
+       *     Actual PHP amount received.
        *
-       * The Overview page reads amount_php.
+       * The Overview page uses amount_php.
        */
 
       const paymentPayload = {
-        enrollment_id: form.enrollmentId,
+        enrollment_id:
+          form.enrollmentId,
+
+        amount:
+          originalAmount,
+
+        currency,
+
+        amount_krw:
+          currency === "KRW"
+            ? originalAmount
+            : null,
+
+        amount_php:
+          phpAmount,
 
         /*
-         * Original compatibility fields.
+         * Keep the legacy field empty rather
+         * than writing conflicting data.
          */
-        amount: Number(form.amountKrw),
-        currency: "KRW",
+        amount_received_php:
+          null,
 
-        /*
-         * Explicit currency amounts.
-         */
-        amount_krw: Number(form.amountKrw),
-        amount_php: Number(form.amountPhp),
-
-        /*
-         * Keep the legacy field empty rather than
-         * writing conflicting data to it.
-         *
-         * The application uses amount_php as the
-         * source of truth for actual PHP received.
-         */
-        amount_received_php: null,
-
-        payment_date: form.paymentDate,
+        payment_date:
+          form.paymentDate,
 
         payment_method:
           form.paymentMethod,
 
-        status: form.status,
+        status:
+          form.status,
 
         reference:
-          form.reference.trim() || null,
+          form.reference.trim() ||
+          null,
 
         notes:
-          form.notes.trim() || null,
+          form.notes.trim() ||
+          null,
       };
 
       console.log(
@@ -293,7 +494,9 @@ export default function NewPaymentPage() {
         error: paymentError,
       } = await supabase
         .from("payments")
-        .insert(paymentPayload);
+        .insert(
+          paymentPayload
+        );
 
       if (paymentError) {
         console.error(
@@ -306,12 +509,10 @@ export default function NewPaymentPage() {
         );
       }
 
-      /*
-       * Redirect using the current locale.
-       *
-       * This avoids always sending the user to /en.
-       */
-      router.push("/en/admin/payments");
+      router.push(
+        `/${locale}/admin/payments`
+      );
+
       router.refresh();
     } catch (err) {
       console.error(
@@ -358,7 +559,9 @@ export default function NewPaymentPage() {
         <button
           type="button"
           onClick={() =>
-            router.push("/en/admin/payments")
+            router.push(
+              `/${locale}/admin/payments`
+            )
           }
           className="
             font-sans
@@ -417,7 +620,8 @@ export default function NewPaymentPage() {
               sm:text-[21px]
             "
           >
-            Record the tuition amount and the actual
+            Record the agreed tuition amount in the
+            student's payment currency and the actual
             PHP amount received.
           </p>
         </div>
@@ -502,7 +706,8 @@ export default function NewPaymentPage() {
                 )
               }
               disabled={
-                loadingEnrollments || loading
+                loadingEnrollments ||
+                loading
               }
               className="
                 w-full
@@ -522,7 +727,8 @@ export default function NewPaymentPage() {
               <option value="">
                 {loadingEnrollments
                   ? "Loading enrollments..."
-                  : enrollments.length === 0
+                  : enrollments.length ===
+                      0
                     ? "No enrollments available"
                     : "Select a student enrollment"}
               </option>
@@ -536,6 +742,16 @@ export default function NewPaymentPage() {
                       ?.full_name ||
                     "Unknown Student";
 
+                  const currency =
+                    normalizeCurrency(
+                      enrollment.currency
+                    );
+
+                  const symbol =
+                    getCurrencySymbol(
+                      currency
+                    );
+
                   return (
                     <option
                       key={enrollment.id}
@@ -543,7 +759,13 @@ export default function NewPaymentPage() {
                     >
                       {studentName}
                       {" · "}
-                      {enrollment.package_name}
+                      {
+                        enrollment.package_name
+                      }
+                      {" · "}
+                      {currency}{" "}
+                      {symbol}
+                      {enrollment.tuition_amount.toLocaleString()}
                       {" · "}
                       {enrollment.status}
                     </option>
@@ -552,7 +774,8 @@ export default function NewPaymentPage() {
               )}
             </select>
 
-            {enrollments.length === 0 &&
+            {enrollments.length ===
+              0 &&
               !loadingEnrollments &&
               !error && (
                 <p
@@ -602,8 +825,9 @@ export default function NewPaymentPage() {
                   text-[#74716B]
                 "
               >
-                KRW records the tuition. PHP records
-                what you actually received.
+                The first amount follows the
+                enrollment's payment currency. PHP
+                records what you actually received.
               </p>
             </div>
 
@@ -616,11 +840,11 @@ export default function NewPaymentPage() {
               "
             >
 
-              {/* KRW */}
+              {/* ORIGINAL CURRENCY */}
 
               <div>
                 <label
-                  htmlFor="amountKrw"
+                  htmlFor="amountOriginal"
                   className="
                     font-sans
                     text-[11px]
@@ -630,7 +854,10 @@ export default function NewPaymentPage() {
                     text-[#77736B]
                   "
                 >
-                  Tuition · KRW
+                  Tuition ·{" "}
+                  {selectedEnrollment
+                    ? selectedCurrency
+                    : "Currency"}
                 </label>
 
                 <div className="relative mt-2">
@@ -646,23 +873,38 @@ export default function NewPaymentPage() {
                       text-[#77736B]
                     "
                   >
-                    ₩
+                    {selectedEnrollment
+                      ? selectedCurrencySymbol
+                      : "¤"}
                   </span>
 
                   <input
-                    id="amountKrw"
+                    id="amountOriginal"
                     type="number"
-                    min="0"
-                    step="1"
-                    value={form.amountKrw}
+                    min="0.01"
+                    step={getCurrencyStep(
+                      selectedCurrency
+                    )}
+                    value={
+                      form.amountOriginal
+                    }
                     onChange={(event) =>
                       updateField(
-                        "amountKrw",
+                        "amountOriginal",
                         event.target.value
                       )
                     }
-                    disabled={loading}
-                    placeholder="75,000"
+                    disabled={
+                      loading ||
+                      !selectedEnrollment
+                    }
+                    placeholder={
+                      selectedEnrollment
+                        ? getCurrencyPlaceholder(
+                            selectedCurrency
+                          )
+                        : "Select enrollment"
+                    }
                     className="
                       w-full
                       border
@@ -677,6 +919,8 @@ export default function NewPaymentPage() {
                       outline-none
                       transition
                       focus:border-[#6F8F72]
+                      disabled:bg-[#F3F1EE]
+                      disabled:text-[#99958E]
                     "
                   />
                 </div>
@@ -689,7 +933,9 @@ export default function NewPaymentPage() {
                     text-[#99958E]
                   "
                 >
-                  Original tuition amount
+                  {selectedEnrollment
+                    ? `Agreed tuition · ${selectedCurrencyLabel}`
+                    : "Select an enrollment to load its tuition"}
                 </p>
               </div>
 
@@ -729,9 +975,11 @@ export default function NewPaymentPage() {
                   <input
                     id="amountPhp"
                     type="number"
-                    min="0"
+                    min="0.01"
                     step="0.01"
-                    value={form.amountPhp}
+                    value={
+                      form.amountPhp
+                    }
                     onChange={(event) =>
                       updateField(
                         "amountPhp",
@@ -739,7 +987,7 @@ export default function NewPaymentPage() {
                       )
                     }
                     disabled={loading}
-                    placeholder="3,150"
+                    placeholder="7000"
                     className="
                       w-full
                       border
@@ -812,7 +1060,9 @@ export default function NewPaymentPage() {
                 <input
                   id="paymentDate"
                   type="date"
-                  value={form.paymentDate}
+                  value={
+                    form.paymentDate
+                  }
                   onChange={(event) =>
                     updateField(
                       "paymentDate",
@@ -857,7 +1107,9 @@ export default function NewPaymentPage() {
 
                 <select
                   id="paymentMethod"
-                  value={form.paymentMethod}
+                  value={
+                    form.paymentMethod
+                  }
                   onChange={(event) =>
                     updateField(
                       "paymentMethod",
@@ -984,7 +1236,9 @@ export default function NewPaymentPage() {
                 <input
                   id="reference"
                   type="text"
-                  value={form.reference}
+                  value={
+                    form.reference
+                  }
                   onChange={(event) =>
                     updateField(
                       "reference",
@@ -1174,7 +1428,9 @@ export default function NewPaymentPage() {
             <button
               type="button"
               onClick={() =>
-                router.push("/en/admin/payments")
+                router.push(
+                  `/${locale}/admin/payments`
+                )
               }
               disabled={loading}
               className="
@@ -1200,7 +1456,8 @@ export default function NewPaymentPage() {
               disabled={
                 loading ||
                 loadingEnrollments ||
-                enrollments.length === 0
+                enrollments.length ===
+                  0
               }
               className="
                 bg-[#6F8F72]

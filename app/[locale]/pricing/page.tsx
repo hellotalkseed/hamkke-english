@@ -8,6 +8,14 @@ import {
 
 import { getMessages } from "../../../lib/getMessages";
 import { isValidLocale } from "../../../lib/i18n";
+import {
+  formatCNY,
+  formatKRW,
+  formatPHP,
+  formatUSD,
+  getCurrentTuition,
+  getExchangeRate,
+} from "../../../lib/pricing";
 
 interface PricingPageProps {
   params: Promise<{
@@ -26,6 +34,67 @@ export default async function PricingPage({
 
   const t = getMessages(locale);
   const pricing = t.pricing;
+
+  /* ----------------------------------------------------------------------- */
+  /* OFFICIAL HAMKKE TUITION                                                 */
+  /* ----------------------------------------------------------------------- */
+
+  const tuition = getCurrentTuition();
+  const formattedTuition = formatPHP(tuition);
+
+  /* ----------------------------------------------------------------------- */
+  /* LOCAL-CURRENCY ESTIMATE                                                 */
+  /* ----------------------------------------------------------------------- */
+
+  let localCurrencyEstimate: string | null = null;
+
+  if (locale === "en") {
+    const usdRate = await getExchangeRate("USD");
+
+    if (usdRate) {
+      localCurrencyEstimate = `≈ ${formatUSD(
+        tuition * usdRate
+      )}`;
+    }
+  }
+
+  if (locale === "ko") {
+    const krwRate = await getExchangeRate("KRW");
+
+    if (krwRate) {
+      localCurrencyEstimate = `약 ${formatKRW(
+        tuition * krwRate
+      )}`;
+    }
+  }
+
+  if (locale === "zh") {
+    const cnyRate = await getExchangeRate("CNY");
+
+    if (cnyRate) {
+      localCurrencyEstimate = `约 ${formatCNY(
+        tuition * cnyRate
+      )}`;
+    }
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* PRACTICAL DETAILS                                                       */
+  /* ----------------------------------------------------------------------- */
+
+  const tuitionValue = localCurrencyEstimate
+    ? `${formattedTuition} · ${localCurrencyEstimate}`
+    : formattedTuition;
+
+  const practicalDetails = [
+    pricing.practical.details.lessonLength,
+    pricing.practical.details.package,
+    pricing.practical.details.format,
+    {
+      label: pricing.practical.details.tuition.label,
+      value: tuitionValue,
+    },
+  ];
 
   return (
     <main
@@ -318,16 +387,11 @@ export default async function PricingPage({
                   {pricing.privateLessons.title}
                 </p>
 
-                <div
-                  className="
-                    mt-4
-                    flex
-                    items-baseline
-                    gap-3
-                  "
-                >
+                <div className="mt-4">
                   <span
                     className="
+                      block
+
                       font-serif
                       text-[58px]
                       font-normal
@@ -340,8 +404,27 @@ export default async function PricingPage({
                       lg:text-[76px]
                     "
                   >
-                    {pricing.privateLessons.price}
+                    {formattedTuition}
                   </span>
+
+                  {/* LOCAL-CURRENCY REFERENCE */}
+
+                  {localCurrencyEstimate && (
+                    <p
+                      className="
+                        mt-3
+
+                        font-sans
+                        text-[15px]
+                        font-normal
+                        text-[#6F746F]
+
+                        sm:text-[16px]
+                      "
+                    >
+                      {localCurrencyEstimate}
+                    </p>
+                  )}
                 </div>
 
                 <p
@@ -881,12 +964,7 @@ export default async function PricingPage({
               border-[#E7DDD1]
             "
           >
-            {[
-              pricing.practical.details.lessonLength,
-              pricing.practical.details.package,
-              pricing.practical.details.format,
-              pricing.practical.details.tuition,
-            ].map((item) => (
+            {practicalDetails.map((item) => (
               <div
                 key={item.label}
                 className="

@@ -54,9 +54,6 @@ interface StudentRow {
 
 interface PaymentRow {
   id: string;
-  amount: number | null;
-  currency: string | null;
-  amount_krw: number | null;
   amount_php: number | null;
   payment_date: string | null;
   status: string | null;
@@ -511,9 +508,6 @@ export default async function OverviewPage({
     .from("payments")
     .select(`
       id,
-      amount,
-      currency,
-      amount_krw,
       amount_php,
       payment_date,
       status

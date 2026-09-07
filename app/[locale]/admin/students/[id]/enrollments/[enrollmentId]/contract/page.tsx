@@ -914,43 +914,78 @@ export default async function ContractPage({
 
           </Section>
 
-          {/* ============================================================ */}
-          {/* 03                                                             */}
-          {/* ============================================================ */}
+          {/* ========================================================== */}
+{/* 03                                                         */}
+{/* ========================================================== */}
 
-          <Section
-            number="03"
-            title="Tuition & Payment"
-          >
+<Section
+  number="03"
+  title="Tuition & Payment"
+>
+  <p>
+    The tuition for this enrollment is{" "}
+    {currency} {tuition} for the lesson package
+    described above.
+  </p>
 
-            <p>
-              The tuition for the enrollment is{" "}
-              {currency} {tuition} for the lesson package
-              described above.
-            </p>
+  <p>
+    Tuition may vary between students or enrollments
+    depending on the applicable rate, previous
+    arrangements, and the payment currency used for
+    the lesson package. The amount stated in this
+    agreement is the applicable tuition for this
+    enrollment.
+  </p>
 
-            <p>
-              The lesson package is reserved for the{" "}
-              {isSharedEnrollment
-                ? "students"
-                : "student"}{" "}
-              upon payment. Payment confirms the{" "}
-              {isSharedEnrollment
-                ? "students'"
-                : "student's"}{" "}
-              acceptance of this agreement and the lesson
-              policies set out below.
-            </p>
+  <p>
+    The tuition stated in this agreement is fixed for
+    the duration of this lesson package and will not
+    change due to subsequent changes in exchange rates,
+    inflation, or Hamkke&apos;s standard tuition.
+  </p>
 
-            <p>
-              Because lessons are purchased as a package,
-              refunds are generally not available once a
-              package has been paid for, subject to the
-              exceptions described in the Refunds & Transfers
-              section of this agreement.
-            </p>
+  <p>
+    Hamkke&apos;s standard tuition is established in
+    Philippine Pesos (PHP) and may be reviewed
+    periodically to reflect general inflation and
+    changes in the cost of providing lessons. When
+    reviewing standard tuition, Hamkke may take into
+    consideration the Philippine Consumer Price Index
+    (CPI), which measures changes in the prices of
+    everyday goods and services.
+  </p>
 
-          </Section>
+  <p>
+    Any change to the applicable tuition will apply
+    only to a future enrollment or renewal and will
+    not affect lessons already purchased under this
+    agreement. The applicable tuition for a future
+    package will be communicated to the student before
+    payment.
+  </p>
+
+  <p>
+    For tuition paid in a currency other than
+    Philippine Pesos, the payment amount for a future
+    enrollment or renewal may also reflect the
+    applicable exchange rate at that time.
+  </p>
+
+  <p>
+    The lesson package is reserved for the student upon
+    payment. Payment confirms the student&apos;s
+    acceptance of this agreement and the lesson
+    policies set out below.
+  </p>
+
+  <p>
+    Because lessons are purchased as a package, refunds
+    are generally not available once the package has
+    been paid for, subject to the exceptions described
+    in the Refunds &amp; Transfers section of this
+    agreement.
+  </p>
+</Section>
 
           {/* ============================================================ */}
           {/* 04                                                             */}

@@ -2175,7 +2175,7 @@ export default async function StudentPage({
                   currentPayment.amount_php !==
                     undefined && (
                     <PaymentDetail
-                      label="PHP Amount"
+                      label="PHP Received"
                       value={formatCurrency(
                         currentPayment.amount_php,
                         "PHP"
@@ -3683,18 +3683,30 @@ function formatCurrency(
     return "Not provided";
   }
 
-  const currencyCode =
-    currency || "KRW";
+  const currencyCode = (currency || "KRW").toUpperCase();
 
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currencyCode,
-      maximumFractionDigits:
-        currencyCode === "KRW" ? 0 : 2,
-    }).format(amount);
-  } catch {
-    return `${currencyCode} ${amount.toLocaleString()}`;
+  const formattedAmount = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+
+  switch (currencyCode) {
+    case "KRW":
+      return `₩${new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 0,
+      }).format(amount)}`;
+
+    case "CNY":
+      return `RMB ¥${formattedAmount}`;
+
+    case "PHP":
+      return `₱${formattedAmount}`;
+
+    case "USD":
+      return `$${formattedAmount}`;
+
+    default:
+      return `${currencyCode} ${formattedAmount}`;
   }
 }
 

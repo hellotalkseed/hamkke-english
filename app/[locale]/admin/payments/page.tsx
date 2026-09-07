@@ -108,7 +108,6 @@ export default async function PaymentsPage({
       "
     >
       <div className="mx-auto max-w-6xl">
-
         {/* BACK */}
 
         <Link
@@ -180,8 +179,9 @@ export default async function PaymentsPage({
                 sm:text-[22px]
               "
             >
-              Track tuition payments in both KRW
-              and PHP for each enrollment.
+              Track the agreed payment amount in each
+              student&apos;s currency together with the actual
+              PHP amount received.
             </p>
           </div>
 
@@ -297,7 +297,6 @@ export default async function PaymentsPage({
 
         {paymentRows.length > 0 && (
           <div className="mt-12 space-y-4">
-
             {paymentRows.map((payment) => {
               const enrollment =
                 payment.enrollments;
@@ -310,6 +309,12 @@ export default async function PaymentsPage({
               )
                 ? studentData[0] ?? null
                 : studentData ?? null;
+
+              const originalAmount =
+                getOriginalPaymentAmount(payment);
+
+              const originalCurrency =
+                normalizeCurrency(payment.currency);
 
               return (
                 <div
@@ -335,7 +340,6 @@ export default async function PaymentsPage({
                       lg:justify-between
                     "
                   >
-
                     {/* STUDENT */}
 
                     <div>
@@ -415,20 +419,20 @@ export default async function PaymentsPage({
                         sm:grid-cols-4
                       "
                     >
-
-                      {/* KRW */}
+                      {/* ORIGINAL CURRENCY */}
 
                       <PaymentInfo
-                        label="KRW"
-                        value={formatKrw(
-                          payment.amount_krw
+                        label="Payment"
+                        value={formatOriginalCurrency(
+                          originalAmount,
+                          originalCurrency
                         )}
                       />
 
                       {/* PHP */}
 
                       <PaymentInfo
-                        label="PHP"
+                        label="PHP Received"
                         value={formatPhp(
                           payment.amount_php
                         )}
@@ -582,18 +586,95 @@ function PaymentInfo({
   );
 }
 
-function formatKrw(
-  amount: number | null
+function normalizeCurrency(
+  currency: string | null | undefined
+) {
+  return String(currency || "KRW")
+    .trim()
+    .toUpperCase();
+}
+
+function getOriginalPaymentAmount(
+  payment: PaymentRow
+) {
+  if (
+    payment.amount !== null &&
+    payment.amount !== undefined
+  ) {
+    return Number(payment.amount);
+  }
+
+  if (
+    normalizeCurrency(payment.currency) ===
+      "KRW" &&
+    payment.amount_krw !== null &&
+    payment.amount_krw !== undefined
+  ) {
+    return Number(payment.amount_krw);
+  }
+
+  return null;
+}
+
+function formatOriginalCurrency(
+  amount: number | null,
+  currency: string
 ) {
   if (
     amount === null ||
-    amount === undefined
+    amount === undefined ||
+    !Number.isFinite(Number(amount))
   ) {
     return "—";
   }
 
-  return `₩${Number(amount).toLocaleString(
-    "en-US"
+  const numericAmount = Number(amount);
+
+  if (currency === "KRW") {
+    return `KRW ₩${numericAmount.toLocaleString(
+      "en-US",
+      {
+        maximumFractionDigits: 0,
+      }
+    )}`;
+  }
+
+  if (currency === "CNY") {
+    return `CNY ¥${numericAmount.toLocaleString(
+      "en-US",
+      {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }
+    )}`;
+  }
+
+  if (currency === "USD") {
+    return `USD $${numericAmount.toLocaleString(
+      "en-US",
+      {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }
+    )}`;
+  }
+
+  if (currency === "PHP") {
+    return `PHP ₱${numericAmount.toLocaleString(
+      "en-US",
+      {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }
+    )}`;
+  }
+
+  return `${currency} ${numericAmount.toLocaleString(
+    "en-US",
+    {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }
   )}`;
 }
 
