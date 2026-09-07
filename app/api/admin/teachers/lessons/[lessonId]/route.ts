@@ -422,7 +422,7 @@ async function getLesson(
   }
 
   const enrollmentStudent =
-  (enrollmentStudents || [])[0];
+    (enrollmentStudents || [])[0];
 
   if (!enrollmentStudent) {
     return {
@@ -1414,6 +1414,22 @@ export async function PATCH(
         );
       }
 
+      /*
+       * A completed lesson consumes one lesson from the package.
+       *
+       * Returning a lesson to Scheduled makes it available again.
+       *
+       * For the remaining statuses, preserve the existing
+       * consumption value because package consumption and
+       * attendance/payroll classification are separate concerns.
+       */
+      const consumesLesson =
+        attendanceStatus === "completed"
+          ? true
+          : attendanceStatus === "scheduled"
+            ? false
+            : lesson.consumes_lesson;
+
       const {
         data: updatedLesson,
         error: updateError,
@@ -1422,6 +1438,9 @@ export async function PATCH(
         .update({
           attendance_status:
             attendanceStatus,
+
+          consumes_lesson:
+            consumesLesson,
 
           actual_teacher_id:
             attendanceStatus ===
