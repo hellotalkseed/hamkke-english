@@ -16,6 +16,8 @@ import {
   MonitorPlay,
   BookMarked,
   ListChecks,
+  UserPlus,
+  X,
 } from "lucide-react";
 
 const ATTENDANCE_OPTIONS = [
@@ -55,24 +57,39 @@ const ATTENDANCE_OPTIONS = [
   },
 ] as const;
 
+interface SubstituteTeacher {
+  id: string;
+  full_name: string | null;
+  teacher_number: string | null;
+  available: boolean;
+}
+
 interface LessonDetail {
   id: string;
   enrollment_id: string;
   enrollment_student_id: string;
   lesson_number: number;
   lesson_date: string;
+  schedule_time: string | null;
   duration: number;
   attendance_status: string;
   notes: string | null;
   teacher_observation: string | null;
   consumes_lesson: boolean;
   actual_teacher_id: string | null;
+  substitute_teacher_id: string | null;
 
   platform: string | null;
   material: string | null;
   lesson_page: string | null;
   class_instructions: string | null;
   class_info_updated_at: string | null;
+
+  substitute_teacher: {
+    id: string;
+    full_name: string | null;
+    teacher_number: string | null;
+  } | null;
 
   student: {
     id: string;
@@ -90,11 +107,20 @@ interface LessonDetail {
 }
 
 interface LessonResponse {
+  viewer: {
+    id: string;
+    full_name: string | null;
+    role: string;
+  };
+
   teacher: {
     id: string;
     full_name: string | null;
   };
+
   lesson: LessonDetail;
+
+  substitute_teachers: SubstituteTeacher[];
 }
 
 interface LessonDetailsPageProps {
@@ -193,6 +219,30 @@ export default function LessonDetailsPage({
   const [classInfoMessage, setClassInfoMessage] =
     useState<string | null>(null);
 
+  /* --------------------------------
+   * Substitute Teacher
+   * -------------------------------- */
+
+  const [
+    selectedSubstituteTeacher,
+    setSelectedSubstituteTeacher,
+  ] = useState("");
+
+  const [
+    savingSubstitute,
+    setSavingSubstitute,
+  ] = useState(false);
+
+  const [
+    substituteMessage,
+    setSubstituteMessage,
+  ] = useState<string | null>(null);
+
+  const [
+    substituteError,
+    setSubstituteError,
+  ] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadLesson() {
       try {
@@ -246,8 +296,15 @@ export default function LessonDetailsPage({
           result.lesson.class_instructions || ""
         );
 
+        setSelectedSubstituteTeacher(
+          result.lesson.substitute_teacher_id ||
+            ""
+        );
+
         setPolishedNotes(null);
         setPolishedObservation(null);
+        setSubstituteMessage(null);
+        setSubstituteError(null);
       } catch (err) {
         setError(
           err instanceof Error
@@ -420,6 +477,94 @@ export default function LessonDetailsPage({
       );
     } finally {
       setSavingClassInfo(false);
+    }
+  }
+
+  async function saveSubstituteTeacher() {
+    if (!data) {
+      return;
+    }
+
+    try {
+      setSavingSubstitute(true);
+      setSubstituteMessage(null);
+      setSubstituteError(null);
+      setError(null);
+
+      const response = await fetch(
+        `/api/admin/teachers/lessons/${lessonId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            substitute_teacher_id:
+              selectedSubstituteTeacher || null,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+            "Failed to update substitute teacher."
+        );
+      }
+
+      const selectedTeacher =
+        selectedSubstituteTeacher
+          ? data.substitute_teachers.find(
+              (teacher) =>
+                teacher.id ===
+                selectedSubstituteTeacher
+            )
+          : null;
+
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              lesson: {
+                ...current.lesson,
+                substitute_teacher_id:
+                  result.lesson
+                    ?.substitute_teacher_id ??
+                  null,
+                substitute_teacher:
+                  selectedTeacher
+                    ? {
+                        id: selectedTeacher.id,
+                        full_name:
+                          selectedTeacher.full_name,
+                        teacher_number:
+                          selectedTeacher.teacher_number,
+                      }
+                    : null,
+              },
+            }
+          : current
+      );
+
+      setSubstituteMessage(
+        selectedSubstituteTeacher
+          ? "Substitute teacher assigned successfully."
+          : "Substitute teacher removed successfully."
+      );
+
+      setTimeout(() => {
+        setSubstituteMessage(null);
+      }, 3000);
+    } catch (err) {
+      setSubstituteError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while updating the substitute teacher."
+      );
+    } finally {
+      setSavingSubstitute(false);
     }
   }
 
@@ -620,7 +765,8 @@ export default function LessonDetailsPage({
   }
 
   async function polishTeacherObservation() {
-    const text = teacherObservation.trim();
+    const text =
+      teacherObservation.trim();
 
     if (!text) {
       setObservationPolishError(
@@ -805,6 +951,10 @@ export default function LessonDetailsPage({
     lesson.student?.preferred_name ||
     lesson.student?.full_name ||
     "Student";
+
+  const isOwnerOrAdmin =
+    data.viewer.role === "owner" ||
+    data.viewer.role === "admin";
 
   const currentStatus =
     ATTENDANCE_OPTIONS.find(
@@ -1125,6 +1275,185 @@ export default function LessonDetailsPage({
             )}
           </section>
         </div>
+
+        {/* Substitute Teacher */}
+        <section className="mt-6 rounded-[26px] border border-[#e7e1da] bg-white p-6 shadow-[0_8px_30px_rgba(70,65,58,0.04)] sm:p-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef3ee] text-[#6f8f72]">
+                <UserPlus size={18} />
+              </div>
+
+              <div>
+                <h2 className="font-medium text-[#2d2d2d]">
+                  Substitute Teacher
+                </h2>
+
+                <p className="mt-1 text-sm leading-6 text-[#7b8587]">
+                  Assign a teacher to cover this specific lesson.
+                  The student&apos;s regular schedule and teacher assignment
+                  will not be changed.
+                </p>
+              </div>
+            </div>
+
+            {lesson.substitute_teacher && (
+              <div className="rounded-full border border-[#dce4dc] bg-[#eef3ee] px-4 py-2 text-xs font-medium text-[#5f7f64]">
+                Substitute Assigned
+              </div>
+            )}
+          </div>
+
+          {/* Current Substitute */}
+          <div className="mt-6 rounded-2xl border border-[#e7e1da] bg-[#fbfaf8] p-5">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
+              <UserRound size={13} />
+              Current Substitute
+            </div>
+
+            {lesson.substitute_teacher ? (
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium text-[#2d2d2d]">
+                    {lesson.substitute_teacher.full_name ||
+                      "Teacher"}
+                  </p>
+
+                  {lesson.substitute_teacher.teacher_number && (
+                    <p className="mt-0.5 text-xs text-[#7b8587]">
+                      {lesson.substitute_teacher.teacher_number}
+                    </p>
+                  )}
+                </div>
+
+                {isOwnerOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSubstituteTeacher("");
+                      setSubstituteMessage(null);
+                      setSubstituteError(null);
+                    }}
+                    className="inline-flex w-fit items-center justify-center gap-2 rounded-full border border-[#e2d4ce] bg-white px-4 py-2 text-xs font-medium text-[#806c66] transition hover:border-[#cdbbb3] hover:bg-[#fcf8f6]"
+                  >
+                    <X size={14} />
+                    Remove
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-[#8b918d]">
+                No substitute teacher is currently assigned.
+              </p>
+            )}
+          </div>
+
+          {/* Owner/Admin Assignment Controls */}
+          {isOwnerOrAdmin && (
+            <div className="mt-5 border-t border-[#eee9e3] pt-5">
+              <div>
+                <label
+                  htmlFor="substitute-teacher"
+                  className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]"
+                >
+                  <UserPlus size={13} />
+                  Assign Substitute
+                </label>
+
+                <select
+                  id="substitute-teacher"
+                  value={selectedSubstituteTeacher}
+                  onChange={(event) => {
+                    setSelectedSubstituteTeacher(
+                      event.target.value
+                    );
+                    setSubstituteMessage(null);
+                    setSubstituteError(null);
+                  }}
+                  disabled={savingSubstitute}
+                  className="w-full rounded-xl border border-[#e7e1da] bg-[#fbfaf8] px-4 py-3 text-sm text-[#3c484b] outline-none transition focus:border-[#9eb19f] focus:bg-white focus:ring-2 focus:ring-[#eef3ee]"
+                >
+                  <option value="">
+                    No substitute
+                  </option>
+
+                  {data.substitute_teachers.map(
+                    (teacher) => (
+                      <option
+                        key={teacher.id}
+                        value={teacher.id}
+                        disabled={!teacher.available}
+                      >
+                        {teacher.full_name ||
+                          "Teacher"}
+                        {teacher.teacher_number
+                          ? ` · ${teacher.teacher_number}`
+                          : ""}
+                        {teacher.available
+                          ? " · Available"
+                          : " · Not available"}
+                      </option>
+                    )
+                  )}
+                </select>
+
+                <p className="mt-2 text-xs leading-5 text-[#8b918d]">
+                  Availability is checked against this lesson&apos;s
+                  scheduled time in Philippine Time. Teachers who are
+                  unavailable for the full lesson are disabled.
+                </p>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  onClick={saveSubstituteTeacher}
+                  disabled={savingSubstitute}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#6f8f72] px-6 py-3 text-sm font-medium text-white shadow-[0_5px_14px_rgba(111,143,114,0.20)] transition hover:bg-[#628267] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingSubstitute ? (
+                    "Saving..."
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      Save Substitute
+                    </>
+                  )}
+                </button>
+
+                {substituteMessage && (
+                  <div className="flex items-center gap-2 text-sm font-medium text-[#5f7f64]">
+                    <Check size={15} />
+                    {substituteMessage}
+                  </div>
+                )}
+              </div>
+
+              {substituteError && (
+                <div className="mt-4 rounded-xl border border-[#eadbd5] bg-[#fcf6f4] px-4 py-3">
+                  <p className="text-sm text-[#9a5f56]">
+                    {substituteError}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Teacher View */}
+          {!isOwnerOrAdmin &&
+            lesson.substitute_teacher && (
+              <div className="mt-5 border-t border-[#eee9e3] pt-5">
+                <p className="text-xs leading-5 text-[#8b918d]">
+                  This lesson is currently assigned to{" "}
+                  <span className="font-medium text-[#5f7064]">
+                    {lesson.substitute_teacher.full_name ||
+                      "a substitute teacher"}
+                  </span>{" "}
+                  as its substitute.
+                </p>
+              </div>
+            )}
+        </section>
 
         {/* Attendance */}
         <section className="mt-6 rounded-[26px] border border-[#e7e1da] bg-white p-6 shadow-[0_8px_30px_rgba(70,65,58,0.04)] sm:p-7">

@@ -23,6 +23,7 @@ interface TeacherLesson {
   attendance_status: string;
   consumes_lesson: boolean;
   actual_teacher_id: string | null;
+  is_substitute: boolean;
   student: {
     id: string;
     student_number: string | null;
@@ -1024,12 +1025,17 @@ export default function TeacherLessonsPage({
 
                                 <p className="truncate text-[11px] leading-tight text-[#665a31]">
                                   <span className="font-bold">
+                                    {lesson.is_substitute
+                                      ? "SUB · "
+                                      : ""}
                                     {studentName}
-                                  </span>{" "}
-                                  - Lesson{" "}
+                                  </span>
+                                  {" / "}
+                                  Lesson{" "}
                                   {
                                     lesson.lesson_number
                                   }{" "}
+                                  ·{" "}
                                   {
                                     lesson.duration
                                   }{" "}

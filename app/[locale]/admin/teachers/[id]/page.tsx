@@ -1565,7 +1565,7 @@ export default function ManageTeacherPage() {
 
           <Link
   href={`/${locale}/admin/teachers/${teacher.id}/payroll`}
-  className="inline-flex w-fit items-center justify-center rounded-full border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[13px] font-medium text-white transition-colors hover:border-[#5F7E63] hover:bg-[#5F7E63]"
+  className="inline-flex w-fit items-center justify-center rounded-full border border-[#E5B8B2] bg-[#E5B8B2] px-5 py-2.5 font-sans text-[13px] font-bold text-white transition-colors hover:border-[#748260] hover:bg-[#748260]"
 >
   Payroll →
 </Link>

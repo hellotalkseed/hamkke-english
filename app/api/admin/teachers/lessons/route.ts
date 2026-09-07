@@ -38,6 +38,7 @@ interface LessonRecord {
   attendance_status: string;
   consumes_lesson: boolean;
   actual_teacher_id: string | null;
+  substitute_teacher_id: string | null;
 }
 
 function convertStudentTimeToPhilippineTime(
@@ -57,29 +58,11 @@ function convertStudentTimeToPhilippineTime(
     studentTimezone || "Asia/Manila";
 
   try {
-    /*
-     * ---------------------------------------------------------
-     * Create the student's local date/time.
-     *
-     * lesson_date and schedule_time represent the student's
-     * own scheduled local time.
-     * ---------------------------------------------------------
-     */
-
     const [year, month, day] =
       lessonDate.split("-").map(Number);
 
     const [hours, minutes, seconds = 0] =
       scheduleTime.split(":").map(Number);
-
-    /*
-     * ---------------------------------------------------------
-     * Determine the timezone offset for the student's timezone.
-     *
-     * This handles timezones with DST, such as Korea-free
-     * fixed-offset zones and other locations appropriately.
-     * ---------------------------------------------------------
-     */
 
     const formatter = new Intl.DateTimeFormat(
       "en-US",
@@ -94,12 +77,6 @@ function convertStudentTimeToPhilippineTime(
         hourCycle: "h23",
       }
     );
-
-    /*
-     * Treat the requested student-local date/time as a
-     * UTC-like timestamp first, then determine what that
-     * timestamp represents in the student's timezone.
-     */
 
     let utcTimestamp = Date.UTC(
       year,
@@ -144,12 +121,6 @@ function convertStudentTimeToPhilippineTime(
 
     const actualUtcTimestamp =
       utcTimestamp - offset;
-
-    /*
-     * ---------------------------------------------------------
-     * Convert the resulting instant to Philippine Time.
-     * ---------------------------------------------------------
-     */
 
     const philippineFormatter =
       new Intl.DateTimeFormat(
@@ -271,7 +242,7 @@ export async function GET() {
 
     /*
      * ---------------------------------------------------------
-     * LOAD THIS TEACHER'S ACTIVE ASSIGNMENTS
+     * LOAD THIS TEACHER'S ACTIVE REGULAR ASSIGNMENTS
      * ---------------------------------------------------------
      */
 
@@ -300,113 +271,31 @@ export async function GET() {
       );
     }
 
-    if (
-      !assignments ||
-      assignments.length === 0
-    ) {
-      return NextResponse.json({
-        teacher: {
-          id: profile.id,
-          full_name: profile.full_name,
-        },
-        lessons: [],
-      });
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * GET ENROLLMENT/STUDENT IDs
-     * ---------------------------------------------------------
-     */
-
     const enrollmentStudentIds =
-      assignments.map(
+      (assignments || []).map(
         (assignment) =>
           assignment.enrollment_student_id
       );
 
     /*
      * ---------------------------------------------------------
-     * LOAD ENROLLMENT/STUDENT INFORMATION
+     * LOAD SUBSTITUTE LESSONS
+     *
+     * Substitute assignments are attached directly to an
+     * individual lesson.
+     *
+     * This does NOT modify:
+     * - teacher_assignments
+     * - enrollment schedules
+     * - enrollment
+     * - payment
+     * - student schedule
      * ---------------------------------------------------------
      */
 
     const {
-      data: enrollmentStudents,
-      error: enrollmentStudentsError,
-    } = await admin
-      .from("enrollment_students")
-      .select(`
-        id,
-        enrollment_id,
-        student_id,
-        students (
-          id,
-          student_number,
-          full_name,
-          preferred_name,
-          timezone
-        ),
-        enrollments (
-          id,
-          package_name,
-          status
-        )
-      `)
-      .in("id", enrollmentStudentIds);
-
-    if (enrollmentStudentsError) {
-      return NextResponse.json(
-        {
-          error:
-            enrollmentStudentsError.message,
-        },
-        { status: 500 }
-      );
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * GET ENROLLMENT IDs
-     * ---------------------------------------------------------
-     */
-
-    const enrollmentIds =
-      Array.from(
-        new Set(
-          (enrollmentStudents || []).map(
-            (item) =>
-              item.enrollment_id
-          )
-        )
-      );
-
-    if (enrollmentIds.length === 0) {
-      return NextResponse.json({
-        teacher: {
-          id: profile.id,
-          full_name: profile.full_name,
-        },
-        lessons: [],
-      });
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * LOAD LESSONS
-     *
-     * IMPORTANT:
-     *
-     * student_id is included here because a shared enrollment
-     * can contain multiple students.
-     *
-     * Each lesson belongs to ONE student through lessons.student_id.
-     * ---------------------------------------------------------
-     */
-
-    const {
-      data: lessons,
-      error: lessonsError,
+      data: substituteLessons,
+      error: substituteLessonsError,
     } = await admin
       .from("lessons")
       .select(`
@@ -419,31 +308,334 @@ export async function GET() {
         duration,
         attendance_status,
         consumes_lesson,
-        actual_teacher_id
+        actual_teacher_id,
+        substitute_teacher_id
       `)
-      .in(
-        "enrollment_id",
-        enrollmentIds
-      )
-      .order("lesson_date", {
-        ascending: true,
-      })
-      .order("schedule_time", {
-        ascending: true,
-      })
-      .order("lesson_number", {
-        ascending: true,
-      });
+      .eq(
+        "substitute_teacher_id",
+        user.id
+      );
 
-    if (lessonsError) {
+    if (substituteLessonsError) {
       return NextResponse.json(
         {
           error:
-            lessonsError.message,
+            substituteLessonsError.message,
         },
         { status: 500 }
       );
     }
+
+    /*
+     * ---------------------------------------------------------
+     * GET ENROLLMENT/STUDENT IDs FROM REGULAR ASSIGNMENTS
+     * ---------------------------------------------------------
+     */
+
+    let enrollmentStudents: EnrollmentStudentRecord[] =
+      [];
+
+    if (
+      enrollmentStudentIds.length > 0
+    ) {
+      const {
+        data,
+        error,
+      } = await admin
+        .from("enrollment_students")
+        .select(`
+          id,
+          enrollment_id,
+          student_id,
+          students (
+            id,
+            student_number,
+            full_name,
+            preferred_name,
+            timezone
+          ),
+          enrollments (
+            id,
+            package_name,
+            status
+          )
+        `)
+        .in(
+          "id",
+          enrollmentStudentIds
+        );
+
+      if (error) {
+        return NextResponse.json(
+          {
+            error: error.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      enrollmentStudents =
+        (data || []) as EnrollmentStudentRecord[];
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * ADD ENROLLMENT/STUDENT RECORDS FOR SUBSTITUTE LESSONS
+     *
+     * A substitute lesson may belong to a student whose regular
+     * teacher is someone else, so that student will not
+     * necessarily exist in the regular assignment list above.
+     * ---------------------------------------------------------
+     */
+
+    const substituteEnrollmentStudentKeys =
+      Array.from(
+        new Set(
+          (substituteLessons || [])
+            .map((lesson) => {
+              if (
+                !lesson.enrollment_id ||
+                !lesson.student_id
+              ) {
+                return null;
+              }
+
+              return `${lesson.enrollment_id}:${lesson.student_id}`;
+            })
+            .filter(
+              (
+                value
+              ): value is string =>
+                Boolean(value)
+            )
+        )
+      );
+
+    if (
+      substituteEnrollmentStudentKeys.length >
+      0
+    ) {
+      const substituteEnrollmentIds =
+        Array.from(
+          new Set(
+            substituteEnrollmentStudentKeys.map(
+              (key) =>
+                key.split(":")[0]
+            )
+          )
+        );
+
+      const substituteStudentIds =
+        Array.from(
+          new Set(
+            substituteEnrollmentStudentKeys.map(
+              (key) =>
+                key.split(":")[1]
+            )
+          )
+        );
+
+      const {
+        data,
+        error,
+      } = await admin
+        .from("enrollment_students")
+        .select(`
+          id,
+          enrollment_id,
+          student_id,
+          students (
+            id,
+            student_number,
+            full_name,
+            preferred_name,
+            timezone
+          ),
+          enrollments (
+            id,
+            package_name,
+            status
+          )
+        `)
+        .in(
+          "enrollment_id",
+          substituteEnrollmentIds
+        )
+        .in(
+          "student_id",
+          substituteStudentIds
+        );
+
+      if (error) {
+        return NextResponse.json(
+          {
+            error: error.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      const existingKeys =
+        new Set(
+          enrollmentStudents.map(
+            (item) =>
+              `${item.enrollment_id}:${item.student_id}`
+          )
+        );
+
+      for (
+        const item of
+        (data || []) as EnrollmentStudentRecord[]
+      ) {
+        const key =
+          `${item.enrollment_id}:${item.student_id}`;
+
+        if (!existingKeys.has(key)) {
+          enrollmentStudents.push(
+            item
+          );
+        }
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * GET ENROLLMENT IDs
+     * ---------------------------------------------------------
+     */
+
+    const enrollmentIds =
+      Array.from(
+        new Set(
+          enrollmentStudents.map(
+            (item) =>
+              item.enrollment_id
+          )
+        )
+      );
+
+    /*
+     * ---------------------------------------------------------
+     * LOAD REGULAR LESSONS
+     *
+     * Only load lessons belonging to the teacher's regular
+     * assigned enrollments.
+     * ---------------------------------------------------------
+     */
+
+    let regularLessons: LessonRecord[] =
+      [];
+
+    if (enrollmentIds.length > 0) {
+      const {
+        data,
+        error,
+      } = await admin
+        .from("lessons")
+        .select(`
+          id,
+          enrollment_id,
+          student_id,
+          lesson_number,
+          lesson_date,
+          schedule_time,
+          duration,
+          attendance_status,
+          consumes_lesson,
+          actual_teacher_id,
+          substitute_teacher_id
+        `)
+        .in(
+          "enrollment_id",
+          enrollmentIds
+        )
+        .order("lesson_date", {
+          ascending: true,
+        })
+        .order("schedule_time", {
+          ascending: true,
+        })
+        .order("lesson_number", {
+          ascending: true,
+        });
+
+      if (error) {
+        return NextResponse.json(
+          {
+            error: error.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      regularLessons =
+        (data || []) as LessonRecord[];
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * COMBINE REGULAR + SUBSTITUTE LESSONS
+     *
+     * A substitute lesson is returned only once.
+     *
+     * If the logged-in teacher is both the regular teacher and
+     * substitute teacher for the same lesson, it is still shown
+     * as a substitute lesson.
+     * ---------------------------------------------------------
+     */
+
+    const lessonMap =
+      new Map<string, LessonRecord>();
+
+    for (
+      const lesson of regularLessons
+    ) {
+      lessonMap.set(
+        lesson.id,
+        lesson
+      );
+    }
+
+    for (
+      const lesson of
+      (substituteLessons || []) as LessonRecord[]
+    ) {
+      lessonMap.set(
+        lesson.id,
+        lesson
+      );
+    }
+
+    const allLessons =
+      Array.from(
+        lessonMap.values()
+      ).sort((a, b) => {
+        const dateComparison =
+          a.lesson_date.localeCompare(
+            b.lesson_date
+          );
+
+        if (dateComparison !== 0) {
+          return dateComparison;
+        }
+
+        const timeA =
+          a.schedule_time || "";
+        const timeB =
+          b.schedule_time || "";
+
+        const timeComparison =
+          timeA.localeCompare(timeB);
+
+        if (timeComparison !== 0) {
+          return timeComparison;
+        }
+
+        return (
+          a.lesson_number -
+          b.lesson_number
+        );
+      });
 
     /*
      * ---------------------------------------------------------
@@ -466,6 +658,8 @@ export async function GET() {
       attendance_status: string;
       consumes_lesson: boolean;
       actual_teacher_id: string | null;
+      substitute_teacher_id: string | null;
+      is_substitute: boolean;
       student: {
         id: string;
         student_number: string | null;
@@ -480,70 +674,46 @@ export async function GET() {
       } | null;
     }> = [];
 
-    for (const lesson of (lessons ||
-      []) as LessonRecord[]) {
-
+    for (
+      const lesson of allLessons
+    ) {
       /*
        * -------------------------------------------------------
        * IMPORTANT SHARED-ENROLLMENT LOGIC
        *
-       * Previously, every lesson in a shared enrollment was
-       * matched to every student in that enrollment.
-       *
-       * That is incorrect.
-       *
-       * A lesson has its own student_id, so it must only be
-       * matched to the enrollment_student belonging to that
-       * same student.
+       * A lesson belongs to one student through lessons.student_id.
        * -------------------------------------------------------
        */
 
       const matchingEnrollmentStudents =
-        (
-          enrollmentStudents || []
-        ).filter(
+        enrollmentStudents.filter(
           (item) =>
             item.enrollment_id ===
               lesson.enrollment_id &&
             item.student_id ===
               lesson.student_id
-        ) as EnrollmentStudentRecord[];
+        );
 
-      /*
-       * -------------------------------------------------------
-       * If a lesson has no student_id match, don't manufacture
-       * a student association.
-       *
-       * This protects shared enrollments from showing the
-       * lesson under the wrong student.
-       * -------------------------------------------------------
-       */
+      for (
+        const enrollmentStudent of
+        matchingEnrollmentStudents
+      ) {
+        const student =
+          Array.isArray(
+            enrollmentStudent.students
+          )
+            ? enrollmentStudent.students[0]
+            : enrollmentStudent.students;
 
-      for (const enrollmentStudent of matchingEnrollmentStudents) {
-
-        const student = Array.isArray(
-          enrollmentStudent.students
-        )
-          ? enrollmentStudent.students[0]
-          : enrollmentStudent.students;
-
-        const enrollment = Array.isArray(
-          enrollmentStudent.enrollments
-        )
-          ? enrollmentStudent.enrollments[0]
-          : enrollmentStudent.enrollments;
+        const enrollment =
+          Array.isArray(
+            enrollmentStudent.enrollments
+          )
+            ? enrollmentStudent.enrollments[0]
+            : enrollmentStudent.enrollments;
 
         const timezone =
           student?.timezone || null;
-
-        /*
-         * -----------------------------------------------------
-         * Convert THIS student's scheduled local time to PHT.
-         *
-         * Bin's lessons use Bin's timezone.
-         * Ms. Dasom's lessons use Dasom's timezone.
-         * -----------------------------------------------------
-         */
 
         const converted =
           convertStudentTimeToPhilippineTime(
@@ -551,6 +721,10 @@ export async function GET() {
             lesson.schedule_time,
             timezone
           );
+
+        const isSubstitute =
+          lesson.substitute_teacher_id ===
+          user.id;
 
         formattedLessons.push({
           id: lesson.id,
@@ -594,6 +768,13 @@ export async function GET() {
           actual_teacher_id:
             lesson.actual_teacher_id,
 
+          substitute_teacher_id:
+            lesson.substitute_teacher_id,
+
+          is_substitute:
+
+            isSubstitute,
+
           student: student
             ? {
                 id: student.id,
@@ -624,9 +805,11 @@ export async function GET() {
     return NextResponse.json({
       teacher: {
         id: profile.id,
-        full_name: profile.full_name,
+        full_name:
+          profile.full_name,
       },
-      lessons: formattedLessons,
+      lessons:
+        formattedLessons,
     });
   } catch (error) {
     console.error(

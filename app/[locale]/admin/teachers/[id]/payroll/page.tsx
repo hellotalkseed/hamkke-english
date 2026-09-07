@@ -13,10 +13,10 @@ type Teacher = {
   full_name: string | null;
   role: string;
   status: string;
-  created_at: string;
-  email: string | null;
   teacher_number?: string | null;
 };
+
+type PayrollStatus = "pending" | "approved" | "paid";
 
 type PayrollRecord = {
   id: string;
@@ -38,10 +38,50 @@ type PayrollRecord = {
   gross_pay: number;
 
   payment_method: string | null;
-  reference_number: string | null;
+  payment_reference: string | null;
   payment_date: string | null;
 
-  status: "Pending" | "Approved" | "Paid";
+  status: PayrollStatus;
+};
+
+type CurrentPayroll = {
+  period_start: string;
+  period_end: string;
+  teaching_minutes_before: number;
+
+  compensation_rate: {
+    id: string;
+    level: number;
+    min_teaching_minutes: number;
+    rate_25: number;
+    rate_50: number;
+  };
+
+  completed_25_count: number;
+  completed_50_count: number;
+
+  no_show_25_count: number;
+  no_show_50_count: number;
+
+  late_cancellation_25_count: number;
+  late_cancellation_50_count: number;
+
+  payable_25_count: number;
+  payable_50_count: number;
+
+  gross_pay: number;
+  status: PayrollStatus;
+  payroll_record: PayrollRecord | null;
+};
+
+type PayrollApiResponse = {
+  teacher: Teacher;
+  period: {
+    start: string;
+    end: string;
+  };
+  current: CurrentPayroll;
+  history: PayrollRecord[];
 };
 
 /* ========================================================================= */
@@ -187,16 +227,20 @@ function getPayrollPeriod(date: Date) {
   };
 }
 
-function getStatusClasses(status: PayrollRecord["status"]) {
-  if (status === "Paid") {
+function getStatusClasses(status: PayrollStatus) {
+  if (status === "paid") {
     return "bg-[#E5EBDD] text-[#607963]";
   }
 
-  if (status === "Approved") {
+  if (status === "approved") {
     return "bg-[#E8EFE5] text-[#6F8F72]";
   }
 
   return "bg-[#EEECE7] text-[#817D75]";
+}
+
+function formatStatus(status: PayrollStatus) {
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 function escapeHtml(value: string) {
@@ -258,6 +302,9 @@ export default function TeacherPayrollPage() {
   const [payrollHistory, setPayrollHistory] =
     useState<PayrollRecord[]>([]);
 
+  const [currentPayroll, setCurrentPayroll] =
+    useState<CurrentPayroll | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -265,48 +312,39 @@ export default function TeacherPayrollPage() {
     useState<PayrollRecord | null>(null);
 
   /* ----------------------------------------------------------------------- */
-  /* LOAD TEACHER                                                            */
+  /* LOAD PAYROLL                                                            */
   /* ----------------------------------------------------------------------- */
 
   useEffect(() => {
-    async function loadTeacher() {
+    async function loadPayroll() {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch("/api/admin/teachers", {
-          method: "GET",
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/admin/teachers/${teacherId}/payroll`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
 
-        const data = await response.json();
+        const data: PayrollApiResponse | { error?: string } =
+          await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.error || "Unable to load teachers."
+            "error" in data && data.error
+              ? data.error
+              : "Unable to load teacher payroll."
           );
         }
 
-        const foundTeacher = (data.teachers || []).find(
-          (item: Teacher) => item.id === teacherId
-        );
+        const payrollData = data as PayrollApiResponse;
 
-        if (!foundTeacher) {
-          throw new Error(
-            "This teacher could not be found."
-          );
-        }
-
-        setTeacher(foundTeacher);
-
-        /*
-         * Payroll history will be connected to the
-         * payroll records table/API later.
-         *
-         * Do not create or display fabricated
-         * historical payroll records.
-         */
-        setPayrollHistory([]);
+        setTeacher(payrollData.teacher);
+        setCurrentPayroll(payrollData.current);
+        setPayrollHistory(payrollData.history || []);
       } catch (err) {
         console.error(
           "Error loading teacher payroll:",
@@ -316,14 +354,14 @@ export default function TeacherPayrollPage() {
         setError(
           err instanceof Error
             ? err.message
-            : "We couldn't load this teacher right now."
+            : "We couldn't load this teacher payroll right now."
         );
       } finally {
         setLoading(false);
       }
     }
 
-    loadTeacher();
+    loadPayroll();
   }, [teacherId]);
 
   /* ----------------------------------------------------------------------- */
@@ -331,8 +369,32 @@ export default function TeacherPayrollPage() {
   /* ----------------------------------------------------------------------- */
 
   const payrollPeriod = useMemo(() => {
-    return getPayrollPeriod(new Date());
-  }, []);
+    if (!currentPayroll) {
+      return {
+        label: "—",
+        start: "",
+        end: "",
+      };
+    }
+
+    const startDate = new Date(
+      `${currentPayroll.period_start}T00:00:00`
+    );
+
+    const endDay = Number(
+      currentPayroll.period_end.slice(-2)
+    );
+
+    const startDay = Number(
+      currentPayroll.period_start.slice(-2)
+    );
+
+    return {
+      label: `${formatMonthYear(startDate)} · ${startDay}–${endDay}`,
+      start: currentPayroll.period_start,
+      end: currentPayroll.period_end,
+    };
+  }, [currentPayroll]);
 
   /* ----------------------------------------------------------------------- */
   /* PRINT SAVED PAYMENT RECEIPT                                            */
@@ -368,7 +430,7 @@ export default function TeacherPayrollPage() {
     );
 
     const referenceNumber = escapeHtml(
-      record.reference_number || "—"
+      record.payment_reference || "—"
     );
 
     const total25 = getPayable25Count(record);
@@ -824,7 +886,7 @@ export default function TeacherPayrollPage() {
 
                 <div class="value">
                   <span class="status">
-                    ${escapeHtml(record.status)}
+                    ${escapeHtml(formatStatus(record.status))}
                   </span>
                 </div>
               </div>
@@ -853,471 +915,46 @@ export default function TeacherPayrollPage() {
   /* ----------------------------------------------------------------------- */
 
   function printCurrentPayroll() {
-    if (!teacher) {
+    if (!currentPayroll) {
       return;
     }
 
-    const teacherName = escapeHtml(
-      teacher.full_name || "Unnamed teacher"
-    );
-
-    const teacherNumber = escapeHtml(
-      teacher.teacher_number || "—"
-    );
-
-    const periodStart = formatShortDate(
-      payrollPeriod.start.toISOString()
-    );
-
-    const periodEnd = formatShortDate(
-      payrollPeriod.end.toISOString()
-    );
-
-    const printWindow = window.open(
-      "",
-      "_blank",
-      "width=900,height=1000"
-    );
-
-    if (!printWindow) {
-      return;
-    }
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>
-            Hamkke Payment Receipt - ${teacherName}
-          </title>
-
-          <meta charset="UTF-8" />
-
-          <style>
-            @page {
-              size: A4;
-              margin: 18mm;
-            }
-
-            * {
-              box-sizing: border-box;
-            }
-
-            body {
-              margin: 0;
-              color: #292929;
-              background: #ffffff;
-              font-family: Arial, Helvetica, sans-serif;
-              font-size: 11px;
-            }
-
-            .header {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              padding-bottom: 20px;
-              border-bottom: 1px solid #dcd8d2;
-            }
-
-            .eyebrow {
-              color: #8a8a84;
-              font-size: 8px;
-              font-weight: 600;
-              letter-spacing: 0.16em;
-              text-transform: uppercase;
-            }
-
-            h1 {
-              margin: 7px 0 0;
-              font-family: Georgia, "Times New Roman", serif;
-              font-size: 27px;
-              font-weight: 400;
-            }
-
-            .brand {
-              text-align: right;
-            }
-
-            .brand-name {
-              color: #6f8f72;
-              font-size: 14px;
-              font-weight: 700;
-              letter-spacing: 0.14em;
-            }
-
-            .brand-tagline {
-              margin-top: 6px;
-              color: #6f8f72;
-              font-family: Georgia, "Times New Roman", serif;
-              font-size: 10px;
-            }
-
-            .teacher-block {
-              margin-top: 22px;
-            }
-
-            .teacher-name {
-              font-family: Georgia, "Times New Roman", serif;
-              font-size: 17px;
-            }
-
-            .teacher-number {
-              margin-top: 4px;
-              color: #8a8780;
-              font-size: 9px;
-            }
-
-            .details {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              margin-top: 22px;
-              border-top: 1px solid #dcd8d2;
-              border-bottom: 1px solid #dcd8d2;
-            }
-
-            .detail {
-              padding: 12px 0;
-            }
-
-            .detail:nth-child(odd) {
-              padding-right: 20px;
-              border-right: 1px solid #e7e3dd;
-            }
-
-            .detail:nth-child(even) {
-              padding-left: 20px;
-            }
-
-            .detail:nth-child(n + 3) {
-              border-top: 1px solid #e7e3dd;
-            }
-
-            .label {
-              color: #8a8a84;
-              font-size: 8px;
-              font-weight: 600;
-              letter-spacing: 0.12em;
-              text-transform: uppercase;
-            }
-
-            .value {
-              margin-top: 5px;
-              font-family: Georgia, "Times New Roman", serif;
-              font-size: 13px;
-            }
-
-            .pending {
-              color: #8a8780;
-              font-style: italic;
-            }
-
-            .section {
-              margin-top: 27px;
-            }
-
-            .section-title {
-              margin: 0 0 10px;
-              font-family: Georgia, "Times New Roman", serif;
-              font-size: 17px;
-              font-weight: 400;
-            }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-            }
-
-            th {
-              padding: 8px 7px;
-              border-top: 1px solid #dcd8d2;
-              border-bottom: 1px solid #dcd8d2;
-              color: #8a8a84;
-              font-size: 8px;
-              font-weight: 600;
-              letter-spacing: 0.08em;
-              text-align: left;
-              text-transform: uppercase;
-            }
-
-            td {
-              padding: 9px 7px;
-              border-bottom: 1px solid #e7e3dd;
-              font-size: 10px;
-            }
-
-            .right {
-              text-align: right;
-            }
-
-            .center {
-              text-align: center;
-            }
-
-            .total-row td {
-              border-top: 1px solid #292929;
-              border-bottom: none;
-              padding-top: 13px;
-              font-family: Georgia, "Times New Roman", serif;
-              font-size: 15px;
-            }
-
-            .payment-box {
-              margin-top: 25px;
-              padding: 14px 16px;
-              border: 1px solid #dcd8d2;
-            }
-
-            .payment-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-            }
-
-            .payment-item {
-              padding: 5px 0;
-            }
-
-            .status {
-              display: inline-block;
-              padding: 5px 9px;
-              background: #eeece7;
-              color: #817d75;
-              font-size: 8px;
-              font-weight: 600;
-              letter-spacing: 0.1em;
-              text-transform: uppercase;
-            }
-
-            .footer {
-              margin-top: 55px;
-              padding-top: 12px;
-              border-top: 1px solid #dcd8d2;
-              color: #8a8780;
-              font-size: 8.5px;
-              line-height: 1.6;
-            }
-
-            .footer strong {
-              color: #55544f;
-              font-weight: 600;
-            }
-          </style>
-        </head>
-
-        <body>
-          <div class="header">
-            <div>
-              <div class="eyebrow">
-                Teacher payment
-              </div>
-
-              <h1>
-                Payment Receipt
-              </h1>
-            </div>
-
-            <div class="brand">
-              <div class="brand-name">
-                HAMKKE │ 함께
-              </div>
-
-              <div class="brand-tagline">
-                From Small Talk to Big Ideas
-              </div>
-            </div>
-          </div>
-
-          <div class="teacher-block">
-            <div class="teacher-name">
-              ${teacherName}
-            </div>
-
-            <div class="teacher-number">
-              ${teacherNumber}
-            </div>
-          </div>
-
-          <div class="details">
-            <div class="detail">
-              <div class="label">
-                Payroll period
-              </div>
-
-              <div class="value">
-                ${periodStart} – ${periodEnd}
-              </div>
-            </div>
-
-            <div class="detail">
-              <div class="label">
-                Payment date
-              </div>
-
-              <div class="value pending">
-                Pending
-              </div>
-            </div>
-
-            <div class="detail">
-              <div class="label">
-                25-minute rate
-              </div>
-
-              <div class="value pending">
-                Pending calculation
-              </div>
-            </div>
-
-            <div class="detail">
-              <div class="label">
-                50-minute rate
-              </div>
-
-              <div class="value pending">
-                Pending calculation
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">
-              Lesson Payments
-            </h2>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>Lesson Type</th>
-                  <th class="center">25 min</th>
-                  <th class="center">50 min</th>
-                  <th class="right">Amount</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr>
-                  <td>Completed</td>
-
-                  <td class="center pending">
-                    —
-                  </td>
-
-                  <td class="center pending">
-                    —
-                  </td>
-
-                  <td class="right pending">
-                    —
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>No-Show</td>
-
-                  <td class="center pending">
-                    —
-                  </td>
-
-                  <td class="center pending">
-                    —
-                  </td>
-
-                  <td class="right pending">
-                    —
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    Student Late Cancellation — Paid
-                  </td>
-
-                  <td class="center pending">
-                    —
-                  </td>
-
-                  <td class="center pending">
-                    —
-                  </td>
-
-                  <td class="right pending">
-                    —
-                  </td>
-                </tr>
-
-                <tr class="total-row">
-                  <td>
-                    <strong>Total Payment</strong>
-                  </td>
-
-                  <td class="center">
-                    <strong>—</strong>
-                  </td>
-
-                  <td class="center">
-                    <strong>—</strong>
-                  </td>
-
-                  <td class="right">
-                    <strong>—</strong>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="payment-box">
-            <div class="payment-grid">
-              <div class="payment-item">
-                <div class="label">
-                  Payment Method
-                </div>
-
-                <div class="value pending">
-                  Pending
-                </div>
-              </div>
-
-              <div class="payment-item">
-                <div class="label">
-                  Reference No.
-                </div>
-
-                <div class="value pending">
-                  Pending
-                </div>
-              </div>
-
-              <div class="payment-item">
-                <div class="label">
-                  Payment Status
-                </div>
-
-                <div class="value">
-                  <span class="status">
-                    Pending
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="footer">
-            <strong>Hamkke English</strong><br />
-            This preliminary receipt represents the payroll
-            period shown above. Final lesson counts, rates,
-            payment details, and total payment will be recorded
-            when the payroll period is reviewed and finalized.
-          </div>
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.focus();
-
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    const record: PayrollRecord = {
+      id:
+        currentPayroll.payroll_record?.id ||
+        "current-period",
+      period_start: currentPayroll.period_start,
+      period_end: currentPayroll.period_end,
+      completed_25_count:
+        currentPayroll.completed_25_count,
+      completed_50_count:
+        currentPayroll.completed_50_count,
+      no_show_25_count:
+        currentPayroll.no_show_25_count,
+      no_show_50_count:
+        currentPayroll.no_show_50_count,
+      late_cancellation_25_count:
+        currentPayroll.late_cancellation_25_count,
+      late_cancellation_50_count:
+        currentPayroll.late_cancellation_50_count,
+      rate_25:
+        currentPayroll.compensation_rate.rate_25,
+      rate_50:
+        currentPayroll.compensation_rate.rate_50,
+      gross_pay: currentPayroll.gross_pay,
+      payment_method:
+        currentPayroll.payroll_record?.payment_method ||
+        null,
+      payment_reference:
+        currentPayroll.payroll_record?.payment_reference ||
+        null,
+      payment_date:
+        currentPayroll.payroll_record?.payment_date ||
+        null,
+      status: currentPayroll.status,
+    };
+
+    printPayroll(record);
   }
 
   /* ========================================================================= */
@@ -1367,7 +1004,7 @@ export default function TeacherPayrollPage() {
   /* ERROR                                                                    */
   /* ========================================================================= */
 
-  if (error || !teacher) {
+  if (error || !teacher || !currentPayroll) {
     return (
       <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
         <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
@@ -1526,7 +1163,7 @@ export default function TeacherPayrollPage() {
               </p>
 
               <span className="mt-2 inline-flex rounded-full bg-[#EEECE7] px-3 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#817D75]">
-                Pending
+                {formatStatus(currentPayroll.status)}
               </span>
             </div>
           </div>
@@ -1607,23 +1244,32 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {currentPayroll.completed_25_count}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      —
+                      {formatCurrency(currentPayroll.compensation_rate.rate_25)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {currentPayroll.completed_50_count}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      —
+                      {formatCurrency(currentPayroll.compensation_rate.rate_50)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {formatCurrency(
+                        getAmount(
+                          currentPayroll.completed_25_count,
+                          currentPayroll.compensation_rate.rate_25
+                        ) +
+                          getAmount(
+                            currentPayroll.completed_50_count,
+                            currentPayroll.compensation_rate.rate_50
+                          )
+                      )}
                     </td>
                   </tr>
 
@@ -1633,23 +1279,32 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {currentPayroll.no_show_25_count}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      —
+                      {formatCurrency(currentPayroll.compensation_rate.rate_25)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {currentPayroll.no_show_50_count}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      —
+                      {formatCurrency(currentPayroll.compensation_rate.rate_50)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {formatCurrency(
+                        getAmount(
+                          currentPayroll.no_show_25_count,
+                          currentPayroll.compensation_rate.rate_25
+                        ) +
+                          getAmount(
+                            currentPayroll.no_show_50_count,
+                            currentPayroll.compensation_rate.rate_50
+                          )
+                      )}
                     </td>
                   </tr>
 
@@ -1659,23 +1314,32 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {currentPayroll.late_cancellation_25_count}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      —
+                      {formatCurrency(currentPayroll.compensation_rate.rate_25)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {currentPayroll.late_cancellation_50_count}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      —
+                      {formatCurrency(currentPayroll.compensation_rate.rate_50)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
-                      —
+                      {formatCurrency(
+                        getAmount(
+                          currentPayroll.late_cancellation_25_count,
+                          currentPayroll.compensation_rate.rate_25
+                        ) +
+                          getAmount(
+                            currentPayroll.late_cancellation_50_count,
+                            currentPayroll.compensation_rate.rate_50
+                          )
+                      )}
                     </td>
                   </tr>
 
@@ -1688,11 +1352,11 @@ export default function TeacherPayrollPage() {
                       colSpan={4}
                       className="px-3 pt-5 text-right font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]"
                     >
-                      Calculation pending
+                      {currentPayroll.payable_25_count} × 25 min · {currentPayroll.payable_50_count} × 50 min
                     </td>
 
                     <td className="px-3 pt-5 text-right font-serif text-[19px]">
-                      —
+                      {formatCurrency(currentPayroll.gross_pay)}
                     </td>
                   </tr>
                 </tbody>
@@ -1710,7 +1374,7 @@ export default function TeacherPayrollPage() {
                 </p>
 
                 <p className="mt-2 font-serif text-[15px]">
-                  —
+                  {currentPayroll.payroll_record?.payment_method || "—"}
                 </p>
               </div>
 
@@ -1719,8 +1383,8 @@ export default function TeacherPayrollPage() {
                   Reference no.
                 </p>
 
-                <p className="mt-2 font-serif text-[15px]">
-                  —
+                <p className="mt-2 break-all font-serif text-[15px]">
+                  {currentPayroll.payroll_record?.payment_reference || "—"}
                 </p>
               </div>
 
@@ -1730,7 +1394,7 @@ export default function TeacherPayrollPage() {
                 </p>
 
                 <p className="mt-2 font-serif text-[15px] text-[#817D75]">
-                  Pending
+                  {formatStatus(currentPayroll.status)}
                 </p>
               </div>
             </div>
@@ -1871,7 +1535,7 @@ export default function TeacherPayrollPage() {
                               record.status
                             )}`}
                           >
-                            {record.status}
+                            {formatStatus(record.status)}
                           </span>
                         </td>
 
@@ -1960,7 +1624,7 @@ export default function TeacherPayrollPage() {
                           record.status
                         )}`}
                       >
-                        {record.status}
+                        {formatStatus(record.status)}
                       </span>
                     </div>
 
@@ -2242,7 +1906,7 @@ export default function TeacherPayrollPage() {
                       selectedPayroll.status
                     )}`}
                   >
-                    {selectedPayroll.status}
+                    {formatStatus(selectedPayroll.status)}
                   </span>
                 </div>
               </div>
@@ -2265,7 +1929,7 @@ export default function TeacherPayrollPage() {
                   </p>
 
                   <p className="mt-2 break-all font-serif text-[14px]">
-                    {selectedPayroll.reference_number ||
+                    {selectedPayroll.payment_reference ||
                       "—"}
                   </p>
                 </div>

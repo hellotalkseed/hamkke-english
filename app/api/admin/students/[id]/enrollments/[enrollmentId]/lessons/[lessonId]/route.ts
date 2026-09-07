@@ -455,6 +455,7 @@ export async function PATCH(
       attendance_status,
       consumes_lesson,
       resolution,
+      actual_teacher_id,
       notes
     `)
     .eq("id", lessonId)
@@ -500,6 +501,179 @@ export async function PATCH(
 
   /*
    * ------------------------------------------------------------
+   * RESOLVE ACTUAL TEACHER FOR PAYABLE OUTCOMES
+   * ------------------------------------------------------------
+   *
+   * Payroll must never trust a teacher ID supplied by the browser.
+   * Instead, the server resolves the teacher from teacher_assignments.
+   *
+   * For shared enrollments, lesson.student_id identifies which
+   * enrollment participant this particular lesson belongs to.
+   *
+   * The assignment must also cover the lesson date so a later teacher
+   * reassignment does not incorrectly claim an older lesson.
+   */
+
+  const isPayableOutcome =
+    status === "completed" ||
+    status === "no_show" ||
+    status === "late_cancellation";
+
+  let actualTeacherId: string | null = null;
+
+  if (isPayableOutcome) {
+    const targetStudentId = lesson.student_id;
+
+    let enrollmentStudentId: string | null = null;
+
+    if (targetStudentId) {
+      const {
+        data: lessonParticipant,
+        error: lessonParticipantError,
+      } = await supabase
+        .from("enrollment_students")
+        .select("id")
+        .eq("enrollment_id", enrollmentId)
+        .eq("student_id", targetStudentId)
+        .maybeSingle();
+
+      if (lessonParticipantError) {
+        console.error(
+          "LESSON PARTICIPANT LOOKUP ERROR:",
+          lessonParticipantError
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              "Unable to determine the student connected to this lesson.",
+          },
+          { status: 500 }
+        );
+      }
+
+      enrollmentStudentId = lessonParticipant?.id ?? null;
+    } else {
+      /*
+       * Legacy individual lessons may not have lesson.student_id.
+       * We can safely infer the participant only when the enrollment
+       * has exactly one student.
+       */
+      const {
+        data: enrollmentParticipants,
+        error: enrollmentParticipantsError,
+      } = await supabase
+        .from("enrollment_students")
+        .select("id")
+        .eq("enrollment_id", enrollmentId);
+
+      if (enrollmentParticipantsError) {
+        console.error(
+          "ENROLLMENT PARTICIPANTS LOOKUP ERROR:",
+          enrollmentParticipantsError
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              "Unable to determine the participant connected to this lesson.",
+          },
+          { status: 500 }
+        );
+      }
+
+      if ((enrollmentParticipants || []).length === 1) {
+        enrollmentStudentId = enrollmentParticipants![0].id;
+      } else {
+        return NextResponse.json(
+          {
+            error:
+              "This shared lesson does not identify which student it belongs to, so the responsible teacher cannot be determined safely.",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    if (!enrollmentStudentId) {
+      return NextResponse.json(
+        {
+          error:
+            "The enrollment participant for this lesson could not be found.",
+        },
+        { status: 409 }
+      );
+    }
+
+    if (!lesson.lesson_date) {
+      return NextResponse.json(
+        {
+          error:
+            "The lesson date is required before the responsible teacher can be determined.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const {
+      data: matchingAssignments,
+      error: assignmentLookupError,
+    } = await supabase
+      .from("teacher_assignments")
+      .select(
+        `
+          id,
+          teacher_id,
+          start_date,
+          end_date,
+          status,
+          created_at
+        `
+      )
+      .eq("enrollment_student_id", enrollmentStudentId)
+      .lte("start_date", lesson.lesson_date)
+      .order("start_date", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (assignmentLookupError) {
+      console.error(
+        "TEACHER ASSIGNMENT LOOKUP ERROR:",
+        assignmentLookupError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to determine the teacher responsible for this lesson.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const matchingAssignment =
+      (matchingAssignments || []).find((assignment) => {
+        if (!assignment.end_date) {
+          return true;
+        }
+
+        return assignment.end_date >= lesson.lesson_date;
+      }) ?? null;
+
+    if (!matchingAssignment) {
+      return NextResponse.json(
+        {
+          error:
+            "No teacher assignment covers this lesson date. Assign the student to the correct teacher before recording a payable lesson outcome.",
+        },
+        { status: 409 }
+      );
+    }
+
+    actualTeacherId = matchingAssignment.teacher_id;
+  }
+
+  /*
+   * ------------------------------------------------------------
    * PRESERVE ORIGINAL DATE
    * ------------------------------------------------------------
    *
@@ -524,6 +698,7 @@ export async function PATCH(
     consumes_lesson: boolean;
     resolution: Resolution | null;
     notes: string | null;
+    actual_teacher_id: string | null;
     original_lesson_date?: string | null;
     lesson_date?: string | null;
     rescheduled_at?: string | null;
@@ -532,6 +707,7 @@ export async function PATCH(
     consumes_lesson: consumesLesson,
     resolution,
     notes,
+    actual_teacher_id: actualTeacherId,
   };
 
   /*
@@ -661,6 +837,9 @@ export async function PATCH(
         consumesLesson,
 
       resolution,
+
+      actual_teacher_id:
+        actualTeacherId,
 
       original_lesson_date:
         originalLessonDate,
