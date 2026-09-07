@@ -26,6 +26,9 @@ export default function Hero({
       <main className="relative overflow-hidden bg-[#FAF8F5]">
         <section
           className="
+            relative
+            isolate
+
             mx-auto
             grid
             max-w-[1400px]
@@ -33,36 +36,43 @@ export default function Hero({
             gap-10
 
             px-6
-            pt-8
+            pt-4
             pb-8
 
             md:px-8
-            md:pt-14
-            md:pb-20
+            md:pt-6
+            md:pb-14
 
             lg:min-h-[calc(100vh-88px)]
             lg:grid-cols-[1.12fr_0.88fr]
-            lg:items-center
+            lg:items-start
             lg:gap-6
             lg:px-10
+            lg:pt-10
           "
         >
           {/* =====================================================
               HERO CONTENT
+              Keep content above the extended image.
               ===================================================== */}
 
-          <HeroContent
-            locale={locale}
-            onStartConversation={() =>
-              setIsInquiryOpen(true)
-            }
-          />
+          <div className="relative z-30">
+            <HeroContent
+              locale={locale}
+              onStartConversation={() =>
+                setIsInquiryOpen(true)
+              }
+            />
+          </div>
 
           {/* =====================================================
-              HERO PORTRAIT
+              HERO IMAGE
+              Keep image behind the content.
               ===================================================== */}
 
-          <HeroImage />
+          <div className="relative z-0">
+            <HeroImage />
+          </div>
         </section>
 
         {/* =====================================================
@@ -75,6 +85,7 @@ export default function Hero({
             absolute
             right-[-120px]
             top-28
+            z-0
 
             h-[420px]
             w-[420px]

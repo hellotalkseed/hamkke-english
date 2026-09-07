@@ -18,14 +18,16 @@ export default function HeroContent({
   return (
     <FadeUp>
       <div
-        className="
-          flex
-          min-w-0
-          w-full
-          flex-col
-          justify-center
-        "
-      >
+  className="
+    flex
+    min-w-0
+    w-full
+    flex-col
+    justify-center
+
+    lg:pt-12
+  "
+>
         {/* =====================================================
             BRAND
             ===================================================== */}
