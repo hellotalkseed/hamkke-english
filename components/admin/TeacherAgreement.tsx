@@ -56,6 +56,7 @@ const TEACHER_AGREEMENT_SECTIONS = [
       "By accepting this agreement, the teacher confirms that they have had the opportunity to review these terms and agree to the policies and responsibilities described herein.",
     ],
   },
+
   {
     number: "02",
     title: "Teaching Role & Responsibilities",
@@ -72,6 +73,7 @@ const TEACHER_AGREEMENT_SECTIONS = [
     ending:
       "Teachers are encouraged to adapt their teaching approach to the student’s level, needs, and learning goals while maintaining the quality and standards expected by Hamkke.",
   },
+
   {
     number: "03",
     title: "Teaching Schedule",
@@ -83,32 +85,45 @@ const TEACHER_AGREEMENT_SECTIONS = [
       "If a scheduling conflict or other issue arises, the teacher should communicate with Hamkke as soon as reasonably possible.",
     ],
   },
+
   {
     number: "04",
     title: "Compensation & Payroll",
     paragraphs: [
-      "Teachers are compensated according to the lesson duration and applicable teaching rate recorded by Hamkke.",
-      "The initial standard rate is:",
+      "Teachers are compensated according to the duration and payable status of eligible lessons recorded by Hamkke.",
+      "The initial standard teaching rate is:",
     ],
-    bullets: ["25-minute lesson: ₱125", "50-minute lesson: ₱250"],
+    bullets: [
+      "25-minute lesson: ₱125",
+      "50-minute lesson: ₱250",
+    ],
     ending:
-      "The standard teaching rate increases by ₱25 per 50-minute lesson every six months of continuous teaching with Hamkke. The corresponding 25-minute rate will be adjusted accordingly.",
-    additionalParagraphs: ["Payroll is processed twice each month:"],
+      "Teaching rates may increase based on the teacher’s accumulated qualifying teaching hours with Hamkke. Rate progression is based on actual completed teaching time and is not determined by calendar time or length of service alone.",
+    additionalParagraphs: [
+      "The standard compensation progression is:",
+    ],
     additionalBullets: [
-      "1st–15th: First payroll period",
-      "16th–end of month: Second payroll period",
+      "0–999 qualifying teaching hours: ₱125 per 25-minute lesson / ₱250 per 50-minute lesson",
+      "1,000–1,999 qualifying teaching hours: ₱137.50 per 25-minute lesson / ₱275 per 50-minute lesson",
+      "2,000–2,999 qualifying teaching hours: ₱150 per 25-minute lesson / ₱300 per 50-minute lesson",
+      "3,000–3,999 qualifying teaching hours: ₱162.50 per 25-minute lesson / ₱325 per 50-minute lesson",
+      "4,000 or more qualifying teaching hours: ₱175 per 25-minute lesson / ₱350 per 50-minute lesson",
     ],
     finalParagraphs: [
-      "Only lessons that qualify as payable under the lesson policies are included in the applicable payroll period.",
-      "Payment records may include the teacher’s lesson count, applicable rate, payment date, payment method, and payment reference number.",
+      "For compensation-rate progression, qualifying teaching hours consist only of actual teaching time from lessons recorded as completed. Student no-shows and late cancellations may be payable under Hamkke’s lesson policies, but they do not count toward the teacher’s accumulated qualifying teaching hours because no teaching time was actually completed.",
+      "The applicable teaching rate for each payroll period is determined by the teacher’s accumulated qualifying teaching hours at the beginning of that payroll period. If the teacher reaches a new compensation threshold during a payroll period, the new rate will apply beginning with the next payroll period.",
+      "Payroll is calculated twice each month according to Philippine Time (PHT). The first payroll period covers eligible lessons from the 1st through 11:59 PM PHT on the 15th, with payment scheduled for the 16th. The second payroll period covers eligible lessons from the 16th through 11:59 PM PHT on the final calendar day of the month, with payment scheduled for the 1st day of the following month.",
+      "If a scheduled payment date falls on a day when the applicable payment service or financial institution is unavailable, payment will be made on the next available processing day.",
+      "Only lessons that qualify as payable under the lesson policies are included in payroll. Payroll records may include the teacher’s lesson counts, applicable rates, gross payment amount, payroll status, payment date, payment method, and payment reference number.",
     ],
   },
+
   {
     number: "05",
     title: "Lesson Attendance & Payable Lessons",
     paragraphs: [
-      "Teachers are responsible for accurately recording the attendance status of each assigned lesson.",
-      "The following student-related lesson outcomes are generally considered payable when the lesson is reserved and the applicable lesson policy has been met:",
+      "Teachers are responsible for accurately and promptly recording the attendance status of each assigned lesson. These records are used to determine payroll and should reflect what actually occurred during the scheduled lesson.",
+      "The following lesson outcomes qualify as payable:",
     ],
     bullets: [
       "completed lessons;",
@@ -116,23 +131,35 @@ const TEACHER_AGREEMENT_SECTIONS = [
       "student late cancellations.",
     ],
     ending:
-      "A teacher cancellation does not qualify as a payable lesson unless otherwise determined by Hamkke based on the circumstances.",
+      "A student no-show or late cancellation may therefore be included in payroll even though no actual teaching took place. However, these outcomes do not contribute to the teacher’s qualifying teaching hours for compensation-rate progression.",
+    additionalParagraphs: [
+      "The following lesson outcomes are not directly payable:",
+    ],
+    additionalBullets: [
+      "student cancellations that are rescheduled or returned as lesson credit;",
+      "lessons that do not take place because of an unexpected circumstance and are rescheduled or returned as lesson credit; and",
+      "teacher cancellations.",
+    ],
     finalParagraphs: [
+      "Unexpected circumstances may include situations such as power outages, internet or connection problems, emergencies, or other circumstances that reasonably prevent a scheduled lesson from taking place. When an affected lesson is rescheduled or returned as lesson credit, the interrupted lesson itself is not included as a payable lesson. If the replacement or credited lesson is later actually taught and recorded as completed, that completed lesson is included in payroll according to the applicable payroll period and teaching rate.",
       "Attendance records should be entered accurately and promptly so that payroll can be calculated correctly.",
       "If an attendance record appears incorrect or a lesson requires clarification, the teacher should communicate the issue before the relevant payroll period is finalized.",
     ],
   },
+
   {
     number: "06",
     title: "Teacher Cancellations & Absences",
     paragraphs: [
       "Teachers are expected to honor assigned lesson schedules whenever reasonably possible.",
-      "If a teacher needs to cancel or cannot attend a scheduled lesson, they should notify Hamkke as early as possible.",
-      "When sufficient notice is provided, Hamkke will work with the teacher to determine an appropriate arrangement, which may include assigning a replacement teacher or arranging a replacement lesson.",
-      "In emergencies or unexpected circumstances, teachers should communicate as soon as reasonably possible. Hamkke understands that situations such as illness, power outages, internet problems, and other emergencies may occasionally prevent a lesson from taking place as planned.",
+      "If a teacher needs to cancel or cannot attend a scheduled lesson, they should notify Hamkke as early as reasonably possible.",
+      "A lesson cancelled by the teacher is not payable to that teacher unless Hamkke expressly determines otherwise based on the circumstances.",
+      "When appropriate, Hamkke may arrange a replacement lesson or another reasonable solution for the affected student.",
+      "In emergencies or unexpected circumstances, teachers should communicate as soon as reasonably possible. Hamkke understands that situations such as illness, power outages, internet or connection problems, and other emergencies may occasionally prevent a lesson from taking place as planned.",
       "Repeated or avoidable teacher cancellations may be reviewed with the teacher to ensure that assigned lesson schedules remain reliable for students.",
     ],
   },
+
   {
     number: "07",
     title: "Student Communication & Professional Conduct",
@@ -144,9 +171,9 @@ const TEACHER_AGREEMENT_SECTIONS = [
     importantTitle: "Unauthorized Private Lessons & Student Solicitation",
     importantParagraphs: [
       "Teachers must not independently solicit, recruit, invite, encourage, redirect, or otherwise attempt to move any Hamkke student to private lessons outside Hamkke without prior written approval from Hamkke.",
-      "This prohibition applies during the teacher’s active teaching relationship with Hamkke and after the teacher stops teaching through Hamkke.",
-      "Unauthorized solicitation or recruitment of a Hamkke student for private lessons is considered a serious breach of this agreement and may result in immediate termination of the Teacher Agreement without further notice.",
-      "Where permitted by applicable law, unpaid compensation connected to the affected student, affected lessons, or affected payroll period may be withheld or forfeited as a consequence of the breach.",
+      "This requirement applies throughout the teacher’s active teaching relationship with Hamkke. Any post-termination obligations relating to Hamkke students will be subject to the terms of this agreement and applicable law.",
+      "Unauthorized solicitation or recruitment of a Hamkke student for private lessons is considered a serious breach of this agreement and may result in immediate termination of the Teacher Agreement.",
+      "Any suspected breach may be reviewed by Hamkke and addressed in accordance with this agreement and applicable law. Compensation already earned for payable lessons will be handled in accordance with applicable law.",
     ],
     ending:
       "Teachers should also avoid conduct that could create a conflict of interest or undermine the trust between Hamkke, its teachers, and its students.",
@@ -154,6 +181,7 @@ const TEACHER_AGREEMENT_SECTIONS = [
       "The purpose of these expectations is to protect the trust of both students and teachers and to maintain a respectful and professional learning environment.",
     ],
   },
+
   {
     number: "08",
     title: "Confidentiality & Student Information",
@@ -165,6 +193,7 @@ const TEACHER_AGREEMENT_SECTIONS = [
       "These confidentiality expectations continue to apply after a teacher stops teaching through Hamkke.",
     ],
   },
+
   {
     number: "09",
     title: "Teaching Materials & Intellectual Property",
@@ -175,6 +204,7 @@ const TEACHER_AGREEMENT_SECTIONS = [
       "Teachers should respect the intellectual property of Hamkke, students, and third-party content creators.",
     ],
   },
+
   {
     number: "10",
     title: "Ending the Agreement",
@@ -184,15 +214,16 @@ const TEACHER_AGREEMENT_SECTIONS = [
       "Before the agreement ends, the teacher is expected to complete or properly hand over any assigned lessons, attendance records, and other relevant teaching responsibilities.",
       "Hamkke may end the agreement immediately in circumstances involving serious misconduct, repeated or significant unreliability, inappropriate treatment of students, unauthorized solicitation or recruitment of Hamkke students for private lessons, serious confidentiality concerns, or other conduct that significantly affects the trust or safety of the Hamkke learning environment.",
       "Unauthorized solicitation or recruitment of Hamkke students for private lessons is considered grounds for immediate termination.",
-      "Where permitted by applicable law, unpaid compensation connected to the affected student, affected lessons, or affected payroll period may be withheld or forfeited as a consequence of the breach.",
+      "Any suspected breach may be reviewed by Hamkke and addressed in accordance with this agreement and applicable law. Compensation already earned for payable lessons will be handled in accordance with applicable law.",
       "Contract termination does not erase or remove the teacher’s previous teaching records, payment records, assignments, or other administrative history maintained by Hamkke.",
     ],
   },
+
   {
     number: "11",
     title: "Agreement & Acceptance",
     paragraphs: [
-      "This agreement is provided to the teacher before or at the beginning of the teaching relationship so that the teacher may review the responsibilities, compensation structure, and policies applicable to their work with Hamkke.",
+      "This agreement is provided to the teacher before or at the beginning of the teaching relationship so that the teacher may review the responsibilities, compensation structure, payroll schedule, lesson policies, and other terms applicable to their work with Hamkke.",
       "By signing or digitally accepting this agreement, the teacher confirms that they have read and understood the terms described herein and agree to follow the policies and responsibilities applicable to their teaching relationship with Hamkke.",
       "The teacher may ask questions or request clarification regarding any part of this agreement before accepting it.",
     ],
@@ -1155,14 +1186,30 @@ export default function TeacherAgreement({
           }
 
           .teacher-contract-section {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
+  break-inside: auto;
+  page-break-inside: auto;
+}
 
-          .teacher-contract-acceptance {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
+.teacher-contract-section > div {
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+.teacher-contract-section h4 {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.teacher-contract-section p,
+.teacher-contract-section li {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.teacher-contract-acceptance {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
 
           .teacher-contract-print-area h2,
           .teacher-contract-print-area h3,
@@ -1178,9 +1225,9 @@ export default function TeacherAgreement({
           }
 
           .teacher-contract-print-area ul {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
+  break-inside: auto;
+  page-break-inside: auto;
+}
 
           .teacher-contract-print-area {
             color: #222222 !important;
