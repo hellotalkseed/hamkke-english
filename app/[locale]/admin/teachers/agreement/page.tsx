@@ -40,11 +40,14 @@ export default async function TeacherAgreementPage({
 
   const profile = profileData as Profile | null;
 
-  if (
-    !profile ||
-    profile.role !== "teacher" ||
-    profile.status !== "active"
-  ) {
+  const canAccessAgreement =
+  profile?.role === "teacher" &&
+  (
+    profile.status === "pending" ||
+    profile.status === "active"
+  );
+
+if (!canAccessAgreement) {
     return (
       <main className="min-h-screen bg-[#FAF8F5] px-6 py-16 text-[#292929]">
         <div className="mx-auto max-w-[760px] text-center">
@@ -53,7 +56,7 @@ export default async function TeacherAgreementPage({
           </p>
 
           <p className="mt-3 font-sans text-[14px] leading-7 text-[#666]">
-            This page is available only to active teachers.
+            This page is available only to authorized teacher accounts.
           </p>
 
           <Link

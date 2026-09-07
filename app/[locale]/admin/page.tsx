@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -34,6 +35,30 @@ export default async function AdminPage({
     .select("full_name, role, status")
     .eq("id", user.id)
     .single();
+
+    /*
+ * --------------------------------
+ * TEACHER ROUTING
+ * --------------------------------
+ *
+ * Pending teachers must complete their
+ * Teacher Agreement before receiving
+ * access to the Teacher Dashboard.
+ */
+
+if (
+  profile?.role === "teacher" &&
+  profile?.status === "pending"
+) {
+  redirect(`/${locale}/admin/teachers/agreement`);
+}
+
+if (
+  profile?.role === "teacher" &&
+  profile?.status === "active"
+) {
+  redirect(`/${locale}/admin/teachers`);
+}
 
   /*
    * --------------------------------

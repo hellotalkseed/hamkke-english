@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -132,6 +133,99 @@ function getClientIp(request: Request) {
   return request.headers.get("x-real-ip");
 }
 
+/*
+ * Activate a pending teacher using the server-side Admin client.
+ *
+ * This helper is only called after the route has already verified:
+ *
+ * 1. the authenticated user is a teacher,
+ * 2. the teacher is accessing their own teacher ID, and
+ * 3. their own Teacher Agreement is accepted.
+ */
+async function activatePendingTeacher(
+  teacherId: string
+) {
+  const admin = createAdminClient();
+
+  const {
+    data: activatedProfile,
+    error: activationError,
+  } = await admin
+    .from("profiles")
+    .update({
+      status: "active",
+    })
+    .eq("id", teacherId)
+    .eq("role", "teacher")
+    .eq("status", "pending")
+    .select("id, role, status")
+    .maybeSingle();
+
+  if (activationError) {
+    console.error(
+      "Failed to activate teacher:",
+      activationError
+    );
+
+    return {
+      success: false,
+      error: activationError,
+    };
+  }
+
+  /*
+   * If no row was updated, inspect the current profile.
+   *
+   * This makes the operation safe to retry. If the teacher
+   * was already activated by an earlier request, we treat
+   * that as success.
+   */
+  if (!activatedProfile) {
+    const {
+      data: currentProfile,
+      error: currentProfileError,
+    } = await admin
+      .from("profiles")
+      .select("id, role, status")
+      .eq("id", teacherId)
+      .maybeSingle();
+
+    if (currentProfileError) {
+      console.error(
+        "Failed to verify teacher activation:",
+        currentProfileError
+      );
+
+      return {
+        success: false,
+        error: currentProfileError,
+      };
+    }
+
+    if (
+      currentProfile?.role === "teacher" &&
+      currentProfile?.status === "active"
+    ) {
+      return {
+        success: true,
+        error: null,
+      };
+    }
+
+    return {
+      success: false,
+      error: new Error(
+        "Teacher profile could not be activated."
+      ),
+    };
+  }
+
+  return {
+    success: true,
+    error: null,
+  };
+}
+
 const CONTRACT_SELECT = `
   id,
   teacher_id,
@@ -165,14 +259,6 @@ export async function GET(
     error,
   } = await getAuthenticatedProfile();
 
-  /*
-   * Keep the error response handling explicit.
-   *
-   * Next.js route handlers must return a Response.
-   * The previous `return error` pattern could be inferred
-   * as returning `null`, which caused the production build
-   * type error.
-   */
   if (error) {
     return error;
   }
@@ -198,9 +284,19 @@ export async function GET(
     profile.role === "owner" &&
     profile.status === "active";
 
+  /*
+   * Pending teachers may access their own agreement
+   * during onboarding.
+   *
+   * Active teachers may continue viewing their
+   * accepted agreement afterward.
+   */
   const isTeacher =
     profile.role === "teacher" &&
-    profile.status === "active";
+    (
+      profile.status === "pending" ||
+      profile.status === "active"
+    );
 
   if (!isOwner && !isTeacher) {
     return NextResponse.json(
@@ -279,11 +375,6 @@ export async function GET(
   const contract =
     contractData as TeacherContract | null;
 
-  /*
-   * The TeacherAgreement component already receives the teacher
-   * information from the page. It only needs the contract from
-   * this endpoint.
-   */
   return NextResponse.json({
     contract: contract ?? null,
   });
@@ -304,13 +395,6 @@ export async function POST(
     error,
   } = await getAuthenticatedProfile();
 
-  /*
-   * Keep the error response handling explicit.
-   *
-   * This guarantees that the POST handler also always returns
-   * a valid Response and avoids the same Next.js route-handler
-   * type error.
-   */
   if (error) {
     return error;
   }
@@ -359,9 +443,16 @@ export async function POST(
     profile.role === "owner" &&
     profile.status === "active";
 
+  /*
+   * Pending teachers must be able to accept their
+   * agreement during onboarding.
+   */
   const isTeacher =
     profile.role === "teacher" &&
-    profile.status === "active";
+    (
+      profile.status === "pending" ||
+      profile.status === "active"
+    );
 
   /* ----------------------------------------------------------------------- */
   /* AUTHORIZATION                                                           */
@@ -464,9 +555,52 @@ export async function POST(
     }
 
     /*
-     * Do not accept an already accepted agreement.
+     * ---------------------------------------------------------
+     * RECOVERY FOR AN ALREADY ACCEPTED AGREEMENT
+     * ---------------------------------------------------------
+     *
+     * Normally, an accepted agreement means the teacher is
+     * already active.
+     *
+     * If agreement acceptance succeeded previously but profile
+     * activation failed, however, the teacher could still be
+     * pending.
+     *
+     * In that case, retry activation instead of permanently
+     * trapping the teacher behind an "already accepted" error.
      */
     if (contract.status === "accepted") {
+      if (profile.status === "pending") {
+        const activation =
+          await activatePendingTeacher(
+            teacherId
+          );
+
+        if (!activation.success) {
+          return NextResponse.json(
+            {
+              error:
+                "Your agreement has been accepted, but we couldn't activate your teacher account. Please contact Hamkke.",
+              contract,
+            },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          message:
+            "Teacher agreement accepted successfully.",
+          contract,
+          teacherStatus: "active",
+          recovered: true,
+        });
+      }
+
+      /*
+       * An active teacher attempting to accept the same
+       * agreement again receives the normal conflict response.
+       */
       return NextResponse.json(
         {
           error:
@@ -501,6 +635,10 @@ export async function POST(
 
     const acceptedUserAgent =
       request.headers.get("user-agent");
+
+    /* --------------------------------------------------------------------- */
+    /* RECORD ACCEPTANCE                                                     */
+    /* --------------------------------------------------------------------- */
 
     const {
       data: updatedContractData,
@@ -542,11 +680,46 @@ export async function POST(
     const updatedContract =
       updatedContractData as TeacherContract;
 
+    /* --------------------------------------------------------------------- */
+    /* ACTIVATE PENDING TEACHER                                              */
+    /* --------------------------------------------------------------------- */
+
+    /*
+     * Only pending teachers require activation.
+     *
+     * Existing active teachers may still accept a newly issued
+     * agreement in the future without changing their status.
+     */
+    if (profile.status === "pending") {
+      const activation =
+        await activatePendingTeacher(
+          teacherId
+        );
+
+      if (!activation.success) {
+        /*
+         * The agreement is already accepted at this point.
+         *
+         * The recovery branch above makes this state repairable:
+         * another acceptance attempt can retry activation.
+         */
+        return NextResponse.json(
+          {
+            error:
+              "Your agreement was accepted, but we couldn't activate your teacher account. Please try again or contact Hamkke.",
+            contract: updatedContract,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message:
         "Teacher agreement accepted successfully.",
       contract: updatedContract,
+      teacherStatus: "active",
     });
   }
 
@@ -708,7 +881,7 @@ export async function POST(
   }
 
   /* ----------------------------------------------------------------------- */
-  /* SEND                                                                     */
+  /* SEND                                                                    */
   /* ----------------------------------------------------------------------- */
 
   if (action === "send") {
@@ -790,7 +963,7 @@ export async function POST(
   }
 
   /* ----------------------------------------------------------------------- */
-  /* UNSUPPORTED                                                              */
+  /* UNSUPPORTED                                                             */
   /* ----------------------------------------------------------------------- */
 
   return NextResponse.json(

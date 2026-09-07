@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 /* ========================================================================= */
 /* TYPES                                                                     */
@@ -279,6 +280,10 @@ export default function TeacherAgreement({
   teacher,
   viewer = "owner",
 }: TeacherAgreementProps) {
+  const router = useRouter();
+  const params = useParams<{ locale: string }>();
+  const locale = typeof params.locale === "string" ? params.locale : "en";
+
   const [contract, setContract] = useState<TeacherContract | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -398,6 +403,12 @@ export default function TeacherAgreement({
         );
         setAcceptConfirmed(false);
         setShowAgreement(true);
+
+        if (isTeacherViewer) {
+          router.replace(`/${locale}/admin/teachers`);
+          router.refresh();
+          return;
+        }
       }
     } catch (err) {
       setError(

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import {
   BookOpen,
@@ -54,6 +55,24 @@ export default async function TeachersPage({
     .select("full_name, role, status")
     .eq("id", user.id)
     .maybeSingle();
+
+  /* ----------------------------------------------------------------------- */
+  /* PENDING TEACHER ONBOARDING                                              */
+  /* ----------------------------------------------------------------------- */
+
+  /*
+   * A pending teacher has authenticated successfully,
+   * but has not yet completed the Teacher Agreement.
+   *
+   * Pending teachers must not enter the normal Teacher Dashboard.
+   * Send them back to the onboarding agreement instead.
+   */
+  if (
+    profile?.role === "teacher" &&
+    profile?.status === "pending"
+  ) {
+    redirect(`/${locale}/admin/teachers/agreement`);
+  }
 
   /* ----------------------------------------------------------------------- */
   /* OWNER                                                                   */

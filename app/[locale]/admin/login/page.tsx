@@ -82,14 +82,24 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // Only active accounts can access the admin area.
-    if (profile.status !== "active") {
-      await supabase.auth.signOut();
+    // Owners must be active.
+//
+// Teachers may sign in while pending so they can
+// complete the Teacher Agreement onboarding step.
+const canSignIn =
+  (profile.role === "owner" &&
+    profile.status === "active") ||
+  (profile.role === "teacher" &&
+    (profile.status === "active" ||
+      profile.status === "pending"));
 
-      setError("Your account is not currently active.");
-      setLoading(false);
-      return;
-    }
+if (!canSignIn) {
+  await supabase.auth.signOut();
+
+  setError("Your account is not currently active.");
+  setLoading(false);
+  return;
+}
 
     // Only Admin and Teacher accounts are allowed.
     // "owner" remains the actual database role.
@@ -116,12 +126,19 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // Send each role to its correct dashboard.
-    if (profile.role === "teacher") {
-      router.push(`/${locale}/admin/teachers`);
-    } else {
-      router.push(`/${locale}/admin`);
-    }
+    // Send each role to its correct destination.
+//
+// Pending teachers must complete their Teacher Agreement
+// before receiving access to the Teacher Dashboard.
+if (profile.role === "teacher") {
+  if (profile.status === "pending") {
+    router.push(`/${locale}/admin/teachers/agreement`);
+  } else {
+    router.push(`/${locale}/admin/teachers`);
+  }
+} else {
+  router.push(`/${locale}/admin`);
+}
 
     router.refresh();
   }

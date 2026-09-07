@@ -9,6 +9,7 @@ import WhatYouWontFindHere from "../../components/WhatYouWontFindHere";
 import MeetYourCoach from "@/components/MeetYourCoach";
 import CTA from "../../components/CTA";
 import Footer from "../../components/Footer";
+import TeacherInviteHandler from "@/components/admin/TeacherInviteHandler";
 
 import { isValidLocale } from "../../lib/i18n";
 
@@ -29,19 +30,29 @@ export default async function Home({
 
   return (
     <>
+      <TeacherInviteHandler
+        locale={locale}
+      />
+
       <Hero locale={locale} />
 
-      <StudentProblem locale={locale} />
+      <StudentProblem
+        locale={locale}
+      />
 
-      <LessonExperience locale={locale} />
+      <LessonExperience
+        locale={locale}
+      />
 
       <Audience locale={locale} />
 
       <Reflections locale={locale} />
 
-<WhatYouWontFindHere locale={locale} />
+      <WhatYouWontFindHere
+        locale={locale}
+      />
 
-<MeetYourCoach />
+      <MeetYourCoach />
 
       <CTA />
 
