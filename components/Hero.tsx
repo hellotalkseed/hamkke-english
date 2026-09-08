@@ -57,12 +57,9 @@ export default function Hero({
 
               Mobile only.
 
-              The image keeps its natural proportions instead of
-              using object-cover.
-
-              It is anchored to the RIGHT so the people on the
-              right-hand side of the original collage remain
-              visible.
+              Keeps the full collage proportions and anchors
+              the image toward the right so the students remain
+              visible behind the content.
 
               Desktop is not affected.
               ===================================================== */}
@@ -96,15 +93,15 @@ export default function Hero({
                 w-[150%]
                 max-w-none
 
-                opacity-[0.48]
+                opacity-[0.55]
               "
             />
 
             {/* =====================================================
                 MOBILE LEFT READABILITY FADE
 
-                Keeps the text area calm while allowing more of
-                the students to remain visible on the right.
+                Protects the text area while allowing more of the
+                people on the right to remain visible.
                 ===================================================== */}
 
             <div
@@ -113,14 +110,17 @@ export default function Hero({
                 inset-0
 
                 bg-gradient-to-r
-                from-[#FAF8F5]/95
-                via-[#FAF8F5]/72
-                to-[#FAF8F5]/20
+                from-[#FAF8F5]/88
+                via-[#FAF8F5]/55
+                to-transparent
               "
             />
 
             {/* =====================================================
-                MOBILE TOP FADE
+                MOBILE IMAGE TOP BLEND
+
+                Gradually reveals the collage so the photo does
+                not appear as a rectangular block behind the text.
                 ===================================================== */}
 
             <div
@@ -128,11 +128,29 @@ export default function Hero({
                 absolute
                 inset-x-0
                 top-0
-                h-[170px]
+                h-[58%]
 
                 bg-gradient-to-b
                 from-[#FAF8F5]
-                via-[#FAF8F5]/65
+                via-[#FAF8F5]/80
+                to-transparent
+              "
+            />
+
+            {/* =====================================================
+                MOBILE TOP SOFTENING
+                ===================================================== */}
+
+            <div
+              className="
+                absolute
+                inset-x-0
+                top-0
+                h-[130px]
+
+                bg-gradient-to-b
+                from-[#FAF8F5]
+                via-[#FAF8F5]/55
                 to-transparent
               "
             />
@@ -176,7 +194,7 @@ export default function Hero({
           {/* =====================================================
               DESKTOP HERO IMAGE
 
-              Completely hidden on mobile.
+              Hidden on mobile.
 
               From lg upward, the existing HeroImage component
               behaves exactly as before.
