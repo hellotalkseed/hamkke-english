@@ -6,7 +6,14 @@ export default function HeroImage() {
     <>
       {/* =====================================================
           MOBILE HERO BACKGROUND
-          Mobile-only treatment.
+
+          Mobile uses the full collage image rather than
+          object-cover so the students are not cropped away.
+
+          The collage is anchored to the bottom-right behind
+          the hero content.
+
+          Desktop is completely unaffected.
           ===================================================== */}
 
       <div
@@ -21,36 +28,57 @@ export default function HeroImage() {
         "
         aria-hidden="true"
       >
+        {/* =====================================================
+            MOBILE STUDENT COLLAGE
+
+            IMPORTANT:
+            - no fill
+            - no object-cover
+            - natural image proportions preserved
+            - right side intentionally emphasized
+            ===================================================== */}
+
         <Image
           src="/hamkke-students-hero-v2.png"
           alt=""
-          fill
+          width={1536}
+          height={1024}
           priority
-          sizes="100vw"
+          sizes="165vw"
           className="
-            object-cover
-            object-right
-            opacity-[0.38]
+            absolute
+            bottom-[-10px]
+            right-[-42%]
+
+            h-auto
+            w-[165%]
+            max-w-none
+
+            opacity-[0.52]
           "
         />
 
         {/* =====================================================
-            MOBILE READABILITY OVERLAY
+            MOBILE LEFT READABILITY FADE
+
+            Stronger behind the text on the left.
+            Much lighter toward the students on the right.
             ===================================================== */}
 
         <div
           className="
             absolute
             inset-0
-            bg-gradient-to-b
-            from-[#FAF8F5]/68
-            via-[#FAF8F5]/76
-            to-[#FAF8F5]/92
+
+            bg-gradient-to-r
+            from-[#FAF8F5]/95
+            via-[#FAF8F5]/72
+            to-[#FAF8F5]/20
           "
         />
 
         {/* =====================================================
-            MOBILE TOP SOFTENING
+            MOBILE TOP FADE
             ===================================================== */}
 
         <div
@@ -58,17 +86,17 @@ export default function HeroImage() {
             absolute
             inset-x-0
             top-0
-            h-[110px]
+            h-[170px]
 
             bg-gradient-to-b
             from-[#FAF8F5]
-            via-[#FAF8F5]/55
+            via-[#FAF8F5]/70
             to-transparent
           "
         />
 
         {/* =====================================================
-            MOBILE BOTTOM SOFTENING
+            MOBILE BOTTOM FADE
             ===================================================== */}
 
         <div
@@ -76,11 +104,11 @@ export default function HeroImage() {
             absolute
             inset-x-0
             bottom-0
-            h-[140px]
+            h-[120px]
 
             bg-gradient-to-t
             from-[#FAF8F5]
-            via-[#FAF8F5]/60
+            via-[#FAF8F5]/45
             to-transparent
           "
         />
@@ -88,7 +116,7 @@ export default function HeroImage() {
 
       {/* =====================================================
           DESKTOP HERO IMAGE
-          Existing desktop layout preserved exactly.
+          EXISTING DESKTOP LAYOUT PRESERVED.
           ===================================================== */}
 
       <div className="hidden lg:block">
@@ -110,7 +138,7 @@ export default function HeroImage() {
           >
             {/* =====================================================
                 STUDENT COLLAGE
-                Desktop position intentionally preserved.
+                Position intentionally preserved.
                 ===================================================== */}
 
             <Image
