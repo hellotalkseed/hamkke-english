@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   MessageCircle,
   Briefcase,
@@ -57,52 +59,207 @@ export default function Audience({
       className="
         relative
         overflow-hidden
-        bg-white
+        bg-[#FAF8F5]
+
         py-20
         sm:py-24
         lg:py-32
       "
     >
       {/* =====================================================
-          DECORATIVE BACKGROUND
+          GOALS BACKGROUND
+
+          The section is taller than the source artwork.
+
+          Two coordinated image layers preserve both:
+          - upper-left / upper-right details
+          - lower-left / lower-right details
+
+          The middle card area is softened so the cards remain
+          the main visual focus.
           ===================================================== */}
 
       <div
         className="
           pointer-events-none
           absolute
-          left-[-180px]
-          top-24
-          h-[320px]
-          w-[320px]
-          rounded-full
-          bg-[#EEF5EE]
-          opacity-50
-          blur-3xl
-
-          sm:h-[380px]
-          sm:w-[380px]
+          inset-0
+          z-0
+          overflow-hidden
         "
-      />
+        aria-hidden="true"
+      >
+        {/* =====================================================
+            TOP IMAGE ZONE
 
-      <div
-        className="
-          pointer-events-none
-          absolute
-          right-[-180px]
-          bottom-20
-          h-[300px]
-          w-[300px]
-          rounded-full
-          bg-[#F8EDE5]
-          opacity-30
-          blur-3xl
-        "
-      />
+            Preserves the map, travel imagery, books, foliage,
+            and other details from the top of the source image.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            top-0
+
+            h-[58%]
+
+            overflow-hidden
+          "
+        >
+          <Image
+            src="/hamkke-goals-background.png"
+            alt=""
+            fill
+            priority={false}
+            sizes="100vw"
+            className="
+              object-cover
+              object-top
+
+              opacity-[0.86]
+
+              sm:opacity-[0.89]
+              lg:opacity-[0.92]
+            "
+          />
+
+          {/* Blend top artwork gently into the card area */}
+
+          <div
+            className="
+              absolute
+              inset-x-0
+              bottom-0
+
+              h-[42%]
+
+              bg-gradient-to-b
+              from-transparent
+              via-[#FAF8F5]/46
+              to-[#FAF8F5]
+            "
+          />
+        </div>
+
+        {/* =====================================================
+            BOTTOM IMAGE ZONE
+
+            Preserves the notebook, passport, pen, travel card,
+            and lower decorative details.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            bottom-0
+
+            h-[58%]
+
+            overflow-hidden
+          "
+        >
+          <Image
+            src="/hamkke-goals-background.png"
+            alt=""
+            fill
+            priority={false}
+            sizes="100vw"
+            className="
+              object-cover
+              object-bottom
+
+              opacity-[0.86]
+
+              sm:opacity-[0.89]
+              lg:opacity-[0.92]
+            "
+          />
+
+          {/* Blend lower artwork upward into the card area */}
+
+          <div
+            className="
+              absolute
+              inset-x-0
+              top-0
+
+              h-[42%]
+
+              bg-gradient-to-t
+              from-transparent
+              via-[#FAF8F5]/46
+              to-[#FAF8F5]
+            "
+          />
+        </div>
+
+        {/* =====================================================
+            CARD AREA WASH
+
+            Strongest specifically through the middle of the
+            section where the five cards appear.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+
+            top-[27%]
+            bottom-[26%]
+
+            bg-[linear-gradient(to_bottom,rgba(250,248,245,0)_0%,rgba(250,248,245,0.42)_10%,rgba(250,248,245,0.76)_28%,rgba(250,248,245,0.84)_48%,rgba(250,248,245,0.84)_60%,rgba(250,248,245,0.74)_76%,rgba(250,248,245,0.38)_90%,rgba(250,248,245,0)_100%)]
+          "
+        />
+
+        {/* =====================================================
+            CENTER FOCUS WASH
+
+            Adds extra quiet directly behind the cards without
+            bleaching the outer artwork.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+
+            left-[5%]
+            right-[5%]
+
+            top-[31%]
+            bottom-[30%]
+
+            bg-[radial-gradient(ellipse_at_center,rgba(250,248,245,0.72)_0%,rgba(250,248,245,0.56)_46%,rgba(250,248,245,0.20)_72%,rgba(250,248,245,0)_100%)]
+          "
+        />
+
+        {/* =====================================================
+            MOBILE SOFTENING
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-0
+
+            bg-[#FAF8F5]/08
+
+            md:hidden
+          "
+        />
+      </div>
+
+      {/* =====================================================
+          CONTENT
+          ===================================================== */}
 
       <div
         className="
           relative
+          z-10
+
           mx-auto
           max-w-7xl
           px-6
@@ -115,8 +272,6 @@ export default function Audience({
             HEADING
             ===================================================== */}
 
-        {/* Brand */}
-
         <p
           className="
             text-xs
@@ -128,15 +283,15 @@ export default function Audience({
           {t.audience.brand}
         </p>
 
-        {/* Title */}
-
         <h2
           className="
             mt-5
             max-w-[760px]
+
             text-[42px]
             leading-[0.98]
             text-[#2B2B2B]
+
             [font-family:var(--font-cormorant)]
 
             sm:text-[52px]
@@ -155,6 +310,7 @@ export default function Audience({
           className="
             mt-6
             max-w-[680px]
+
             text-[17px]
             leading-8
             text-[#5B5B5B]
@@ -212,17 +368,26 @@ export default function Audience({
                   className="
                     group
                     h-full
+
                     rounded-[2rem]
+
                     border
                     border-[#E8E8E4]
-                    bg-[#FCFBF9]
+
+                    bg-[#FCFBF9]/94
+
                     p-7
+
                     shadow-[0_10px_30px_rgba(0,0,0,0.035)]
+
+                    backdrop-blur-[2px]
+
                     transition-all
                     duration-500
 
                     hover:-translate-y-1
                     hover:border-[#DCE7DC]
+                    hover:bg-[#FCFBF9]/97
                     hover:shadow-[0_18px_45px_rgba(0,0,0,0.07)]
 
                     sm:p-8
@@ -240,8 +405,6 @@ export default function Audience({
                       gap-4
                     "
                   >
-                    {/* Icon */}
-
                     <div
                       className="
                         flex
@@ -250,8 +413,11 @@ export default function Audience({
                         shrink-0
                         items-center
                         justify-center
+
                         rounded-full
+
                         bg-[#EEF5EE]
+
                         transition-transform
                         duration-500
 
@@ -268,15 +434,15 @@ export default function Audience({
                       />
                     </div>
 
-                    {/* Title */}
-
                     <h3
                       className="
                         max-w-[340px]
                         pt-1
+
                         text-[23px]
                         leading-[1.08]
                         text-[#2B2B2B]
+
                         [font-family:var(--font-cormorant)]
 
                         sm:text-[26px]
@@ -293,6 +459,7 @@ export default function Audience({
                   <p
                     className="
                       mt-6
+
                       text-[15px]
                       leading-7
                       text-[#5B5B5B]
@@ -327,6 +494,7 @@ export default function Audience({
               text-[29px]
               leading-[1.12]
               text-[#2B2B2B]
+
               [font-family:var(--font-cormorant)]
 
               sm:text-[34px]
@@ -339,10 +507,12 @@ export default function Audience({
           <p
             className="
               mt-2
+
               text-[29px]
               leading-[1.12]
               italic
               text-[#6F8F72]
+
               [font-family:var(--font-cormorant)]
 
               sm:text-[34px]

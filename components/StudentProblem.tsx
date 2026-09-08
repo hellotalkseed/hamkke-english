@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import FadeUp from "./animations/FadeUp";
 import { getMessages } from "../lib/getMessages";
 import type { Locale } from "../lib/i18n";
@@ -16,7 +18,10 @@ export default function StudentProblem({
   return (
     <section
       className="
+        relative
+        overflow-hidden
         bg-white
+
         px-6
         py-20
 
@@ -27,8 +32,137 @@ export default function StudentProblem({
         lg:py-28
       "
     >
+      {/* =====================================================
+          BACKGROUND IMAGE
+
+          Separate visual layer only.
+          Existing section content/layout is preserved.
+
+          The artwork keeps its natural proportions and is
+          anchored to the right so the right side remains visible.
+          ===================================================== */}
+
       <div
         className="
+          pointer-events-none
+          absolute
+          inset-0
+          z-0
+          overflow-hidden
+        "
+        aria-hidden="true"
+      >
+        <Image
+          src="/hamkke-student-problem-background.png"
+          alt=""
+          width={1664}
+          height={960}
+          sizes="150vw"
+          className="
+            absolute
+
+            right-0
+            top-1/2
+
+            h-auto
+            w-[145%]
+            max-w-none
+
+            -translate-y-1/2
+
+            opacity-[0.70]
+
+            md:w-[125%]
+            md:opacity-[0.74]
+
+            lg:right-0
+            lg:w-[108%]
+            lg:opacity-[0.78]
+          "
+        />
+
+        {/* =====================================================
+            LEFT READABILITY FADE
+
+            Keeps the heading and first two columns cleaner while
+            allowing the right side of the artwork to stay visible.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-0
+
+            bg-gradient-to-r
+            from-white/88
+            via-white/52
+            to-transparent
+          "
+        />
+
+        {/* =====================================================
+            TOP FADE
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            top-0
+            h-[150px]
+
+            bg-gradient-to-b
+            from-white/75
+via-white/30
+to-transparent
+          "
+        />
+
+        {/* =====================================================
+            BOTTOM FADE
+            ===================================================== */}
+
+        <div
+  className="
+    absolute
+    inset-x-0
+    bottom-0
+    h-[190px]
+
+    bg-gradient-to-t
+    from-white/82
+    via-white/38
+    to-transparent
+  "
+/>
+
+        {/* =====================================================
+            MOBILE SOFTENING
+
+            Keeps the decorative background quiet behind the
+            stacked mobile content.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-0
+            bg-white/10
+
+            md:hidden
+          "
+        />
+      </div>
+
+      {/* =====================================================
+          CONTENT
+          ===================================================== */}
+
+      <div
+        className="
+          relative
+          z-10
+
           mx-auto
           max-w-[1200px]
         "

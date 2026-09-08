@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import FadeUp from "./animations/FadeUp";
 import { getMessages } from "../lib/getMessages";
 import type { Locale } from "../lib/i18n";
@@ -16,8 +18,11 @@ export default function LessonExperience({
   return (
     <section
       id="experience"
-       className="
+      className="
+        relative
+        overflow-hidden
         bg-[#FAF9F6]
+
         px-6
         py-20
 
@@ -28,8 +33,137 @@ export default function LessonExperience({
         lg:py-28
       "
     >
+      {/* =====================================================
+          LESSON EXPERIENCE BACKGROUND
+
+          Decorative only.
+          Natural proportions are preserved.
+          The right side stays fully visible, just like the
+          background treatment we established earlier.
+          ===================================================== */}
+
       <div
         className="
+          pointer-events-none
+          absolute
+          inset-0
+          z-0
+          overflow-hidden
+        "
+        aria-hidden="true"
+      >
+        <Image
+          src="/hamkke-lesson-experience-background.png"
+          alt=""
+          width={1664}
+          height={960}
+          sizes="150vw"
+          className="
+            absolute
+
+            right-0
+            top-1/2
+
+            h-auto
+            w-[150%]
+            max-w-none
+
+            -translate-y-1/2
+
+            opacity-[0.66]
+
+            md:w-[128%]
+            md:opacity-[0.70]
+
+            lg:right-0
+            lg:w-[108%]
+            lg:opacity-[0.74]
+          "
+        />
+
+        {/* =====================================================
+            LEFT READABILITY FADE
+
+            Keeps the timeline/content legible while allowing the
+            notebook and learning details on the right to remain
+            clearly visible.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-0
+
+            bg-gradient-to-r
+            from-[#FAF9F6]/92
+            via-[#FAF9F6]/58
+            to-transparent
+          "
+        />
+
+        {/* =====================================================
+            TOP FADE
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            top-0
+            h-[160px]
+
+            bg-gradient-to-b
+            from-[#FAF9F6]/78
+            via-[#FAF9F6]/30
+            to-transparent
+          "
+        />
+
+        {/* =====================================================
+            BOTTOM FADE
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            bottom-0
+            h-[190px]
+
+            bg-gradient-to-t
+            from-[#FAF9F6]/82
+            via-[#FAF9F6]/34
+            to-transparent
+          "
+        />
+
+        {/* =====================================================
+            MOBILE SOFTENING
+
+            Prevents the notebook details from becoming too busy
+            behind the stacked mobile lesson flow.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-0
+            bg-[#FAF9F6]/10
+
+            md:hidden
+          "
+        />
+      </div>
+
+      {/* =====================================================
+          CONTENT
+          ===================================================== */}
+
+      <div
+        className="
+          relative
+          z-10
+
           mx-auto
           max-w-[1200px]
         "

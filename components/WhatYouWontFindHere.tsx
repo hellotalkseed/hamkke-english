@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import StaggerContainer from "./animations/StaggerContainer";
 import StaggerItem from "./animations/StaggerItem";
 
@@ -40,28 +42,172 @@ export default function WhatYouWontFindHere({
       className="
         relative
         overflow-hidden
-        bg-white
+        bg-[#FAF8F5]
+
         py-20
         sm:py-24
         lg:py-32
       "
     >
+      {/* =====================================================
+          BACKGROUND IMAGE
+
+          This section has its own identity:
+          - crossed-out textbook notes
+          - progress over perfection
+          - conversational handwritten details
+
+          Still stays within the Hamkke visual language through
+          the cream background, sage accents, soft light, and
+          editorial negative space.
+          ===================================================== */}
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+          z-0
+          overflow-hidden
+        "
+        aria-hidden="true"
+      >
+        <Image
+          src="/hamkke-wont-find-background.png"
+          alt=""
+          fill
+          priority={false}
+          sizes="100vw"
+          className="
+            object-cover
+            object-center
+
+            opacity-[0.72]
+
+            sm:opacity-[0.76]
+            lg:opacity-[0.80]
+          "
+        />
+
+        {/* =====================================================
+            CENTER CONTENT WASH
+
+            Keeps the main heading and four principles clear while
+            preserving the decorative handwritten details around
+            the outer edges.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+
+            left-[7%]
+            right-[7%]
+
+            top-[15%]
+            bottom-[14%]
+
+            bg-[radial-gradient(ellipse_at_center,rgba(250,248,245,0.78)_0%,rgba(250,248,245,0.66)_48%,rgba(250,248,245,0.24)_74%,rgba(250,248,245,0)_100%)]
+          "
+        />
+
+        {/* =====================================================
+            POINTS AREA FADE
+
+            Slightly stronger through the middle/lower section so
+            the four text blocks remain visually dominant.
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+
+            top-[36%]
+            bottom-[8%]
+
+            bg-[linear-gradient(to_bottom,rgba(250,248,245,0)_0%,rgba(250,248,245,0.28)_10%,rgba(250,248,245,0.64)_28%,rgba(250,248,245,0.74)_56%,rgba(250,248,245,0.58)_82%,rgba(250,248,245,0)_100%)]
+          "
+        />
+
+        {/* =====================================================
+            TOP BLEND
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            top-0
+            h-[90px]
+
+            bg-gradient-to-b
+            from-[#FAF8F5]/58
+            via-[#FAF8F5]/18
+            to-transparent
+          "
+        />
+
+        {/* =====================================================
+            BOTTOM BLEND
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            bottom-0
+            h-[100px]
+
+            bg-gradient-to-t
+            from-[#FAF8F5]/58
+            via-[#FAF8F5]/18
+            to-transparent
+          "
+        />
+
+        {/* =====================================================
+            MOBILE SOFTENING
+            ===================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-0
+
+            bg-[#FAF8F5]/10
+
+            md:hidden
+          "
+        />
+      </div>
+
+      {/* =====================================================
+          CONTENT
+          ===================================================== */}
+
       <div
         className="
           relative
+          z-10
+
           mx-auto
           max-w-7xl
           px-6
+
           md:px-8
           lg:px-10
         "
       >
-        {/* Heading */}
+        {/* =====================================================
+            HEADING
+            ===================================================== */}
 
         <div className="max-w-3xl">
           <p
             className="
               mb-3
+
               text-[12px]
               font-medium
               uppercase
@@ -77,6 +223,7 @@ export default function WhatYouWontFindHere({
               text-[42px]
               leading-[0.98]
               text-[#2B2B2B]
+
               [font-family:var(--font-cormorant)]
 
               sm:text-[52px]
@@ -88,7 +235,9 @@ export default function WhatYouWontFindHere({
           </h2>
         </div>
 
-        {/* Points */}
+        {/* =====================================================
+            POINTS
+            ===================================================== */}
 
         <StaggerContainer
           className="
@@ -122,6 +271,7 @@ export default function WhatYouWontFindHere({
                     text-[27px]
                     leading-[1.08]
                     text-[#2B2B2B]
+
                     [font-family:var(--font-cormorant)]
 
                     sm:text-[32px]
@@ -135,6 +285,7 @@ export default function WhatYouWontFindHere({
                   className="
                     mt-4
                     max-w-[480px]
+
                     text-[15px]
                     leading-7
                     text-[#5B5B5B]
