@@ -93,7 +93,7 @@ export default function Hero({
                 w-[150%]
                 max-w-none
 
-                opacity-[0.55]
+                opacity-[0.50]
               "
             />
 
@@ -110,9 +110,9 @@ export default function Hero({
                 inset-0
 
                 bg-gradient-to-r
-                from-[#FAF8F5]/88
-                via-[#FAF8F5]/55
-                to-transparent
+                from-[#FAF8F5]/92
+                via-[#FAF8F5]/68
+                to-[#FAF8F5]/15
               "
             />
 
