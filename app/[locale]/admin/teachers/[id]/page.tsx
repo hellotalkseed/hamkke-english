@@ -23,6 +23,8 @@ type Teacher = {
   created_at: string;
   email: string | null;
   teacher_number?: string | null;
+  avatar_path?: string | null;
+  avatar_url?: string | null;
 };
 
 type Assignment = {
@@ -95,6 +97,20 @@ type AvailabilityBlock = {
   day_of_week: number;
   start_time: string;
   end_time: string;
+};
+
+type SubAvailabilityBlock = {
+  id?: string;
+  availability_date: string;
+  start_time: string;
+  end_time: string;
+};
+
+type CalendarDay = {
+  day_of_week: number;
+  label: string;
+  date: string;
+  displayDate: string;
 };
 
 type TeacherLessonProgress = {
@@ -337,6 +353,156 @@ function timeToMinutes(time: string | null | undefined) {
   }
 
   return hours * 60 + minutes;
+}
+
+function getPhilippineToday() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateKey(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatDateKey(date: Date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function addDays(dateKey: string, days: number) {
+  const date = parseDateKey(dateKey);
+  date.setUTCDate(date.getUTCDate() + days);
+  return formatDateKey(date);
+}
+
+function getWeekStart(dateKey: string) {
+  const date = parseDateKey(dateKey);
+  const day = date.getUTCDay();
+  date.setUTCDate(date.getUTCDate() - day);
+  return formatDateKey(date);
+}
+
+function formatCalendarDate(dateKey: string) {
+  const date = parseDateKey(dateKey);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function formatWeekRange(weekStart: string) {
+  const start = parseDateKey(weekStart);
+  const end = parseDateKey(addDays(weekStart, 6));
+  const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
+  const sameMonth = sameYear && start.getUTCMonth() === end.getUTCMonth();
+
+  if (sameMonth) {
+    return `${new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      timeZone: "UTC",
+    }).format(start)} ${start.getUTCDate()}–${end.getUTCDate()}, ${start.getUTCFullYear()}`;
+  }
+
+  const format = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+
+  if (sameYear) {
+    return `${format.format(start)} – ${format.format(end)}, ${end.getUTCFullYear()}`;
+  }
+
+  return `${format.format(start)}, ${start.getUTCFullYear()} – ${format.format(end)}, ${end.getUTCFullYear()}`;
+}
+
+function normalizeSubAvailability(
+  availability: unknown
+): SubAvailabilityBlock[] {
+  if (!Array.isArray(availability)) {
+    return [];
+  }
+
+  const normalized: SubAvailabilityBlock[] = [];
+
+  for (const rawBlock of availability) {
+    if (!rawBlock || typeof rawBlock !== "object") {
+      continue;
+    }
+
+    const block = rawBlock as Record<string, unknown>;
+    const availabilityDate =
+      typeof block.availability_date === "string"
+        ? block.availability_date
+        : "";
+    const startTime = normalizeTime(
+      typeof block.start_time === "string" ? block.start_time : null
+    );
+    const endTime = normalizeTime(
+      typeof block.end_time === "string" ? block.end_time : null
+    );
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(availabilityDate)) {
+      continue;
+    }
+
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+
+    if (
+      !startTime ||
+      !endTime ||
+      Number.isNaN(startMinutes) ||
+      Number.isNaN(endMinutes) ||
+      endMinutes <= startMinutes
+    ) {
+      continue;
+    }
+
+    normalized.push({
+      ...(typeof block.id === "string" ? { id: block.id } : {}),
+      availability_date: availabilityDate,
+      start_time: startTime,
+      end_time: endTime,
+    });
+  }
+
+  return normalized;
+}
+
+function isTimeWithinSubBlock(
+  time: string,
+  block: SubAvailabilityBlock
+) {
+  const current = timeToMinutes(time);
+  const start = timeToMinutes(block.start_time);
+  const end = timeToMinutes(block.end_time);
+
+  if (
+    Number.isNaN(current) ||
+    Number.isNaN(start) ||
+    Number.isNaN(end)
+  ) {
+    return false;
+  }
+
+  const slotEnd = current + INTERVAL_MINUTES;
+  return current >= start && slotEnd <= end;
 }
 
 /* ========================================================================= */
@@ -782,6 +948,13 @@ export default function ManageTeacherPage() {
   const [availability, setAvailability] =
     useState<AvailabilityBlock[]>([]);
 
+  const [subAvailability, setSubAvailability] =
+    useState<SubAvailabilityBlock[]>([]);
+
+  const [weekStart, setWeekStart] = useState(() =>
+    getWeekStart(getPhilippineToday())
+  );
+
   const [
     teacherLessons,
     setTeacherLessons,
@@ -834,6 +1007,24 @@ export default function ManageTeacherPage() {
   const timeSlots = useMemo(
     () => createTimeSlots(),
     []
+  );
+
+  const calendarDays = useMemo<CalendarDay[]>(() => {
+    return DAYS.map((day, index) => {
+      const date = addDays(weekStart, index);
+
+      return {
+        day_of_week: day.value,
+        label: day.label,
+        date,
+        displayDate: formatCalendarDate(date),
+      };
+    });
+  }, [weekStart]);
+
+  const weekRangeLabel = useMemo(
+    () => formatWeekRange(weekStart),
+    [weekStart]
   );
 
   /* ----------------------------------------------------------------------- */
@@ -1063,7 +1254,20 @@ export default function ManageTeacherPage() {
           rawAvailability
         );
 
+      const rawSubAvailability =
+        Array.isArray(data.sub_availability)
+          ? data.sub_availability
+          : [];
+
+      const normalizedSubAvailability =
+        normalizeSubAvailability(
+          rawSubAvailability
+        );
+
       setAvailability(normalized);
+      setSubAvailability(
+        normalizedSubAvailability
+      );
     } catch (err) {
       console.error(
         "Error loading teacher availability:",
@@ -1142,6 +1346,36 @@ export default function ManageTeacherPage() {
 
       return grouped;
     }, [availability]);
+
+  const additionalAvailabilityByDate =
+    useMemo(() => {
+      const grouped: Record<
+        string,
+        SubAvailabilityBlock[]
+      > = {};
+
+      normalizeSubAvailability(
+        subAvailability
+      ).forEach((block) => {
+        if (!grouped[block.availability_date]) {
+          grouped[block.availability_date] = [];
+        }
+
+        grouped[block.availability_date].push(
+          block
+        );
+      });
+
+      Object.values(grouped).forEach((blocks) => {
+        blocks.sort(
+          (a, b) =>
+            timeToMinutes(a.start_time) -
+            timeToMinutes(b.start_time)
+        );
+      });
+
+      return grouped;
+    }, [subAvailability]);
 
   /* ----------------------------------------------------------------------- */
   /* OPEN ASSIGNMENT PANEL                                                   */
@@ -1335,9 +1569,34 @@ export default function ManageTeacherPage() {
   /* ----------------------------------------------------------------------- */
 
   function getSlotState(
+    date: string,
     day: number,
     time: string
   ) {
+    const additionalBlocks =
+      additionalAvailabilityByDate[date] || [];
+
+    const isAdditionalAvailable =
+      additionalBlocks.some((block) =>
+        isTimeWithinSubBlock(
+          time,
+          block
+        )
+      );
+
+    /*
+     * Date-specific availability takes visual priority
+     * for this exact date only.
+     *
+     * The recurring student assignment underneath is
+     * not changed or deleted.
+     */
+    if (isAdditionalAvailable) {
+      return {
+        type: "additional_available" as const,
+      };
+    }
+
     const assignment =
       getAssignmentForSlot(
         assignments,
@@ -1645,42 +1904,85 @@ export default function ManageTeacherPage() {
 
       <section className="mx-auto max-w-[1200px] px-6 pb-10 pt-12 sm:px-8 sm:pb-12 sm:pt-16 lg:px-10 lg:pt-20">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-[760px]">
-            <p className="mb-4 font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
-              Teaching team
-            </p>
+          <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
+            {teacher.avatar_url ? (
+              <img
+                src={teacher.avatar_url}
+                alt={`${teacher.full_name || "Teacher"} profile`}
+                className="h-28 w-28 shrink-0 rounded-full object-cover ring-1 ring-[#DCD8D2] sm:h-32 sm:w-32 lg:h-36 lg:w-36"
+              />
+            ) : (
+              <div
+                className="
+                  flex
+                  h-28
+                  w-28
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  border
+                  border-[#DCD8D2]
+                  bg-[#E8EDE5]
+                  font-serif
+                  text-[30px]
+                  font-normal
+                  text-[#6F8F72]
+                  sm:h-32
+                  sm:w-32
+                  sm:text-[34px]
+                  lg:h-36
+                  lg:w-36
+                  lg:text-[38px]
+                "
+                aria-label="Teacher initials"
+              >
+                {(teacher.full_name || "Teacher")
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((part) => part.charAt(0).toUpperCase())
+                  .join("") || "T"}
+              </div>
+            )}
 
-            <h1 className="font-serif text-[45px] font-normal leading-[1] tracking-[-0.035em] sm:text-[56px] lg:text-[64px]">
-              {teacher.full_name ||
-                "Unnamed teacher"}
-            </h1>
-
-            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-              <p className="font-sans text-[12px] uppercase tracking-[0.12em] text-[#8A8A84]">
-                {teacher.teacher_number ||
-                  "—"}
+            <div className="min-w-0 max-w-[760px]">
+              <p className="mb-4 font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
+                Teaching team
               </p>
 
-              <span className="h-[3px] w-[3px] rounded-full bg-[#B6B2AA]" />
+              <h1 className="font-serif text-[45px] font-normal leading-[1] tracking-[-0.035em] sm:text-[56px] lg:text-[64px]">
+                {teacher.full_name ||
+                  "Unnamed teacher"}
+              </h1>
 
-              <p className="font-sans text-[12px] text-[#74716B]">
-                {teacher.email ||
-                  "No email available"}
-              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+                <p className="font-sans text-[12px] uppercase tracking-[0.12em] text-[#8A8A84]">
+                  {teacher.teacher_number ||
+                    "—"}
+                </p>
 
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E5EBDD] px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#607963]">
-                <span className="h-[5px] w-[5px] rounded-full bg-[#6F8F72]" />
-                {statusLabel}
-              </span>
+                <span className="h-[3px] w-[3px] rounded-full bg-[#B6B2AA]" />
+
+                <p className="font-sans text-[12px] text-[#74716B]">
+                  {teacher.email ||
+                    "No email available"}
+                </p>
+
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E5EBDD] px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#607963]">
+                  <span className="h-[5px] w-[5px] rounded-full bg-[#6F8F72]" />
+                  {statusLabel}
+                </span>
+              </div>
             </div>
           </div>
 
           <Link
-  href={`/${locale}/admin/teachers/${teacher.id}/payroll`}
-  className="inline-flex w-fit items-center justify-center rounded-full border border-[#E5B8B2] bg-[#E5B8B2] px-5 py-2.5 font-sans text-[13px] font-bold text-white transition-colors hover:border-[#748260] hover:bg-[#748260]"
->
-  Payroll →
-</Link>
+            href={`/${locale}/admin/teachers/${teacher.id}/payroll`}
+            className="inline-flex w-fit items-center justify-center rounded-full border border-[#E5B8B2] bg-[#E5B8B2] px-5 py-2.5 font-sans text-[13px] font-bold text-white transition-colors hover:border-[#748260] hover:bg-[#748260]"
+          >
+            Payroll →
+          </Link>
         </div>
       </section>
 
@@ -1697,7 +1999,7 @@ export default function ManageTeacherPage() {
       {/* =================================================================== */}
 
       <section className="mx-auto max-w-[1200px] px-6 pb-16 sm:px-8 lg:px-10">
-        <div className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
               Teaching schedule
@@ -1708,27 +2010,77 @@ export default function ManageTeacherPage() {
             </h2>
 
             <p className="mt-2 max-w-[650px] font-serif text-[15px] leading-7 text-[#74716B]">
-              Philippine Time. This calendar reflects
-              the teacher&apos;s availability and each
-              student&apos;s existing recurring lesson
-              schedule after timezone conversion.
+              Philippine Time. Regular availability and recurring
+              student schedules repeat weekly. Additional availability
+              appears only on the exact date the teacher opened.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 font-sans text-[10px] uppercase tracking-[0.1em] text-[#77736B]">
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-[2px] border border-[#B9CBB5] bg-[#E8EFE5]" />
-              Available
+          <div className="flex flex-col gap-4 lg:items-end">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setWeekStart((current) =>
+                    addDays(current, -7)
+                  )
+                }
+                className="rounded-full border border-[#D7D2CB] px-3.5 py-2 font-sans text-[11px] text-[#66625C] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
+              >
+                ← Previous Week
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setWeekStart(
+                    getWeekStart(
+                      getPhilippineToday()
+                    )
+                  )
+                }
+                className="rounded-full border border-[#D7D2CB] px-3.5 py-2 font-sans text-[11px] text-[#66625C] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
+              >
+                Current Week
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setWeekStart((current) =>
+                    addDays(current, 7)
+                  )
+                }
+                className="rounded-full border border-[#D7D2CB] px-3.5 py-2 font-sans text-[11px] text-[#66625C] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
+              >
+                Next Week →
+              </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-[2px] border border-[#D9BE6A] bg-[#F3E8B8]" />
-              Scheduled
-            </div>
+            <p className="font-serif text-[14px] text-[#55544F]">
+              {weekRangeLabel}
+            </p>
 
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-[2px] border border-[#D9B6B1] bg-[#F1DEDB]" />
-              Unavailable
+            <div className="flex flex-wrap items-center gap-4 font-sans text-[10px] uppercase tracking-[0.1em] text-[#77736B]">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-[2px] border border-[#B9CBB5] bg-[#E8EFE5]" />
+                Available
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-[2px] border border-[#D9BE6A] bg-[#F3E8B8]" />
+                Scheduled
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-[2px] border border-[#B8B1D8] bg-[#EAE7F5]" />
+                Additional Available
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-[2px] border border-[#D9B6B1] bg-[#F1DEDB]" />
+                Unavailable
+              </div>
             </div>
           </div>
         </div>
@@ -1738,13 +2090,17 @@ export default function ManageTeacherPage() {
             <div className="grid grid-cols-[78px_repeat(7,minmax(120px,1fr))] border-b border-[#DCD8D2]">
               <div className="border-r border-[#E7E3DD] p-3" />
 
-              {DAYS.map((day) => (
+              {calendarDays.map((day) => (
                 <div
-                  key={day.value}
-                  className="border-r border-[#E7E3DD] px-3 py-4 text-center last:border-r-0"
+                  key={day.date}
+                  className="border-r border-[#E7E3DD] px-3 py-3 text-center last:border-r-0"
                 >
                   <p className="font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
                     {day.label}
+                  </p>
+
+                  <p className="mt-1 font-serif text-[13px] text-[#55544F]">
+                    {day.displayDate}
                   </p>
                 </div>
               ))}
@@ -1769,37 +2125,48 @@ export default function ManageTeacherPage() {
                       </span>
                     </div>
 
-                    {DAYS.map((day) => {
-                      const slot =
-                        getSlotState(
-                          day.value,
-                          time
-                        );
+                    {calendarDays.map((day) => {
+                      const slot = getSlotState(
+                        day.date,
+                        day.day_of_week,
+                        time
+                      );
+
+                      const isAdditionalAvailable =
+                        slot.type === "additional_available";
 
                       const isScheduled =
-                        slot.type ===
-                        "scheduled";
+                        slot.type === "scheduled";
 
                       const isAvailable =
-                        slot.type ===
-                        "available";
+                        slot.type === "available";
 
                       return (
                         <div
-                          key={`${day.value}-${time}`}
+                          key={`${day.date}-${time}`}
                           className="border-r border-b border-[#E7E3DD] p-[3px] last:border-r-0"
                         >
-                          {isScheduled ? (
+                          {isAdditionalAvailable ? (
+                            <div
+                              className="flex min-h-[39px] flex-col items-center justify-center rounded-[3px] border border-[#B8B1D8] bg-[#EAE7F5] px-2 py-1.5 text-center"
+                              aria-label={`Additional availability on ${day.label}, ${day.displayDate} at ${formatTime(
+                                time
+                              )}`}
+                            >
+                              <p className="font-sans text-[8px] font-medium uppercase tracking-[0.08em] text-[#68618C]">
+                                Additional Available
+                              </p>
+                            </div>
+                          ) : isScheduled ? (
                             <div className="flex min-h-[39px] flex-col justify-center rounded-[3px] border border-[#D9BE6A] bg-[#F3E8B8] px-2 py-1.5">
                               <p className="truncate font-sans text-[10px] font-medium text-[#6F6440]">
                                 {getStudentName(
-                                  slot.assignment
-                                    .student
+                                  slot.assignment.student
                                 )}
                               </p>
 
                               <p className="mt-0.5 truncate font-sans text-[8px] uppercase tracking-[0.08em] text-[#8C8057]">
-                                Scheduled · PHT
+                                Scheduled
                               </p>
                             </div>
                           ) : isAvailable ? (
@@ -1807,12 +2174,12 @@ export default function ManageTeacherPage() {
                               type="button"
                               onClick={() =>
                                 openAssignPanel(
-                                  day.value,
+                                  day.day_of_week,
                                   time
                                 )
                               }
                               className="group flex min-h-[39px] w-full items-center justify-center rounded-[3px] border border-[#B9CBB5] bg-[#E8EFE5] px-2 transition-colors hover:border-[#6F8F72] hover:bg-[#DDE9D9]"
-                              aria-label={`Open assignment panel from ${day.label} at ${formatTime(
+                              aria-label={`Open assignment panel from ${day.label}, ${day.displayDate} at ${formatTime(
                                 time
                               )}`}
                             >
@@ -1823,7 +2190,7 @@ export default function ManageTeacherPage() {
                           ) : (
                             <div
                               className="min-h-[39px] rounded-[3px] border border-[#D9B6B1] bg-[#F1DEDB]"
-                              aria-label={`Unavailable on ${day.label} at ${formatTime(
+                              aria-label={`Unavailable on ${day.label}, ${day.displayDate} at ${formatTime(
                                 time
                               )}`}
                             />
@@ -1839,12 +2206,11 @@ export default function ManageTeacherPage() {
         </div>
 
         <p className="mt-4 font-serif text-[13px] italic text-[#8A8780]">
-          Click an available green slot to open the
-          assignment panel. The selected slot is only a
-          reference point. Students keep their existing
-          recurring lesson schedules, and assignment is
-          allowed only when the full schedule fits this
-          teacher&apos;s availability.
+          Additional Available applies only to the displayed date. If it
+          overlaps a regular student&apos;s recurring schedule, the recurring
+          assignment remains unchanged and will appear as Scheduled again on
+          the next matching week. Green Available slots continue to open the
+          regular assignment panel.
         </p>
       </section>
 

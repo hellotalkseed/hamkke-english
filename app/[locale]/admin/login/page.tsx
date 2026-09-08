@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 
@@ -59,8 +60,6 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // Get the user's actual role and account status
-    // from the profiles table.
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role, status")
@@ -82,27 +81,21 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // Owners must be active.
-//
-// Teachers may sign in while pending so they can
-// complete the Teacher Agreement onboarding step.
-const canSignIn =
-  (profile.role === "owner" &&
-    profile.status === "active") ||
-  (profile.role === "teacher" &&
-    (profile.status === "active" ||
-      profile.status === "pending"));
+    const canSignIn =
+      (profile.role === "owner" &&
+        profile.status === "active") ||
+      (profile.role === "teacher" &&
+        (profile.status === "active" ||
+          profile.status === "pending"));
 
-if (!canSignIn) {
-  await supabase.auth.signOut();
+    if (!canSignIn) {
+      await supabase.auth.signOut();
 
-  setError("Your account is not currently active.");
-  setLoading(false);
-  return;
-}
+      setError("Your account is not currently active.");
+      setLoading(false);
+      return;
+    }
 
-    // Only Admin and Teacher accounts are allowed.
-    // "owner" remains the actual database role.
     if (profile.role !== "owner" && profile.role !== "teacher") {
       await supabase.auth.signOut();
 
@@ -114,8 +107,6 @@ if (!canSignIn) {
       return;
     }
 
-    // Make sure the role selected on the login screen
-    // matches the user's actual registered role.
     if (profile.role !== role) {
       await supabase.auth.signOut();
 
@@ -126,19 +117,15 @@ if (!canSignIn) {
       return;
     }
 
-    // Send each role to its correct destination.
-//
-// Pending teachers must complete their Teacher Agreement
-// before receiving access to the Teacher Dashboard.
-if (profile.role === "teacher") {
-  if (profile.status === "pending") {
-    router.push(`/${locale}/admin/teachers/agreement`);
-  } else {
-    router.push(`/${locale}/admin/teachers`);
-  }
-} else {
-  router.push(`/${locale}/admin`);
-}
+    if (profile.role === "teacher") {
+      if (profile.status === "pending") {
+        router.push(`/${locale}/admin/teachers/agreement`);
+      } else {
+        router.push(`/${locale}/admin/teachers`);
+      }
+    } else {
+      router.push(`/${locale}/admin`);
+    }
 
     router.refresh();
   }
@@ -181,36 +168,85 @@ if (profile.role === "teacher") {
   return (
     <main
       className="
-        flex
         min-h-screen
-        items-center
-        justify-center
         bg-[#FAF8F5]
-        px-6
-        py-16
         text-[#292929]
       "
     >
-      <div className="w-full max-w-md">
+      {/* ESTABLISHED HEADER */}
 
-        {/* BRAND */}
+      <header
+        className="
+          w-full
+          px-6
+          pt-7
+          sm:px-8
+          sm:pt-8
+          lg:px-10
+          xl:px-12
+        "
+      >
+        <div className="flex w-full justify-end">
+          <Link
+            href={`/${locale}`}
+            className="
+              shrink-0
+              text-right
+              transition-opacity
+              duration-200
+              hover:opacity-75
+            "
+            aria-label="Go to Hamkke homepage"
+          >
+            <p
+              className="
+                font-sans
+                text-[16px]
+                font-semibold
+                leading-none
+                tracking-[0.18em]
+                text-[#6F8F72]
+              "
+            >
+              HAMKKE │ 함께
+            </p>
+
+            <p
+              className="
+                mt-2
+                font-serif
+                text-[13px]
+                font-normal
+                leading-none
+                tracking-[0.02em]
+                text-[#6F8F72]
+              "
+            >
+              From Small Talk to Big Ideas
+            </p>
+          </Link>
+        </div>
+      </header>
+
+      <section
+        className="
+          mx-auto
+          flex
+          w-full
+          max-w-md
+          flex-col
+          justify-center
+          px-6
+          pb-16
+          pt-12
+          sm:pt-16
+        "
+      >
+        {/* PAGE INTRO */}
 
         <div className="text-center">
-          <p
-            className="
-              font-sans
-              text-[14px]
-              font-medium
-              tracking-[0.02em]
-              text-[#6F8F72]
-            "
-          >
-            Hamkke │ 함께
-          </p>
-
           <h1
             className="
-              mt-5
               font-serif
               text-[48px]
               font-normal
@@ -249,7 +285,6 @@ if (profile.role === "teacher") {
             sm:p-9
           "
         >
-
           {/* ROLE SELECTOR */}
 
           <div>
@@ -533,7 +568,7 @@ if (profile.role === "teacher") {
                 }`}
           </button>
         </form>
-      </div>
+      </section>
     </main>
   );
 }

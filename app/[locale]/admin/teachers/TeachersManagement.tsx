@@ -10,6 +10,8 @@ interface Teacher {
   status: string;
   created_at: string;
   teacher_number: string | null;
+  avatar_path: string | null;
+  avatar_url: string | null;
   student_count: number;
   total_lessons: number;
   payable: number;
@@ -165,27 +167,60 @@ function formatMoney(amount: number) {
   })}`;
 }
 
+function getTeacherInitials(
+  fullName: string | null
+) {
+  if (!fullName?.trim()) {
+    return "T";
+  }
+
+  const parts = fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 1) {
+    return parts[0]
+      .charAt(0)
+      .toUpperCase();
+  }
+
+  return `${parts[0]
+    .charAt(0)
+    .toUpperCase()}${parts[
+    parts.length - 1
+  ]
+    .charAt(0)
+    .toUpperCase()}`;
+}
+
 function getStatusStyles(status: string) {
   switch (status) {
     case "active":
       return {
         label: "Active",
-        className: "bg-[#E5EBDD] text-[#607963]",
-        ballClassName: "bg-[#6F8F72]",
+        className:
+          "bg-[#E5EBDD] text-[#607963]",
+        ballClassName:
+          "bg-[#6F8F72]",
       };
 
     case "inactive":
       return {
         label: "Inactive",
-        className: "bg-[#EAE8E3] text-[#77736B]",
-        ballClassName: "bg-[#8A8780]",
+        className:
+          "bg-[#EAE8E3] text-[#77736B]",
+        ballClassName:
+          "bg-[#8A8780]",
       };
 
     case "pending":
       return {
         label: "Pending",
-        className: "bg-[#F3EEDC] text-[#927B45]",
-        ballClassName: "bg-[#A58A4E]",
+        className:
+          "bg-[#F3EEDC] text-[#927B45]",
+        ballClassName:
+          "bg-[#A58A4E]",
       };
 
     default:
@@ -193,8 +228,10 @@ function getStatusStyles(status: string) {
         label:
           status.charAt(0).toUpperCase() +
           status.slice(1),
-        className: "bg-[#ECEAE6] text-[#77736B]",
-        ballClassName: "bg-[#8A8780]",
+        className:
+          "bg-[#ECEAE6] text-[#77736B]",
+        ballClassName:
+          "bg-[#8A8780]",
       };
   }
 }
@@ -208,10 +245,19 @@ export default function TeachersManagement({
 }: {
   locale: string;
 }) {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [teachers, setTeachers] =
+    useState<Teacher[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [
+    searchQuery,
+    setSearchQuery,
+  ] = useState("");
 
   /* ----------------------------------------------------------------------- */
   /* LOAD TEACHERS                                                           */
@@ -241,7 +287,9 @@ export default function TeachersManagement({
           );
         }
 
-        setTeachers(data.teachers || []);
+        setTeachers(
+          data.teachers || []
+        );
       } catch (err) {
         console.error(
           "Error loading teachers:",
@@ -266,52 +314,70 @@ export default function TeachersManagement({
   /* ----------------------------------------------------------------------- */
 
   const normalizedSearch =
-    searchQuery.trim().toLowerCase();
+    searchQuery
+      .trim()
+      .toLowerCase();
 
   const filteredTeachers =
     normalizedSearch === ""
       ? teachers
-      : teachers.filter((teacher) => {
-          const name =
-            teacher.full_name?.toLowerCase() || "";
+      : teachers.filter(
+          (teacher) => {
+            const name =
+              teacher.full_name?.toLowerCase() ||
+              "";
 
-          const teacherNumber =
-            teacher.teacher_number?.toLowerCase() || "";
+            const teacherNumber =
+              teacher.teacher_number?.toLowerCase() ||
+              "";
 
-          return (
-            name.includes(normalizedSearch) ||
-            teacherNumber.includes(normalizedSearch)
-          );
-        });
+            return (
+              name.includes(
+                normalizedSearch
+              ) ||
+              teacherNumber.includes(
+                normalizedSearch
+              )
+            );
+          }
+        );
 
   /* ----------------------------------------------------------------------- */
   /* SUMMARY                                                                 */
   /* ----------------------------------------------------------------------- */
 
-  const totalTeachers = teachers.length;
+  const totalTeachers =
+    teachers.length;
 
-  const activeTeachers = teachers.filter(
-    (teacher) =>
-      teacher.status === "active"
-  ).length;
+  const activeTeachers =
+    teachers.filter(
+      (teacher) =>
+        teacher.status === "active"
+    ).length;
 
-  const totalStudents = teachers.reduce(
-    (total, teacher) =>
-      total + teacher.student_count,
-    0
-  );
+  const totalStudents =
+    teachers.reduce(
+      (total, teacher) =>
+        total +
+        teacher.student_count,
+      0
+    );
 
-  const totalLessons = teachers.reduce(
-    (total, teacher) =>
-      total + teacher.total_lessons,
-    0
-  );
+  const totalLessons =
+    teachers.reduce(
+      (total, teacher) =>
+        total +
+        teacher.total_lessons,
+      0
+    );
 
-  const totalPayable = teachers.reduce(
-    (total, teacher) =>
-      total + teacher.payable,
-    0
-  );
+  const totalPayable =
+    teachers.reduce(
+      (total, teacher) =>
+        total +
+        teacher.payable,
+      0
+    );
 
   /* ========================================================================= */
   /* RENDER                                                                    */
@@ -349,8 +415,6 @@ export default function TeachersManagement({
             gap-8
           "
         >
-          {/* Back to Administration */}
-
           <Link
             href={`/${locale}/admin`}
             className="
@@ -367,36 +431,34 @@ export default function TeachersManagement({
             &larr; Administration
           </Link>
 
-          {/* Hamkke Brand */}
+          <div className="shrink-0 text-right">
+            <p
+              className="
+                font-sans
+                text-[16px]
+                font-semibold
+                leading-none
+                tracking-[0.18em]
+                text-[#6F8F72]
+              "
+            >
+              HAMKKE │ 함께
+            </p>
 
-<div className="shrink-0 text-right">
-  <p
-    className="
-      font-sans
-      text-[16px]
-      font-semibold
-      leading-none
-      tracking-[0.18em]
-      text-[#6F8F72]
-    "
-  >
-    HAMKKE │ 함께
-  </p>
-
-  <p
-    className="
-      mt-2
-      font-serif
-      text-[13px]
-      font-normal
-      leading-none
-      tracking-[0.02em]
-      text-[#6F8F72]
-    "
-  >
-    From Small Talk to Big Ideas
-  </p>
-</div>
+            <p
+              className="
+                mt-2
+                font-serif
+                text-[13px]
+                font-normal
+                leading-none
+                tracking-[0.02em]
+                text-[#6F8F72]
+              "
+            >
+              From Small Talk to Big Ideas
+            </p>
+          </div>
         </div>
       </header>
 
@@ -617,7 +679,9 @@ export default function TeachersManagement({
                 </p>
 
                 <p className="mt-1 font-serif text-[27px] leading-none tracking-[-0.02em]">
-                  {formatMoney(totalPayable)}
+                  {formatMoney(
+                    totalPayable
+                  )}
                 </p>
               </div>
             </div>
@@ -816,7 +880,8 @@ export default function TeachersManagement({
               {error}
             </p>
           </div>
-        ) : filteredTeachers.length > 0 ? (
+        ) : filteredTeachers.length >
+          0 ? (
           /* =============================================================== */
           /* TABLE                                                            */
           /* =============================================================== */
@@ -966,199 +1031,261 @@ export default function TeachersManagement({
               </thead>
 
               <tbody>
-                {filteredTeachers.map((teacher) => {
-                  const status =
-                    getStatusStyles(
-                      teacher.status
-                    );
+                {filteredTeachers.map(
+                  (teacher) => {
+                    const status =
+                      getStatusStyles(
+                        teacher.status
+                      );
 
-                  const teacherName =
-                    teacher.full_name ||
-                    "Unnamed teacher";
+                    const teacherName =
+                      teacher.full_name ||
+                      "Unnamed teacher";
 
-                  return (
-                    <tr
-                      key={teacher.id}
-                      className="
-                        border-b
-                        border-[#E7E3DD]
-                        transition-colors
-                        last:border-b-0
-                        hover:bg-[#F2F5F0]
-                      "
-                    >
-                      {/* ================================================= */}
-                      {/* TEACHER                                           */}
-                      {/* ================================================= */}
+                    const teacherInitials =
+                      getTeacherInitials(
+                        teacher.full_name
+                      );
 
-                      <td
+                    return (
+                      <tr
+                        key={teacher.id}
                         className="
-                          py-4
-                          pl-3
-                          pr-2
-                          text-left
-                          sm:py-[18px]
-                          sm:pl-4
+                          border-b
+                          border-[#E7E3DD]
+                          transition-colors
+                          last:border-b-0
+                          hover:bg-[#F2F5F0]
                         "
                       >
-                        <Link
-                          href={`/${locale}/admin/teachers/${teacher.id}`}
+                        {/* ================================================= */}
+                        {/* TEACHER                                           */}
+                        {/* ================================================= */}
+
+                        <td
                           className="
-                            font-serif
-                            text-[17px]
-                            leading-6
-                            tracking-[-0.01em]
-                            transition-colors
-                            hover:text-[#6F8F72]
+                            py-4
+                            pl-3
+                            pr-2
+                            text-left
+                            sm:py-[18px]
+                            sm:pl-4
                           "
                         >
-                          {teacherName}
-                        </Link>
+                          <div className="flex items-center gap-3.5">
+                            <Link
+                              href={`/${locale}/admin/teachers/${teacher.id}`}
+                              className="shrink-0"
+                              aria-label={`Manage ${teacherName}`}
+                            >
+                              {teacher.avatar_url ? (
+                                <img
+                                  src={
+                                    teacher.avatar_url
+                                  }
+                                  alt=""
+                                  className="
+                                    h-11
+                                    w-11
+                                    rounded-full
+                                    border
+                                    border-[#DCD8D2]
+                                    object-cover
+                                  "
+                                />
+                              ) : (
+                                <div
+                                  className="
+                                    flex
+                                    h-11
+                                    w-11
+                                    items-center
+                                    justify-center
+                                    rounded-full
+                                    border
+                                    border-[#DCD8D2]
+                                    bg-[#E8EDE5]
+                                    font-serif
+                                    text-[14px]
+                                    font-normal
+                                    text-[#6F8F72]
+                                  "
+                                >
+                                  {
+                                    teacherInitials
+                                  }
+                                </div>
+                              )}
+                            </Link>
 
-                        <p
+                            <div className="min-w-0">
+                              <Link
+                                href={`/${locale}/admin/teachers/${teacher.id}`}
+                                className="
+                                  block
+                                  truncate
+                                  font-serif
+                                  text-[17px]
+                                  leading-6
+                                  tracking-[-0.01em]
+                                  transition-colors
+                                  hover:text-[#6F8F72]
+                                "
+                              >
+                                {teacherName}
+                              </Link>
+
+                              <p
+                                className="
+                                  mt-1
+                                  font-sans
+                                  text-[10px]
+                                  uppercase
+                                  tracking-[0.12em]
+                                  text-[#9A9790]
+                                "
+                              >
+                                {teacher.teacher_number ||
+                                  "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* STATUS                                            */}
+                        {/* ================================================= */}
+
+                        <td
                           className="
-                            mt-1
-                            font-sans
-                            text-[10px]
-                            uppercase
-                            tracking-[0.12em]
-                            text-[#9A9790]
+                            px-2
+                            py-4
+                            text-left
+                            sm:py-[18px]
                           "
-                        >
-                          {teacher.teacher_number ||
-                            "—"}
-                        </p>
-                      </td>
-
-                      {/* ================================================= */}
-                      {/* STATUS                                             */}
-                      {/* ================================================= */}
-
-                      <td
-                        className="
-                          px-2
-                          py-4
-                          text-left
-                          sm:py-[18px]
-                        "
-                      >
-                        <span
-                          className={`
-                            inline-flex
-                            items-center
-                            gap-1.5
-                            rounded-full
-                            px-2.5
-                            py-1.5
-                            font-sans
-                            text-[8px]
-                            font-medium
-                            uppercase
-                            tracking-[0.1em]
-                            ${status.className}
-                          `}
                         >
                           <span
                             className={`
-                              h-[5px]
-                              w-[5px]
-                              shrink-0
+                              inline-flex
+                              items-center
+                              gap-1.5
                               rounded-full
-                              ${status.ballClassName}
+                              px-2.5
+                              py-1.5
+                              font-sans
+                              text-[8px]
+                              font-medium
+                              uppercase
+                              tracking-[0.1em]
+                              ${status.className}
                             `}
-                          />
+                          >
+                            <span
+                              className={`
+                                h-[5px]
+                                w-[5px]
+                                shrink-0
+                                rounded-full
+                                ${status.ballClassName}
+                              `}
+                            />
 
-                          {status.label}
-                        </span>
-                      </td>
+                            {
+                              status.label
+                            }
+                          </span>
+                        </td>
 
-                      {/* ================================================= */}
-                      {/* STUDENTS                                           */}
-                      {/* ================================================= */}
+                        {/* ================================================= */}
+                        {/* STUDENTS                                          */}
+                        {/* ================================================= */}
 
-                      <td
-                        className="
-                          px-2
-                          py-4
-                          text-center
-                          font-serif
-                          text-[16px]
-                          text-[#55544F]
-                          sm:py-[18px]
-                        "
-                      >
-                        {teacher.student_count}
-                      </td>
-
-                      {/* ================================================= */}
-                      {/* TOTAL LESSONS                                      */}
-                      {/* ================================================= */}
-
-                      <td
-                        className="
-                          px-2
-                          py-4
-                          text-center
-                          font-serif
-                          text-[16px]
-                          text-[#55544F]
-                          sm:py-[18px]
-                        "
-                      >
-                        {teacher.total_lessons.toLocaleString(
-                          "en-US"
-                        )}
-                      </td>
-
-                      {/* ================================================= */}
-                      {/* PAYABLE                                            */}
-                      {/* ================================================= */}
-
-                      <td
-                        className="
-                          px-2
-                          py-4
-                          text-center
-                          font-serif
-                          text-[15px]
-                          text-[#55544F]
-                          sm:py-[18px]
-                        "
-                      >
-                        {formatMoney(
-                          teacher.payable
-                        )}
-                      </td>
-
-                      {/* ================================================= */}
-                      {/* ACTION                                             */}
-                      {/* ================================================= */}
-
-                      <td
-                        className="
-                          px-3
-                          py-4
-                          text-right
-                          sm:px-4
-                          sm:py-[18px]
-                        "
-                      >
-                        <Link
-                          href={`/${locale}/admin/teachers/${teacher.id}`}
+                        <td
                           className="
-                            font-sans
-                            text-[12px]
-                            text-[#6F8F72]
-                            transition-colors
-                            hover:text-[#526B55]
+                            px-2
+                            py-4
+                            text-center
+                            font-serif
+                            text-[16px]
+                            text-[#55544F]
+                            sm:py-[18px]
                           "
                         >
-                          Manage →
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
+                          {
+                            teacher.student_count
+                          }
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* TOTAL LESSONS                                     */}
+                        {/* ================================================= */}
+
+                        <td
+                          className="
+                            px-2
+                            py-4
+                            text-center
+                            font-serif
+                            text-[16px]
+                            text-[#55544F]
+                            sm:py-[18px]
+                          "
+                        >
+                          {teacher.total_lessons.toLocaleString(
+                            "en-US"
+                          )}
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* PAYABLE                                           */}
+                        {/* ================================================= */}
+
+                        <td
+                          className="
+                            px-2
+                            py-4
+                            text-center
+                            font-serif
+                            text-[15px]
+                            text-[#55544F]
+                            sm:py-[18px]
+                          "
+                        >
+                          {formatMoney(
+                            teacher.payable
+                          )}
+                        </td>
+
+                        {/* ================================================= */}
+                        {/* ACTION                                            */}
+                        {/* ================================================= */}
+
+                        <td
+                          className="
+                            px-3
+                            py-4
+                            text-right
+                            sm:px-4
+                            sm:py-[18px]
+                          "
+                        >
+                          <Link
+                            href={`/${locale}/admin/teachers/${teacher.id}`}
+                            className="
+                              font-sans
+                              text-[12px]
+                              text-[#6F8F72]
+                              transition-colors
+                              hover:text-[#526B55]
+                            "
+                          >
+                            Manage →
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  }
+                )}
               </tbody>
             </table>
           </div>
@@ -1196,7 +1323,8 @@ export default function TeachersManagement({
                 text-[#74716B]
               "
             >
-              No teachers match “{searchQuery}”.
+              No teachers match “
+              {searchQuery}”.
             </p>
 
             <button
@@ -1220,7 +1348,7 @@ export default function TeachersManagement({
           </div>
         ) : (
           /* =============================================================== */
-          /* EMPTY                                                            */
+          /* EMPTY                                                           */
           /* =============================================================== */
 
           <div

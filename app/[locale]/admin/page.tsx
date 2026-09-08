@@ -5,6 +5,7 @@ import {
   Users,
   UserRound,
   HeartHandshake,
+  LogOut,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +36,16 @@ export default async function AdminPage({
     .select("full_name, role, status")
     .eq("id", user.id)
     .single();
+
+  async function handleSignOut() {
+    "use server";
+
+    const supabase = await createClient();
+
+    await supabase.auth.signOut();
+
+    redirect(`/${locale}/admin/login`);
+  }
 
   /*
    * --------------------------------
@@ -94,23 +105,42 @@ export default async function AdminPage({
               gap-8
             "
           >
+            <form action={handleSignOut}>
+              <button
+                type="submit"
+                className="
+                  inline-flex
+                  shrink-0
+                  items-center
+                  gap-2
+                  font-sans
+                  text-[15px]
+                  text-[#5F655F]
+                  transition-colors
+                  duration-200
+                  hover:text-[#6F8F72]
+                  sm:text-[16px]
+                "
+              >
+                <LogOut
+                  size={15}
+                  strokeWidth={1.7}
+                />
+                Log out
+              </button>
+            </form>
+
             <Link
               href={`/${locale}`}
               className="
                 shrink-0
-                font-sans
-                text-[15px]
-                text-[#5F655F]
-                transition-colors
+                text-right
+                transition-opacity
                 duration-200
-                hover:text-[#6F8F72]
-                sm:text-[16px]
+                hover:opacity-75
               "
+              aria-label="Go to Hamkke homepage"
             >
-              &larr; Hamkke
-            </Link>
-
-            <div className="shrink-0 text-right">
               <p
                 className="
                   font-sans
@@ -137,7 +167,7 @@ export default async function AdminPage({
               >
                 From Small Talk to Big Ideas
               </p>
-            </div>
+            </Link>
           </div>
         </header>
 

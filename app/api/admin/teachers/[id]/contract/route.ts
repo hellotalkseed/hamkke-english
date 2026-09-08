@@ -54,7 +54,6 @@ async function getAuthenticatedProfile() {
 
   if (userError || !user) {
     return {
-      supabase,
       user: null,
       profile: null as AuthenticatedProfile | null,
       error: NextResponse.json(
@@ -65,11 +64,11 @@ async function getAuthenticatedProfile() {
   }
 
   /*
-   * Only load the currently authenticated user's profile.
+   * Only load the currently authenticated user's own profile.
    *
-   * We intentionally do NOT load the target teacher's profile here.
-   * The Owner may be able to authenticate successfully while RLS
-   * prevents reading another teacher's profile row.
+   * This continues to use the authenticated Supabase client so
+   * authentication and the user's own profile remain protected
+   * by the normal application/RLS flow.
    */
   const {
     data: profileData,
@@ -89,7 +88,6 @@ async function getAuthenticatedProfile() {
     );
 
     return {
-      supabase,
       user,
       profile: null as AuthenticatedProfile | null,
       error: NextResponse.json(
@@ -104,7 +102,6 @@ async function getAuthenticatedProfile() {
 
   if (!profile) {
     return {
-      supabase,
       user,
       profile: null as AuthenticatedProfile | null,
       error: NextResponse.json(
@@ -115,7 +112,6 @@ async function getAuthenticatedProfile() {
   }
 
   return {
-    supabase,
     user,
     profile,
     error: null,
@@ -127,10 +123,14 @@ function getClientIp(request: Request) {
     request.headers.get("x-forwarded-for");
 
   if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
+    return forwardedFor
+      .split(",")[0]
+      .trim();
   }
 
-  return request.headers.get("x-real-ip");
+  return request.headers.get(
+    "x-real-ip"
+  );
 }
 
 /*
@@ -203,8 +203,10 @@ async function activatePendingTeacher(
     }
 
     if (
-      currentProfile?.role === "teacher" &&
-      currentProfile?.status === "active"
+      currentProfile?.role ===
+        "teacher" &&
+      currentProfile?.status ===
+        "active"
     ) {
       return {
         success: true,
@@ -253,7 +255,6 @@ export async function GET(
   context: RouteContext
 ) {
   const {
-    supabase,
     user,
     profile,
     error,
@@ -275,7 +276,10 @@ export async function GET(
 
   if (!teacherId) {
     return NextResponse.json(
-      { error: "Teacher ID is required." },
+      {
+        error:
+          "Teacher ID is required.",
+      },
       { status: 400 }
     );
   }
@@ -293,10 +297,8 @@ export async function GET(
    */
   const isTeacher =
     profile.role === "teacher" &&
-    (
-      profile.status === "pending" ||
-      profile.status === "active"
-    );
+    (profile.status === "pending" ||
+      profile.status === "active");
 
   if (!isOwner && !isTeacher) {
     return NextResponse.json(
@@ -306,9 +308,12 @@ export async function GET(
   }
 
   /*
-   * A teacher can only access their own agreement.
+   * A teacher may only access their own agreement.
    */
-  if (isTeacher && teacherId !== user.id) {
+  if (
+    isTeacher &&
+    teacherId !== user.id
+  ) {
     return NextResponse.json(
       {
         error:
@@ -318,33 +323,47 @@ export async function GET(
     );
   }
 
+  /*
+   * Authorization has already been completed above.
+   *
+   * Use the server-side Admin client for the agreement
+   * query so a pending teacher does not depend on a
+   * broader teacher_contracts RLS SELECT policy.
+   */
+  const admin = createAdminClient();
+
   /* ----------------------------------------------------------------------- */
   /* LOAD CONTRACT                                                           */
   /* ----------------------------------------------------------------------- */
 
-  let contractQuery = supabase
+  let contractQuery = admin
     .from("teacher_contracts")
     .select(CONTRACT_SELECT)
-    .eq("teacher_id", teacherId);
+    .eq(
+      "teacher_id",
+      teacherId
+    );
 
   /*
    * Teachers must never see drafts.
    */
   if (isTeacher) {
-    contractQuery = contractQuery.in("status", [
-      "pending_acceptance",
-      "accepted",
-    ]);
+    contractQuery =
+      contractQuery.in("status", [
+        "pending_acceptance",
+        "accepted",
+      ]);
   } else {
     /*
      * Owners can see drafts, pending agreements,
      * and accepted agreements.
      */
-    contractQuery = contractQuery.in("status", [
-      "draft",
-      "pending_acceptance",
-      "accepted",
-    ]);
+    contractQuery =
+      contractQuery.in("status", [
+        "draft",
+        "pending_acceptance",
+        "accepted",
+      ]);
   }
 
   const {
@@ -376,7 +395,8 @@ export async function GET(
     contractData as TeacherContract | null;
 
   return NextResponse.json({
-    contract: contract ?? null,
+    contract:
+      contract ?? null,
   });
 }
 
@@ -389,7 +409,6 @@ export async function POST(
   context: RouteContext
 ) {
   const {
-    supabase,
     user,
     profile,
     error,
@@ -411,13 +430,19 @@ export async function POST(
 
   if (!teacherId) {
     return NextResponse.json(
-      { error: "Teacher ID is required." },
+      {
+        error:
+          "Teacher ID is required.",
+      },
       { status: 400 }
     );
   }
 
   let body: {
-    action?: "create" | "send" | "accept";
+    action?:
+      | "create"
+      | "send"
+      | "accept";
     contractId?: string | null;
   };
 
@@ -425,7 +450,10 @@ export async function POST(
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Invalid request body." },
+      {
+        error:
+          "Invalid request body.",
+      },
       { status: 400 }
     );
   }
@@ -434,7 +462,10 @@ export async function POST(
 
   if (!action) {
     return NextResponse.json(
-      { error: "Action is required." },
+      {
+        error:
+          "Action is required.",
+      },
       { status: 400 }
     );
   }
@@ -449,10 +480,8 @@ export async function POST(
    */
   const isTeacher =
     profile.role === "teacher" &&
-    (
-      profile.status === "pending" ||
-      profile.status === "active"
-    );
+    (profile.status === "pending" ||
+      profile.status === "active");
 
   /* ----------------------------------------------------------------------- */
   /* AUTHORIZATION                                                           */
@@ -490,7 +519,9 @@ export async function POST(
       );
     }
 
-    if (teacherId !== user.id) {
+    if (
+      teacherId !== user.id
+    ) {
       return NextResponse.json(
         {
           error:
@@ -501,11 +532,23 @@ export async function POST(
     }
   }
 
+  /*
+   * All access to teacher_contracts below this point is
+   * performed with the server-side Admin client.
+   *
+   * The route itself has already enforced who may perform
+   * each operation and which teacher ID they may access.
+   */
+  const admin =
+    createAdminClient();
+
   /* ----------------------------------------------------------------------- */
   /* TEACHER ACCEPTANCE                                                      */
   /* ----------------------------------------------------------------------- */
 
-  if (action === "accept") {
+  if (
+    action === "accept"
+  ) {
     if (!body.contractId) {
       return NextResponse.json(
         {
@@ -519,11 +562,17 @@ export async function POST(
     const {
       data: contractData,
       error: contractError,
-    } = await supabase
+    } = await admin
       .from("teacher_contracts")
       .select(CONTRACT_SELECT)
-      .eq("id", body.contractId)
-      .eq("teacher_id", teacherId)
+      .eq(
+        "id",
+        body.contractId
+      )
+      .eq(
+        "teacher_id",
+        teacherId
+      )
       .maybeSingle();
 
     if (contractError) {
@@ -569,14 +618,22 @@ export async function POST(
      * In that case, retry activation instead of permanently
      * trapping the teacher behind an "already accepted" error.
      */
-    if (contract.status === "accepted") {
-      if (profile.status === "pending") {
+    if (
+      contract.status ===
+      "accepted"
+    ) {
+      if (
+        profile.status ===
+        "pending"
+      ) {
         const activation =
           await activatePendingTeacher(
             teacherId
           );
 
-        if (!activation.success) {
+        if (
+          !activation.success
+        ) {
           return NextResponse.json(
             {
               error:
@@ -592,15 +649,12 @@ export async function POST(
           message:
             "Teacher agreement accepted successfully.",
           contract,
-          teacherStatus: "active",
+          teacherStatus:
+            "active",
           recovered: true,
         });
       }
 
-      /*
-       * An active teacher attempting to accept the same
-       * agreement again receives the normal conflict response.
-       */
       return NextResponse.json(
         {
           error:
@@ -634,7 +688,9 @@ export async function POST(
       getClientIp(request);
 
     const acceptedUserAgent =
-      request.headers.get("user-agent");
+      request.headers.get(
+        "user-agent"
+      );
 
     /* --------------------------------------------------------------------- */
     /* RECORD ACCEPTANCE                                                     */
@@ -643,21 +699,35 @@ export async function POST(
     const {
       data: updatedContractData,
       error: updateError,
-    } = await supabase
+    } = await admin
       .from("teacher_contracts")
       .update({
         status: "accepted",
-        accepted_at: acceptedAt,
-        accepted_ip: acceptedIp,
+        accepted_at:
+          acceptedAt,
+        accepted_ip:
+          acceptedIp,
         accepted_user_agent:
           acceptedUserAgent,
-        updated_at: acceptedAt,
+        updated_at:
+          acceptedAt,
       })
-      .eq("id", contract.id)
-      .eq("teacher_id", teacherId)
-      .eq("status", "pending_acceptance")
-      .select(CONTRACT_SELECT)
-      .single();
+      .eq(
+        "id",
+        contract.id
+      )
+      .eq(
+        "teacher_id",
+        teacherId
+      )
+      .eq(
+        "status",
+        "pending_acceptance"
+      )
+      .select(
+        CONTRACT_SELECT
+      )
+      .maybeSingle();
 
     if (
       updateError ||
@@ -687,16 +757,22 @@ export async function POST(
     /*
      * Only pending teachers require activation.
      *
-     * Existing active teachers may still accept a newly issued
-     * agreement in the future without changing their status.
+     * Existing active teachers may still accept a newly
+     * issued agreement in the future without changing
+     * their status.
      */
-    if (profile.status === "pending") {
+    if (
+      profile.status ===
+      "pending"
+    ) {
       const activation =
         await activatePendingTeacher(
           teacherId
         );
 
-      if (!activation.success) {
+      if (
+        !activation.success
+      ) {
         /*
          * The agreement is already accepted at this point.
          *
@@ -707,7 +783,8 @@ export async function POST(
           {
             error:
               "Your agreement was accepted, but we couldn't activate your teacher account. Please try again or contact Hamkke.",
-            contract: updatedContract,
+            contract:
+              updatedContract,
           },
           { status: 500 }
         );
@@ -718,8 +795,10 @@ export async function POST(
       success: true,
       message:
         "Teacher agreement accepted successfully.",
-      contract: updatedContract,
-      teacherStatus: "active",
+      contract:
+        updatedContract,
+      teacherStatus:
+        "active",
     });
   }
 
@@ -729,7 +808,10 @@ export async function POST(
 
   if (!isOwner) {
     return NextResponse.json(
-      { error: "Access denied." },
+      {
+        error:
+          "Access denied.",
+      },
       { status: 403 }
     );
   }
@@ -741,10 +823,13 @@ export async function POST(
   const {
     data: existingContractData,
     error: existingError,
-  } = await supabase
+  } = await admin
     .from("teacher_contracts")
     .select(CONTRACT_SELECT)
-    .eq("teacher_id", teacherId)
+    .eq(
+      "teacher_id",
+      teacherId
+    )
     .in("status", [
       "draft",
       "pending_acceptance",
@@ -786,7 +871,8 @@ export async function POST(
       {
         error:
           "This agreement has already been accepted. Create a new version instead of modifying the accepted agreement.",
-        contract: existingContract,
+        contract:
+          existingContract,
       },
       { status: 409 }
     );
@@ -796,14 +882,17 @@ export async function POST(
   /* CREATE                                                                  */
   /* ----------------------------------------------------------------------- */
 
-  if (action === "create") {
+  if (
+    action === "create"
+  ) {
     /*
      * Do not create duplicates.
      */
     if (existingContract) {
       return NextResponse.json({
         success: true,
-        contract: existingContract,
+        contract:
+          existingContract,
       });
     }
 
@@ -815,7 +904,7 @@ export async function POST(
     const {
       data: contractNumberData,
       error: numberError,
-    } = await supabase.rpc(
+    } = await admin.rpc(
       "generate_teacher_contract_number"
     );
 
@@ -840,17 +929,21 @@ export async function POST(
     const {
       data: newContractData,
       error: createError,
-    } = await supabase
+    } = await admin
       .from("teacher_contracts")
       .insert({
-        teacher_id: teacherId,
+        teacher_id:
+          teacherId,
         contract_number:
           contractNumber,
         version: "1.0",
         status: "draft",
-        agreement_date: today,
+        agreement_date:
+          today,
       })
-      .select(CONTRACT_SELECT)
+      .select(
+        CONTRACT_SELECT
+      )
       .single();
 
     if (
@@ -876,7 +969,8 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      contract: newContract,
+      contract:
+        newContract,
     });
   }
 
@@ -884,7 +978,9 @@ export async function POST(
   /* SEND                                                                    */
   /* ----------------------------------------------------------------------- */
 
-  if (action === "send") {
+  if (
+    action === "send"
+  ) {
     if (!existingContract) {
       return NextResponse.json(
         {
@@ -925,12 +1021,22 @@ export async function POST(
     const {
       data: updatedContractData,
       error: updateError,
-    } = await supabase
+    } = await admin
       .from("teacher_contracts")
-      .update(updatePayload)
-      .eq("id", existingContract.id)
-      .eq("teacher_id", teacherId)
-      .select(CONTRACT_SELECT)
+      .update(
+        updatePayload
+      )
+      .eq(
+        "id",
+        existingContract.id
+      )
+      .eq(
+        "teacher_id",
+        teacherId
+      )
+      .select(
+        CONTRACT_SELECT
+      )
       .single();
 
     if (
@@ -958,7 +1064,8 @@ export async function POST(
       success: true,
       message:
         "Teacher agreement sent successfully.",
-      contract: updatedContract,
+      contract:
+        updatedContract,
     });
   }
 
@@ -967,7 +1074,10 @@ export async function POST(
   /* ----------------------------------------------------------------------- */
 
   return NextResponse.json(
-    { error: "Unsupported action." },
+    {
+      error:
+        "Unsupported action.",
+    },
     { status: 400 }
   );
 }

@@ -32,8 +32,7 @@ export default function Footer() {
       >
         <div
           className="
-            mx-auto
-            max-w-7xl
+            w-full
             px-6
 
             md:px-8
@@ -45,11 +44,12 @@ export default function Footer() {
               flex
               flex-col
               items-center
-              justify-between
               gap-3
 
-              md:flex-row
+              md:grid
+              md:grid-cols-[1fr_auto_1fr]
               md:items-center
+              md:gap-6
             "
           >
             {/* =====================================================
@@ -60,6 +60,7 @@ export default function Footer() {
               className="
                 text-center
 
+                md:justify-self-start
                 md:text-left
               "
             >
@@ -96,7 +97,7 @@ export default function Footer() {
                 text-[10px]
                 text-white/30
 
-                md:flex-1
+                md:justify-self-center
               "
             >
               {t.footer.copyright}
@@ -115,7 +116,7 @@ export default function Footer() {
                 text-[11px]
                 text-white/60
 
-                md:justify-end
+                md:justify-self-end
               "
             >
               <a

@@ -25,6 +25,9 @@ const PAYABLE_ATTENDANCE_STATUSES = [
   "late_cancellation",
 ] as const;
 
+const TEACHER_AVATAR_BUCKET =
+  "teacher-avatars";
+
 /* ========================================================================= */
 /* PHILIPPINE-TIME PAYROLL PERIOD                                            */
 /* ========================================================================= */
@@ -196,7 +199,15 @@ export async function GET() {
     } = await admin
       .from("profiles")
       .select(
-        "id, full_name, role, status, created_at, teacher_number"
+        `
+          id,
+          full_name,
+          role,
+          status,
+          created_at,
+          teacher_number,
+          avatar_path
+        `
       )
       .eq("role", "teacher")
       .order("created_at", {
@@ -530,6 +541,21 @@ export async function GET() {
       ];
 
       /* ------------------------------------------------------------------- */
+      /* AVATAR                                                              */
+      /* ------------------------------------------------------------------- */
+
+      const avatarUrl =
+        teacher.avatar_path
+          ? admin.storage
+              .from(
+                TEACHER_AVATAR_BUCKET
+              )
+              .getPublicUrl(
+                teacher.avatar_path
+              ).data.publicUrl
+          : null;
+
+      /* ------------------------------------------------------------------- */
       /* ALL LESSONS ATTRIBUTED TO THIS TEACHER                              */
       /* ------------------------------------------------------------------- */
 
@@ -689,25 +715,45 @@ export async function GET() {
           0
         );
 
+      /* ------------------------------------------------------------------- */
+      /* TEACHER RESPONSE                                                    */
+      /* ------------------------------------------------------------------- */
+
       return {
         id: teacher.id,
+
         full_name:
           teacher.full_name,
-        role: teacher.role,
+
+        role:
+          teacher.role,
+
         status:
           teacher.status,
+
         created_at:
           teacher.created_at,
+
         email:
           teacherEmails.get(
             teacher.id
           ) || null,
+
         teacher_number:
           teacher.teacher_number,
+
+        avatar_path:
+          teacher.avatar_path,
+
+        avatar_url:
+          avatarUrl,
+
         student_count:
           uniqueStudentIds.length,
+
         total_lessons:
           totalLessons,
+
         payable,
       };
     });

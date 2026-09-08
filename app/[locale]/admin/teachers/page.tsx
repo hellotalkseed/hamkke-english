@@ -6,9 +6,11 @@ import {
   CalendarDays,
   FileText,
   Wallet,
+  LogOut,
 } from "lucide-react";
 
 import TeachersManagement from "./TeachersManagement";
+import TeacherAvatarManager from "./TeacherAvatarManager";
 import { createClient } from "@/lib/supabase/server";
 
 interface TeachersPageProps {
@@ -52,21 +54,24 @@ export default async function TeachersPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, status")
+    .select("full_name, role, status, avatar_path")
     .eq("id", user.id)
     .maybeSingle();
+
+  async function handleSignOut() {
+    "use server";
+
+    const supabase = await createClient();
+
+    await supabase.auth.signOut();
+
+    redirect(`/${locale}/admin/login`);
+  }
 
   /* ----------------------------------------------------------------------- */
   /* PENDING TEACHER ONBOARDING                                              */
   /* ----------------------------------------------------------------------- */
 
-  /*
-   * A pending teacher has authenticated successfully,
-   * but has not yet completed the Teacher Agreement.
-   *
-   * Pending teachers must not enter the normal Teacher Dashboard.
-   * Send them back to the onboarding agreement instead.
-   */
   if (
     profile?.role === "teacher" &&
     profile?.status === "pending"
@@ -93,6 +98,12 @@ export default async function TeachersPage({
     profile?.role === "teacher" &&
     profile?.status === "active"
   ) {
+    const initialAvatarUrl = profile.avatar_path
+      ? supabase.storage
+          .from("teacher-avatars")
+          .getPublicUrl(profile.avatar_path).data.publicUrl
+      : null;
+
     return (
       <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
         {/* HEADER */}
@@ -117,23 +128,42 @@ export default async function TeachersPage({
               gap-8
             "
           >
+            <form action={handleSignOut}>
+              <button
+                type="submit"
+                className="
+                  inline-flex
+                  shrink-0
+                  items-center
+                  gap-2
+                  font-sans
+                  text-[15px]
+                  text-[#5F655F]
+                  transition-colors
+                  duration-200
+                  hover:text-[#6F8F72]
+                  sm:text-[16px]
+                "
+              >
+                <LogOut
+                  size={15}
+                  strokeWidth={1.7}
+                />
+                Log out
+              </button>
+            </form>
+
             <Link
               href={`/${locale}`}
               className="
                 shrink-0
-                font-sans
-                text-[15px]
-                text-[#5F655F]
-                transition-colors
+                text-right
+                transition-opacity
                 duration-200
-                hover:text-[#6F8F72]
-                sm:text-[16px]
+                hover:opacity-75
               "
+              aria-label="Go to Hamkke homepage"
             >
-              &larr; Hamkke
-            </Link>
-
-            <div className="shrink-0 text-right">
               <p
                 className="
                   font-sans
@@ -160,11 +190,11 @@ export default async function TeachersPage({
               >
                 From Small Talk to Big Ideas
               </p>
-            </div>
+            </Link>
           </div>
         </header>
 
-        {/* INTRO */}
+        {/* DASHBOARD INTRO + PROFILE */}
 
         <section
           className="
@@ -172,66 +202,106 @@ export default async function TeachersPage({
             w-full
             max-w-[1040px]
             px-6
-            pb-12
-            pt-10
+            pb-14
+            pt-14
             sm:px-8
-            sm:pb-14
-            sm:pt-20
+            sm:pb-16
+            sm:pt-16
             lg:px-10
-            lg:pb-16
-            lg:pt-24
+            lg:pb-20
+            lg:pt-20
           "
         >
-          <p
+          <div
             className="
-              text-center
-              font-sans
-              text-[13px]
-              font-medium
-              uppercase
-              tracking-[0.14em]
-              text-[#8A8A84]
-            "
-          >
-            Teacher
-          </p>
+              flex
+              flex-col
+              gap-10
 
-          <h1
-            className="
-              mt-4
-              text-center
-              font-serif
-              text-[52px]
-              font-normal
-              leading-[1.05]
-              tracking-[-0.035em]
-              text-[#292929]
-              sm:text-[62px]
-              lg:text-[70px]
-            "
-          >
-            Teacher Dashboard
-          </h1>
+              md:flex-row
+              md:items-start
+              md:justify-between
+              md:gap-12
 
-          <p
-            className="
-              mx-auto
-              mt-8
-              max-w-[850px]
-              text-center
-              font-serif
-              text-[21px]
-              font-normal
-              leading-8
-              text-[#4A4A4A]
-              sm:text-[23px]
-              sm:leading-9
-              lg:text-[25px]
-              lg:leading-10
+              lg:gap-16
             "
           >
-            Your students, lessons, and teaching information in one place.
-          </p>
+            {/* INTRO TEXT */}
+
+            <div
+              className="
+                min-w-0
+                flex-1
+                text-center
+                md:text-left
+              "
+            >
+              <p
+                className="
+                  font-sans
+                  text-[13px]
+                  font-medium
+                  uppercase
+                  tracking-[0.14em]
+                  text-[#8A8A84]
+                "
+              >
+                Teacher
+              </p>
+
+              <h1
+                className="
+                  mt-4
+                  font-serif
+                  text-[48px]
+                  font-normal
+                  leading-[1.05]
+                  tracking-[-0.035em]
+                  text-[#292929]
+
+                  sm:text-[58px]
+                  lg:text-[64px]
+                "
+              >
+                Teacher Dashboard
+              </h1>
+
+              <p
+                className="
+                  mt-7
+                  max-w-[720px]
+                  font-serif
+                  text-[20px]
+                  font-normal
+                  leading-8
+                  text-[#4A4A4A]
+
+                  sm:text-[22px]
+                  sm:leading-9
+                  lg:text-[23px]
+                "
+              >
+                Your students, lessons, and teaching
+                information in one place.
+              </p>
+            </div>
+
+            {/* PROFILE PHOTO */}
+
+            <div
+              className="
+                flex
+                shrink-0
+                justify-center
+                md:justify-end
+              "
+            >
+              <TeacherAvatarManager
+                fullName={profile.full_name}
+                initialAvatarUrl={initialAvatarUrl}
+              />
+            </div>
+          </div>
         </section>
 
         {/* TEACHER OPTIONS */}

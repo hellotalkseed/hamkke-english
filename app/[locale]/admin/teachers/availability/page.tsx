@@ -25,12 +25,20 @@ interface AvailabilityBlock {
   end_time: string;
 }
 
+interface SubAvailabilityBlock {
+  id?: string;
+  availability_date: string;
+  start_time: string;
+  end_time: string;
+}
+
 interface AvailabilityResponse {
   teacher?: {
     id: string;
     full_name: string | null;
   };
   availability?: AvailabilityBlock[];
+  sub_availability?: SubAvailabilityBlock[];
   error?: string;
 }
 
@@ -147,6 +155,16 @@ function getSlotsForPeriod(
   );
 }
 
+function getEndTimeForSlot(slot: TimeSlot) {
+  const totalMinutes =
+    slot.hour * 60 + slot.minute + SLOT_MINUTES;
+
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+
+  return timeKey(hour, minute);
+}
+
 export default function TeacherAvailabilityPage() {
   const params = useParams();
   const locale = params?.locale as string;
@@ -164,7 +182,7 @@ export default function TeacherAvailabilityPage() {
     useState<Set<string>>(new Set());
 
   /*
-   * SUB CLASS AVAILABILITY
+   * ADDITIONAL / DATE-SPECIFIC AVAILABILITY
    */
 
   const [subDates, setSubDates] =
@@ -197,7 +215,7 @@ export default function TeacherAvailabilityPage() {
   );
 
   /*
-   * LOAD REGULAR AVAILABILITY
+   * LOAD AVAILABILITY
    */
 
   useEffect(() => {
@@ -228,9 +246,16 @@ export default function TeacherAvailabilityPage() {
           data.teacher?.full_name || ""
         );
 
-        const slots = new Set<string>();
+        /*
+         * REGULAR AVAILABILITY
+         */
 
-        for (const block of data.availability || []) {
+        const loadedRegularSlots =
+          new Set<string>();
+
+        for (
+          const block of data.availability || []
+        ) {
           const startParts = block.start_time
             .slice(0, 5)
             .split(":");
@@ -247,16 +272,14 @@ export default function TeacherAvailabilityPage() {
             Number(endParts[0]) * 60 +
             Number(endParts[1]);
 
-          while (
-            currentMinutes < endMinutes
-          ) {
+          while (currentMinutes < endMinutes) {
             const hour =
               Math.floor(currentMinutes / 60);
 
             const minute =
               currentMinutes % 60;
 
-            slots.add(
+            loadedRegularSlots.add(
               createSlotKey(
                 block.day_of_week,
                 timeKey(hour, minute)
@@ -267,20 +290,86 @@ export default function TeacherAvailabilityPage() {
           }
         }
 
-        setRegularSlots(slots);
+        setRegularSlots(loadedRegularSlots);
 
         const firstAvailableDay = DAYS.find(
           (day) =>
-            Array.from(slots).some(
-              (key) =>
-                key.startsWith(
-                  `${day.value}-`
-                )
+            Array.from(
+              loadedRegularSlots
+            ).some((key) =>
+              key.startsWith(
+                `${day.value}-`
+              )
             )
         );
 
         setSelectedDay(
           firstAvailableDay?.value ?? 1
+        );
+
+        /*
+         * ADDITIONAL / DATE-SPECIFIC AVAILABILITY
+         */
+
+        const loadedSubSlots =
+          new Set<string>();
+
+        const loadedSubDates =
+          new Set<string>();
+
+        for (
+          const block of
+            data.sub_availability || []
+        ) {
+          const date =
+            block.availability_date;
+
+          loadedSubDates.add(date);
+
+          const startParts = block.start_time
+            .slice(0, 5)
+            .split(":");
+
+          const endParts = block.end_time
+            .slice(0, 5)
+            .split(":");
+
+          let currentMinutes =
+            Number(startParts[0]) * 60 +
+            Number(startParts[1]);
+
+          const endMinutes =
+            Number(endParts[0]) * 60 +
+            Number(endParts[1]);
+
+          while (currentMinutes < endMinutes) {
+            const hour =
+              Math.floor(currentMinutes / 60);
+
+            const minute =
+              currentMinutes % 60;
+
+            loadedSubSlots.add(
+              createDateSlotKey(
+                date,
+                timeKey(hour, minute)
+              )
+            );
+
+            currentMinutes += SLOT_MINUTES;
+          }
+        }
+
+        const sortedSubDates =
+          Array.from(
+            loadedSubDates
+          ).sort();
+
+        setSubSlots(loadedSubSlots);
+        setSubDates(sortedSubDates);
+
+        setSelectedSubDate(
+          sortedSubDates[0] ?? null
         );
       } catch (err) {
         console.error(
@@ -342,7 +431,7 @@ export default function TeacherAvailabilityPage() {
   }
 
   /*
-   * SAVE REGULAR AVAILABILITY
+   * CONVERT REGULAR SLOTS TO BLOCKS
    */
 
   function convertSlotsToBlocks() {
@@ -375,20 +464,15 @@ export default function TeacherAvailabilityPage() {
 
         const shouldEndBlock =
           blockStart &&
-          (!selected || !nextSlot);
+          (
+            !selected ||
+            !nextSlot
+          );
 
         if (shouldEndBlock) {
           const endTime =
             selected && !nextSlot
-              ? timeKey(
-                  slot.hour +
-                    (slot.minute === 30
-                      ? 1
-                      : 0),
-                  slot.minute === 30
-                    ? 0
-                    : 30
-                )
+              ? getEndTimeForSlot(slot)
               : slot.key;
 
           blocks.push({
@@ -406,6 +490,10 @@ export default function TeacherAvailabilityPage() {
 
     return blocks;
   }
+
+  /*
+   * SAVE REGULAR AVAILABILITY
+   */
 
   async function saveRegularAvailability() {
     try {
@@ -460,18 +548,19 @@ export default function TeacherAvailabilityPage() {
   }
 
   /*
-   * SUB DATE
+   * ADD DATE
    */
 
   function addSubDate() {
     const today = getTodayString();
 
-    if (!subDates.includes(today)) {
-      setSubDates((current) => [
-        ...current,
-        today,
-      ]);
-    }
+    setSubDates((current) => {
+      if (current.includes(today)) {
+        return current;
+      }
+
+      return [...current, today].sort();
+    });
 
     setSelectedSubDate(today);
     setMessage("");
@@ -501,8 +590,18 @@ export default function TeacherAvailabilityPage() {
     });
 
     if (selectedSubDate === date) {
-      setSelectedSubDate(null);
+      const remainingDates =
+        subDates.filter(
+          (item) => item !== date
+        );
+
+      setSelectedSubDate(
+        remainingDates[0] ?? null
+      );
     }
+
+    setMessage("");
+    setError("");
   }
 
   function updateSubDate(date: string) {
@@ -511,7 +610,7 @@ export default function TeacherAvailabilityPage() {
         return current;
       }
 
-      return [...current, date];
+      return [...current, date].sort();
     });
 
     setSelectedSubDate(date);
@@ -520,7 +619,7 @@ export default function TeacherAvailabilityPage() {
   }
 
   /*
-   * SUB SLOT TOGGLE
+   * ADDITIONAL SLOT TOGGLE
    */
 
   function toggleSubSlot(
@@ -562,21 +661,153 @@ export default function TeacherAvailabilityPage() {
   }
 
   /*
-   * SAVE SUB AVAILABILITY
+   * CONVERT DATE-SPECIFIC SLOTS TO BLOCKS
+   */
+
+  function convertSubSlotsToBlocks() {
+    const blocks: SubAvailabilityBlock[] = [];
+
+    const sortedDates = [...subDates].sort();
+
+    for (const date of sortedDates) {
+      let blockStart: string | null = null;
+
+      for (
+        let i = 0;
+        i < timeSlots.length;
+        i++
+      ) {
+        const slot = timeSlots[i];
+
+        const selected =
+          subSlots.has(
+            createDateSlotKey(
+              date,
+              slot.key
+            )
+          );
+
+        const nextSlot =
+          timeSlots[i + 1];
+
+        if (selected && !blockStart) {
+          blockStart = slot.key;
+        }
+
+        const shouldEndBlock =
+          blockStart &&
+          (
+            !selected ||
+            !nextSlot
+          );
+
+        if (shouldEndBlock) {
+          const endTime =
+            selected && !nextSlot
+              ? getEndTimeForSlot(slot)
+              : slot.key;
+
+          blocks.push({
+            availability_date: date,
+            start_time:
+              `${blockStart}:00`,
+            end_time:
+              `${endTime}:00`,
+          });
+
+          blockStart = null;
+        }
+      }
+    }
+
+    return blocks;
+  }
+
+  /*
+   * SAVE ADDITIONAL AVAILABILITY
    */
 
   async function saveSubAvailability() {
-    setSavingSub(true);
-    setMessage("");
-    setError("");
+    try {
+      setSavingSub(true);
+      setMessage("");
+      setError("");
 
-    setTimeout(() => {
-      setSavingSub(false);
+      const subAvailability =
+        convertSubSlotsToBlocks();
+
+      const response = await fetch(
+        "/api/admin/teachers/availability",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            sub_availability:
+              subAvailability,
+          }),
+        }
+      );
+
+      const data: AvailabilityResponse =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Failed to save additional availability."
+        );
+      }
+
+      /*
+       * Remove empty date cards after saving.
+       * A date with no selected slots has no
+       * corresponding database record.
+       */
+
+      const savedDates = Array.from(
+        new Set(
+          subAvailability.map(
+            (block) =>
+              block.availability_date
+          )
+        )
+      ).sort();
+
+      setSubDates(savedDates);
+
+      if (
+        selectedSubDate &&
+        !savedDates.includes(
+          selectedSubDate
+        )
+      ) {
+        setSelectedSubDate(
+          savedDates[0] ?? null
+        );
+      }
 
       setMessage(
-        "Your sub class availability is ready to be saved."
+        subAvailability.length > 0
+          ? "Your additional availability has been saved."
+          : "Your additional availability has been cleared."
       );
-    }, 400);
+    } catch (err) {
+      console.error(
+        "Save additional availability error:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to save additional availability."
+      );
+    } finally {
+      setSavingSub(false);
+    }
   }
 
   /*
@@ -649,10 +880,6 @@ export default function TeacherAvailabilityPage() {
     );
   }
 
-  /*
-   * RENDER
-   */
-
   return (
     <main
       className="
@@ -720,7 +947,6 @@ export default function TeacherAvailabilityPage() {
       </div>
 
       <div className="mx-auto max-w-[1200px]">
-
         {/* PAGE HEADER */}
 
         <div
@@ -778,7 +1004,8 @@ export default function TeacherAvailabilityPage() {
             "
           >
             Set your regular schedule and add
-            extra availability when needed.
+            one-time availability when your
+            schedule temporarily opens up.
           </p>
 
           {teacherName && (
@@ -809,9 +1036,7 @@ export default function TeacherAvailabilityPage() {
           </div>
         ) : (
           <>
-            {/* ================================================= */}
             {/* REGULAR CLASS SCHEDULE */}
-            {/* ================================================= */}
 
             <section
               className="
@@ -829,9 +1054,6 @@ export default function TeacherAvailabilityPage() {
               "
             >
               <div className="max-w-4xl">
-
-                {/* SECTION LABEL */}
-
                 <p
                   className="
                     font-sans
@@ -865,7 +1087,6 @@ export default function TeacherAvailabilityPage() {
                   className="
                     mt-4
                     max-w-none
-                    whitespace-nowrap
                     font-sans
                     text-[15px]
                     leading-7
@@ -971,8 +1192,6 @@ export default function TeacherAvailabilityPage() {
                 </div>
               </div>
 
-              {/* SELECTED DAY */}
-
               {selectedDay !== null && (
                 <div
                   className="
@@ -1056,8 +1275,6 @@ export default function TeacherAvailabilityPage() {
                     when you are available.
                   </p>
 
-                  {/* TIME PERIODS */}
-
                   <div
                     className="
                       mt-8
@@ -1093,8 +1310,6 @@ export default function TeacherAvailabilityPage() {
                               sm:p-5
                             "
                           >
-                            {/* PERIOD HEADER */}
-
                             <div
                               className="
                                 border-b
@@ -1134,8 +1349,6 @@ export default function TeacherAvailabilityPage() {
                               </p>
                             </div>
 
-                            {/* TIME SLOTS */}
-
                             {renderTimeSlots(
                               periodSlots,
                               (slot) =>
@@ -1160,8 +1373,6 @@ export default function TeacherAvailabilityPage() {
                   </div>
                 </div>
               )}
-
-              {/* SAVE */}
 
               <div
                 className="
@@ -1222,9 +1433,7 @@ export default function TeacherAvailabilityPage() {
               </div>
             </section>
 
-            {/* ================================================= */}
-            {/* SUB CLASS AVAILABILITY */}
-            {/* ================================================= */}
+            {/* ADDITIONAL AVAILABILITY */}
 
             <section
               className="
@@ -1242,9 +1451,6 @@ export default function TeacherAvailabilityPage() {
               "
             >
               <div className="max-w-4xl">
-
-                {/* SECTION LABEL */}
-
                 <p
                   className="
                     font-sans
@@ -1255,7 +1461,7 @@ export default function TeacherAvailabilityPage() {
                     text-[#5F7F63]
                   "
                 >
-                  Sub Class Availability
+                  Additional Availability
                 </p>
 
                 <h2
@@ -1268,22 +1474,25 @@ export default function TeacherAvailabilityPage() {
                     text-[#292929]
                   "
                 >
-                  Available on a specific day?
+                  Did a specific date open up?
                 </h2>
 
                 <p
                   className="
                     mt-2.5
-                    max-w-xl
+                    max-w-2xl
                     font-sans
                     text-[13px]
                     leading-6
                     text-[#777]
                   "
                 >
-                  Add extra availability for a
-                  specific date. These times do
-                  not repeat every week.
+                  Add one-time availability when
+                  you have an extra opening, such
+                  as when a regular student is on
+                  break or cancels with enough
+                  notice. Your regular schedule
+                  will not be changed.
                 </p>
               </div>
 
@@ -1486,8 +1695,6 @@ export default function TeacherAvailabilityPage() {
                               Available Hours
                             </p>
 
-                            {/* TIME PERIODS */}
-
                             <div
                               className="
                                 mt-6
@@ -1525,8 +1732,6 @@ export default function TeacherAvailabilityPage() {
                                         sm:p-5
                                       "
                                     >
-                                      {/* PERIOD HEADER */}
-
                                       <div
                                         className="
                                           border-b
@@ -1567,8 +1772,6 @@ export default function TeacherAvailabilityPage() {
                                           )}
                                         </p>
                                       </div>
-
-                                      {/* TIME SLOTS */}
 
                                       {renderTimeSlots(
                                         periodSlots,
@@ -1621,7 +1824,7 @@ export default function TeacherAvailabilityPage() {
                       text-[#666]
                     "
                   >
-                    No extra dates yet.
+                    No additional dates yet.
                   </p>
 
                   <p
@@ -1633,14 +1836,14 @@ export default function TeacherAvailabilityPage() {
                       text-[#999]
                     "
                   >
-                    Add a date when you are
-                    available for an extra or
-                    substitute class.
+                    Add a specific date when a
+                    temporary opening becomes
+                    available.
                   </p>
                 </div>
               )}
 
-              {/* SUB SAVE */}
+              {/* SAVE */}
 
               <div
                 className="
@@ -1666,8 +1869,10 @@ export default function TeacherAvailabilityPage() {
                     text-[#999]
                   "
                 >
-                  These dates are one-time
-                  availability only.
+                  These openings apply only to
+                  the selected dates. Your
+                  regular weekly schedule stays
+                  unchanged.
                 </p>
 
                 <button
@@ -1675,10 +1880,7 @@ export default function TeacherAvailabilityPage() {
                   onClick={
                     saveSubAvailability
                   }
-                  disabled={
-                    savingSub ||
-                    subDates.length === 0
-                  }
+                  disabled={savingSub}
                   className="
                     inline-flex
                     justify-center
@@ -1698,7 +1900,7 @@ export default function TeacherAvailabilityPage() {
                 >
                   {savingSub
                     ? "Saving..."
-                    : "Save Sub Availability"}
+                    : "Save Additional Availability"}
                 </button>
               </div>
             </section>
