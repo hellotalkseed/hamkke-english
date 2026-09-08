@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 type LessonRecord = {
   id: string;
   enrollment_id: string;
+  student_id: string | null;
   lesson_number: number;
   lesson_date: string;
   duration: number;
@@ -362,6 +363,10 @@ function mapLessons(rawLessons: unknown[]) {
         enrollment_id: String(
           lesson.enrollment_id
         ),
+        student_id:
+          lesson.student_id
+            ? String(lesson.student_id)
+            : null,
         lesson_number: Number(
           lesson.lesson_number
         ),
@@ -577,6 +582,7 @@ async function loadTeacherLessons(
       `
         id,
         enrollment_id,
+        student_id,
         lesson_number,
         lesson_date,
         duration,
@@ -601,6 +607,440 @@ async function loadTeacherLessons(
   }
 
   return mapLessons(rawLessons || []);
+}
+
+async function loadStudentNames(
+  admin: ReturnType<typeof createAdminClient>,
+  lessons: LessonRecord[]
+) {
+  const studentIds = [
+    ...new Set(
+      lessons
+        .map((lesson) => lesson.student_id)
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+
+  if (studentIds.length === 0) {
+    return new Map<
+      string,
+      {
+        full_name: string | null;
+        preferred_name: string | null;
+      }
+    >();
+  }
+
+  const {
+    data: students,
+    error: studentsError,
+  } = await admin
+    .from("students")
+    .select(
+      `
+        id,
+        full_name,
+        preferred_name
+      `
+    )
+    .in("id", studentIds);
+
+  if (studentsError) {
+    throw new Error(
+      `Failed to load student names: ${studentsError.message}`
+    );
+  }
+
+  return new Map(
+    (students || []).map((student) => [
+      String(student.id),
+      {
+        full_name: student.full_name
+          ? String(student.full_name)
+          : null,
+        preferred_name: student.preferred_name
+          ? String(student.preferred_name)
+          : null,
+      },
+    ])
+  );
+}
+
+async function loadFrozenPayrollLessonBreakdown(
+  admin: ReturnType<typeof createAdminClient>,
+  payrollId: string
+) {
+  const {
+    data: snapshotRows,
+    error: snapshotError,
+  } = await admin
+    .from("teacher_payroll_lessons")
+    .select(
+      `
+        lesson_id,
+        duration,
+        attendance_status,
+        resolution,
+        rate,
+        amount
+      `
+    )
+    .eq("payroll_id", payrollId);
+
+  if (snapshotError) {
+    throw new Error(
+      `Failed to load finalized payroll lesson breakdown: ${snapshotError.message}`
+    );
+  }
+
+  if (!snapshotRows || snapshotRows.length === 0) {
+    return [];
+  }
+
+  const lessonIds = snapshotRows
+    .map((row) => row.lesson_id)
+    .filter(Boolean)
+    .map(String);
+
+  const {
+    data: lessonRows,
+    error: lessonRowsError,
+  } = await admin
+    .from("lessons")
+    .select(
+      `
+        id,
+        enrollment_id,
+        student_id,
+        lesson_number,
+        lesson_date
+      `
+    )
+    .in("id", lessonIds);
+
+  if (lessonRowsError) {
+    throw new Error(
+      `Failed to load finalized payroll lesson details: ${lessonRowsError.message}`
+    );
+  }
+
+  const lessonById = new Map(
+    (lessonRows || []).map((lesson) => [
+      String(lesson.id),
+      lesson,
+    ])
+  );
+
+  const studentIds = [
+    ...new Set(
+      (lessonRows || [])
+        .map((lesson) => lesson.student_id)
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+
+  let studentById = new Map<
+    string,
+    {
+      full_name: string | null;
+      preferred_name: string | null;
+    }
+  >();
+
+  if (studentIds.length > 0) {
+    const {
+      data: students,
+      error: studentsError,
+    } = await admin
+      .from("students")
+      .select(
+        `
+          id,
+          full_name,
+          preferred_name
+        `
+      )
+      .in("id", studentIds);
+
+    if (studentsError) {
+      throw new Error(
+        `Failed to load finalized payroll student names: ${studentsError.message}`
+      );
+    }
+
+    studentById = new Map(
+      (students || []).map((student) => [
+        String(student.id),
+        {
+          full_name: student.full_name
+            ? String(student.full_name)
+            : null,
+          preferred_name: student.preferred_name
+            ? String(student.preferred_name)
+            : null,
+        },
+      ])
+    );
+  }
+
+  return snapshotRows
+    .map((snapshot) => {
+      const lesson =
+        lessonById.get(
+          String(snapshot.lesson_id)
+        ) || null;
+
+      const studentId =
+        lesson?.student_id
+          ? String(lesson.student_id)
+          : null;
+
+      const student =
+        studentId
+          ? studentById.get(studentId)
+          : null;
+
+      return {
+        id: String(snapshot.lesson_id),
+        enrollment_id:
+          lesson?.enrollment_id
+            ? String(lesson.enrollment_id)
+            : "",
+        student_id: studentId,
+        student_name:
+          student?.preferred_name ||
+          student?.full_name ||
+          "Student",
+        lesson_number:
+          lesson?.lesson_number
+            ? Number(lesson.lesson_number)
+            : 0,
+        lesson_date:
+          lesson?.lesson_date
+            ? String(lesson.lesson_date)
+            : "",
+        duration: Number(snapshot.duration),
+        attendance_status: String(
+          snapshot.attendance_status || ""
+        ),
+        rate: Number(snapshot.rate),
+        amount: Number(snapshot.amount),
+      };
+    })
+    .sort((a, b) => {
+      const dateCompare =
+        a.lesson_date.localeCompare(
+          b.lesson_date
+        );
+
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      return (
+        a.lesson_number -
+        b.lesson_number
+      );
+    });
+}
+
+
+async function loadFrozenPayrollHistoryBreakdowns(
+  admin: ReturnType<typeof createAdminClient>,
+  payrollIds: string[]
+) {
+  if (payrollIds.length === 0) {
+    return {};
+  }
+
+  const {
+    data: snapshotRows,
+    error: snapshotError,
+  } = await admin
+    .from("teacher_payroll_lessons")
+    .select(
+      `
+        payroll_id,
+        lesson_id,
+        duration,
+        attendance_status,
+        resolution,
+        rate,
+        amount
+      `
+    )
+    .in("payroll_id", payrollIds);
+
+  if (snapshotError) {
+    throw new Error(
+      `Failed to load payroll history lesson snapshots: ${snapshotError.message}`
+    );
+  }
+
+  const grouped: Record<string, any[]> =
+    Object.fromEntries(
+      payrollIds.map((payrollId) => [
+        payrollId,
+        [],
+      ])
+    );
+
+  if (!snapshotRows || snapshotRows.length === 0) {
+    return grouped;
+  }
+
+  const lessonIds = [
+    ...new Set(
+      snapshotRows
+        .map((row) => row.lesson_id)
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+
+  const {
+    data: lessonRows,
+    error: lessonRowsError,
+  } = await admin
+    .from("lessons")
+    .select(
+      `
+        id,
+        enrollment_id,
+        student_id,
+        lesson_number,
+        lesson_date
+      `
+    )
+    .in("id", lessonIds);
+
+  if (lessonRowsError) {
+    throw new Error(
+      `Failed to load payroll history lesson details: ${lessonRowsError.message}`
+    );
+  }
+
+  const lessonById = new Map(
+    (lessonRows || []).map((lesson) => [
+      String(lesson.id),
+      lesson,
+    ])
+  );
+
+  const studentIds = [
+    ...new Set(
+      (lessonRows || [])
+        .map((lesson) => lesson.student_id)
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+
+  let studentById = new Map<
+    string,
+    {
+      full_name: string | null;
+      preferred_name: string | null;
+    }
+  >();
+
+  if (studentIds.length > 0) {
+    const {
+      data: students,
+      error: studentsError,
+    } = await admin
+      .from("students")
+      .select(
+        `
+          id,
+          full_name,
+          preferred_name
+        `
+      )
+      .in("id", studentIds);
+
+    if (studentsError) {
+      throw new Error(
+        `Failed to load payroll history student names: ${studentsError.message}`
+      );
+    }
+
+    studentById = new Map(
+      (students || []).map((student) => [
+        String(student.id),
+        {
+          full_name: student.full_name
+            ? String(student.full_name)
+            : null,
+          preferred_name: student.preferred_name
+            ? String(student.preferred_name)
+            : null,
+        },
+      ])
+    );
+  }
+
+  for (const snapshot of snapshotRows) {
+    const payrollId = String(snapshot.payroll_id);
+    const lesson =
+      lessonById.get(String(snapshot.lesson_id)) || null;
+
+    const studentId =
+      lesson?.student_id
+        ? String(lesson.student_id)
+        : null;
+
+    const student =
+      studentId
+        ? studentById.get(studentId)
+        : null;
+
+    grouped[payrollId] ??= [];
+
+    grouped[payrollId].push({
+      id: String(snapshot.lesson_id),
+      enrollment_id:
+        lesson?.enrollment_id
+          ? String(lesson.enrollment_id)
+          : "",
+      student_id: studentId,
+      student_name:
+        student?.preferred_name ||
+        student?.full_name ||
+        "Student",
+      lesson_number:
+        lesson?.lesson_number
+          ? Number(lesson.lesson_number)
+          : 0,
+      lesson_date:
+        lesson?.lesson_date
+          ? String(lesson.lesson_date)
+          : "",
+      duration: Number(snapshot.duration),
+      attendance_status: String(
+        snapshot.attendance_status || ""
+      ),
+      rate: Number(snapshot.rate),
+      amount: Number(snapshot.amount),
+    });
+  }
+
+  for (const payrollId of Object.keys(grouped)) {
+    grouped[payrollId].sort((a, b) => {
+      const dateCompare =
+        a.lesson_date.localeCompare(b.lesson_date);
+
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      return a.lesson_number - b.lesson_number;
+    });
+  }
+
+  return grouped;
 }
 
 function getTeachingMinutesBefore(
@@ -938,15 +1378,124 @@ export async function GET(
             periodEnd
       ) || null;
 
+    const historyBreakdowns =
+      await loadFrozenPayrollHistoryBreakdowns(
+        admin,
+        payrollHistory.map(
+          (record) => record.id
+        )
+      );
+
+    const studentNames =
+      await loadStudentNames(
+        admin,
+        payableCurrentLessons
+      );
+
+    const liveLessonBreakdown =
+      payableCurrentLessons
+        .filter((lesson) => {
+          const duration =
+            Number(lesson.duration);
+
+          return (
+            duration === 25 ||
+            duration === 50
+          );
+        })
+        .map((lesson) => {
+          const student =
+            lesson.student_id
+              ? studentNames.get(
+                  lesson.student_id
+                )
+              : null;
+
+          const rate =
+            Number(lesson.duration) === 50
+              ? rate50
+              : rate25;
+
+          return {
+            id: lesson.id,
+            enrollment_id:
+              lesson.enrollment_id,
+            student_id:
+              lesson.student_id,
+            student_name:
+              student?.preferred_name ||
+              student?.full_name ||
+              "Student",
+            lesson_number:
+              lesson.lesson_number,
+            lesson_date:
+              lesson.lesson_date,
+            duration:
+              lesson.duration,
+            attendance_status:
+              lesson.attendance_status,
+            rate,
+            amount: rate,
+          };
+        });
+
+    const frozenLessonBreakdown =
+      currentPayrollRecord
+        ? await loadFrozenPayrollLessonBreakdown(
+            admin,
+            currentPayrollRecord.id
+          )
+        : null;
+
+    const isFinalized =
+      Boolean(currentPayrollRecord);
+
+    const displayCounts =
+      currentPayrollRecord
+        ? {
+            completed_25_count:
+              currentPayrollRecord.completed_25_count,
+            completed_50_count:
+              currentPayrollRecord.completed_50_count,
+            no_show_25_count:
+              currentPayrollRecord.no_show_25_count,
+            no_show_50_count:
+              currentPayrollRecord.no_show_50_count,
+            late_cancellation_25_count:
+              currentPayrollRecord.late_cancellation_25_count,
+            late_cancellation_50_count:
+              currentPayrollRecord.late_cancellation_50_count,
+          }
+        : currentCounts;
+
+    const displayRate25 =
+      currentPayrollRecord
+        ? Number(currentPayrollRecord.rate_25)
+        : rate25;
+
+    const displayRate50 =
+      currentPayrollRecord
+        ? Number(currentPayrollRecord.rate_50)
+        : rate50;
+
+    const displayGrossPay =
+      currentPayrollRecord
+        ? Number(currentPayrollRecord.gross_pay)
+        : grossPay;
+
+    const lessonBreakdown =
+      frozenLessonBreakdown ??
+      liveLessonBreakdown;
+
     const payable25Count =
-      currentCounts.completed_25_count +
-      currentCounts.no_show_25_count +
-      currentCounts.late_cancellation_25_count;
+      displayCounts.completed_25_count +
+      displayCounts.no_show_25_count +
+      displayCounts.late_cancellation_25_count;
 
     const payable50Count =
-      currentCounts.completed_50_count +
-      currentCounts.no_show_50_count +
-      currentCounts.late_cancellation_50_count;
+      displayCounts.completed_50_count +
+      displayCounts.no_show_50_count +
+      displayCounts.late_cancellation_50_count;
 
     return NextResponse.json({
       teacher,
@@ -968,27 +1517,27 @@ export async function GET(
           level: compensationRate.level,
           min_teaching_minutes:
             compensationRate.min_teaching_minutes,
-          rate_25: rate25,
-          rate_50: rate50,
+          rate_25: displayRate25,
+          rate_50: displayRate50,
         },
 
         completed_25_count:
-          currentCounts.completed_25_count,
+          displayCounts.completed_25_count,
 
         completed_50_count:
-          currentCounts.completed_50_count,
+          displayCounts.completed_50_count,
 
         no_show_25_count:
-          currentCounts.no_show_25_count,
+          displayCounts.no_show_25_count,
 
         no_show_50_count:
-          currentCounts.no_show_50_count,
+          displayCounts.no_show_50_count,
 
         late_cancellation_25_count:
-          currentCounts.late_cancellation_25_count,
+          displayCounts.late_cancellation_25_count,
 
         late_cancellation_50_count:
-          currentCounts.late_cancellation_50_count,
+          displayCounts.late_cancellation_50_count,
 
         payable_25_count:
           payable25Count,
@@ -996,7 +1545,7 @@ export async function GET(
         payable_50_count:
           payable50Count,
 
-        gross_pay: grossPay,
+        gross_pay: displayGrossPay,
 
         status: currentPayrollRecord
           ? currentPayrollRecord.status
@@ -1004,11 +1553,25 @@ export async function GET(
 
         payroll_record:
           currentPayrollRecord,
+
+        is_finalized:
+          isFinalized,
+
+        breakdown_source:
+          isFinalized
+            ? "frozen"
+            : "live",
       },
 
       history: payrollHistory,
 
+      history_breakdowns:
+        historyBreakdowns,
+
       lessons: currentPeriodLessons,
+
+      lesson_breakdown:
+        lessonBreakdown,
     });
   } catch (error) {
     console.error(
@@ -1866,486 +2429,3 @@ export async function POST(
     );
   }
 }
-
-/* PATCH
- *
- * Owner payroll workflow:
- *
- * pending  -> approved
- * approved -> paid
- *
- * These actions NEVER recalculate or modify the frozen payroll snapshot.
- * They only update workflow status and payment metadata.
- */
-
-export async function PATCH(
-  request: Request,
-  context: {
-    params: Promise<{ id: string }>;
-  }
-) {
-  try {
-    const { id: teacherId } =
-      await context.params;
-
-    if (!teacherId) {
-      return NextResponse.json(
-        {
-          error: "Teacher ID is required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const ownerResult =
-      await getActiveOwner();
-
-    if (ownerResult.error) {
-      return ownerResult.error;
-    }
-
-    const admin = createAdminClient();
-
-    const teacher =
-      await loadTeacher(
-        admin,
-        teacherId
-      );
-
-    if (!teacher) {
-      return NextResponse.json(
-        {
-          error: "Teacher not found.",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    if (
-      String(
-        teacher.role || ""
-      ).toLowerCase() !== "teacher"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "The selected profile is not a teacher.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    let body: {
-      action?: string;
-      payrollId?: string;
-      paymentDate?: string;
-      paymentMethod?: string;
-      paymentReference?: string | null;
-    } = {};
-
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json(
-        {
-          error:
-            "A valid JSON request body is required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const action =
-      body.action?.trim();
-
-    const payrollId =
-      body.payrollId?.trim();
-
-    if (!payrollId) {
-      return NextResponse.json(
-        {
-          error:
-            "Payroll ID is required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      action !== "approve" &&
-      action !== "mark_paid"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Action must be either 'approve' or 'mark_paid'.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const {
-      data: payroll,
-      error: payrollError,
-    } = await admin
-      .from("teacher_payroll")
-      .select(
-        `
-          id,
-          teacher_id,
-          period_start,
-          period_end,
-          teaching_minutes_before,
-          compensation_rate_id,
-          rate_25,
-          rate_50,
-          completed_25_count,
-          completed_50_count,
-          no_show_25_count,
-          no_show_50_count,
-          late_cancellation_25_count,
-          late_cancellation_50_count,
-          gross_pay,
-          status,
-          payment_method,
-          payment_reference,
-          payment_date,
-          approved_at,
-          paid_at,
-          created_at,
-          updated_at
-        `
-      )
-      .eq("id", payrollId)
-      .eq("teacher_id", teacherId)
-      .maybeSingle();
-
-    if (payrollError) {
-      return NextResponse.json(
-        {
-          error:
-            payrollError.message,
-        },
-        {
-          status: 500,
-        }
-      );
-    }
-
-    if (!payroll) {
-      return NextResponse.json(
-        {
-          error:
-            "Payroll record not found for this teacher.",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    const currentStatus =
-      String(
-        payroll.status || ""
-      ).toLowerCase();
-
-    const now =
-      new Date().toISOString();
-
-    /* --------------------------------------------------------------- */
-    /* APPROVE                                                         */
-    /* --------------------------------------------------------------- */
-
-    if (action === "approve") {
-      if (currentStatus === "paid") {
-        return NextResponse.json(
-          {
-            error:
-              "A paid payroll cannot be returned to approved status.",
-          },
-          {
-            status: 409,
-          }
-        );
-      }
-
-      if (currentStatus === "approved") {
-        return NextResponse.json({
-          success: true,
-          already_approved: true,
-          payroll,
-        });
-      }
-
-      if (currentStatus !== "pending") {
-        return NextResponse.json(
-          {
-            error:
-              "Only a pending payroll can be approved.",
-          },
-          {
-            status: 409,
-          }
-        );
-      }
-
-      const {
-        data: approvedPayroll,
-        error: approveError,
-      } = await admin
-        .from("teacher_payroll")
-        .update({
-          status:
-            "approved",
-          approved_at:
-            now,
-          updated_at:
-            now,
-        })
-        .eq("id", payrollId)
-        .eq("teacher_id", teacherId)
-        .eq("status", "pending")
-        .select(
-          `
-            id,
-            teacher_id,
-            period_start,
-            period_end,
-            teaching_minutes_before,
-            compensation_rate_id,
-            rate_25,
-            rate_50,
-            completed_25_count,
-            completed_50_count,
-            no_show_25_count,
-            no_show_50_count,
-            late_cancellation_25_count,
-            late_cancellation_50_count,
-            gross_pay,
-            status,
-            payment_method,
-            payment_reference,
-            payment_date,
-            approved_at,
-            paid_at,
-            created_at,
-            updated_at
-          `
-        )
-        .maybeSingle();
-
-      if (approveError) {
-        return NextResponse.json(
-          {
-            error:
-              approveError.message,
-          },
-          {
-            status: 500,
-          }
-        );
-      }
-
-      if (!approvedPayroll) {
-        return NextResponse.json(
-          {
-            error:
-              "The payroll could not be approved because its status changed before the update completed.",
-          },
-          {
-            status: 409,
-          }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        already_approved: false,
-        payroll:
-          approvedPayroll,
-      });
-    }
-
-    /* --------------------------------------------------------------- */
-    /* MARK PAID                                                       */
-    /* --------------------------------------------------------------- */
-
-    if (currentStatus === "paid") {
-      return NextResponse.json({
-        success: true,
-        already_paid: true,
-        payroll,
-      });
-    }
-
-    if (currentStatus !== "approved") {
-      return NextResponse.json(
-        {
-          error:
-            "Payroll must be approved before it can be marked as paid.",
-        },
-        {
-          status: 409,
-        }
-      );
-    }
-
-    const paymentDate =
-      body.paymentDate?.trim() ||
-      "";
-
-    const paymentMethod =
-      body.paymentMethod?.trim() ||
-      "";
-
-    const paymentReference =
-      body.paymentReference?.trim() ||
-      null;
-
-    if (
-      !paymentDate ||
-      !isValidDateString(
-        paymentDate
-      )
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "A valid payment date in YYYY-MM-DD format is required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (!paymentMethod) {
-      return NextResponse.json(
-        {
-          error:
-            "Payment method is required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    /*
-     * A reference may legitimately be unavailable for some payment
-     * methods, so it is stored as null when left blank.
-     */
-
-    const {
-      data: paidPayroll,
-      error: paidError,
-    } = await admin
-      .from("teacher_payroll")
-      .update({
-        status:
-          "paid",
-        payment_date:
-          paymentDate,
-        payment_method:
-          paymentMethod,
-        payment_reference:
-          paymentReference,
-        paid_at:
-          now,
-        updated_at:
-          now,
-      })
-      .eq("id", payrollId)
-      .eq("teacher_id", teacherId)
-      .eq("status", "approved")
-      .select(
-        `
-          id,
-          teacher_id,
-          period_start,
-          period_end,
-          teaching_minutes_before,
-          compensation_rate_id,
-          rate_25,
-          rate_50,
-          completed_25_count,
-          completed_50_count,
-          no_show_25_count,
-          no_show_50_count,
-          late_cancellation_25_count,
-          late_cancellation_50_count,
-          gross_pay,
-          status,
-          payment_method,
-          payment_reference,
-          payment_date,
-          approved_at,
-          paid_at,
-          created_at,
-          updated_at
-        `
-      )
-      .maybeSingle();
-
-    if (paidError) {
-      return NextResponse.json(
-        {
-          error:
-            paidError.message,
-        },
-        {
-          status: 500,
-        }
-      );
-    }
-
-    if (!paidPayroll) {
-      return NextResponse.json(
-        {
-          error:
-            "The payroll could not be marked paid because its status changed before the update completed.",
-        },
-        {
-          status: 409,
-        }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      already_paid: false,
-      payroll:
-        paidPayroll,
-    });
-  } catch (error) {
-    console.error(
-      "Unexpected teacher payroll PATCH error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Internal server error.",
-      },
-      {
-        status: 500,
-      }
-    );
-  }
-}
-

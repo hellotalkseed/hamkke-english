@@ -5,13 +5,25 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const VALID_ATTENDANCE_STATUSES = [
   "scheduled",
   "completed",
+  "no_show",
+  "late_cancellation",
+  "student_cancelled_rescheduled",
   "student_cancelled_credit",
-  "teacher_cancelled",
   "unexpected_circumstance",
+  "teacher_cancelled",
+] as const;
+
+const VALID_RESOLUTIONS = [
+  "rescheduled",
+  "lesson_credit",
+  "counted_as_completed",
 ] as const;
 
 type AttendanceStatus =
   (typeof VALID_ATTENDANCE_STATUSES)[number];
+
+type Resolution =
+  (typeof VALID_RESOLUTIONS)[number];
 
 interface RouteContext {
   params: Promise<{
@@ -24,9 +36,12 @@ interface LessonRecord {
   enrollment_id: string;
   lesson_number: number;
   lesson_date: string;
+  original_lesson_date: string | null;
+  rescheduled_at: string | null;
   schedule_time: string | null;
   duration: number;
   attendance_status: string;
+  resolution: string | null;
   notes: string | null;
   teacher_observation: string | null;
   consumes_lesson: boolean;
@@ -59,6 +74,15 @@ interface AvailabilityBlock {
   end_time: string;
 }
 
+interface PreviousClassInfoRecord {
+  lesson_number: number;
+  platform: string | null;
+  material: string | null;
+  lesson_page: string | null;
+  class_instructions: string | null;
+  class_info_updated_at: string | null;
+}
+
 function convertStudentTimeToPhilippineTime(
   lessonDate: string,
   scheduleTime: string | null,
@@ -72,8 +96,7 @@ function convertStudentTimeToPhilippineTime(
     };
   }
 
-  const timezone =
-    studentTimezone || "Asia/Manila";
+  const timezone = studentTimezone || "Asia/Manila";
 
   try {
     const [year, month, day] =
@@ -120,10 +143,8 @@ function convertStudentTimeToPhilippineTime(
     const timezoneMonth = getPart("month");
     const timezoneDay = getPart("day");
     const timezoneHour = getPart("hour");
-    const timezoneMinute =
-      getPart("minute");
-    const timezoneSecond =
-      getPart("second");
+    const timezoneMinute = getPart("minute");
+    const timezoneSecond = getPart("second");
 
     const timezoneAsUtc = Date.UTC(
       timezoneYear,
@@ -361,9 +382,12 @@ async function getLesson(
       enrollment_id,
       lesson_number,
       lesson_date,
+      original_lesson_date,
+      rescheduled_at,
       schedule_time,
       duration,
       attendance_status,
+      resolution,
       notes,
       teacher_observation,
       consumes_lesson,
@@ -455,24 +479,12 @@ async function teacherCanAccessLesson(
   lesson: LessonRecord,
   enrollmentStudent: EnrollmentStudentRecord
 ) {
-  /*
-   * ---------------------------------------------------------
-   * SUBSTITUTE ACCESS
-   * ---------------------------------------------------------
-   */
-
   if (
     lesson.substitute_teacher_id ===
     teacherId
   ) {
     return true;
   }
-
-  /*
-   * ---------------------------------------------------------
-   * REGULAR TEACHER ACCESS
-   * ---------------------------------------------------------
-   */
 
   const {
     data: assignment,
@@ -781,6 +793,112 @@ export async function GET(
       );
     }
 
+    /*
+     * ---------------------------------------------------------
+     * CARRY FORWARD CLASS INFO
+     * ---------------------------------------------------------
+     *
+     * If this lesson does not yet have its own saved class info,
+     * use the most recently saved class info from an earlier
+     * lesson in the same enrollment.
+     *
+     * The values are only inherited for display. Once the teacher
+     * saves Class Info on this lesson, this lesson gets its own
+     * snapshot and stops inheriting from the previous lesson.
+     */
+
+    const hasOwnClassInfo =
+      Boolean(
+        lesson.class_info_updated_at ||
+          lesson.platform ||
+          lesson.material ||
+          lesson.lesson_page ||
+          lesson.class_instructions
+      );
+
+    let previousClassInfo:
+      PreviousClassInfoRecord | null = null;
+
+    if (!hasOwnClassInfo) {
+      const {
+        data: previousLesson,
+        error: previousLessonError,
+      } = await admin
+        .from("lessons")
+        .select(`
+          lesson_number,
+          platform,
+          material,
+          lesson_page,
+          class_instructions,
+          class_info_updated_at
+        `)
+        .eq(
+          "enrollment_id",
+          lesson.enrollment_id
+        )
+        .lt(
+          "lesson_number",
+          lesson.lesson_number
+        )
+        .not(
+          "class_info_updated_at",
+          "is",
+          null
+        )
+        .order(
+          "lesson_number",
+          { ascending: false }
+        )
+        .limit(1)
+        .maybeSingle();
+
+      if (previousLessonError) {
+        return NextResponse.json(
+          {
+            error:
+              previousLessonError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      previousClassInfo =
+        previousLesson as
+          | PreviousClassInfoRecord
+          | null;
+    }
+
+    const classInfoInherited =
+      !hasOwnClassInfo &&
+      Boolean(previousClassInfo);
+
+    const effectivePlatform =
+      hasOwnClassInfo
+        ? lesson.platform
+        : previousClassInfo?.platform ?? null;
+
+    const effectiveMaterial =
+      hasOwnClassInfo
+        ? lesson.material
+        : previousClassInfo?.material ?? null;
+
+    const effectiveLessonPage =
+      hasOwnClassInfo
+        ? lesson.lesson_page
+        : previousClassInfo?.lesson_page ?? null;
+
+    const effectiveClassInstructions =
+      hasOwnClassInfo
+        ? lesson.class_instructions
+        : previousClassInfo?.class_instructions ?? null;
+
+    const effectiveClassInfoUpdatedAt =
+      hasOwnClassInfo
+        ? lesson.class_info_updated_at
+        : previousClassInfo?.class_info_updated_at ??
+          null;
+
     const substituteTeacher =
       lesson.substitute_teacher_id
         ? (
@@ -838,12 +956,18 @@ export async function GET(
           lesson.lesson_number,
         lesson_date:
           lesson.lesson_date,
+        original_lesson_date:
+          lesson.original_lesson_date,
+        rescheduled_at:
+          lesson.rescheduled_at,
         schedule_time:
           lesson.schedule_time,
         duration:
           lesson.duration,
         attendance_status:
           lesson.attendance_status,
+        resolution:
+          lesson.resolution,
         notes:
           lesson.notes,
         teacher_observation:
@@ -855,15 +979,21 @@ export async function GET(
         substitute_teacher_id:
           lesson.substitute_teacher_id,
         platform:
-          lesson.platform,
+          effectivePlatform,
         material:
-          lesson.material,
+          effectiveMaterial,
         lesson_page:
-          lesson.lesson_page,
+          effectiveLessonPage,
         class_instructions:
-          lesson.class_instructions,
+          effectiveClassInstructions,
         class_info_updated_at:
-          lesson.class_info_updated_at,
+          effectiveClassInfoUpdatedAt,
+        class_info_inherited:
+          classInfoInherited,
+        class_info_inherited_from_lesson_number:
+          classInfoInherited
+            ? previousClassInfo?.lesson_number ?? null
+            : null,
         student,
         enrollment,
         substitute_teacher:
@@ -946,14 +1076,12 @@ export async function PATCH(
       profile.role === "owner" ||
       profile.role === "admin";
 
-    /*
-     * ---------------------------------------------------------
-     * PARSE REQUEST
-     * ---------------------------------------------------------
-     */
-
     let body: {
       attendance_status?: string;
+      status?: string;
+      resolution?: string | null;
+      lesson_date?: string | null;
+      attendance_notes?: string | null;
       notes?: string | null;
       teacher_observation?: string | null;
       platform?: string | null;
@@ -981,14 +1109,6 @@ export async function PATCH(
         "substitute_teacher_id"
       );
 
-    /*
-     * ---------------------------------------------------------
-     * SUBSTITUTE ASSIGNMENT
-     *
-     * ONLY OWNER / ADMIN
-     * ---------------------------------------------------------
-     */
-
     if (hasSubstituteTeacher) {
       if (!isOwnerOrAdmin) {
         return NextResponse.json(
@@ -1002,10 +1122,6 @@ export async function PATCH(
 
       const substituteTeacherId =
         body.substitute_teacher_id;
-
-      /*
-       * REMOVE SUBSTITUTE
-       */
 
       if (
         substituteTeacherId === null ||
@@ -1029,8 +1145,12 @@ export async function PATCH(
             enrollment_id,
             lesson_number,
             lesson_date,
+            original_lesson_date,
+            rescheduled_at,
+            schedule_time,
             duration,
             attendance_status,
+            resolution,
             notes,
             teacher_observation,
             consumes_lesson,
@@ -1073,10 +1193,6 @@ export async function PATCH(
           { status: 400 }
         );
       }
-
-      /*
-       * VERIFY ACTIVE TEACHER
-       */
 
       const {
         data: substituteTeacher,
@@ -1126,10 +1242,6 @@ export async function PATCH(
         );
       }
 
-      /*
-       * LOAD STUDENT TIMEZONE
-       */
-
       const {
         data: student,
         error: studentError,
@@ -1156,13 +1268,6 @@ export async function PATCH(
           { status: 500 }
         );
       }
-
-      /*
-       * CONVERT THE ORIGINAL STUDENT SCHEDULE
-       * TO PHILIPPINE TIME.
-       *
-       * The student's schedule remains authoritative.
-       */
 
       const converted =
         convertStudentTimeToPhilippineTime(
@@ -1241,10 +1346,6 @@ export async function PATCH(
         );
       }
 
-      /*
-       * SAVE SUBSTITUTE
-       */
-
       const {
         data: updatedLesson,
         error: updateError,
@@ -1263,8 +1364,12 @@ export async function PATCH(
           enrollment_id,
           lesson_number,
           lesson_date,
+          original_lesson_date,
+          rescheduled_at,
+          schedule_time,
           duration,
           attendance_status,
+          resolution,
           notes,
           teacher_observation,
           consumes_lesson,
@@ -1296,12 +1401,6 @@ export async function PATCH(
           substituteTeacher,
       });
     }
-
-    /*
-     * ---------------------------------------------------------
-     * TEACHER LESSON ACCESS
-     * ---------------------------------------------------------
-     */
 
     if (!isOwnerOrAdmin) {
       if (
@@ -1335,7 +1434,11 @@ export async function PATCH(
       }
     }
 
-    const hasAttendanceStatus =
+    const hasAttendanceUpdate =
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "status"
+      ) ||
       Object.prototype.hasOwnProperty.call(
         body,
         "attendance_status"
@@ -1372,7 +1475,7 @@ export async function PATCH(
       );
 
     if (
-      !hasAttendanceStatus &&
+      !hasAttendanceUpdate &&
       !hasNotes &&
       !hasTeacherObservation &&
       !hasClassInfo
@@ -1387,20 +1490,21 @@ export async function PATCH(
     }
 
     /*
-     * --------------------------------
+     * ---------------------------------------------------------
      * ATTENDANCE UPDATE
-     * --------------------------------
+     * ---------------------------------------------------------
      */
 
-    if (hasAttendanceStatus) {
-      const attendanceStatus =
+    if (hasAttendanceUpdate) {
+      const rawStatus =
+        body.status ??
         body.attendance_status;
 
       if (
-        typeof attendanceStatus !==
+        typeof rawStatus !==
           "string" ||
         !VALID_ATTENDANCE_STATUSES.includes(
-          attendanceStatus as AttendanceStatus
+          rawStatus as AttendanceStatus
         )
       ) {
         return NextResponse.json(
@@ -1414,40 +1518,291 @@ export async function PATCH(
         );
       }
 
+      const attendanceStatus =
+        rawStatus as AttendanceStatus;
+
+      const resolution =
+        body.resolution === null ||
+        body.resolution === undefined ||
+        body.resolution === ""
+          ? null
+          : (body.resolution as Resolution);
+
+      if (
+        resolution !== null &&
+        !VALID_RESOLUTIONS.includes(
+          resolution
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Invalid lesson resolution.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const lessonDate =
+        body.lesson_date === null ||
+        body.lesson_date === undefined ||
+        body.lesson_date === ""
+          ? null
+          : String(body.lesson_date);
+
+      const attendanceNotes =
+        body.attendance_notes === null ||
+        body.attendance_notes === undefined ||
+        body.attendance_notes === ""
+          ? null
+          : String(body.attendance_notes).trim() || null;
+
+      let consumesLesson = false;
+
+      if (
+        attendanceStatus === "completed" ||
+        attendanceStatus === "no_show" ||
+        attendanceStatus === "late_cancellation"
+      ) {
+        consumesLesson = true;
+      }
+
+      if (attendanceStatus === "scheduled") {
+        if (resolution !== null) {
+          return NextResponse.json(
+            {
+              error:
+                "A scheduled lesson cannot have a resolution.",
+            },
+            { status: 400 }
+          );
+        }
+
+        consumesLesson = false;
+      }
+
+      if (
+        attendanceStatus === "completed" &&
+        resolution !== null
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "A completed lesson cannot have a resolution.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (
+        attendanceStatus === "no_show" &&
+        resolution !== null
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "A no-show cannot have a resolution.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (
+        attendanceStatus === "late_cancellation" &&
+        resolution !== null
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "A late cancellation cannot have a resolution.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (
+        attendanceStatus ===
+        "student_cancelled_rescheduled"
+      ) {
+        if (
+          resolution !== "rescheduled"
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Student cancellation with rescheduling requires the rescheduled resolution.",
+            },
+            { status: 400 }
+          );
+        }
+
+        if (!lessonDate) {
+          return NextResponse.json(
+            {
+              error:
+                "A new lesson date is required when rescheduling.",
+            },
+            { status: 400 }
+          );
+        }
+
+        consumesLesson = false;
+      }
+
+      if (
+        attendanceStatus ===
+        "student_cancelled_credit"
+      ) {
+        if (
+          resolution !== "lesson_credit"
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Student cancellation with credit requires the lesson credit resolution.",
+            },
+            { status: 400 }
+          );
+        }
+
+        consumesLesson = false;
+      }
+
+      if (
+        attendanceStatus ===
+        "unexpected_circumstance"
+      ) {
+        if (
+          resolution !== "rescheduled" &&
+          resolution !== "lesson_credit" &&
+          resolution !== "counted_as_completed"
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Unexpected circumstance requires a resolution.",
+            },
+            { status: 400 }
+          );
+        }
+
+        if (
+          resolution === "rescheduled" &&
+          !lessonDate
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "A new lesson date is required when rescheduling.",
+            },
+            { status: 400 }
+          );
+        }
+
+        consumesLesson =
+          resolution ===
+          "counted_as_completed";
+      }
+
+      if (
+        attendanceStatus ===
+        "teacher_cancelled"
+      ) {
+        if (
+          resolution !== "rescheduled" &&
+          resolution !== "lesson_credit"
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Teacher cancellation requires either rescheduling or lesson credit.",
+            },
+            { status: 400 }
+          );
+        }
+
+        if (
+          resolution === "rescheduled" &&
+          !lessonDate
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "A new lesson date is required when rescheduling.",
+            },
+            { status: 400 }
+          );
+        }
+
+        consumesLesson = false;
+      }
+
+      const originalLessonDate =
+        lesson.original_lesson_date ??
+        lesson.lesson_date;
+
+      const isPayableOutcome =
+        attendanceStatus === "completed" ||
+        attendanceStatus === "no_show" ||
+        attendanceStatus === "late_cancellation";
+
+      const updateData: {
+        attendance_status: AttendanceStatus;
+        consumes_lesson: boolean;
+        resolution: Resolution | null;
+        actual_teacher_id: string | null;
+        notes?: string | null;
+        original_lesson_date: string | null;
+        lesson_date: string;
+        rescheduled_at: string | null;
+      } = {
+        attendance_status:
+          attendanceStatus,
+        consumes_lesson:
+          consumesLesson,
+        resolution,
+        actual_teacher_id:
+          isPayableOutcome
+            ? user.id
+            : null,
+        original_lesson_date:
+          originalLessonDate,
+        lesson_date:
+          lesson.lesson_date,
+        rescheduled_at:
+          lesson.rescheduled_at,
+      };
+
       /*
-       * A completed lesson consumes one lesson from the package.
+       * The teacher action component sends attendance_notes so
+       * attendance actions do not accidentally clear Lesson Notes
+       * when the notes box is left blank.
        *
-       * Returning a lesson to Scheduled makes it available again.
-       *
-       * For the remaining statuses, preserve the existing
-       * consumption value because package consumption and
-       * attendance/payroll classification are separate concerns.
+       * If a teacher actually enters attendance notes, they are
+       * stored in the existing lesson notes field because the
+       * current schema does not have a separate attendance-notes
+       * column.
        */
-      const consumesLesson =
-        attendanceStatus === "completed"
-          ? true
-          : attendanceStatus === "scheduled"
-            ? false
-            : lesson.consumes_lesson;
+      if (attendanceNotes !== null) {
+        updateData.notes =
+          attendanceNotes;
+      }
+
+      if (
+        resolution === "rescheduled"
+      ) {
+        updateData.lesson_date =
+          lessonDate!;
+        updateData.rescheduled_at =
+          new Date().toISOString();
+      }
 
       const {
         data: updatedLesson,
         error: updateError,
       } = await admin
         .from("lessons")
-        .update({
-          attendance_status:
-            attendanceStatus,
-
-          consumes_lesson:
-            consumesLesson,
-
-          actual_teacher_id:
-            attendanceStatus ===
-            "completed"
-              ? user.id
-              : lesson.actual_teacher_id,
-        })
+        .update(updateData)
         .eq(
           "id",
           lessonId
@@ -1457,8 +1812,12 @@ export async function PATCH(
           enrollment_id,
           lesson_number,
           lesson_date,
+          original_lesson_date,
+          rescheduled_at,
+          schedule_time,
           duration,
           attendance_status,
+          resolution,
           notes,
           teacher_observation,
           consumes_lesson,
@@ -1490,9 +1849,9 @@ export async function PATCH(
     }
 
     /*
-     * --------------------------------
+     * ---------------------------------------------------------
      * LESSON NOTES UPDATE
-     * --------------------------------
+     * ---------------------------------------------------------
      */
 
     if (hasNotes) {
@@ -1529,8 +1888,12 @@ export async function PATCH(
           enrollment_id,
           lesson_number,
           lesson_date,
+          original_lesson_date,
+          rescheduled_at,
+          schedule_time,
           duration,
           attendance_status,
+          resolution,
           notes,
           teacher_observation,
           consumes_lesson,
@@ -1562,9 +1925,9 @@ export async function PATCH(
     }
 
     /*
-     * --------------------------------
+     * ---------------------------------------------------------
      * TEACHER OBSERVATION UPDATE
-     * --------------------------------
+     * ---------------------------------------------------------
      */
 
     if (hasTeacherObservation) {
@@ -1605,8 +1968,12 @@ export async function PATCH(
           enrollment_id,
           lesson_number,
           lesson_date,
+          original_lesson_date,
+          rescheduled_at,
+          schedule_time,
           duration,
           attendance_status,
+          resolution,
           notes,
           teacher_observation,
           consumes_lesson,
@@ -1638,9 +2005,9 @@ export async function PATCH(
     }
 
     /*
-     * --------------------------------
+     * ---------------------------------------------------------
      * CLASS INFO UPDATE
-     * --------------------------------
+     * ---------------------------------------------------------
      */
 
     if (hasClassInfo) {
@@ -1706,8 +2073,12 @@ export async function PATCH(
           enrollment_id,
           lesson_number,
           lesson_date,
+          original_lesson_date,
+          rescheduled_at,
+          schedule_time,
           duration,
           attendance_status,
+          resolution,
           notes,
           teacher_observation,
           consumes_lesson,

@@ -1,4 +1,5 @@
-﻿import { notFound } from "next/navigation";
+﻿import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
 import ReflectionActions from "@/components/ReflectionActions";
@@ -68,9 +69,7 @@ export default async function ReflectionsAdminPage({
             gap-8
           "
         >
-          {/* Back to Administration */}
-
-          <a
+          <Link
             href={`/${locale}/admin`}
             className="
               shrink-0
@@ -84,20 +83,9 @@ export default async function ReflectionsAdminPage({
             "
           >
             &larr; Administration
-          </a>
+          </Link>
 
-          {/* Hamkke Brand */}
-
-          <a
-            href={`/${locale}`}
-            className="
-              shrink-0
-              text-right
-              transition-opacity
-              duration-200
-              hover:opacity-70
-            "
-          >
+          <div className="shrink-0 text-right">
             <p
               className="
                 font-sans
@@ -124,7 +112,7 @@ export default async function ReflectionsAdminPage({
             >
               From Small Talk to Big Ideas
             </p>
-          </a>
+          </div>
         </div>
       </header>
 

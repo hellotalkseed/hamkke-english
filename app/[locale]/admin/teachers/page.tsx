@@ -108,9 +108,15 @@ export default async function TeachersPage({
             xl:px-12
           "
         >
-          <div className="flex w-full items-start justify-between gap-8">
-            {/* Back to Hamkke */}
-
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
+          >
             <Link
               href={`/${locale}`}
               className="
@@ -127,18 +133,7 @@ export default async function TeachersPage({
               &larr; Hamkke
             </Link>
 
-            {/* Hamkke Brand */}
-
-            <Link
-              href={`/${locale}`}
-              className="
-                shrink-0
-                text-right
-                transition-opacity
-                duration-200
-                hover:opacity-70
-              "
-            >
+            <div className="shrink-0 text-right">
               <p
                 className="
                   font-sans
@@ -165,7 +160,7 @@ export default async function TeachersPage({
               >
                 From Small Talk to Big Ideas
               </p>
-            </Link>
+            </div>
           </div>
         </header>
 

@@ -249,30 +249,30 @@ export default async function ContractPage({
             <header className="border-b border-[#CFCFC9] pb-6">
               <div className="flex items-start justify-between gap-8">
                 <div>
-                  <div
-                    className="
-                      font-serif
-                      text-[22px]
-                      tracking-[-0.02em]
-                      text-[#292929]
-                    "
-                  >
-                    Hamkke │ 함께
-                  </div>
+  <div
+    className="
+      font-serif
+      text-[22px]
+      tracking-[-0.02em]
+      text-[#6F8F72]
+    "
+  >
+    Hamkke │ 함께
+  </div>
 
-                  <p
-                    className="
-                      mt-1
-                      font-sans
-                      text-[9px]
-                      uppercase
-                      tracking-[0.16em]
-                      text-[#777771]
-                    "
-                  >
-                    From Small Talk to Big Ideas
-                  </p>
-                </div>
+  <p
+    className="
+      mt-1
+      font-sans
+      text-[9px]
+      uppercase
+      tracking-[0.16em]
+      text-[#6F8F72]
+    "
+  >
+    From Small Talk to Big Ideas
+  </p>
+</div>
 
                 <div className="text-right">
                   <p

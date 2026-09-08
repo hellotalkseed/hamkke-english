@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import TeacherLessonActions from "@/components/admin/TeacherLessonActions";
 import { use, useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -20,42 +21,6 @@ import {
   X,
 } from "lucide-react";
 
-const ATTENDANCE_OPTIONS = [
-  {
-    value: "scheduled",
-    label: "Scheduled",
-    description: "This lesson has not happened yet.",
-    icon: CalendarDays,
-  },
-  {
-    value: "completed",
-    label: "Completed",
-    description:
-      "The student attended and the lesson was taught.",
-    icon: Check,
-  },
-  {
-    value: "student_cancelled_credit",
-    label: "Student Cancelled",
-    description:
-      "The student cancelled and the lesson is credited.",
-    icon: UserRound,
-  },
-  {
-    value: "teacher_cancelled",
-    label: "Teacher Cancelled",
-    description:
-      "The teacher cancelled the lesson.",
-    icon: BookOpen,
-  },
-  {
-    value: "unexpected_circumstance",
-    label: "Unexpected Circumstance",
-    description:
-      "The lesson was affected by an unexpected situation.",
-    icon: ClipboardCheck,
-  },
-] as const;
 
 interface SubstituteTeacher {
   id: string;
@@ -84,6 +49,8 @@ interface LessonDetail {
   lesson_page: string | null;
   class_instructions: string | null;
   class_info_updated_at: string | null;
+  class_info_inherited: boolean;
+  class_info_inherited_from_lesson_number: number | null;
 
   substitute_teacher: {
     id: string;
@@ -144,14 +111,8 @@ export default function LessonDetailsPage({
   const [error, setError] =
     useState<string | null>(null);
 
-  const [selectedAttendance, setSelectedAttendance] =
-    useState("");
 
-  const [savingAttendance, setSavingAttendance] =
-    useState(false);
 
-  const [saveMessage, setSaveMessage] =
-    useState<string | null>(null);
 
   const [notes, setNotes] =
     useState("");
@@ -268,9 +229,6 @@ export default function LessonDetailsPage({
 
         setData(result);
 
-        setSelectedAttendance(
-          result.lesson.attendance_status
-        );
 
         setNotes(
           result.lesson.notes || ""
@@ -318,78 +276,6 @@ export default function LessonDetailsPage({
 
     loadLesson();
   }, [lessonId]);
-
-  async function saveAttendance() {
-    if (!selectedAttendance) {
-      return;
-    }
-
-    try {
-      setSavingAttendance(true);
-      setSaveMessage(null);
-      setError(null);
-
-      const response = await fetch(
-        `/api/admin/teachers/lessons/${lessonId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            attendance_status:
-              selectedAttendance,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.error ||
-            "Failed to save attendance."
-        );
-      }
-
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              lesson: {
-                ...current.lesson,
-                attendance_status:
-                  result.lesson
-                    .attendance_status,
-                actual_teacher_id:
-                  result.lesson
-                    .actual_teacher_id,
-              },
-            }
-          : current
-      );
-
-      setSelectedAttendance(
-        result.lesson.attendance_status
-      );
-
-      setSaveMessage(
-        "Attendance saved successfully."
-      );
-
-      setTimeout(() => {
-        setSaveMessage(null);
-      }, 3000);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while saving attendance."
-      );
-    } finally {
-      setSavingAttendance(false);
-    }
-  }
 
   async function saveClassInfo() {
     try {
@@ -441,6 +327,9 @@ export default function LessonDetailsPage({
                 class_info_updated_at:
                   result.lesson
                     .class_info_updated_at,
+                class_info_inherited: false,
+                class_info_inherited_from_lesson_number:
+                  null,
               },
             }
           : current
@@ -893,6 +782,77 @@ export default function LessonDetailsPage({
   if (loading) {
     return (
       <main className="min-h-screen bg-[#faf8f5]">
+        <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
+          >
+            <Link
+              href={`/${locale}/admin/teachers/lessons`}
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
+            >
+              &larr; My Lessons
+            </Link>
+
+            <div
+              className="
+                shrink-0
+                text-right
+              "
+            >
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
+                HAMKKE │ 함께
+              </p>
+
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
+                From Small Talk to Big Ideas
+              </p>
+            </div>
+          </div>
+        </header>
         <div className="mx-auto max-w-5xl px-6 py-12">
           <div className="animate-pulse space-y-6">
             <div className="h-4 w-32 rounded bg-[#e7e1da]" />
@@ -907,29 +867,78 @@ export default function LessonDetailsPage({
   if (error && !data) {
     return (
       <main className="min-h-screen bg-[#faf8f5]">
-        <div className="mx-auto max-w-5xl px-6 py-12">
-
-          {/* Top Navigation */}
-          <div className="flex items-start justify-between gap-6">
+        <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
+          >
             <Link
               href={`/${locale}/admin/teachers/lessons`}
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#65756b] transition hover:text-[#6f8f72]"
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
             >
-              <ArrowLeft size={16} />
-              Back to My Lessons
+              &larr; My Lessons
             </Link>
 
-            {/* Brand */}
-            <div className="shrink-0 text-right leading-none">
-              <p className="text-xs font-medium tracking-[0.22em] text-[#6f8f72]">
+            <div
+              className="
+                shrink-0
+                text-right
+              "
+            >
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
                 HAMKKE │ 함께
               </p>
 
-              <p className="mt-1.5 text-[10px] tracking-[0.08em] text-[#6f8f72]/80">
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
                 From Small Talk to Big Ideas
               </p>
             </div>
           </div>
+        </header>
+        <div className="mx-auto max-w-5xl px-6 py-12">
 
           <div className="mt-8 rounded-3xl border border-[#eadbd5] bg-white p-6">
             <p className="text-sm text-[#9a5f56]">
@@ -956,38 +965,81 @@ export default function LessonDetailsPage({
     data.viewer.role === "owner" ||
     data.viewer.role === "admin";
 
-  const currentStatus =
-    ATTENDANCE_OPTIONS.find(
-      (option) =>
-        option.value === selectedAttendance
-    );
 
   return (
     <main className="min-h-screen bg-[#faf8f5]">
-      <div className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
-
-        {/* Top Navigation */}
-        <div className="flex items-start justify-between gap-6">
-          {/* Back */}
-          <Link
-            href={`/${locale}/admin/teachers/lessons`}
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#65756b] transition hover:text-[#6f8f72]"
+      <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
           >
-            <ArrowLeft size={16} />
-            Back to My Lessons
-          </Link>
+            <Link
+              href={`/${locale}/admin/teachers/lessons`}
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
+            >
+              &larr; My Lessons
+            </Link>
 
-          {/* Brand */}
-          <div className="shrink-0 text-right leading-none">
-            <p className="text-xs font-medium tracking-[0.22em] text-[#6f8f72]">
-              HAMKKE │ 함께
-            </p>
+            <div
+              className="
+                shrink-0
+                text-right
+              "
+            >
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
+                HAMKKE │ 함께
+              </p>
 
-            <p className="mt-1.5 text-[10px] tracking-[0.08em] text-[#6f8f72]/80">
-              From Small Talk to Big Ideas
-            </p>
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
+                From Small Talk to Big Ideas
+              </p>
+            </div>
           </div>
-        </div>
+      </header>
+      <div className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
 
         {/* Header */}
         <div className="mt-8">
@@ -1237,7 +1289,19 @@ export default function LessonDetailsPage({
 
             {/* Save Class Info */}
             <div className="mt-5 flex flex-col gap-3 border-t border-[#eee9e3] pt-5 sm:flex-row sm:items-center sm:justify-between">
-              {lesson.class_info_updated_at ? (
+              {lesson.class_info_inherited ? (
+                <p className="text-[11px] leading-5 text-[#7f8b80]">
+                  Carried over from{" "}
+                  <span className="font-medium text-[#5f7f64]">
+                    Lesson {lesson.class_info_inherited_from_lesson_number}
+                  </span>
+                  {lesson.class_info_updated_at
+                    ? ` · Last saved ${formatLastUpdated(
+                        lesson.class_info_updated_at
+                      )}`
+                    : ""}
+                </p>
+              ) : lesson.class_info_updated_at ? (
                 <p className="text-[11px] text-[#9a9790]">
                   Last updated:{" "}
                   {formatLastUpdated(
@@ -1457,135 +1521,50 @@ export default function LessonDetailsPage({
 
         {/* Attendance */}
         <section className="mt-6 rounded-[26px] border border-[#e7e1da] bg-white p-6 shadow-[0_8px_30px_rgba(70,65,58,0.04)] sm:p-7">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-start justify-between gap-5">
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef3ee] text-[#6f8f72]">
                   <ClipboardCheck size={18} />
                 </div>
 
-                <h2 className="font-medium text-[#2d2d2d]">
-                  Attendance
-                </h2>
+                <div>
+                  <h2 className="font-medium text-[#2d2d2d]">
+                    Attendance
+                  </h2>
+
+                  <p className="mt-1 text-sm text-[#7b8587]">
+                    Record what happened in this lesson.
+                  </p>
+                </div>
               </div>
 
-              <p className="mt-3 text-sm text-[#7b8587]">
-                What happened in this lesson?
-              </p>
-            </div>
-
-            {currentStatus && (
-              <p className="text-sm text-[#8b918d]">
-                Current:{" "}
-                <span className="font-medium text-[#5f7064]">
-                  {currentStatus.label}
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
+                  Current status
                 </span>
-              </p>
-            )}
-          </div>
 
-          {/* Attendance Options */}
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {ATTENDANCE_OPTIONS.map(
-              (option) => {
-                const Icon = option.icon;
-
-                const isSelected =
-                  selectedAttendance ===
-                  option.value;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAttendance(
-                        option.value
-                      );
-                      setSaveMessage(null);
-                    }}
-                    className={`group relative flex items-start gap-4 rounded-2xl border p-4 text-left transition ${
-                      isSelected
-                        ? "border-[#6f8f72] bg-[#eef3ee] shadow-[0_4px_18px_rgba(111,143,114,0.10)]"
-                        : "border-[#e7e1da] bg-white hover:border-[#b8c8ba] hover:bg-[#fbfaf8]"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                        isSelected
-                          ? "bg-[#6f8f72] text-white"
-                          : "bg-[#f3f0ec] text-[#7b8587] group-hover:bg-[#eef3ee] group-hover:text-[#6f8f72]"
-                      }`}
-                    >
-                      <Icon size={18} />
-                    </div>
-
-                    <div className="min-w-0 flex-1 pr-5">
-                      <p
-                        className={`font-medium ${
-                          isSelected
-                            ? "text-[#4f6f55]"
-                            : "text-[#2d2d2d]"
-                        }`}
-                      >
-                        {option.label}
-                      </p>
-
-                      <p
-                        className={`mt-1 text-xs leading-5 ${
-                          isSelected
-                            ? "text-[#687b6c]"
-                            : "text-[#7b8587]"
-                        }`}
-                      >
-                        {option.description}
-                      </p>
-                    </div>
-
-                    {isSelected && (
-                      <div className="absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full bg-[#6f8f72] text-white">
-                        <Check size={13} />
-                      </div>
-                    )}
-                  </button>
-                );
-              }
-            )}
-          </div>
-
-          {/* Save */}
-          <div className="mt-6 flex flex-col gap-3 border-t border-[#eee9e3] pt-5 sm:flex-row sm:items-center">
-            <button
-              type="button"
-              onClick={saveAttendance}
-              disabled={savingAttendance}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#6f8f72] px-6 py-3 text-sm font-medium text-white shadow-[0_5px_14px_rgba(111,143,114,0.20)] transition hover:bg-[#628267] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {savingAttendance ? (
-                "Saving..."
-              ) : (
-                <>
-                  <Check size={16} />
-                  Save Attendance
-                </>
-              )}
-            </button>
-
-            {saveMessage && (
-              <div className="flex items-center gap-2 text-sm font-medium text-[#5f7f64]">
-                <Check size={15} />
-                {saveMessage}
+                <span className="rounded-full border border-[#dce4dc] bg-[#eef3ee] px-3 py-1 text-xs font-medium text-[#5f7f64]">
+                  {formatStatus(lesson.attendance_status)}
+                </span>
               </div>
-            )}
+            </div>
+
+            <TeacherLessonActions
+              lessonId={lesson.id}
+              currentStatus={lesson.attendance_status}
+              currentLessonDate={lesson.lesson_date}
+            />
           </div>
 
-          {error && (
-            <div className="mt-4 rounded-xl border border-[#eadbd5] bg-[#fcf6f4] px-4 py-3">
-              <p className="text-sm text-[#9a5f56]">
-                {error}
-              </p>
-            </div>
-          )}
+          <div className="mt-6 border-t border-[#eee9e3] pt-5">
+            <p className="text-xs leading-5 text-[#8b918d]">
+              Use the lesson actions menu to mark the lesson as completed,
+              record a no-show or late cancellation, reschedule a student
+              cancellation, return a lesson as credit, or record an unexpected
+              circumstance.
+            </p>
+          </div>
         </section>
 
         {/* Lesson Notes */}

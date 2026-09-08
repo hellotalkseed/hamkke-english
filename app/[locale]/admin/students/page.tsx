@@ -191,8 +191,6 @@ export default async function StudentsPage({
             gap-8
           "
         >
-          {/* Back to Administration */}
-
           <Link
             href={`/${locale}/admin`}
             className="
@@ -209,18 +207,7 @@ export default async function StudentsPage({
             &larr; Administration
           </Link>
 
-          {/* Hamkke Brand */}
-
-          <Link
-            href={`/${locale}`}
-            className="
-              shrink-0
-              text-right
-              transition-opacity
-              duration-200
-              hover:opacity-70
-            "
-          >
+          <div className="shrink-0 text-right">
             <p
               className="
                 font-sans
@@ -247,7 +234,7 @@ export default async function StudentsPage({
             >
               From Small Talk to Big Ideas
             </p>
-          </Link>
+          </div>
         </div>
       </header>
 

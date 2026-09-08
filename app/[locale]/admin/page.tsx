@@ -36,29 +36,29 @@ export default async function AdminPage({
     .eq("id", user.id)
     .single();
 
-    /*
- * --------------------------------
- * TEACHER ROUTING
- * --------------------------------
- *
- * Pending teachers must complete their
- * Teacher Agreement before receiving
- * access to the Teacher Dashboard.
- */
+  /*
+   * --------------------------------
+   * TEACHER ROUTING
+   * --------------------------------
+   *
+   * Pending teachers must complete their
+   * Teacher Agreement before receiving
+   * access to the Teacher Dashboard.
+   */
 
-if (
-  profile?.role === "teacher" &&
-  profile?.status === "pending"
-) {
-  redirect(`/${locale}/admin/teachers/agreement`);
-}
+  if (
+    profile?.role === "teacher" &&
+    profile?.status === "pending"
+  ) {
+    redirect(`/${locale}/admin/teachers/agreement`);
+  }
 
-if (
-  profile?.role === "teacher" &&
-  profile?.status === "active"
-) {
-  redirect(`/${locale}/admin/teachers`);
-}
+  if (
+    profile?.role === "teacher" &&
+    profile?.status === "active"
+  ) {
+    redirect(`/${locale}/admin/teachers`);
+  }
 
   /*
    * --------------------------------
@@ -72,7 +72,6 @@ if (
   ) {
     return (
       <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-
         {/* HEADER */}
 
         <header
@@ -86,10 +85,15 @@ if (
             xl:px-12
           "
         >
-          <div className="flex w-full items-start justify-between gap-8">
-
-            {/* Back to Hamkke */}
-
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
+          >
             <Link
               href={`/${locale}`}
               className="
@@ -106,18 +110,7 @@ if (
               &larr; Hamkke
             </Link>
 
-            {/* Hamkke Brand */}
-
-            <Link
-              href={`/${locale}`}
-              className="
-                shrink-0
-                text-right
-                transition-opacity
-                duration-200
-                hover:opacity-70
-              "
-            >
+            <div className="shrink-0 text-right">
               <p
                 className="
                   font-sans
@@ -144,8 +137,7 @@ if (
               >
                 From Small Talk to Big Ideas
               </p>
-            </Link>
-
+            </div>
           </div>
         </header>
 
@@ -219,7 +211,6 @@ if (
             lg:pb-24
           "
         >
-
           {/* OVERVIEW */}
 
           <Link
@@ -235,7 +226,6 @@ if (
             "
           >
             <div className="flex gap-6">
-
               <span
                 className="
                   pt-1
@@ -260,7 +250,6 @@ if (
                 "
               >
                 <div>
-
                   <h2
                     className="
                       font-serif
@@ -286,7 +275,6 @@ if (
                     Get a quick look at your students,
                     active enrollments, and income.
                   </p>
-
                 </div>
 
                 <div
@@ -309,9 +297,7 @@ if (
                     strokeWidth={1.5}
                   />
                 </div>
-
               </div>
-
             </div>
           </Link>
 
@@ -330,7 +316,6 @@ if (
             "
           >
             <div className="flex gap-6">
-
               <span
                 className="
                   pt-1
@@ -355,7 +340,6 @@ if (
                 "
               >
                 <div>
-
                   <h2
                     className="
                       font-serif
@@ -382,7 +366,6 @@ if (
                     lessons, attendance, contracts,
                     and payments.
                   </p>
-
                 </div>
 
                 <div
@@ -405,9 +388,7 @@ if (
                     strokeWidth={1.5}
                   />
                 </div>
-
               </div>
-
             </div>
           </Link>
 
@@ -426,7 +407,6 @@ if (
             "
           >
             <div className="flex gap-6">
-
               <span
                 className="
                   pt-1
@@ -451,7 +431,6 @@ if (
                 "
               >
                 <div>
-
                   <h2
                     className="
                       font-serif
@@ -477,7 +456,6 @@ if (
                     Manage teachers, assign students,
                     and view teaching information and payroll.
                   </p>
-
                 </div>
 
                 <div
@@ -500,9 +478,7 @@ if (
                     strokeWidth={1.5}
                   />
                 </div>
-
               </div>
-
             </div>
           </Link>
 
@@ -521,7 +497,6 @@ if (
             "
           >
             <div className="flex gap-6">
-
               <span
                 className="
                   pt-1
@@ -546,7 +521,6 @@ if (
                 "
               >
                 <div>
-
                   <h2
                     className="
                       font-serif
@@ -572,7 +546,6 @@ if (
                     Review and approve student stories
                     before they appear on the website.
                   </p>
-
                 </div>
 
                 <div
@@ -595,12 +568,9 @@ if (
                     strokeWidth={1.5}
                   />
                 </div>
-
               </div>
-
             </div>
           </Link>
-
         </section>
       </main>
     );
@@ -614,9 +584,7 @@ if (
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#FAF8F5] px-6">
-
       <div className="max-w-md text-center">
-
         <div>
           <p
             className="
@@ -688,7 +656,6 @@ if (
         >
           Return to sign in
         </Link>
-
       </div>
     </main>
   );

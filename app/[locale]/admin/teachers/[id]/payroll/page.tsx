@@ -44,6 +44,22 @@ type PayrollRecord = {
   status: PayrollStatus;
 };
 
+type PayrollLessonBreakdown = {
+  id: string;
+  enrollment_id: string;
+  student_id: string | null;
+  student_name: string;
+  lesson_number: number;
+  lesson_date: string;
+  duration: number;
+  attendance_status:
+    | "completed"
+    | "no_show"
+    | "late_cancellation";
+  rate: number;
+  amount: number;
+};
+
 type CurrentPayroll = {
   period_start: string;
   period_end: string;
@@ -72,6 +88,8 @@ type CurrentPayroll = {
   gross_pay: number;
   status: PayrollStatus;
   payroll_record: PayrollRecord | null;
+  is_finalized: boolean;
+  breakdown_source: "live" | "frozen";
 };
 
 type PayrollApiResponse = {
@@ -82,29 +100,17 @@ type PayrollApiResponse = {
   };
   current: CurrentPayroll;
   history: PayrollRecord[];
+  lesson_breakdown: PayrollLessonBreakdown[];
+  history_breakdowns: Record<
+    string,
+    PayrollLessonBreakdown[]
+  >;
 };
 
 /* ========================================================================= */
 /* ICONS                                                                     */
 /* ========================================================================= */
 
-function ArrowLeftIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-[15px] w-[15px]"
-      aria-hidden="true"
-    >
-      <path d="M19 12H5" />
-      <path d="m11 18-6-6 6-6" />
-    </svg>
-  );
-}
 
 function WalletIcon() {
   return (
@@ -227,6 +233,34 @@ function getPayrollPeriod(date: Date) {
   };
 }
 
+function formatLessonStatus(
+  status: PayrollLessonBreakdown["attendance_status"]
+) {
+  if (status === "completed") {
+    return "Completed";
+  }
+
+  if (status === "no_show") {
+    return "No-show";
+  }
+
+  return "Late cancellation";
+}
+
+function formatLessonDate(value: string) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+
+  return new Intl.DateTimeFormat("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
 function getStatusClasses(status: PayrollStatus) {
   if (status === "paid") {
     return "bg-[#E5EBDD] text-[#607963]";
@@ -302,6 +336,17 @@ export default function TeacherPayrollPage() {
   const [payrollHistory, setPayrollHistory] =
     useState<PayrollRecord[]>([]);
 
+  const [lessonBreakdown, setLessonBreakdown] =
+    useState<PayrollLessonBreakdown[]>([]);
+
+  const [historyBreakdowns, setHistoryBreakdowns] =
+    useState<
+      Record<
+        string,
+        PayrollLessonBreakdown[]
+      >
+    >({});
+
   const [currentPayroll, setCurrentPayroll] =
     useState<CurrentPayroll | null>(null);
 
@@ -353,6 +398,12 @@ export default function TeacherPayrollPage() {
         setTeacher(payrollData.teacher);
         setCurrentPayroll(payrollData.current);
         setPayrollHistory(payrollData.history || []);
+        setLessonBreakdown(
+          payrollData.lesson_breakdown || []
+        );
+        setHistoryBreakdowns(
+          payrollData.history_breakdowns || {}
+        );
       } catch (err) {
         console.error(
           "Error loading teacher payroll:",
@@ -397,6 +448,12 @@ export default function TeacherPayrollPage() {
     setTeacher(payrollData.teacher);
     setCurrentPayroll(payrollData.current);
     setPayrollHistory(payrollData.history || []);
+    setLessonBreakdown(
+      payrollData.lesson_breakdown || []
+    );
+    setHistoryBreakdowns(
+      payrollData.history_breakdowns || {}
+    );
 
     if (selectedPayroll) {
       const refreshedSelected =
@@ -1102,28 +1159,70 @@ export default function TeacherPayrollPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-        <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
-          <div className="flex w-full items-start justify-between gap-8">
+        <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
+          >
             <Link
               href={`/${locale}/admin/teachers/${teacherId}`}
-              className="inline-flex shrink-0 items-center gap-2 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
             >
-              <ArrowLeftIcon />
-              Teacher
+              &larr; Teacher
             </Link>
 
-            <Link
-              href={`/${locale}`}
-              className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
-            >
-              <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
+            <div className="shrink-0 text-right">
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
                 HAMKKE │ 함께
               </p>
 
-              <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
                 From Small Talk to Big Ideas
               </p>
-            </Link>
+            </div>
           </div>
         </header>
 
@@ -1145,28 +1244,70 @@ export default function TeacherPayrollPage() {
   if (error || !teacher || !currentPayroll) {
     return (
       <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-        <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
-          <div className="flex w-full items-start justify-between gap-8">
+        <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
+          >
             <Link
               href={`/${locale}/admin/teachers/${teacherId}`}
-              className="inline-flex shrink-0 items-center gap-2 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
             >
-              <ArrowLeftIcon />
-              Teacher
+              &larr; Teacher
             </Link>
 
-            <Link
-              href={`/${locale}`}
-              className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
-            >
-              <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
+            <div className="shrink-0 text-right">
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
                 HAMKKE │ 함께
               </p>
 
-              <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
                 From Small Talk to Big Ideas
               </p>
-            </Link>
+            </div>
           </div>
         </header>
 
@@ -1214,30 +1355,72 @@ export default function TeacherPayrollPage() {
       {/* HEADER                                                              */}
       {/* =================================================================== */}
 
-      <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
-        <div className="flex w-full items-start justify-between gap-8">
-          <Link
-            href={`/${locale}/admin/teachers/${teacherId}`}
-            className="inline-flex shrink-0 items-center gap-2 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
+      <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
           >
-            <ArrowLeftIcon />
-            Teacher
-          </Link>
+            <Link
+              href={`/${locale}/admin/teachers/${teacherId}`}
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
+            >
+              &larr; Teacher
+            </Link>
 
-          <Link
-            href={`/${locale}`}
-            className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
-          >
-            <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
-              HAMKKE │ 함께
-            </p>
+            <div className="shrink-0 text-right">
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
+                HAMKKE │ 함께
+              </p>
 
-            <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
-              From Small Talk to Big Ideas
-            </p>
-          </Link>
-        </div>
-      </header>
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
+                From Small Talk to Big Ideas
+              </p>
+            </div>
+          </div>
+        </header>
 
       {/* =================================================================== */}
       {/* INTRO                                                               */}
@@ -1504,6 +1687,121 @@ export default function TeacherPayrollPage() {
             </div>
           </div>
 
+          {/* LESSON BREAKDOWN */}
+
+          <div className="border-t border-[#DCD8D2] px-6 py-7 sm:px-8 sm:py-8">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="font-sans text-[9px] font-medium uppercase tracking-[0.15em] text-[#8A8A84]">
+                  Lesson Breakdown
+                </p>
+
+                <p className="mt-2 max-w-[680px] font-serif text-[13px] leading-6 text-[#74716B]">
+                  {currentPayroll.breakdown_source === "frozen"
+                    ? "This is the frozen lesson breakdown saved when this payroll was finalized."
+                    : "Every payable lesson currently included in this live payroll period is listed below."}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="border border-[#DCD8D2] px-2.5 py-1 font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]">
+                  {currentPayroll.breakdown_source === "frozen"
+                    ? "Finalized · Frozen"
+                    : "Live"}
+                </span>
+
+                <p className="font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                  {lessonBreakdown.length}{" "}
+                  {lessonBreakdown.length === 1
+                    ? "lesson"
+                    : "lessons"}
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse">
+                <thead>
+                  <tr className="border-y border-[#DCD8D2]">
+                    <th className="px-3 py-3 text-left font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                      Date
+                    </th>
+                    <th className="px-3 py-3 text-left font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                      Student
+                    </th>
+                    <th className="px-3 py-3 text-left font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                      Lesson
+                    </th>
+                    <th className="px-3 py-3 text-right font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                      Duration
+                    </th>
+                    <th className="px-3 py-3 text-left font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                      Status
+                    </th>
+                    <th className="px-3 py-3 text-right font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                      Rate
+                    </th>
+                    <th className="px-3 py-3 text-right font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
+                      Amount
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {lessonBreakdown.length > 0 ? (
+                    lessonBreakdown.map((lesson) => (
+                      <tr
+                        key={lesson.id}
+                        className="border-b border-[#E7E3DD]"
+                      >
+                        <td className="px-3 py-4 font-serif text-[13px]">
+                          {formatLessonDate(
+                            lesson.lesson_date
+                          )}
+                        </td>
+
+                        <td className="px-3 py-4 font-serif text-[14px]">
+                          {lesson.student_name}
+                        </td>
+
+                        <td className="px-3 py-4 font-serif text-[13px]">
+                          Lesson {lesson.lesson_number}
+                        </td>
+
+                        <td className="px-3 py-4 text-right font-serif text-[13px]">
+                          {lesson.duration} min
+                        </td>
+
+                        <td className="px-3 py-4 font-serif text-[13px]">
+                          {formatLessonStatus(
+                            lesson.attendance_status
+                          )}
+                        </td>
+
+                        <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
+                          {formatCurrency(lesson.rate)}
+                        </td>
+
+                        <td className="px-3 py-4 text-right font-serif text-[14px]">
+                          {formatCurrency(lesson.amount)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-3 py-8 text-center font-serif text-[13px] text-[#8A8780]"
+                      >
+                        No payable lessons in this period yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* PAYMENT DETAILS */}
 
           <div className="border-t border-[#DCD8D2] px-6 py-7 sm:px-8">
@@ -1686,7 +1984,7 @@ export default function TeacherPayrollPage() {
         </div>
       </section>
 
-                  {/* =================================================================== */}
+      {/* =================================================================== */}
       {/* PAYROLL HISTORY                                                     */}
       {/* =================================================================== */}
 
@@ -1705,73 +2003,82 @@ export default function TeacherPayrollPage() {
               </div>
 
               <p className="mt-4 max-w-[680px] font-serif text-[14px] leading-6 text-[#74716B]">
-                Each paid payroll period is kept as its own payment
-                record with its lesson breakdown, applicable rates,
-                payment method, and reference number.
+                Each paid payroll period is kept as its
+                own payment record with its lesson breakdown,
+                applicable rates, payment method, and
+                reference number.
               </p>
             </div>
 
             <span className="inline-flex w-fit rounded-full bg-[#EEECE7] px-3 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#817D75]">
-              {payrollHistory.length}{" "}
-              {payrollHistory.length === 1 ? "record" : "records"}
+              {payrollHistory.length} records
             </span>
           </div>
 
-          <div className="border-t border-[#E7E3DD]">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] table-fixed border-collapse">
-  <colgroup>
-    <col className="w-[31%]" />
-    <col className="w-[14%]" />
-    <col className="w-[17%]" />
-    <col className="w-[20%]" />
-    <col className="w-[18%]" />
-  </colgroup>
-                <thead>
-                  <tr className="border-b border-[#DCD8D2]">
-                    <th className="px-5 py-4 text-left font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84] sm:px-7">
-                      Payroll period
-                    </th>
+          {payrollHistory.length === 0 ? (
+            <div className="border-t border-[#E7E3DD] px-5 py-12 sm:px-7 sm:py-14">
+              <div className="max-w-[680px]">
+                <p className="font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
+                  No history yet
+                </p>
 
-                    <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
-                      Lessons
-                    </th>
+                <h4 className="mt-2 font-serif text-[22px] font-normal">
+                  Payroll history will appear here.
+                </h4>
 
-                    <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
-                      Gross pay
-                    </th>
+                <p className="mt-3 font-serif text-[14px] leading-6 text-[#74716B]">
+                  Once a payroll period has been calculated,
+                  paid, and recorded, it will appear here with
+                  its lesson breakdown, applicable rates,
+                  payment details, and printable receipt.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="border-t border-[#E7E3DD]">
+              {/* DESKTOP TABLE */}
 
-                    <th className="px-5 py-4 text-center font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
-  Status
-</th>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#DCD8D2]">
+                      <th className="px-5 py-4 text-left font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84] sm:px-7">
+                        Payroll period
+                      </th>
 
-                    <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84] sm:px-7">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
+                      <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
+                        Lessons
+                      </th>
 
-                <tbody>
-                  {payrollHistory.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-5 py-10 text-center font-serif text-[14px] text-[#8A8780] sm:px-7"
-                      >
-                        No payroll records yet.
-                      </td>
+                      <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
+                        Gross pay
+                      </th>
+
+                      <th className="px-5 py-4 text-left font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84]">
+                        Status
+                      </th>
+
+                      <th className="px-5 py-4 text-right font-sans text-[9px] font-medium uppercase tracking-[0.13em] text-[#8A8A84] sm:px-7">
+                        Actions
+                      </th>
                     </tr>
-                  ) : (
-                    payrollHistory.map((record) => (
+                  </thead>
+
+                  <tbody>
+                    {payrollHistory.map((record) => (
                       <tr
                         key={record.id}
                         className="border-b border-[#E7E3DD] transition-colors duration-150 hover:bg-[#F2F5F0]"
                       >
                         <td className="px-5 py-4 sm:px-7">
                           <p className="font-serif text-[15px]">
-                            {formatShortDate(record.period_start)}
+                            {formatShortDate(
+                              record.period_start
+                            )}
                             {" – "}
-                            {formatShortDate(record.period_end)}
+                            {formatShortDate(
+                              record.period_end
+                            )}
                           </p>
                         </td>
 
@@ -1780,10 +2087,12 @@ export default function TeacherPayrollPage() {
                         </td>
 
                         <td className="px-5 py-4 text-right font-serif text-[15px]">
-                          {formatCurrency(record.gross_pay)}
+                          {formatCurrency(
+                            record.gross_pay
+                          )}
                         </td>
 
-                        <td className="px-5 py-4 text-center">
+                        <td className="px-5 py-4">
                           <span
                             className={`inline-flex rounded-full px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] ${getStatusClasses(
                               record.status
@@ -1798,9 +2107,11 @@ export default function TeacherPayrollPage() {
                             <button
                               type="button"
                               onClick={() =>
-                                setSelectedPayroll(record)
+                                setSelectedPayroll(
+                                  record
+                                )
                               }
-                              className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#DCD8D2] px-3 py-2 font-sans text-[10px] text-[#5F655F] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
+                              className="inline-flex items-center gap-1.5 border border-[#DCD8D2] px-3 py-2 font-sans text-[10px] text-[#5F655F] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
                             >
                               <EyeIcon />
                               View
@@ -1811,7 +2122,7 @@ export default function TeacherPayrollPage() {
                               onClick={() =>
                                 printPayroll(record)
                               }
-                              className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#6F8F72] px-3 py-2 font-sans text-[10px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
+                              className="inline-flex items-center gap-1.5 border border-[#6F8F72] px-3 py-2 font-sans text-[10px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
                             >
                               <PrinterIcon />
                               Print
@@ -1819,12 +2130,95 @@ export default function TeacherPayrollPage() {
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* MOBILE RECORDS */}
+
+              <div className="divide-y divide-[#E7E3DD] md:hidden">
+                {payrollHistory.map((record) => (
+                  <div
+                    key={record.id}
+                    className="px-5 py-5"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-serif text-[17px] leading-tight">
+                          {formatShortDate(
+                            record.period_start
+                          )}
+                          {" – "}
+                          {formatShortDate(
+                            record.period_end
+                          )}
+                        </p>
+
+                        <div className="mt-3 grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                              Lessons
+                            </p>
+
+                            <p className="mt-1 font-serif text-[15px]">
+                              {getTotalLessonCount(
+                                record
+                              )}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                              Gross
+                            </p>
+
+                            <p className="mt-1 font-serif text-[15px]">
+                              {formatCurrency(
+                                record.gross_pay
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`inline-flex shrink-0 rounded-full px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] ${getStatusClasses(
+                          record.status
+                        )}`}
+                      >
+                        {formatStatus(record.status)}
+                      </span>
+                    </div>
+
+                    <div className="mt-5 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedPayroll(record)
+                        }
+                        className="inline-flex items-center gap-1.5 border border-[#DCD8D2] px-3 py-2 font-sans text-[10px] text-[#5F655F] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
+                      >
+                        <EyeIcon />
+                        View
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          printPayroll(record)
+                        }
+                        className="inline-flex items-center gap-1.5 border border-[#6F8F72] px-3 py-2 font-sans text-[10px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
+                      >
+                        <PrinterIcon />
+                        Print
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -2078,6 +2472,128 @@ export default function TeacherPayrollPage() {
                     {formatStatus(selectedPayroll.status)}
                   </span>
                 </div>
+              </div>
+
+              <div className="mt-8 border-t border-[#DCD8D2] pt-7">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="font-sans text-[9px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
+                      Frozen lesson breakdown
+                    </p>
+
+                    <p className="mt-2 font-serif text-[12px] leading-5 text-[#74716B]">
+                      This is the exact lesson snapshot saved for this payroll period.
+                    </p>
+                  </div>
+
+                  <span className="inline-flex w-fit border border-[#DCD8D2] px-2.5 py-1 font-sans text-[8px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]">
+                    {(historyBreakdowns[
+                      selectedPayroll.id
+                    ] || []).length}{" "}
+                    {(historyBreakdowns[
+                      selectedPayroll.id
+                    ] || []).length === 1
+                      ? "lesson"
+                      : "lessons"}
+                  </span>
+                </div>
+
+                <div className="mt-5 overflow-x-auto">
+                  <table className="w-full min-w-[700px] border-collapse">
+                    <thead>
+                      <tr className="border-y border-[#DCD8D2]">
+                        <th className="px-3 py-3 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#8A8A84]">
+                          Date
+                        </th>
+                        <th className="px-3 py-3 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#8A8A84]">
+                          Student
+                        </th>
+                        <th className="px-3 py-3 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#8A8A84]">
+                          Lesson
+                        </th>
+                        <th className="px-3 py-3 text-right font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#8A8A84]">
+                          Duration
+                        </th>
+                        <th className="px-3 py-3 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#8A8A84]">
+                          Status
+                        </th>
+                        <th className="px-3 py-3 text-right font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#8A8A84]">
+                          Rate
+                        </th>
+                        <th className="px-3 py-3 text-right font-sans text-[8px] font-medium uppercase tracking-[0.1em] text-[#8A8A84]">
+                          Amount
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {(historyBreakdowns[
+                        selectedPayroll.id
+                      ] || []).length > 0 ? (
+                        (
+                          historyBreakdowns[
+                            selectedPayroll.id
+                          ] || []
+                        ).map((lesson) => (
+                          <tr
+                            key={lesson.id}
+                            className="border-b border-[#E7E3DD]"
+                          >
+                            <td className="px-3 py-4 font-serif text-[12px]">
+                              {formatLessonDate(
+                                lesson.lesson_date
+                              )}
+                            </td>
+
+                            <td className="px-3 py-4 font-serif text-[13px]">
+                              {lesson.student_name}
+                            </td>
+
+                            <td className="px-3 py-4 font-serif text-[12px]">
+                              Lesson{" "}
+                              {lesson.lesson_number}
+                            </td>
+
+                            <td className="px-3 py-4 text-right font-serif text-[12px]">
+                              {lesson.duration} min
+                            </td>
+
+                            <td className="px-3 py-4 font-serif text-[12px]">
+                              {formatLessonStatus(
+                                lesson.attendance_status
+                              )}
+                            </td>
+
+                            <td className="px-3 py-4 text-right font-serif text-[12px] text-[#8A8780]">
+                              {formatCurrency(
+                                lesson.rate
+                              )}
+                            </td>
+
+                            <td className="px-3 py-4 text-right font-serif text-[13px]">
+                              {formatCurrency(
+                                lesson.amount
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="px-3 py-7 text-center font-serif text-[12px] text-[#8A8780]"
+                          >
+                            No frozen lesson breakdown is available for this payroll record.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="mt-4 font-serif text-[11px] leading-5 text-[#8A8780]">
+                  Individual lesson rows are kept in payroll history for review, but they are not included in the printed receipt.
+                </p>
               </div>
 
               <div className="mt-7 grid sm:grid-cols-2 sm:divide-x sm:divide-[#E7E3DD]">

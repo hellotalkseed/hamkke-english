@@ -734,7 +734,7 @@ export default function TeacherAgreement({
                           Hamkke │ 함께
                         </div>
 
-                        <p className="mt-2 font-sans text-[9px] uppercase tracking-[0.16em] text-[#777]">
+                        <p className="mt-2 font-sans text-[9px] uppercase tracking-[0.16em] text-[#6F8F72]">
                           From Small Talk to Big Ideas
                         </p>
                       </div>
@@ -790,27 +790,6 @@ export default function TeacherAgreement({
 
                         <p className="mt-1.5 font-serif text-[16px] leading-[1.3] text-[#222]">
                           {formatDate(contract.agreement_date)}
-                        </p>
-                      </div>
-                    </div>
-                  </section>
-
-                  {/* Agreement Introduction */}
-                  <section className="border-b border-[#CFCFCB] py-6">
-                    <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
-                      <div className="pt-[3px] font-sans text-[9px] font-medium tracking-[0.08em] text-[#6F8F72]">
-                        —
-                      </div>
-
-                      <div>
-                        <h3 className="font-serif text-[21px] font-normal leading-[1.2] tracking-[-0.015em] text-[#222]">
-                          Teacher Agreement
-                        </h3>
-
-                        <p className="mt-3.5 max-w-[760px] font-sans text-[12.5px] leading-[1.65] text-[#444]">
-                          The agreement covering this teacher’s teaching
-                          responsibilities, compensation, lesson policies, and
-                          professional expectations with Hamkke.
                         </p>
                       </div>
                     </div>

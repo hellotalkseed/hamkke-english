@@ -369,43 +369,34 @@ export default function TeachersManagement({
 
           {/* Hamkke Brand */}
 
-          <Link
-            href={`/${locale}`}
-            className="
-              shrink-0
-              text-right
-              transition-opacity
-              duration-200
-              hover:opacity-70
-            "
-          >
-            <p
-              className="
-                font-sans
-                text-[16px]
-                font-semibold
-                leading-none
-                tracking-[0.18em]
-                text-[#6F8F72]
-              "
-            >
-              HAMKKE │ 함께
-            </p>
+<div className="shrink-0 text-right">
+  <p
+    className="
+      font-sans
+      text-[16px]
+      font-semibold
+      leading-none
+      tracking-[0.18em]
+      text-[#6F8F72]
+    "
+  >
+    HAMKKE │ 함께
+  </p>
 
-            <p
-              className="
-                mt-2
-                font-serif
-                text-[13px]
-                font-normal
-                leading-none
-                tracking-[0.02em]
-                text-[#6F8F72]
-              "
-            >
-              From Small Talk to Big Ideas
-            </p>
-          </Link>
+  <p
+    className="
+      mt-2
+      font-serif
+      text-[13px]
+      font-normal
+      leading-none
+      tracking-[0.02em]
+      text-[#6F8F72]
+    "
+  >
+    From Small Talk to Big Ideas
+  </p>
+</div>
         </div>
       </header>
 

@@ -264,6 +264,49 @@ function getLessonStartMinutes(
   );
 }
 
+function getLessonStatusClass(status: string) {
+  switch (status) {
+    case "completed":
+      return "border-[#a8bfa9] bg-[#e4efe3] text-[#55725a] hover:border-[#8eaa90] hover:bg-[#dbe8da]";
+
+    case "no_show":
+      return "border-[#d6aaa4] bg-[#f3d9d5] text-[#8a5c56] hover:border-[#c8958e] hover:bg-[#edcfca]";
+
+    case "late_cancellation":
+      return "border-[#d7b78c] bg-[#f4e3cf] text-[#80664a] hover:border-[#c7a374] hover:bg-[#eed8bd]";
+
+    case "student_cancelled_rescheduled":
+    case "student_cancelled_credit":
+    case "unexpected_circumstance":
+    case "teacher_cancelled":
+      return "border-[#cfd2cc] bg-[#eceeea] text-[#6f736c] hover:border-[#bdc1ba] hover:bg-[#e4e7e1]";
+
+    default:
+      return "border-[#d9be6a] bg-[#f3e8b8] text-[#665a31] hover:border-[#c9aa4d] hover:bg-[#eddfa7]";
+  }
+}
+
+function getLessonStatusLabel(status: string) {
+  switch (status) {
+    case "completed":
+      return "Done";
+    case "no_show":
+      return "No-show";
+    case "late_cancellation":
+      return "Late cancel";
+    case "student_cancelled_rescheduled":
+      return "Rescheduled";
+    case "student_cancelled_credit":
+      return "Credit";
+    case "unexpected_circumstance":
+      return "Unexpected";
+    case "teacher_cancelled":
+      return "Teacher cancelled";
+    default:
+      return "Scheduled";
+  }
+}
+
 export default function TeacherLessonsPage({
   params,
 }: TeacherLessonsPageProps) {
@@ -539,19 +582,78 @@ export default function TeacherLessonsPage({
     };
   }
 
-  const Brand = () => (
-    <Link
-      href={`/${locale}/admin`}
-      className="group block text-right transition-opacity hover:opacity-70"
+  const PageHeader = () => (
+    <header
+      className="
+        w-full
+        px-6
+        pt-7
+        sm:px-8
+        sm:pt-8
+        lg:px-10
+        xl:px-12
+      "
     >
-      <p className="text-sm font-medium tracking-[0.18em] text-[#6f8f72]">
-        HAMKKE │ 함께
-      </p>
+      <div
+        className="
+          flex
+          w-full
+          items-start
+          justify-between
+          gap-8
+        "
+      >
+        <Link
+          href={`/${locale}/admin/teachers`}
+          className="
+            shrink-0
+            font-sans
+            text-[15px]
+            text-[#5F655F]
+            transition-colors
+            duration-200
+            hover:text-[#6F8F72]
+            sm:text-[16px]
+          "
+        >
+          &larr; Back to Dashboard
+        </Link>
 
-      <p className="mt-1 text-[11px] tracking-[0.08em] text-[#6f8f72]/75">
-        From Small Talk to Big Ideas
-      </p>
-    </Link>
+        <div
+          className="
+            shrink-0
+            text-right
+          "
+        >
+          <p
+            className="
+              font-sans
+              text-[16px]
+              font-semibold
+              leading-none
+              tracking-[0.18em]
+              text-[#6F8F72]
+            "
+          >
+            HAMKKE │ 함께
+          </p>
+
+          <p
+            className="
+              mt-2
+              font-serif
+              text-[13px]
+              font-normal
+              leading-none
+              tracking-[0.02em]
+              text-[#6F8F72]
+            "
+          >
+            From Small Talk to Big Ideas
+          </p>
+        </div>
+      </div>
+    </header>
   );
 
   /* --------------------------------
@@ -561,58 +663,33 @@ export default function TeacherLessonsPage({
   if (loading) {
     return (
       <main className="min-h-screen bg-[#f7f6f1]">
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
+        <PageHeader />
 
-          <div className="flex items-start justify-between gap-8">
-
-            <div className="min-w-0">
-
-              <Link
-                href={`/${locale}/admin/teachers`}
-                className="mb-5 inline-flex items-center text-sm text-[#7b7d77] transition-colors hover:text-[#6f8f72]"
-              >
-                ← Back to Dashboard
-              </Link>
-
-              <div className="flex items-start gap-4">
-
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
-                  <BookOpen
-                    size={20}
-                    strokeWidth={1.8}
-                  />
-                </div>
-
-                <div>
-
-                  <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
-                    Teacher
-                  </p>
-
-                  <h1 className="text-3xl font-semibold tracking-tight text-[#30332f]">
-                    My Lessons
-                  </h1>
-
-                </div>
-
-              </div>
-
+        <div className="mx-auto max-w-7xl px-6 pb-8 pt-12 lg:px-8 lg:pb-10 lg:pt-16">
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
+              <BookOpen
+                size={20}
+                strokeWidth={1.8}
+              />
             </div>
 
-            <div className="shrink-0 pt-[52px]">
-              <Brand />
-            </div>
+            <div>
+              <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
+                Teacher
+              </p>
 
+              <h1 className="text-3xl font-semibold tracking-tight text-[#30332f]">
+                My Lessons
+              </h1>
+            </div>
           </div>
 
           <div className="mt-10 border-y border-[#dcd8d2] bg-[#fffefa] p-12 text-center">
-
             <p className="text-sm text-[#777a74]">
               Loading your lessons...
             </p>
-
           </div>
-
         </div>
       </main>
     );
@@ -625,58 +702,33 @@ export default function TeacherLessonsPage({
   if (error) {
     return (
       <main className="min-h-screen bg-[#f7f6f1]">
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
+        <PageHeader />
 
-          <div className="flex items-start justify-between gap-8">
-
-            <div className="min-w-0">
-
-              <Link
-                href={`/${locale}/admin/teachers`}
-                className="mb-5 inline-flex items-center text-sm text-[#7b7d77] transition-colors hover:text-[#6f8f72]"
-              >
-                ← Back to Dashboard
-              </Link>
-
-              <div className="flex items-start gap-4">
-
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
-                  <BookOpen
-                    size={20}
-                    strokeWidth={1.8}
-                  />
-                </div>
-
-                <div>
-
-                  <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
-                    Teacher
-                  </p>
-
-                  <h1 className="text-3xl font-semibold tracking-tight text-[#30332f]">
-                    My Lessons
-                  </h1>
-
-                </div>
-
-              </div>
-
+        <div className="mx-auto max-w-7xl px-6 pb-8 pt-12 lg:px-8 lg:pb-10 lg:pt-16">
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
+              <BookOpen
+                size={20}
+                strokeWidth={1.8}
+              />
             </div>
 
-            <div className="shrink-0 pt-[52px]">
-              <Brand />
-            </div>
+            <div>
+              <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
+                Teacher
+              </p>
 
+              <h1 className="text-3xl font-semibold tracking-tight text-[#30332f]">
+                My Lessons
+              </h1>
+            </div>
           </div>
 
           <div className="mt-10 border border-[#e6d6d1] bg-[#fffaf8] px-5 py-4">
-
             <p className="text-sm text-[#a45f58]">
               {error}
             </p>
-
           </div>
-
         </div>
       </main>
     );
@@ -688,60 +740,42 @@ export default function TeacherLessonsPage({
 
   return (
     <main className="min-h-screen bg-[#f7f6f1] text-[#30332f]">
+      <PageHeader />
 
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
+      <div className="mx-auto max-w-7xl px-6 pb-8 pt-12 lg:px-8 lg:pb-10 lg:pt-16">
 
         {/* --------------------------------
-            Header
+            Page Introduction
         -------------------------------- */}
 
-        <div className="mb-9 flex items-start justify-between gap-8">
+        <div className="mb-9 flex items-start gap-4">
 
-          <div className="min-w-0">
-
-            <Link
-              href={`/${locale}/admin/teachers`}
-              className="mb-5 inline-flex items-center text-sm text-[#7b7d77] transition-colors hover:text-[#6f8f72]"
-            >
-              ← Back to Dashboard
-            </Link>
-
-            <div className="flex items-start gap-4">
-
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
-                <BookOpen
-                  size={20}
-                  strokeWidth={1.8}
-                />
-              </div>
-
-              <div>
-
-                <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
-                  Teacher
-                </p>
-
-                <h1 className="text-3xl font-semibold tracking-tight text-[#30332f]">
-                  My Lessons
-                </h1>
-
-                {data?.teacher?.full_name && (
-                  <p className="mt-2 text-sm text-[#73756f]">
-                    Welcome back,{" "}
-                    <span className="font-medium text-[#4d514b]">
-                      {data.teacher.full_name}
-                    </span>
-                  </p>
-                )}
-
-              </div>
-
-            </div>
-
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
+            <BookOpen
+              size={20}
+              strokeWidth={1.8}
+            />
           </div>
 
-          <div className="shrink-0 pt-[52px]">
-            <Brand />
+          <div>
+
+            <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
+              Teacher
+            </p>
+
+            <h1 className="text-3xl font-semibold tracking-tight text-[#30332f]">
+              My Lessons
+            </h1>
+
+            {data?.teacher?.full_name && (
+              <p className="mt-2 text-sm text-[#73756f]">
+                Welcome back,{" "}
+                <span className="font-medium text-[#4d514b]">
+                  {data.teacher.full_name}
+                </span>
+              </p>
+            )}
+
           </div>
 
         </div>
@@ -1015,7 +1049,9 @@ export default function TeacherLessonsPage({
                                 key={lesson.id}
                                 href={`/${locale}/admin/teachers/lessons/${lesson.id}`}
                                 aria-label={`Open lesson ${lesson.lesson_number} for ${studentName}`}
-                                className="group absolute left-1 right-1 z-20 overflow-hidden border border-[#d9be6a] bg-[#f3e8b8] px-2 py-1.5 transition-colors hover:border-[#c9aa4d] hover:bg-[#eddfa7]"
+                                className={`group absolute left-1 right-1 z-20 overflow-hidden border px-2 py-1.5 transition-colors ${getLessonStatusClass(
+                                  lesson.attendance_status
+                                )}`}
                                 style={{
                                   top: position.top + 3,
                                   height:
@@ -1023,7 +1059,7 @@ export default function TeacherLessonsPage({
                                 }}
                               >
 
-                                <p className="truncate text-[11px] leading-tight text-[#665a31]">
+                                <p className="truncate text-[11px] leading-tight">
                                   <span className="font-bold">
                                     {lesson.is_substitute
                                       ? "SUB · "
@@ -1040,6 +1076,12 @@ export default function TeacherLessonsPage({
                                     lesson.duration
                                   }{" "}
                                   min.
+                                  {" · "}
+                                  <span className="font-semibold">
+                                    {getLessonStatusLabel(
+                                      lesson.attendance_status
+                                    )}
+                                  </span>
                                 </p>
 
                               </Link>

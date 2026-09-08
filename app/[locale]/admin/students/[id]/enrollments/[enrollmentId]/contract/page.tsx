@@ -599,29 +599,29 @@ export default async function ContractPage({
               <div>
 
                 <div
-                  className="
-                    font-serif
-                    text-[25px]
-                    leading-none
-                    tracking-[-0.02em]
-                    text-[#222]
-                  "
-                >
-                  Hamkke │ 함께
-                </div>
+  className="
+    font-serif
+    text-[25px]
+    leading-none
+    tracking-[-0.02em]
+    text-[#6F8F72]
+  "
+>
+  Hamkke │ 함께
+</div>
 
-                <p
-                  className="
-                    mt-2
-                    font-sans
-                    text-[9px]
-                    uppercase
-                    tracking-[0.16em]
-                    text-[#777]
-                  "
-                >
-                  From Small Talk to Big Ideas
-                </p>
+<p
+  className="
+    mt-2
+    font-sans
+    text-[9px]
+    uppercase
+    tracking-[0.16em]
+    text-[#6F8F72]
+  "
+>
+  From Small Talk to Big Ideas
+</p>
 
               </div>
 

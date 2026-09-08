@@ -125,23 +125,6 @@ const INTERVAL_MINUTES = 30;
 /* ICONS                                                                     */
 /* ========================================================================= */
 
-function ArrowLeftIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-[15px] w-[15px]"
-      aria-hidden="true"
-    >
-      <path d="M19 12H5" />
-      <path d="m11 18-6-6 6-6" />
-    </svg>
-  );
-}
 
 function CalendarIcon() {
   return (
@@ -1412,27 +1395,70 @@ export default function ManageTeacherPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-        <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
-          <div className="flex w-full items-start justify-between gap-8">
+        <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
+          >
             <Link
               href={`/${locale}/admin`}
-              className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
             >
-              ← Administration
+              &larr; Administration
             </Link>
 
-            <Link
-              href={`/${locale}`}
-              className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
-            >
-              <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
+            <div className="shrink-0 text-right">
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
                 HAMKKE │ 함께
               </p>
 
-              <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
                 From Small Talk to Big Ideas
               </p>
-            </Link>
+            </div>
           </div>
         </header>
 
@@ -1450,27 +1476,70 @@ export default function ManageTeacherPage() {
   if (error || !teacher) {
     return (
       <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-        <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
-          <div className="flex w-full items-start justify-between gap-8">
+        <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
+          >
             <Link
               href={`/${locale}/admin`}
-              className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
             >
-              ← Administration
+              &larr; Administration
             </Link>
 
-            <Link
-              href={`/${locale}`}
-              className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
-            >
-              <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
+            <div className="shrink-0 text-right">
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
                 HAMKKE │ 함께
               </p>
 
-              <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
                 From Small Talk to Big Ideas
               </p>
-            </Link>
+            </div>
           </div>
         </header>
 
@@ -1503,29 +1572,72 @@ export default function ManageTeacherPage() {
       {/* HEADER                                                              */}
       {/* =================================================================== */}
 
-      <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
-        <div className="flex w-full items-start justify-between gap-8">
-          <Link
-            href={`/${locale}/admin`}
-            className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
+      <header
+          className="
+            w-full
+            px-6
+            pt-7
+            sm:px-8
+            sm:pt-8
+            lg:px-10
+            xl:px-12
+          "
+        >
+          <div
+            className="
+              flex
+              w-full
+              items-start
+              justify-between
+              gap-8
+            "
           >
-            ← Administration
-          </Link>
+            <Link
+              href={`/${locale}/admin`}
+              className="
+                shrink-0
+                font-sans
+                text-[15px]
+                text-[#5F655F]
+                transition-colors
+                duration-200
+                hover:text-[#6F8F72]
+                sm:text-[16px]
+              "
+            >
+              &larr; Administration
+            </Link>
 
-          <Link
-            href={`/${locale}`}
-            className="shrink-0 text-right transition-opacity duration-200 hover:opacity-70"
-          >
-            <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
-              HAMKKE │ 함께
-            </p>
+            <div className="shrink-0 text-right">
+              <p
+                className="
+                  font-sans
+                  text-[16px]
+                  font-semibold
+                  leading-none
+                  tracking-[0.18em]
+                  text-[#6F8F72]
+                "
+              >
+                HAMKKE │ 함께
+              </p>
 
-            <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
-              From Small Talk to Big Ideas
-            </p>
-          </Link>
-        </div>
-      </header>
+              <p
+                className="
+                  mt-2
+                  font-serif
+                  text-[13px]
+                  font-normal
+                  leading-none
+                  tracking-[0.02em]
+                  text-[#6F8F72]
+                "
+              >
+                From Small Talk to Big Ideas
+              </p>
+            </div>
+          </div>
+        </header>
 
       {/* =================================================================== */}
       {/* INTRO                                                               */}

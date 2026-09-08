@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 type LessonRecord = {
   id: string;
   enrollment_id: string;
+  student_id: string | null;
   lesson_number: number;
   lesson_date: string;
   duration: number;
@@ -293,6 +294,11 @@ function mapLessons(rawLessons: unknown[]) {
           lesson.enrollment_id
         ),
 
+        student_id:
+          lesson.student_id
+            ? String(lesson.student_id)
+            : null,
+
         lesson_number: Number(
           lesson.lesson_number
         ),
@@ -539,6 +545,7 @@ async function loadTeacherLessons(
       `
         id,
         enrollment_id,
+        student_id,
         lesson_number,
         lesson_date,
         duration,
@@ -568,6 +575,439 @@ async function loadTeacherLessons(
   return mapLessons(
     rawLessons || []
   );
+}
+
+async function loadStudentNames(
+  admin: ReturnType<typeof createAdminClient>,
+  lessons: LessonRecord[]
+) {
+  const studentIds = [
+    ...new Set(
+      lessons
+        .map((lesson) => lesson.student_id)
+        .filter((id): id is string => Boolean(id))
+    ),
+  ];
+
+  if (studentIds.length === 0) {
+    return new Map<
+      string,
+      {
+        full_name: string | null;
+        preferred_name: string | null;
+      }
+    >();
+  }
+
+  const {
+    data: students,
+    error: studentsError,
+  } = await admin
+    .from("students")
+    .select(
+      `
+        id,
+        full_name,
+        preferred_name
+      `
+    )
+    .in("id", studentIds);
+
+  if (studentsError) {
+    throw new Error(
+      `Failed to load payroll student names: ${studentsError.message}`
+    );
+  }
+
+  return new Map(
+    (students || []).map((student) => [
+      String(student.id),
+      {
+        full_name: student.full_name
+          ? String(student.full_name)
+          : null,
+        preferred_name: student.preferred_name
+          ? String(student.preferred_name)
+          : null,
+      },
+    ])
+  );
+}
+
+async function loadFrozenPayrollLessonBreakdown(
+  admin: ReturnType<typeof createAdminClient>,
+  payrollId: string
+) {
+  const {
+    data: snapshotRows,
+    error: snapshotError,
+  } = await admin
+    .from("teacher_payroll_lessons")
+    .select(
+      `
+        lesson_id,
+        duration,
+        attendance_status,
+        resolution,
+        rate,
+        amount
+      `
+    )
+    .eq("payroll_id", payrollId);
+
+  if (snapshotError) {
+    throw new Error(
+      `Failed to load finalized payroll lesson breakdown: ${snapshotError.message}`
+    );
+  }
+
+  if (!snapshotRows || snapshotRows.length === 0) {
+    return [];
+  }
+
+  const lessonIds = snapshotRows
+    .map((row) => row.lesson_id)
+    .filter(Boolean)
+    .map(String);
+
+  const {
+    data: lessonRows,
+    error: lessonRowsError,
+  } = await admin
+    .from("lessons")
+    .select(
+      `
+        id,
+        enrollment_id,
+        student_id,
+        lesson_number,
+        lesson_date
+      `
+    )
+    .in("id", lessonIds);
+
+  if (lessonRowsError) {
+    throw new Error(
+      `Failed to load finalized payroll lesson details: ${lessonRowsError.message}`
+    );
+  }
+
+  const lessonById = new Map(
+    (lessonRows || []).map((lesson) => [
+      String(lesson.id),
+      lesson,
+    ])
+  );
+
+  const studentIds = [
+    ...new Set(
+      (lessonRows || [])
+        .map((lesson) => lesson.student_id)
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+
+  let studentById = new Map<
+    string,
+    {
+      full_name: string | null;
+      preferred_name: string | null;
+    }
+  >();
+
+  if (studentIds.length > 0) {
+    const {
+      data: students,
+      error: studentsError,
+    } = await admin
+      .from("students")
+      .select(
+        `
+          id,
+          full_name,
+          preferred_name
+        `
+      )
+      .in("id", studentIds);
+
+    if (studentsError) {
+      throw new Error(
+        `Failed to load finalized payroll student names: ${studentsError.message}`
+      );
+    }
+
+    studentById = new Map(
+      (students || []).map((student) => [
+        String(student.id),
+        {
+          full_name: student.full_name
+            ? String(student.full_name)
+            : null,
+          preferred_name: student.preferred_name
+            ? String(student.preferred_name)
+            : null,
+        },
+      ])
+    );
+  }
+
+  return snapshotRows
+    .map((snapshot) => {
+      const lesson =
+        lessonById.get(
+          String(snapshot.lesson_id)
+        ) || null;
+
+      const studentId =
+        lesson?.student_id
+          ? String(lesson.student_id)
+          : null;
+
+      const student =
+        studentId
+          ? studentById.get(studentId)
+          : null;
+
+      return {
+        id: String(snapshot.lesson_id),
+        enrollment_id:
+          lesson?.enrollment_id
+            ? String(lesson.enrollment_id)
+            : "",
+        student_id: studentId,
+        student_name:
+          student?.preferred_name ||
+          student?.full_name ||
+          "Student",
+        lesson_number:
+          lesson?.lesson_number
+            ? Number(lesson.lesson_number)
+            : 0,
+        lesson_date:
+          lesson?.lesson_date
+            ? String(lesson.lesson_date)
+            : "",
+        duration: Number(snapshot.duration),
+        attendance_status: String(
+          snapshot.attendance_status || ""
+        ),
+        rate: Number(snapshot.rate),
+        amount: Number(snapshot.amount),
+      };
+    })
+    .sort((a, b) => {
+      const dateCompare =
+        a.lesson_date.localeCompare(
+          b.lesson_date
+        );
+
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      return (
+        a.lesson_number -
+        b.lesson_number
+      );
+    });
+}
+
+
+async function loadFrozenPayrollHistoryBreakdowns(
+  admin: ReturnType<typeof createAdminClient>,
+  payrollIds: string[]
+) {
+  if (payrollIds.length === 0) {
+    return {};
+  }
+
+  const {
+    data: snapshotRows,
+    error: snapshotError,
+  } = await admin
+    .from("teacher_payroll_lessons")
+    .select(
+      `
+        payroll_id,
+        lesson_id,
+        duration,
+        attendance_status,
+        resolution,
+        rate,
+        amount
+      `
+    )
+    .in("payroll_id", payrollIds);
+
+  if (snapshotError) {
+    throw new Error(
+      `Failed to load payroll history lesson snapshots: ${snapshotError.message}`
+    );
+  }
+
+  const grouped: Record<string, any[]> =
+    Object.fromEntries(
+      payrollIds.map((payrollId) => [
+        payrollId,
+        [],
+      ])
+    );
+
+  if (!snapshotRows || snapshotRows.length === 0) {
+    return grouped;
+  }
+
+  const lessonIds = [
+    ...new Set(
+      snapshotRows
+        .map((row) => row.lesson_id)
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+
+  const {
+    data: lessonRows,
+    error: lessonRowsError,
+  } = await admin
+    .from("lessons")
+    .select(
+      `
+        id,
+        enrollment_id,
+        student_id,
+        lesson_number,
+        lesson_date
+      `
+    )
+    .in("id", lessonIds);
+
+  if (lessonRowsError) {
+    throw new Error(
+      `Failed to load payroll history lesson details: ${lessonRowsError.message}`
+    );
+  }
+
+  const lessonById = new Map(
+    (lessonRows || []).map((lesson) => [
+      String(lesson.id),
+      lesson,
+    ])
+  );
+
+  const studentIds = [
+    ...new Set(
+      (lessonRows || [])
+        .map((lesson) => lesson.student_id)
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+
+  let studentById = new Map<
+    string,
+    {
+      full_name: string | null;
+      preferred_name: string | null;
+    }
+  >();
+
+  if (studentIds.length > 0) {
+    const {
+      data: students,
+      error: studentsError,
+    } = await admin
+      .from("students")
+      .select(
+        `
+          id,
+          full_name,
+          preferred_name
+        `
+      )
+      .in("id", studentIds);
+
+    if (studentsError) {
+      throw new Error(
+        `Failed to load payroll history student names: ${studentsError.message}`
+      );
+    }
+
+    studentById = new Map(
+      (students || []).map((student) => [
+        String(student.id),
+        {
+          full_name: student.full_name
+            ? String(student.full_name)
+            : null,
+          preferred_name: student.preferred_name
+            ? String(student.preferred_name)
+            : null,
+        },
+      ])
+    );
+  }
+
+  for (const snapshot of snapshotRows) {
+    const payrollId = String(snapshot.payroll_id);
+    const lesson =
+      lessonById.get(String(snapshot.lesson_id)) || null;
+
+    const studentId =
+      lesson?.student_id
+        ? String(lesson.student_id)
+        : null;
+
+    const student =
+      studentId
+        ? studentById.get(studentId)
+        : null;
+
+    grouped[payrollId] ??= [];
+
+    grouped[payrollId].push({
+      id: String(snapshot.lesson_id),
+      enrollment_id:
+        lesson?.enrollment_id
+          ? String(lesson.enrollment_id)
+          : "",
+      student_id: studentId,
+      student_name:
+        student?.preferred_name ||
+        student?.full_name ||
+        "Student",
+      lesson_number:
+        lesson?.lesson_number
+          ? Number(lesson.lesson_number)
+          : 0,
+      lesson_date:
+        lesson?.lesson_date
+          ? String(lesson.lesson_date)
+          : "",
+      duration: Number(snapshot.duration),
+      attendance_status: String(
+        snapshot.attendance_status || ""
+      ),
+      rate: Number(snapshot.rate),
+      amount: Number(snapshot.amount),
+    });
+  }
+
+  for (const payrollId of Object.keys(grouped)) {
+    grouped[payrollId].sort((a, b) => {
+      const dateCompare =
+        a.lesson_date.localeCompare(b.lesson_date);
+
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      return a.lesson_number - b.lesson_number;
+    });
+  }
+
+  return grouped;
 }
 
 function getTeachingMinutesBefore(
@@ -670,6 +1110,12 @@ export async function GET() {
       await loadTeacherLessons(
         admin,
         teacherId
+      );
+
+    const studentNames =
+      await loadStudentNames(
+        admin,
+        lessons
       );
 
     /*
@@ -951,15 +1397,110 @@ export async function GET() {
             periodEnd
       ) || null;
 
+    const historyBreakdowns =
+      await loadFrozenPayrollHistoryBreakdowns(
+        admin,
+        payrollHistory.map(
+          (record) => record.id
+        )
+      );
+
+    const frozenLessonBreakdown =
+      currentPayrollRecord
+        ? await loadFrozenPayrollLessonBreakdown(
+            admin,
+            currentPayrollRecord.id
+          )
+        : null;
+
+    const isFinalized =
+      Boolean(currentPayrollRecord);
+
+    const displayCounts =
+      currentPayrollRecord
+        ? {
+            completed_25_count:
+              currentPayrollRecord.completed_25_count,
+            completed_50_count:
+              currentPayrollRecord.completed_50_count,
+            no_show_25_count:
+              currentPayrollRecord.no_show_25_count,
+            no_show_50_count:
+              currentPayrollRecord.no_show_50_count,
+            late_cancellation_25_count:
+              currentPayrollRecord.late_cancellation_25_count,
+            late_cancellation_50_count:
+              currentPayrollRecord.late_cancellation_50_count,
+          }
+        : currentCounts;
+
+    const displayRate25 =
+      currentPayrollRecord
+        ? Number(currentPayrollRecord.rate_25)
+        : rate25;
+
+    const displayRate50 =
+      currentPayrollRecord
+        ? Number(currentPayrollRecord.rate_50)
+        : rate50;
+
+    const displayGrossPay =
+      currentPayrollRecord
+        ? Number(currentPayrollRecord.gross_pay)
+        : grossPay;
+
     const payable25Count =
-      currentCounts.completed_25_count +
-      currentCounts.no_show_25_count +
-      currentCounts.late_cancellation_25_count;
+      displayCounts.completed_25_count +
+      displayCounts.no_show_25_count +
+      displayCounts.late_cancellation_25_count;
 
     const payable50Count =
-      currentCounts.completed_50_count +
-      currentCounts.no_show_50_count +
-      currentCounts.late_cancellation_50_count;
+      displayCounts.completed_50_count +
+      displayCounts.no_show_50_count +
+      displayCounts.late_cancellation_50_count;
+
+    const liveLessonBreakdown =
+      payableCurrentLessons.map(
+        (lesson) => {
+          const student =
+            lesson.student_id
+              ? studentNames.get(
+                  lesson.student_id
+                )
+              : null;
+
+          const rate =
+            lesson.duration === 50
+              ? rate50
+              : rate25;
+
+          return {
+            id: lesson.id,
+            enrollment_id:
+              lesson.enrollment_id,
+            student_id:
+              lesson.student_id,
+            student_name:
+              student?.preferred_name ||
+              student?.full_name ||
+              "Student",
+            lesson_number:
+              lesson.lesson_number,
+            lesson_date:
+              lesson.lesson_date,
+            duration:
+              lesson.duration,
+            attendance_status:
+              lesson.attendance_status,
+            rate,
+            amount: rate,
+          };
+        }
+      );
+
+    const lessonBreakdown =
+      frozenLessonBreakdown ??
+      liveLessonBreakdown;
 
     /*
      * Keep the response shape aligned with the owner GET endpoint.
@@ -995,29 +1536,29 @@ export async function GET() {
             compensationRate.min_teaching_minutes,
 
           rate_25:
-            rate25,
+            displayRate25,
 
           rate_50:
-            rate50,
+            displayRate50,
         },
 
         completed_25_count:
-          currentCounts.completed_25_count,
+          displayCounts.completed_25_count,
 
         completed_50_count:
-          currentCounts.completed_50_count,
+          displayCounts.completed_50_count,
 
         no_show_25_count:
-          currentCounts.no_show_25_count,
+          displayCounts.no_show_25_count,
 
         no_show_50_count:
-          currentCounts.no_show_50_count,
+          displayCounts.no_show_50_count,
 
         late_cancellation_25_count:
-          currentCounts.late_cancellation_25_count,
+          displayCounts.late_cancellation_25_count,
 
         late_cancellation_50_count:
-          currentCounts.late_cancellation_50_count,
+          displayCounts.late_cancellation_50_count,
 
         payable_25_count:
           payable25Count,
@@ -1026,7 +1567,7 @@ export async function GET() {
           payable50Count,
 
         gross_pay:
-          grossPay,
+          displayGrossPay,
 
         status:
           currentPayrollRecord
@@ -1035,13 +1576,27 @@ export async function GET() {
 
         payroll_record:
           currentPayrollRecord,
+
+        is_finalized:
+          isFinalized,
+
+        breakdown_source:
+          isFinalized
+            ? "frozen"
+            : "live",
       },
 
       history:
         payrollHistory,
 
+      history_breakdowns:
+        historyBreakdowns,
+
       lessons:
         currentPeriodLessons,
+
+      lesson_breakdown:
+        lessonBreakdown,
     });
   } catch (error) {
     console.error(
