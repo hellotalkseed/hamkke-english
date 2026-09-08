@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 import HeroContent from "./HeroContent";
@@ -52,8 +53,115 @@ export default function Hero({
           "
         >
           {/* =====================================================
+              MOBILE BACKGROUND COLLAGE
+
+              Mobile only.
+
+              The image keeps its natural proportions instead of
+              using object-cover.
+
+              It is anchored to the RIGHT so the people on the
+              right-hand side of the original collage remain
+              visible.
+
+              Desktop is not affected.
+              ===================================================== */}
+
+          <div
+            className="
+              pointer-events-none
+              absolute
+              inset-0
+              z-0
+              overflow-hidden
+
+              lg:hidden
+            "
+            aria-hidden="true"
+          >
+            <Image
+              src="/hamkke-students-hero-v2.png"
+              alt=""
+              width={1536}
+              height={1024}
+              priority
+              sizes="150vw"
+              className="
+                absolute
+
+                right-[-2%]
+                bottom-[-2%]
+
+                h-auto
+                w-[150%]
+                max-w-none
+
+                opacity-[0.48]
+              "
+            />
+
+            {/* =====================================================
+                MOBILE LEFT READABILITY FADE
+
+                Keeps the text area calm while allowing more of
+                the students to remain visible on the right.
+                ===================================================== */}
+
+            <div
+              className="
+                absolute
+                inset-0
+
+                bg-gradient-to-r
+                from-[#FAF8F5]/95
+                via-[#FAF8F5]/72
+                to-[#FAF8F5]/20
+              "
+            />
+
+            {/* =====================================================
+                MOBILE TOP FADE
+                ===================================================== */}
+
+            <div
+              className="
+                absolute
+                inset-x-0
+                top-0
+                h-[170px]
+
+                bg-gradient-to-b
+                from-[#FAF8F5]
+                via-[#FAF8F5]/65
+                to-transparent
+              "
+            />
+
+            {/* =====================================================
+                MOBILE BOTTOM FADE
+                ===================================================== */}
+
+            <div
+              className="
+                absolute
+                inset-x-0
+                bottom-0
+                h-[110px]
+
+                bg-gradient-to-t
+                from-[#FAF8F5]
+                via-[#FAF8F5]/45
+                to-transparent
+              "
+            />
+          </div>
+
+          {/* =====================================================
               HERO CONTENT
-              Keep content above the extended image.
+
+              Content stays above the mobile background image.
+
+              Desktop behavior remains unchanged.
               ===================================================== */}
 
           <div className="relative z-30">
@@ -66,11 +174,23 @@ export default function Hero({
           </div>
 
           {/* =====================================================
-              HERO IMAGE
-              Keep image behind the content.
+              DESKTOP HERO IMAGE
+
+              Completely hidden on mobile.
+
+              From lg upward, the existing HeroImage component
+              behaves exactly as before.
               ===================================================== */}
 
-          <div className="relative z-0">
+          <div
+            className="
+              relative
+              z-0
+
+              hidden
+              lg:block
+            "
+          >
             <HeroImage />
           </div>
         </section>
