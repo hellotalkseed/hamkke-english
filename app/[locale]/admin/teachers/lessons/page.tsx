@@ -267,22 +267,22 @@ function getLessonStartMinutes(
 function getLessonStatusClass(status: string) {
   switch (status) {
     case "completed":
-      return "border-[#a8bfa9] bg-[#e4efe3] text-[#55725a] hover:border-[#8eaa90] hover:bg-[#dbe8da]";
+      return "border-[#B7B7E2] bg-[#ECEBFA] text-[#5F5F8F] hover:border-[#9FA0D3] hover:bg-[#E3E2F5]";
 
     case "no_show":
-      return "border-[#d6aaa4] bg-[#f3d9d5] text-[#8a5c56] hover:border-[#c8958e] hover:bg-[#edcfca]";
+      return "border-[#D6AAA4] bg-[#F3D9D5] text-[#8A5C56] hover:border-[#C8958E] hover:bg-[#EDCFCA]";
 
     case "late_cancellation":
-      return "border-[#d7b78c] bg-[#f4e3cf] text-[#80664a] hover:border-[#c7a374] hover:bg-[#eed8bd]";
+      return "border-[#D7B78C] bg-[#F4E3CF] text-[#80664A] hover:border-[#C7A374] hover:bg-[#EED8BD]";
 
     case "student_cancelled_rescheduled":
     case "student_cancelled_credit":
     case "unexpected_circumstance":
     case "teacher_cancelled":
-      return "border-[#cfd2cc] bg-[#eceeea] text-[#6f736c] hover:border-[#bdc1ba] hover:bg-[#e4e7e1]";
+      return "border-[#CFD2CC] bg-[#ECEEEA] text-[#6F736C] hover:border-[#BDC1BA] hover:bg-[#E4E7E1]";
 
     default:
-      return "border-[#d9be6a] bg-[#f3e8b8] text-[#665a31] hover:border-[#c9aa4d] hover:bg-[#eddfa7]";
+      return "border-[#D9BE6A] bg-[#F3E8B8] text-[#665A31] hover:border-[#C9AA4D] hover:bg-[#EDDFA7]";
   }
 }
 
@@ -656,10 +656,6 @@ export default function TeacherLessonsPage({
     </header>
   );
 
-  /* --------------------------------
-     Loading
-  -------------------------------- */
-
   if (loading) {
     return (
       <main className="min-h-screen bg-[#f7f6f1]">
@@ -694,10 +690,6 @@ export default function TeacherLessonsPage({
       </main>
     );
   }
-
-  /* --------------------------------
-     Error
-  -------------------------------- */
 
   if (error) {
     return (
@@ -734,22 +726,12 @@ export default function TeacherLessonsPage({
     );
   }
 
-  /* --------------------------------
-     Main
-  -------------------------------- */
-
   return (
     <main className="min-h-screen bg-[#f7f6f1] text-[#30332f]">
       <PageHeader />
 
       <div className="mx-auto max-w-7xl px-6 pb-8 pt-12 lg:px-8 lg:pb-10 lg:pt-16">
-
-        {/* --------------------------------
-            Page Introduction
-        -------------------------------- */}
-
         <div className="mb-9 flex items-start gap-4">
-
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
             <BookOpen
               size={20}
@@ -758,7 +740,6 @@ export default function TeacherLessonsPage({
           </div>
 
           <div>
-
             <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
               Teacher
             </p>
@@ -775,19 +756,11 @@ export default function TeacherLessonsPage({
                 </span>
               </p>
             )}
-
           </div>
-
         </div>
 
-        {/* --------------------------------
-            Calendar Introduction
-        -------------------------------- */}
-
         <div className="mb-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-
           <div>
-
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
               Weekly Schedule
             </p>
@@ -801,11 +774,9 @@ export default function TeacherLessonsPage({
             <p className="mt-1.5 text-xs text-[#898b85]">
               Philippine Time · Asia/Manila
             </p>
-
           </div>
 
           <div className="flex items-center gap-2">
-
             <button
               type="button"
               onClick={goToToday}
@@ -815,7 +786,6 @@ export default function TeacherLessonsPage({
             </button>
 
             <div className="flex overflow-hidden border border-[#d9ddd5] bg-[#fffefa]">
-
               <button
                 type="button"
                 onClick={
@@ -843,22 +813,13 @@ export default function TeacherLessonsPage({
                   strokeWidth={1.7}
                 />
               </button>
-
             </div>
-
           </div>
-
         </div>
-
-        {/* --------------------------------
-            No Lessons / Calendar
-        -------------------------------- */}
 
         {lessons.length === 0 &&
         availability.length === 0 ? (
-
           <div className="border-y border-[#dcd8d2] bg-[#fffefa] p-12 text-center">
-
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#e9eee8] text-[#6f8f72]">
               <BookOpen
                 size={21}
@@ -873,28 +834,15 @@ export default function TeacherLessonsPage({
             <p className="mt-1.5 text-sm text-[#858780]">
               Your assigned lessons will appear here.
             </p>
-
           </div>
-
         ) : (
-
-          /* --------------------------------
-             Owner-Style Weekly Calendar
-          -------------------------------- */
-
           <div className="overflow-x-auto border-y border-[#dcd8d2] bg-[#fffefa]">
-
             <div className="min-w-[980px]">
-
-              {/* Day Header */}
-
               <div className="grid grid-cols-[78px_repeat(7,minmax(0,1fr))] border-b border-[#dcd8d2] bg-[#faf8f5]">
-
                 <div className="border-r border-[#e4e1dc]" />
 
                 {weekDays.map(
                   (day) => {
-
                     const isToday =
                       dateKey(
                         day.date
@@ -912,7 +860,6 @@ export default function TeacherLessonsPage({
                             : ""
                         }`}
                       >
-
                         <p
                           className={`text-[10px] font-medium uppercase tracking-[0.16em] ${
                             isToday
@@ -934,48 +881,32 @@ export default function TeacherLessonsPage({
                             day.date
                           )}
                         </p>
-
                       </div>
                     );
                   }
                 )}
-
               </div>
 
-              {/* Calendar Body */}
-
               <div className="grid grid-cols-[78px_repeat(7,minmax(0,1fr))]">
-
-                {/* Time Column */}
-
                 <div className="border-r border-[#e4e1dc] bg-[#faf8f5]">
-
                   {INTERVALS.map(
                     (interval) => (
-
                       <div
                         key={interval}
                         className="flex h-[42px] items-center justify-end border-b border-[#e9e6e1] pr-2"
                       >
-
                         <span className="text-[10px] font-medium tabular-nums text-[#999b95]">
                           {formatInterval(
                             interval
                           )}
                         </span>
-
                       </div>
-
                     )
                   )}
-
                 </div>
-
-                {/* Day Columns */}
 
                 {weekDays.map(
                   (day) => {
-
                     const dayLessons =
                       getLessonsForDay(
                         day.date
@@ -998,12 +929,8 @@ export default function TeacherLessonsPage({
                             : ""
                         }`}
                       >
-
-                        {/* Availability Grid */}
-
                         {INTERVALS.map(
                           (interval) => {
-
                             const availabilityClass =
                               getDayAvailabilityClass(
                                 day.dayOfWeek,
@@ -1019,11 +946,8 @@ export default function TeacherLessonsPage({
                           }
                         )}
 
-                        {/* Scheduled Lessons */}
-
                         {dayLessons.map(
                           (lesson) => {
-
                             const position =
                               getLessonPosition(
                                 lesson
@@ -1053,12 +977,14 @@ export default function TeacherLessonsPage({
                                   lesson.attendance_status
                                 )}`}
                                 style={{
-                                  top: position.top + 3,
+                                  top:
+                                    position.top +
+                                    3,
                                   height:
-                                    position.height - 6,
+                                    position.height -
+                                    6,
                                 }}
                               >
-
                                 <p className="truncate text-[11px] leading-tight">
                                   <span className="font-bold">
                                     {lesson.is_substitute
@@ -1083,77 +1009,135 @@ export default function TeacherLessonsPage({
                                     )}
                                   </span>
                                 </p>
-
                               </Link>
                             );
                           }
                         )}
-
                       </div>
                     );
                   }
                 )}
-
               </div>
-
             </div>
-
           </div>
         )}
-
-        {/* --------------------------------
-            Legend / Footer
-        -------------------------------- */}
 
         {(lessons.length > 0 ||
           availability.length > 0) && (
-          <div className="mt-4 flex flex-col gap-3 text-[11px] tracking-wide text-[#969891] lg:flex-row lg:items-center lg:justify-between">
+          <div className="mt-4 border-t border-[#e2dfda] pt-4">
+            <div className="flex flex-col gap-4 text-[11px] tracking-wide text-[#777a74] lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 border border-[#B7CDB5] bg-[#E4F0E3]" />
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-medium text-[#62675f]">
+                      Available
+                    </span>
 
-              <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-[#a0a29c]">
+                      #E4F0E3
+                    </span>
+                  </div>
+                </div>
 
-                <span className="h-3 w-3 border border-[#b7cdb5] bg-[#e4f0e3]" />
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 border border-[#D9BE6A] bg-[#F3E8B8]" />
 
-                <span>
-                  Available
-                </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-medium text-[#62675f]">
+                      Scheduled
+                    </span>
 
+                    <span className="text-[10px] text-[#a0a29c]">
+                      #F3E8B8
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 border border-[#B7B7E2] bg-[#ECEBFA]" />
+
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-medium text-[#62675f]">
+                      Completed
+                    </span>
+
+                    <span className="text-[10px] text-[#a0a29c]">
+                      #ECEBFA
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 border border-[#D6AAA4] bg-[#F3D9D5]" />
+
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-medium text-[#62675f]">
+                      No-show
+                    </span>
+
+                    <span className="text-[10px] text-[#a0a29c]">
+                      #F3D9D5
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 border border-[#D7B78C] bg-[#F4E3CF]" />
+
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-medium text-[#62675f]">
+                      Late cancellation
+                    </span>
+
+                    <span className="text-[10px] text-[#a0a29c]">
+                      #F4E3CF
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 border border-[#CFD2CC] bg-[#ECEEEA]" />
+
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-medium text-[#62675f]">
+                      Adjusted / Cancelled
+                    </span>
+
+                    <span className="text-[10px] text-[#a0a29c]">
+                      #ECEEEA
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 border border-[#D2AAA4] bg-[#F3D9D5]" />
+
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-medium text-[#62675f]">
+                      Unavailable
+                    </span>
+
+                    <span className="text-[10px] text-[#a0a29c]">
+                      #F3D9D5
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="shrink-0 space-y-1 text-left text-[10px] leading-relaxed text-[#969891] lg:text-right">
+                <p>
+                  Schedule shown in Philippine Time.
+                </p>
 
-                <span className="h-3 w-3 border border-[#d9be6a] bg-[#f3e8b8]" />
-
-                <span>
-                  Scheduled
-                </span>
-
+                <p>
+                  Student schedules remain stored in their own timezone.
+                </p>
               </div>
-
-              <div className="flex items-center gap-2">
-
-                <span className="h-3 w-3 border border-[#d2aaa4] bg-[#f3d9d5]" />
-
-                <span>
-                  Unavailable
-                </span>
-
-              </div>
-
             </div>
-
-            <p>
-              Schedule shown in Philippine Time.
-            </p>
-
-            <p>
-              Student schedules remain stored in their own timezone.
-            </p>
-
           </div>
         )}
-
       </div>
     </main>
   );

@@ -34,6 +34,7 @@ interface RouteContext {
 interface LessonRecord {
   id: string;
   enrollment_id: string;
+  student_id: string | null;
   lesson_number: number;
   lesson_date: string;
   original_lesson_date: string | null;
@@ -96,7 +97,8 @@ function convertStudentTimeToPhilippineTime(
     };
   }
 
-  const timezone = studentTimezone || "Asia/Manila";
+  const timezone =
+    studentTimezone || "Asia/Manila";
 
   try {
     const [year, month, day] =
@@ -105,9 +107,8 @@ function convertStudentTimeToPhilippineTime(
     const [hours, minutes, seconds = 0] =
       scheduleTime.split(":").map(Number);
 
-    const formatter = new Intl.DateTimeFormat(
-      "en-US",
-      {
+    const formatter =
+      new Intl.DateTimeFormat("en-US", {
         timeZone: timezone,
         year: "numeric",
         month: "2-digit",
@@ -116,8 +117,7 @@ function convertStudentTimeToPhilippineTime(
         minute: "2-digit",
         second: "2-digit",
         hourCycle: "h23",
-      }
-    );
+      });
 
     const utcTimestamp = Date.UTC(
       year,
@@ -128,9 +128,10 @@ function convertStudentTimeToPhilippineTime(
       seconds
     );
 
-    const parts = formatter.formatToParts(
-      new Date(utcTimestamp)
-    );
+    const parts =
+      formatter.formatToParts(
+        new Date(utcTimestamp)
+      );
 
     const getPart = (type: string) =>
       Number(
@@ -139,21 +140,33 @@ function convertStudentTimeToPhilippineTime(
         )?.value || 0
       );
 
-    const timezoneYear = getPart("year");
-    const timezoneMonth = getPart("month");
-    const timezoneDay = getPart("day");
-    const timezoneHour = getPart("hour");
-    const timezoneMinute = getPart("minute");
-    const timezoneSecond = getPart("second");
+    const timezoneYear =
+      getPart("year");
 
-    const timezoneAsUtc = Date.UTC(
-      timezoneYear,
-      timezoneMonth - 1,
-      timezoneDay,
-      timezoneHour,
-      timezoneMinute,
-      timezoneSecond
-    );
+    const timezoneMonth =
+      getPart("month");
+
+    const timezoneDay =
+      getPart("day");
+
+    const timezoneHour =
+      getPart("hour");
+
+    const timezoneMinute =
+      getPart("minute");
+
+    const timezoneSecond =
+      getPart("second");
+
+    const timezoneAsUtc =
+      Date.UTC(
+        timezoneYear,
+        timezoneMonth - 1,
+        timezoneDay,
+        timezoneHour,
+        timezoneMinute,
+        timezoneSecond
+      );
 
     const offset =
       timezoneAsUtc - utcTimestamp;
@@ -177,14 +190,17 @@ function convertStudentTimeToPhilippineTime(
 
     const philippineParts =
       philippineFormatter.formatToParts(
-        new Date(actualUtcTimestamp)
+        new Date(
+          actualUtcTimestamp
+        )
       );
 
     const getPhilippinePart = (
       type: string
     ) =>
       philippineParts.find(
-        (part) => part.type === type
+        (part) =>
+          part.type === type
       )?.value || "";
 
     const philippineDate = [
@@ -216,10 +232,12 @@ function convertStudentTimeToPhilippineTime(
     );
 
     return {
-      philippineDate: lessonDate,
+      philippineDate:
+        lessonDate,
       philippineTime:
         scheduleTime.slice(0, 5),
-      scheduledAtPhilippine: null,
+      scheduledAtPhilippine:
+        null,
     };
   }
 }
@@ -228,7 +246,8 @@ function timeToMinutes(
   time: string
 ) {
   const [hours, minutes] =
-    time.slice(0, 5)
+    time
+      .slice(0, 5)
       .split(":")
       .map(Number);
 
@@ -242,7 +261,9 @@ function getDayOfWeek(
   dateString: string
 ) {
   const [year, month, day] =
-    dateString.split("-").map(Number);
+    dateString
+      .split("-")
+      .map(Number);
 
   return new Date(
     year,
@@ -262,7 +283,9 @@ function lessonFitsAvailability(
   }
 
   const lessonDay =
-    getDayOfWeek(lessonDate);
+    getDayOfWeek(
+      lessonDate
+    );
 
   if (
     availability.day_of_week !==
@@ -272,10 +295,13 @@ function lessonFitsAvailability(
   }
 
   const lessonStart =
-    timeToMinutes(lessonTime);
+    timeToMinutes(
+      lessonTime
+    );
 
   const lessonEnd =
-    lessonStart + duration;
+    lessonStart +
+    duration;
 
   const availabilityStart =
     timeToMinutes(
@@ -296,21 +322,29 @@ function lessonFitsAvailability(
 }
 
 async function getCurrentUser() {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
   if (!user) {
     return {
       user: null,
       profile: null,
       admin: null,
-      error: NextResponse.json(
-        { error: "Unauthorized." },
-        { status: 401 }
-      ),
+      error:
+        NextResponse.json(
+          {
+            error:
+              "Unauthorized.",
+          },
+          {
+            status: 401,
+          }
+        ),
     };
   }
 
@@ -325,7 +359,10 @@ async function getCurrentUser() {
     .select(
       "id, full_name, role, status"
     )
-    .eq("id", user.id)
+    .eq(
+      "id",
+      user.id
+    )
     .single();
 
   if (
@@ -336,25 +373,38 @@ async function getCurrentUser() {
       user,
       profile: null,
       admin,
-      error: NextResponse.json(
-        { error: "Profile not found." },
-        { status: 403 }
-      ),
+      error:
+        NextResponse.json(
+          {
+            error:
+              "Profile not found.",
+          },
+          {
+            status: 403,
+          }
+        ),
     };
   }
 
   if (
     profile.status &&
-    profile.status !== "active"
+    profile.status !==
+      "active"
   ) {
     return {
       user,
       profile,
       admin,
-      error: NextResponse.json(
-        { error: "Your account is not active." },
-        { status: 403 }
-      ),
+      error:
+        NextResponse.json(
+          {
+            error:
+              "Your account is not active.",
+          },
+          {
+            status: 403,
+          }
+        ),
     };
   }
 
@@ -372,6 +422,24 @@ async function getLesson(
   >,
   lessonId: string
 ) {
+  /*
+   * ---------------------------------------------------------
+   * LOAD EXACT LESSON
+   * ---------------------------------------------------------
+   *
+   * IMPORTANT:
+   *
+   * Shared enrollments such as Bin + Dasom use the same
+   * enrollment_id, but each lesson also stores student_id.
+   *
+   * We therefore resolve the enrollment participant using:
+   *
+   *   enrollment_id + student_id
+   *
+   * and never simply select the first enrollment student.
+   * ---------------------------------------------------------
+   */
+
   const {
     data: lesson,
     error: lessonError,
@@ -380,6 +448,7 @@ async function getLesson(
     .select(`
       id,
       enrollment_id,
+      student_id,
       lesson_number,
       lesson_date,
       original_lesson_date,
@@ -399,7 +468,10 @@ async function getLesson(
       class_instructions,
       class_info_updated_at
     `)
-    .eq("id", lessonId)
+    .eq(
+      "id",
+      lessonId
+    )
     .single();
 
   if (
@@ -408,19 +480,49 @@ async function getLesson(
   ) {
     return {
       lesson: null,
-      enrollmentStudent: null,
-      error: NextResponse.json(
-        { error: "Lesson not found." },
-        { status: 404 }
-      ),
+      enrollmentStudent:
+        null,
+      error:
+        NextResponse.json(
+          {
+            error:
+              "Lesson not found.",
+          },
+          {
+            status: 404,
+          }
+        ),
+    };
+  }
+
+  if (
+    !lesson.student_id
+  ) {
+    return {
+      lesson: null,
+      enrollmentStudent:
+        null,
+      error:
+        NextResponse.json(
+          {
+            error:
+              "This lesson is not connected to a student.",
+          },
+          {
+            status: 500,
+          }
+        ),
     };
   }
 
   const {
-    data: enrollmentStudents,
-    error: enrollmentStudentsError,
+    data: enrollmentStudent,
+    error:
+      enrollmentStudentError,
   } = await admin
-    .from("enrollment_students")
+    .from(
+      "enrollment_students"
+    )
     .select(`
       id,
       enrollment_id,
@@ -429,44 +531,60 @@ async function getLesson(
     .eq(
       "enrollment_id",
       lesson.enrollment_id
-    );
+    )
+    .eq(
+      "student_id",
+      lesson.student_id
+    )
+    .maybeSingle();
 
-  if (enrollmentStudentsError) {
+  if (
+    enrollmentStudentError
+  ) {
     return {
       lesson: null,
-      enrollmentStudent: null,
-      error: NextResponse.json(
-        {
-          error:
-            enrollmentStudentsError.message,
-        },
-        { status: 500 }
-      ),
+      enrollmentStudent:
+        null,
+      error:
+        NextResponse.json(
+          {
+            error:
+              enrollmentStudentError.message,
+          },
+          {
+            status: 500,
+          }
+        ),
     };
   }
 
-  const enrollmentStudent =
-    (enrollmentStudents || [])[0];
-
-  if (!enrollmentStudent) {
+  if (
+    !enrollmentStudent
+  ) {
     return {
       lesson: null,
-      enrollmentStudent: null,
-      error: NextResponse.json(
-        {
-          error:
-            "The student connected to this lesson could not be found.",
-        },
-        { status: 403 }
-      ),
+      enrollmentStudent:
+        null,
+      error:
+        NextResponse.json(
+          {
+            error:
+              "The student connected to this lesson could not be found in this enrollment.",
+          },
+          {
+            status: 403,
+          }
+        ),
     };
   }
 
   return {
     lesson:
       lesson as LessonRecord,
+
     enrollmentStudent:
       enrollmentStudent as EnrollmentStudentRecord,
+
     error: null,
   };
 }
@@ -477,10 +595,12 @@ async function teacherCanAccessLesson(
   >,
   teacherId: string,
   lesson: LessonRecord,
-  enrollmentStudent: EnrollmentStudentRecord
+  enrollmentStudent:
+    EnrollmentStudentRecord
 ) {
   if (
-    lesson.substitute_teacher_id ===
+    lesson
+      .substitute_teacher_id ===
     teacherId
   ) {
     return true;
@@ -490,7 +610,9 @@ async function teacherCanAccessLesson(
     data: assignment,
     error,
   } = await admin
-    .from("teacher_assignments")
+    .from(
+      "teacher_assignments"
+    )
     .select(`
       id,
       enrollment_student_id,
@@ -518,7 +640,9 @@ async function teacherCanAccessLesson(
     );
   }
 
-  return Boolean(assignment);
+  return Boolean(
+    assignment
+  );
 }
 
 async function getSubstituteTeachers(
@@ -526,7 +650,8 @@ async function getSubstituteTeachers(
     typeof createAdminClient
   >,
   lesson: LessonRecord,
-  studentTimezone: string | null
+  studentTimezone:
+    string | null
 ) {
   const {
     data: teachers,
@@ -549,29 +674,40 @@ async function getSubstituteTeachers(
     )
     .order(
       "full_name",
-      { ascending: true }
+      {
+        ascending: true,
+      }
     );
 
-  if (teachersError) {
+  if (
+    teachersError
+  ) {
     throw new Error(
       teachersError.message
     );
   }
 
-  if (!teachers || teachers.length === 0) {
+  if (
+    !teachers ||
+    teachers.length === 0
+  ) {
     return [];
   }
 
   const teacherIds =
     teachers.map(
-      (teacher) => teacher.id
+      (teacher) =>
+        teacher.id
     );
 
   const {
     data: availability,
-    error: availabilityError,
+    error:
+      availabilityError,
   } = await admin
-    .from("teacher_availability")
+    .from(
+      "teacher_availability"
+    )
     .select(`
       teacher_id,
       day_of_week,
@@ -583,7 +719,9 @@ async function getSubstituteTeachers(
       teacherIds
     );
 
-  if (availabilityError) {
+  if (
+    availabilityError
+  ) {
     throw new Error(
       availabilityError.message
     );
@@ -603,46 +741,51 @@ async function getSubstituteTeachers(
     converted.philippineTime;
 
   const phtDay =
-    getDayOfWeek(phtDate);
+    getDayOfWeek(
+      phtDate
+    );
 
   return (
     teachers as TeacherProfile[]
-  ).map((teacher) => {
-    const teacherBlocks =
-      (
-        (availability ||
-          []) as AvailabilityBlock[]
-      ).filter(
-        (block) =>
-          block.teacher_id ===
-          teacher.id
-      );
+  ).map(
+    (teacher) => {
+      const teacherBlocks =
+        (
+          (availability ||
+            []) as AvailabilityBlock[]
+        ).filter(
+          (block) =>
+            block.teacher_id ===
+            teacher.id
+        );
 
-    const available =
-      Boolean(
-        phtTime &&
-          teacherBlocks.some(
-            (block) =>
-              block.day_of_week ===
-                phtDay &&
-              lessonFitsAvailability(
-                phtDate,
-                phtTime,
-                lesson.duration,
-                block
-              )
-          )
-      );
+      const available =
+        Boolean(
+          phtTime &&
+            teacherBlocks.some(
+              (block) =>
+                block.day_of_week ===
+                  phtDay &&
+                lessonFitsAvailability(
+                  phtDate,
+                  phtTime,
+                  lesson.duration,
+                  block
+                )
+            )
+        );
 
-    return {
-      id: teacher.id,
-      full_name:
-        teacher.full_name,
-      teacher_number:
-        teacher.teacher_number,
-      available,
-    };
-  });
+      return {
+        id:
+          teacher.id,
+        full_name:
+          teacher.full_name,
+        teacher_number:
+          teacher.teacher_number,
+        available,
+      };
+    }
+  );
 }
 
 export async function GET(
@@ -653,7 +796,9 @@ export async function GET(
     const auth =
       await getCurrentUser();
 
-    if (auth.error) {
+    if (
+      auth.error
+    ) {
       return auth.error;
     }
 
@@ -663,24 +808,36 @@ export async function GET(
       admin,
     } = auth;
 
-    if (!user || !profile || !admin) {
+    if (
+      !user ||
+      !profile ||
+      !admin
+    ) {
       return NextResponse.json(
-        { error: "Unauthorized." },
-        { status: 401 }
+        {
+          error:
+            "Unauthorized.",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const { lessonId } =
+    const {
+      lessonId,
+    } =
       await context.params;
 
     const {
       lesson,
       enrollmentStudent,
       error,
-    } = await getLesson(
-      admin,
-      lessonId
-    );
+    } =
+      await getLesson(
+        admin,
+        lessonId
+      );
 
     if (error) {
       return error;
@@ -691,25 +848,37 @@ export async function GET(
       !enrollmentStudent
     ) {
       return NextResponse.json(
-        { error: "Lesson not found." },
-        { status: 404 }
+        {
+          error:
+            "Lesson not found.",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
     const isOwnerOrAdmin =
-      profile.role === "owner" ||
-      profile.role === "admin";
+      profile.role ===
+        "owner" ||
+      profile.role ===
+        "admin";
 
-    if (!isOwnerOrAdmin) {
+    if (
+      !isOwnerOrAdmin
+    ) {
       if (
-        profile.role !== "teacher"
+        profile.role !==
+        "teacher"
       ) {
         return NextResponse.json(
           {
             error:
               "You are not authorized to access this lesson.",
           },
-          { status: 403 }
+          {
+            status: 403,
+          }
         );
       }
 
@@ -721,20 +890,31 @@ export async function GET(
           enrollmentStudent
         );
 
-      if (!allowed) {
+      if (
+        !allowed
+      ) {
         return NextResponse.json(
           {
             error:
               "You are not assigned to this lesson.",
           },
-          { status: 403 }
+          {
+            status: 403,
+          }
         );
       }
     }
 
+    /*
+     * ---------------------------------------------------------
+     * LOAD EXACT STUDENT
+     * ---------------------------------------------------------
+     */
+
     const {
       data: student,
-      error: studentError,
+      error:
+        studentError,
     } = await admin
       .from("students")
       .select(`
@@ -760,13 +940,16 @@ export async function GET(
           error:
             "Student information could not be loaded.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
     const {
       data: enrollment,
-      error: enrollmentError,
+      error:
+        enrollmentError,
     } = await admin
       .from("enrollments")
       .select(`
@@ -789,7 +972,9 @@ export async function GET(
           error:
             "Enrollment information could not be loaded.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -798,13 +983,31 @@ export async function GET(
      * CARRY FORWARD CLASS INFO
      * ---------------------------------------------------------
      *
-     * If this lesson does not yet have its own saved class info,
-     * use the most recently saved class info from an earlier
-     * lesson in the same enrollment.
+     * Class Info is carried forward only from an earlier lesson
+     * belonging to the SAME:
      *
-     * The values are only inherited for display. Once the teacher
-     * saves Class Info on this lesson, this lesson gets its own
-     * snapshot and stops inheriting from the previous lesson.
+     *   enrollment_id
+     *   +
+     *   student_id
+     *
+     * This keeps shared-enrollment students independent.
+     *
+     * Example:
+     *
+     * Bin   -> Bin   -> Bin
+     * Dasom -> Dasom -> Dasom
+     *
+     * Bin can never inherit Dasom's Class Info, and Dasom can
+     * never inherit Bin's Class Info.
+     *
+     * The inherited fields are:
+     * - Platform
+     * - Material
+     * - Lesson / Page
+     * - Class Instructions
+     *
+     * Notes and Teacher Observation remain lesson-specific.
+     * ---------------------------------------------------------
      */
 
     const hasOwnClassInfo =
@@ -817,12 +1020,17 @@ export async function GET(
       );
 
     let previousClassInfo:
-      PreviousClassInfoRecord | null = null;
+      PreviousClassInfoRecord | null =
+        null;
 
-    if (!hasOwnClassInfo) {
+    if (
+      !hasOwnClassInfo
+    ) {
       const {
-        data: previousLesson,
-        error: previousLessonError,
+        data:
+          previousLesson,
+        error:
+          previousLessonError,
       } = await admin
         .from("lessons")
         .select(`
@@ -837,6 +1045,10 @@ export async function GET(
           "enrollment_id",
           lesson.enrollment_id
         )
+        .eq(
+          "student_id",
+          enrollmentStudent.student_id
+        )
         .lt(
           "lesson_number",
           lesson.lesson_number
@@ -848,18 +1060,25 @@ export async function GET(
         )
         .order(
           "lesson_number",
-          { ascending: false }
+          {
+            ascending:
+              false,
+          }
         )
         .limit(1)
         .maybeSingle();
 
-      if (previousLessonError) {
+      if (
+        previousLessonError
+      ) {
         return NextResponse.json(
           {
             error:
               previousLessonError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
@@ -871,40 +1090,60 @@ export async function GET(
 
     const classInfoInherited =
       !hasOwnClassInfo &&
-      Boolean(previousClassInfo);
+      Boolean(
+        previousClassInfo
+      );
 
     const effectivePlatform =
       hasOwnClassInfo
         ? lesson.platform
-        : previousClassInfo?.platform ?? null;
+        : previousClassInfo
+            ?.platform ??
+          null;
 
     const effectiveMaterial =
       hasOwnClassInfo
         ? lesson.material
-        : previousClassInfo?.material ?? null;
+        : previousClassInfo
+            ?.material ??
+          null;
 
     const effectiveLessonPage =
       hasOwnClassInfo
         ? lesson.lesson_page
-        : previousClassInfo?.lesson_page ?? null;
+        : previousClassInfo
+            ?.lesson_page ??
+          null;
 
     const effectiveClassInstructions =
       hasOwnClassInfo
         ? lesson.class_instructions
-        : previousClassInfo?.class_instructions ?? null;
+        : previousClassInfo
+            ?.class_instructions ??
+          null;
 
     const effectiveClassInfoUpdatedAt =
       hasOwnClassInfo
         ? lesson.class_info_updated_at
-        : previousClassInfo?.class_info_updated_at ??
+        : previousClassInfo
+            ?.class_info_updated_at ??
           null;
 
+    /*
+     * ---------------------------------------------------------
+     * SUBSTITUTE TEACHER
+     * ---------------------------------------------------------
+     */
+
     const substituteTeacher =
-      lesson.substitute_teacher_id
+      lesson
+        .substitute_teacher_id
         ? (
             (
               await admin
-                .from("profiles")
+                .from(
+                  "profiles"
+                )
                 .select(
                   "id, full_name, teacher_number"
                 )
@@ -917,15 +1156,19 @@ export async function GET(
           )
         : null;
 
-    let substituteTeachers:
-      Array<{
-        id: string;
-        full_name: string | null;
-        teacher_number: string | null;
-        available: boolean;
-      }> = [];
+    let substituteTeachers: Array<{
+      id: string;
+      full_name:
+        string | null;
+      teacher_number:
+        string | null;
+      available:
+        boolean;
+    }> = [];
 
-    if (isOwnerOrAdmin) {
+    if (
+      isOwnerOrAdmin
+    ) {
       substituteTeachers =
         await getSubstituteTeachers(
           admin,
@@ -936,66 +1179,102 @@ export async function GET(
 
     return NextResponse.json({
       viewer: {
-        id: profile.id,
-        full_name: profile.full_name,
-        role: profile.role,
+        id:
+          profile.id,
+        full_name:
+          profile.full_name,
+        role:
+          profile.role,
       },
 
       teacher: {
-        id: profile.id,
-        full_name: profile.full_name,
+        id:
+          profile.id,
+        full_name:
+          profile.full_name,
       },
 
       lesson: {
-        id: lesson.id,
+        id:
+          lesson.id,
+
         enrollment_id:
           lesson.enrollment_id,
+
         enrollment_student_id:
           enrollmentStudent.id,
+
+        student_id:
+          lesson.student_id,
+
         lesson_number:
           lesson.lesson_number,
+
         lesson_date:
           lesson.lesson_date,
+
         original_lesson_date:
           lesson.original_lesson_date,
+
         rescheduled_at:
           lesson.rescheduled_at,
+
         schedule_time:
           lesson.schedule_time,
+
         duration:
           lesson.duration,
+
         attendance_status:
           lesson.attendance_status,
+
         resolution:
           lesson.resolution,
+
         notes:
           lesson.notes,
+
         teacher_observation:
           lesson.teacher_observation,
+
         consumes_lesson:
           lesson.consumes_lesson,
+
         actual_teacher_id:
           lesson.actual_teacher_id,
+
         substitute_teacher_id:
           lesson.substitute_teacher_id,
+
         platform:
           effectivePlatform,
+
         material:
           effectiveMaterial,
+
         lesson_page:
           effectiveLessonPage,
+
         class_instructions:
           effectiveClassInstructions,
+
         class_info_updated_at:
           effectiveClassInfoUpdatedAt,
+
         class_info_inherited:
           classInfoInherited,
+
         class_info_inherited_from_lesson_number:
           classInfoInherited
-            ? previousClassInfo?.lesson_number ?? null
+            ? previousClassInfo
+                ?.lesson_number ??
+              null
             : null,
+
         student,
+
         enrollment,
+
         substitute_teacher:
           substituteTeacher,
       },
@@ -1016,7 +1295,9 @@ export async function GET(
             ? error.message
             : "Something went wrong while loading the lesson.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
@@ -1029,7 +1310,9 @@ export async function PATCH(
     const auth =
       await getCurrentUser();
 
-    if (auth.error) {
+    if (
+      auth.error
+    ) {
       return auth.error;
     }
 
@@ -1039,24 +1322,36 @@ export async function PATCH(
       admin,
     } = auth;
 
-    if (!user || !profile || !admin) {
+    if (
+      !user ||
+      !profile ||
+      !admin
+    ) {
       return NextResponse.json(
-        { error: "Unauthorized." },
-        { status: 401 }
+        {
+          error:
+            "Unauthorized.",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const { lessonId } =
+    const {
+      lessonId,
+    } =
       await context.params;
 
     const {
       lesson,
       enrollmentStudent,
       error,
-    } = await getLesson(
-      admin,
-      lessonId
-    );
+    } =
+      await getLesson(
+        admin,
+        lessonId
+      );
 
     if (error) {
       return error;
@@ -1067,41 +1362,69 @@ export async function PATCH(
       !enrollmentStudent
     ) {
       return NextResponse.json(
-        { error: "Lesson not found." },
-        { status: 404 }
+        {
+          error:
+            "Lesson not found.",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
     const isOwnerOrAdmin =
-      profile.role === "owner" ||
-      profile.role === "admin";
+      profile.role ===
+        "owner" ||
+      profile.role ===
+        "admin";
 
     let body: {
-      attendance_status?: string;
-      status?: string;
-      resolution?: string | null;
-      lesson_date?: string | null;
-      attendance_notes?: string | null;
-      notes?: string | null;
-      teacher_observation?: string | null;
-      platform?: string | null;
-      material?: string | null;
-      lesson_page?: string | null;
-      class_instructions?: string | null;
-      substitute_teacher_id?: string | null;
+      attendance_status?:
+        string;
+      status?:
+        string;
+      resolution?:
+        string | null;
+      lesson_date?:
+        string | null;
+      attendance_notes?:
+        string | null;
+      notes?:
+        string | null;
+      teacher_observation?:
+        string | null;
+      platform?:
+        string | null;
+      material?:
+        string | null;
+      lesson_page?:
+        string | null;
+      class_instructions?:
+        string | null;
+      substitute_teacher_id?:
+        string | null;
     };
 
     try {
-      body = await request.json();
+      body =
+        await request.json();
     } catch {
       return NextResponse.json(
         {
           error:
             "Invalid request body.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
+
+    /*
+     * ---------------------------------------------------------
+     * SUBSTITUTE TEACHER UPDATE
+     * ---------------------------------------------------------
+     */
 
     const hasSubstituteTeacher =
       Object.prototype.hasOwnProperty.call(
@@ -1109,14 +1432,20 @@ export async function PATCH(
         "substitute_teacher_id"
       );
 
-    if (hasSubstituteTeacher) {
-      if (!isOwnerOrAdmin) {
+    if (
+      hasSubstituteTeacher
+    ) {
+      if (
+        !isOwnerOrAdmin
+      ) {
         return NextResponse.json(
           {
             error:
               "Only the Owner or Admin can assign a substitute teacher.",
           },
-          { status: 403 }
+          {
+            status: 403,
+          }
         );
       }
 
@@ -1124,12 +1453,16 @@ export async function PATCH(
         body.substitute_teacher_id;
 
       if (
-        substituteTeacherId === null ||
-        substituteTeacherId === ""
+        substituteTeacherId ===
+          null ||
+        substituteTeacherId ===
+          ""
       ) {
         const {
-          data: updatedLesson,
-          error: updateError,
+          data:
+            updatedLesson,
+          error:
+            updateError,
         } = await admin
           .from("lessons")
           .update({
@@ -1143,6 +1476,7 @@ export async function PATCH(
           .select(`
             id,
             enrollment_id,
+            student_id,
             lesson_number,
             lesson_date,
             original_lesson_date,
@@ -1164,20 +1498,25 @@ export async function PATCH(
           `)
           .single();
 
-        if (updateError) {
+        if (
+          updateError
+        ) {
           return NextResponse.json(
             {
               error:
                 updateError.message,
             },
-            { status: 500 }
+            {
+              status: 500,
+            }
           );
         }
 
         return NextResponse.json({
           message:
             "Substitute teacher removed successfully.",
-          lesson: updatedLesson,
+          lesson:
+            updatedLesson,
         });
       }
 
@@ -1190,12 +1529,15 @@ export async function PATCH(
             error:
               "Invalid substitute teacher.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       const {
-        data: substituteTeacher,
+        data:
+          substituteTeacher,
         error:
           substituteTeacherError,
       } = await admin
@@ -1228,23 +1570,30 @@ export async function PATCH(
             error:
               substituteTeacherError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
-      if (!substituteTeacher) {
+      if (
+        !substituteTeacher
+      ) {
         return NextResponse.json(
           {
             error:
               "The selected substitute teacher is not active.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       const {
         data: student,
-        error: studentError,
+        error:
+          studentError,
       } = await admin
         .from("students")
         .select(
@@ -1265,7 +1614,9 @@ export async function PATCH(
             error:
               "Student timezone could not be loaded.",
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
@@ -1284,16 +1635,21 @@ export async function PATCH(
             error:
               "This lesson does not have a valid scheduled time.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       const {
-        data: availability,
+        data:
+          availability,
         error:
           availabilityError,
       } = await admin
-        .from("teacher_availability")
+        .from(
+          "teacher_availability"
+        )
         .select(`
           teacher_id,
           day_of_week,
@@ -1305,13 +1661,17 @@ export async function PATCH(
           substituteTeacherId
         );
 
-      if (availabilityError) {
+      if (
+        availabilityError
+      ) {
         return NextResponse.json(
           {
             error:
               availabilityError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
@@ -1336,19 +1696,25 @@ export async function PATCH(
             )
         );
 
-      if (!fits) {
+      if (
+        !fits
+      ) {
         return NextResponse.json(
           {
             error:
               "The selected teacher is not available for this lesson in Philippine Time.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       const {
-        data: updatedLesson,
-        error: updateError,
+        data:
+          updatedLesson,
+        error:
+          updateError,
       } = await admin
         .from("lessons")
         .update({
@@ -1362,6 +1728,7 @@ export async function PATCH(
         .select(`
           id,
           enrollment_id,
+          student_id,
           lesson_number,
           lesson_date,
           original_lesson_date,
@@ -1383,35 +1750,53 @@ export async function PATCH(
         `)
         .single();
 
-      if (updateError) {
+      if (
+        updateError
+      ) {
         return NextResponse.json(
           {
             error:
               updateError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
       return NextResponse.json({
         message:
           "Substitute teacher assigned successfully.",
-        lesson: updatedLesson,
+
+        lesson:
+          updatedLesson,
+
         substitute_teacher:
           substituteTeacher,
       });
     }
 
-    if (!isOwnerOrAdmin) {
+    /*
+     * ---------------------------------------------------------
+     * AUTHORIZATION
+     * ---------------------------------------------------------
+     */
+
+    if (
+      !isOwnerOrAdmin
+    ) {
       if (
-        profile.role !== "teacher"
+        profile.role !==
+        "teacher"
       ) {
         return NextResponse.json(
           {
             error:
               "You are not authorized to update this lesson.",
           },
-          { status: 403 }
+          {
+            status: 403,
+          }
         );
       }
 
@@ -1423,13 +1808,17 @@ export async function PATCH(
           enrollmentStudent
         );
 
-      if (!allowed) {
+      if (
+        !allowed
+      ) {
         return NextResponse.json(
           {
             error:
               "You are not assigned to this lesson.",
           },
-          { status: 403 }
+          {
+            status: 403,
+          }
         );
       }
     }
@@ -1485,7 +1874,9 @@ export async function PATCH(
           error:
             "No lesson information was provided.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -1495,7 +1886,9 @@ export async function PATCH(
      * ---------------------------------------------------------
      */
 
-    if (hasAttendanceUpdate) {
+    if (
+      hasAttendanceUpdate
+    ) {
       const rawStatus =
         body.status ??
         body.attendance_status;
@@ -1511,10 +1904,13 @@ export async function PATCH(
           {
             error:
               "Invalid attendance status.",
+
             allowed_statuses:
               VALID_ATTENDANCE_STATUSES,
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
@@ -1522,9 +1918,12 @@ export async function PATCH(
         rawStatus as AttendanceStatus;
 
       const resolution =
-        body.resolution === null ||
-        body.resolution === undefined ||
-        body.resolution === ""
+        body.resolution ===
+          null ||
+        body.resolution ===
+          undefined ||
+        body.resolution ===
+          ""
           ? null
           : (body.resolution as Resolution);
 
@@ -1539,50 +1938,78 @@ export async function PATCH(
             error:
               "Invalid lesson resolution.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       const lessonDate =
-        body.lesson_date === null ||
-        body.lesson_date === undefined ||
-        body.lesson_date === ""
+        body.lesson_date ===
+          null ||
+        body.lesson_date ===
+          undefined ||
+        body.lesson_date ===
+          ""
           ? null
-          : String(body.lesson_date);
+          : String(
+              body.lesson_date
+            );
 
       const attendanceNotes =
-        body.attendance_notes === null ||
-        body.attendance_notes === undefined ||
-        body.attendance_notes === ""
+        body.attendance_notes ===
+          null ||
+        body.attendance_notes ===
+          undefined ||
+        body.attendance_notes ===
+          ""
           ? null
-          : String(body.attendance_notes).trim() || null;
+          : String(
+              body.attendance_notes
+            ).trim() ||
+            null;
 
-      let consumesLesson = false;
+      let consumesLesson =
+        false;
 
       if (
-        attendanceStatus === "completed" ||
-        attendanceStatus === "no_show" ||
-        attendanceStatus === "late_cancellation"
+        attendanceStatus ===
+          "completed" ||
+        attendanceStatus ===
+          "no_show" ||
+        attendanceStatus ===
+          "late_cancellation"
       ) {
-        consumesLesson = true;
+        consumesLesson =
+          true;
       }
 
-      if (attendanceStatus === "scheduled") {
-        if (resolution !== null) {
+      if (
+        attendanceStatus ===
+        "scheduled"
+      ) {
+        if (
+          resolution !==
+          null
+        ) {
           return NextResponse.json(
             {
               error:
                 "A scheduled lesson cannot have a resolution.",
             },
-            { status: 400 }
+            {
+              status: 400,
+            }
           );
         }
 
-        consumesLesson = false;
+        consumesLesson =
+          false;
       }
 
       if (
-        attendanceStatus === "completed" &&
+        attendanceStatus ===
+          "completed" &&
         resolution !== null
       ) {
         return NextResponse.json(
@@ -1590,12 +2017,15 @@ export async function PATCH(
             error:
               "A completed lesson cannot have a resolution.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       if (
-        attendanceStatus === "no_show" &&
+        attendanceStatus ===
+          "no_show" &&
         resolution !== null
       ) {
         return NextResponse.json(
@@ -1603,12 +2033,15 @@ export async function PATCH(
             error:
               "A no-show cannot have a resolution.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       if (
-        attendanceStatus === "late_cancellation" &&
+        attendanceStatus ===
+          "late_cancellation" &&
         resolution !== null
       ) {
         return NextResponse.json(
@@ -1616,7 +2049,9 @@ export async function PATCH(
             error:
               "A late cancellation cannot have a resolution.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
@@ -1625,69 +2060,21 @@ export async function PATCH(
         "student_cancelled_rescheduled"
       ) {
         if (
-          resolution !== "rescheduled"
+          resolution !==
+          "rescheduled"
         ) {
           return NextResponse.json(
             {
               error:
                 "Student cancellation with rescheduling requires the rescheduled resolution.",
             },
-            { status: 400 }
-          );
-        }
-
-        if (!lessonDate) {
-          return NextResponse.json(
             {
-              error:
-                "A new lesson date is required when rescheduling.",
-            },
-            { status: 400 }
-          );
-        }
-
-        consumesLesson = false;
-      }
-
-      if (
-        attendanceStatus ===
-        "student_cancelled_credit"
-      ) {
-        if (
-          resolution !== "lesson_credit"
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "Student cancellation with credit requires the lesson credit resolution.",
-            },
-            { status: 400 }
-          );
-        }
-
-        consumesLesson = false;
-      }
-
-      if (
-        attendanceStatus ===
-        "unexpected_circumstance"
-      ) {
-        if (
-          resolution !== "rescheduled" &&
-          resolution !== "lesson_credit" &&
-          resolution !== "counted_as_completed"
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "Unexpected circumstance requires a resolution.",
-            },
-            { status: 400 }
+              status: 400,
+            }
           );
         }
 
         if (
-          resolution === "rescheduled" &&
           !lessonDate
         ) {
           return NextResponse.json(
@@ -1695,7 +2082,75 @@ export async function PATCH(
               error:
                 "A new lesson date is required when rescheduling.",
             },
-            { status: 400 }
+            {
+              status: 400,
+            }
+          );
+        }
+
+        consumesLesson =
+          false;
+      }
+
+      if (
+        attendanceStatus ===
+        "student_cancelled_credit"
+      ) {
+        if (
+          resolution !==
+          "lesson_credit"
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Student cancellation with credit requires the lesson credit resolution.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+
+        consumesLesson =
+          false;
+      }
+
+      if (
+        attendanceStatus ===
+        "unexpected_circumstance"
+      ) {
+        if (
+          resolution !==
+            "rescheduled" &&
+          resolution !==
+            "lesson_credit" &&
+          resolution !==
+            "counted_as_completed"
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Unexpected circumstance requires a resolution.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+
+        if (
+          resolution ===
+            "rescheduled" &&
+          !lessonDate
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "A new lesson date is required when rescheduling.",
+            },
+            {
+              status: 400,
+            }
           );
         }
 
@@ -1709,20 +2164,25 @@ export async function PATCH(
         "teacher_cancelled"
       ) {
         if (
-          resolution !== "rescheduled" &&
-          resolution !== "lesson_credit"
+          resolution !==
+            "rescheduled" &&
+          resolution !==
+            "lesson_credit"
         ) {
           return NextResponse.json(
             {
               error:
                 "Teacher cancellation requires either rescheduling or lesson credit.",
             },
-            { status: 400 }
+            {
+              status: 400,
+            }
           );
         }
 
         if (
-          resolution === "rescheduled" &&
+          resolution ===
+            "rescheduled" &&
           !lessonDate
         ) {
           return NextResponse.json(
@@ -1730,79 +2190,115 @@ export async function PATCH(
               error:
                 "A new lesson date is required when rescheduling.",
             },
-            { status: 400 }
+            {
+              status: 400,
+            }
           );
         }
 
-        consumesLesson = false;
+        consumesLesson =
+          false;
       }
 
       const originalLessonDate =
-        lesson.original_lesson_date ??
+        lesson
+          .original_lesson_date ??
         lesson.lesson_date;
 
       const isPayableOutcome =
-        attendanceStatus === "completed" ||
-        attendanceStatus === "no_show" ||
-        attendanceStatus === "late_cancellation";
+        attendanceStatus ===
+          "completed" ||
+        attendanceStatus ===
+          "no_show" ||
+        attendanceStatus ===
+          "late_cancellation";
 
       const updateData: {
-        attendance_status: AttendanceStatus;
-        consumes_lesson: boolean;
-        resolution: Resolution | null;
-        actual_teacher_id: string | null;
-        notes?: string | null;
-        original_lesson_date: string | null;
-        lesson_date: string;
-        rescheduled_at: string | null;
+        attendance_status:
+          AttendanceStatus;
+
+        consumes_lesson:
+          boolean;
+
+        resolution:
+          Resolution | null;
+
+        actual_teacher_id:
+          string | null;
+
+        notes?:
+          string | null;
+
+        original_lesson_date:
+          string | null;
+
+        lesson_date:
+          string;
+
+        rescheduled_at:
+          string | null;
       } = {
         attendance_status:
           attendanceStatus,
+
         consumes_lesson:
           consumesLesson,
+
         resolution,
+
         actual_teacher_id:
           isPayableOutcome
             ? user.id
             : null,
+
         original_lesson_date:
           originalLessonDate,
+
         lesson_date:
           lesson.lesson_date,
+
         rescheduled_at:
           lesson.rescheduled_at,
       };
 
       /*
-       * The teacher action component sends attendance_notes so
-       * attendance actions do not accidentally clear Lesson Notes
-       * when the notes box is left blank.
+       * Attendance notes are written to the existing lesson
+       * notes column only when attendance notes were actually
+       * provided.
        *
-       * If a teacher actually enters attendance notes, they are
-       * stored in the existing lesson notes field because the
-       * current schema does not have a separate attendance-notes
-       * column.
+       * Leaving the attendance notes field empty will therefore
+       * not accidentally erase existing Lesson Notes.
        */
-      if (attendanceNotes !== null) {
+
+      if (
+        attendanceNotes !==
+        null
+      ) {
         updateData.notes =
           attendanceNotes;
       }
 
       if (
-        resolution === "rescheduled"
+        resolution ===
+        "rescheduled"
       ) {
         updateData.lesson_date =
           lessonDate!;
+
         updateData.rescheduled_at =
           new Date().toISOString();
       }
 
       const {
-        data: updatedLesson,
-        error: updateError,
+        data:
+          updatedLesson,
+        error:
+          updateError,
       } = await admin
         .from("lessons")
-        .update(updateData)
+        .update(
+          updateData
+        )
         .eq(
           "id",
           lessonId
@@ -1810,6 +2306,7 @@ export async function PATCH(
         .select(`
           id,
           enrollment_id,
+          student_id,
           lesson_number,
           lesson_date,
           original_lesson_date,
@@ -1831,20 +2328,26 @@ export async function PATCH(
         `)
         .single();
 
-      if (updateError) {
+      if (
+        updateError
+      ) {
         return NextResponse.json(
           {
             error:
               updateError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
       return NextResponse.json({
         message:
           "Lesson attendance updated successfully.",
-        lesson: updatedLesson,
+
+        lesson:
+          updatedLesson,
       });
     }
 
@@ -1854,30 +2357,40 @@ export async function PATCH(
      * ---------------------------------------------------------
      */
 
-    if (hasNotes) {
+    if (
+      hasNotes
+    ) {
       if (
-        body.notes !== null &&
-        typeof body.notes !== "string"
+        body.notes !==
+          null &&
+        typeof body.notes !==
+          "string"
       ) {
         return NextResponse.json(
           {
             error:
               "Lesson notes must be text or null.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       const cleanedNotes =
-        body.notes?.trim() || null;
+        body.notes?.trim() ||
+        null;
 
       const {
-        data: updatedLesson,
-        error: updateError,
+        data:
+          updatedLesson,
+        error:
+          updateError,
       } = await admin
         .from("lessons")
         .update({
-          notes: cleanedNotes,
+          notes:
+            cleanedNotes,
         })
         .eq(
           "id",
@@ -1886,6 +2399,7 @@ export async function PATCH(
         .select(`
           id,
           enrollment_id,
+          student_id,
           lesson_number,
           lesson_date,
           original_lesson_date,
@@ -1907,20 +2421,26 @@ export async function PATCH(
         `)
         .single();
 
-      if (updateError) {
+      if (
+        updateError
+      ) {
         return NextResponse.json(
           {
             error:
               updateError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
       return NextResponse.json({
         message:
           "Lesson notes saved successfully.",
-        lesson: updatedLesson,
+
+        lesson:
+          updatedLesson,
       });
     }
 
@@ -1930,7 +2450,9 @@ export async function PATCH(
      * ---------------------------------------------------------
      */
 
-    if (hasTeacherObservation) {
+    if (
+      hasTeacherObservation
+    ) {
       if (
         body.teacher_observation !==
           null &&
@@ -1942,17 +2464,22 @@ export async function PATCH(
             error:
               "Teacher observation must be text or null.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       const cleanedObservation =
-        body.teacher_observation?.trim() ||
+        body.teacher_observation
+          ?.trim() ||
         null;
 
       const {
-        data: updatedLesson,
-        error: updateError,
+        data:
+          updatedLesson,
+        error:
+          updateError,
       } = await admin
         .from("lessons")
         .update({
@@ -1966,6 +2493,7 @@ export async function PATCH(
         .select(`
           id,
           enrollment_id,
+          student_id,
           lesson_number,
           lesson_date,
           original_lesson_date,
@@ -1987,20 +2515,26 @@ export async function PATCH(
         `)
         .single();
 
-      if (updateError) {
+      if (
+        updateError
+      ) {
         return NextResponse.json(
           {
             error:
               updateError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
       return NextResponse.json({
         message:
           "Teacher observation saved successfully.",
-        lesson: updatedLesson,
+
+        lesson:
+          updatedLesson,
       });
     }
 
@@ -2010,57 +2544,91 @@ export async function PATCH(
      * ---------------------------------------------------------
      */
 
-    if (hasClassInfo) {
+    if (
+      hasClassInfo
+    ) {
       if (
-        (body.platform !== undefined &&
-          body.platform !== null &&
-          typeof body.platform !== "string") ||
-        (body.material !== undefined &&
-          body.material !== null &&
-          typeof body.material !== "string") ||
-        (body.lesson_page !== undefined &&
-          body.lesson_page !== null &&
-          typeof body.lesson_page !== "string") ||
-        (body.class_instructions !== undefined &&
-          body.class_instructions !== null &&
-          typeof body.class_instructions !== "string")
+        (
+          body.platform !==
+            undefined &&
+          body.platform !==
+            null &&
+          typeof body.platform !==
+            "string"
+        ) ||
+        (
+          body.material !==
+            undefined &&
+          body.material !==
+            null &&
+          typeof body.material !==
+            "string"
+        ) ||
+        (
+          body.lesson_page !==
+            undefined &&
+          body.lesson_page !==
+            null &&
+          typeof body.lesson_page !==
+            "string"
+        ) ||
+        (
+          body.class_instructions !==
+            undefined &&
+          body.class_instructions !==
+            null &&
+          typeof body.class_instructions !==
+            "string"
+        )
       ) {
         return NextResponse.json(
           {
             error:
               "Class information must be text or null.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
       const cleanedPlatform =
-        body.platform?.trim() || null;
+        body.platform?.trim() ||
+        null;
 
       const cleanedMaterial =
-        body.material?.trim() || null;
+        body.material?.trim() ||
+        null;
 
       const cleanedLessonPage =
-        body.lesson_page?.trim() || null;
+        body.lesson_page?.trim() ||
+        null;
 
       const cleanedClassInstructions =
-        body.class_instructions?.trim() ||
+        body.class_instructions
+          ?.trim() ||
         null;
 
       const {
-        data: updatedLesson,
-        error: updateError,
+        data:
+          updatedLesson,
+        error:
+          updateError,
       } = await admin
         .from("lessons")
         .update({
           platform:
             cleanedPlatform,
+
           material:
             cleanedMaterial,
+
           lesson_page:
             cleanedLessonPage,
+
           class_instructions:
             cleanedClassInstructions,
+
           class_info_updated_at:
             new Date().toISOString(),
         })
@@ -2071,6 +2639,7 @@ export async function PATCH(
         .select(`
           id,
           enrollment_id,
+          student_id,
           lesson_number,
           lesson_date,
           original_lesson_date,
@@ -2092,20 +2661,26 @@ export async function PATCH(
         `)
         .single();
 
-      if (updateError) {
+      if (
+        updateError
+      ) {
         return NextResponse.json(
           {
             error:
               updateError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
       return NextResponse.json({
         message:
           "Class information saved successfully.",
-        lesson: updatedLesson,
+
+        lesson:
+          updatedLesson,
       });
     }
 
@@ -2114,7 +2689,9 @@ export async function PATCH(
         error:
           "Nothing was updated.",
       },
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   } catch (error) {
     console.error(
@@ -2129,7 +2706,9 @@ export async function PATCH(
             ? error.message
             : "Something went wrong while updating the lesson.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
