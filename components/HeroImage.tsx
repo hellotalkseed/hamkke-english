@@ -6,12 +6,7 @@ export default function HeroImage() {
     <>
       {/* =====================================================
           MOBILE HERO BACKGROUND
-          Separate mobile-only treatment.
-
-          This image sits behind the hero content instead of
-          occupying its own vertical space.
-
-          Desktop is completely unaffected.
+          Mobile-only treatment.
           ===================================================== */}
 
       <div
@@ -34,16 +29,13 @@ export default function HeroImage() {
           sizes="100vw"
           className="
             object-cover
-            object-[center_70%]
-            opacity-[0.32]
+            object-right
+            opacity-[0.38]
           "
         />
 
         {/* =====================================================
             MOBILE READABILITY OVERLAY
-
-            Keeps the students visible while protecting
-            headline/body readability.
             ===================================================== */}
 
         <div
@@ -51,9 +43,9 @@ export default function HeroImage() {
             absolute
             inset-0
             bg-gradient-to-b
-            from-[#FAF8F5]/75
-            via-[#FAF8F5]/82
-            to-[#FAF8F5]/95
+            from-[#FAF8F5]/68
+            via-[#FAF8F5]/76
+            to-[#FAF8F5]/92
           "
         />
 
@@ -66,11 +58,11 @@ export default function HeroImage() {
             absolute
             inset-x-0
             top-0
-            h-[120px]
+            h-[110px]
 
             bg-gradient-to-b
             from-[#FAF8F5]
-            via-[#FAF8F5]/60
+            via-[#FAF8F5]/55
             to-transparent
           "
         />
@@ -84,11 +76,11 @@ export default function HeroImage() {
             absolute
             inset-x-0
             bottom-0
-            h-[160px]
+            h-[140px]
 
             bg-gradient-to-t
             from-[#FAF8F5]
-            via-[#FAF8F5]/65
+            via-[#FAF8F5]/60
             to-transparent
           "
         />
@@ -96,7 +88,7 @@ export default function HeroImage() {
 
       {/* =====================================================
           DESKTOP HERO IMAGE
-          Existing desktop layout intentionally preserved.
+          Existing desktop layout preserved exactly.
           ===================================================== */}
 
       <div className="hidden lg:block">
@@ -150,7 +142,6 @@ export default function HeroImage() {
 
             {/* =====================================================
                 TOP FADE
-                Desktop position intentionally preserved.
                 ===================================================== */}
 
             <div
@@ -172,7 +163,6 @@ export default function HeroImage() {
 
             {/* =====================================================
                 BOTTOM FADE
-                Desktop position intentionally preserved.
                 ===================================================== */}
 
             <div
