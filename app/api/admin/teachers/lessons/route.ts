@@ -500,17 +500,33 @@ export async function GET() {
 
     /*
      * ---------------------------------------------------------
-     * GET ENROLLMENT IDs
+     * GET REGULAR ENROLLMENT IDS
+     * ---------------------------------------------------------
+     *
+     * IMPORTANT:
+     *
+     * enrollmentStudents now contains BOTH:
+     * - this teacher's regular enrollment/student records, and
+     * - metadata needed only for one-day substitute lessons.
+     *
+     * We must therefore derive the regular enrollment IDs only
+     * from the teacher's actual recurring assignments. Otherwise,
+     * every lesson from a substitute student's enrollment would
+     * incorrectly appear on this teacher's My Lessons calendar.
      * ---------------------------------------------------------
      */
 
-    const enrollmentIds =
+    const regularEnrollmentStudentIdSet =
+      new Set(enrollmentStudentIds);
+
+    const regularEnrollmentIds =
       Array.from(
         new Set(
-          enrollmentStudents.map(
-            (item) =>
-              item.enrollment_id
-          )
+          enrollmentStudents
+            .filter((item) =>
+              regularEnrollmentStudentIdSet.has(item.id)
+            )
+            .map((item) => item.enrollment_id)
         )
       );
 
@@ -518,15 +534,16 @@ export async function GET() {
      * ---------------------------------------------------------
      * LOAD REGULAR LESSONS
      *
-     * Only load lessons belonging to the teacher's regular
-     * assigned enrollments.
+     * Only load lessons belonging to the teacher's actual
+     * recurring assignments. Substitute-only enrollment metadata
+     * must never expand this query.
      * ---------------------------------------------------------
      */
 
     let regularLessons: LessonRecord[] =
       [];
 
-    if (enrollmentIds.length > 0) {
+    if (regularEnrollmentIds.length > 0) {
       const {
         data,
         error,
@@ -547,7 +564,7 @@ export async function GET() {
         `)
         .in(
           "enrollment_id",
-          enrollmentIds
+          regularEnrollmentIds
         )
         .order("lesson_date", {
           ascending: true,

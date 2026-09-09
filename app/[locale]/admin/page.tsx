@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import {
   LayoutDashboard,
+  CalendarDays,
   Users,
   UserRound,
   HeartHandshake,
@@ -331,6 +332,96 @@ export default async function AdminPage({
             </div>
           </Link>
 
+          {/* DAILY SCHEDULE */}
+
+          <Link
+            href={`/${locale}/admin/daily-schedule`}
+            className="
+              group
+              block
+              border-t
+              border-[#DCD8D2]
+              py-10
+              transition-colors
+              hover:bg-[#F0F4ED]
+            "
+          >
+            <div className="flex gap-6">
+              <span
+                className="
+                  pt-1
+                  font-sans
+                  text-[11px]
+                  font-medium
+                  tracking-[0.14em]
+                  text-[#8A8A84]
+                "
+              >
+                02
+              </span>
+
+              <div
+                className="
+                  flex
+                  min-w-0
+                  flex-1
+                  items-start
+                  justify-between
+                  gap-6
+                "
+              >
+                <div>
+                  <h2
+                    className="
+                      font-serif
+                      text-[34px]
+                      font-normal
+                      leading-tight
+                      tracking-[-0.02em]
+                    "
+                  >
+                    Daily Schedule
+                  </h2>
+
+                  <p
+                    className="
+                      mt-3
+                      max-w-xl
+                      font-serif
+                      text-[17px]
+                      leading-7
+                      text-[#6B6B66]
+                    "
+                  >
+                    See every class for the day and find an
+                    available regular or substitute teacher.
+                  </p>
+                </div>
+
+                <div
+                  className="
+                    flex
+                    h-11
+                    w-11
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#E2EBDD]
+                    text-[#6F8F72]
+                    transition-transform
+                    group-hover:translate-x-1
+                  "
+                >
+                  <CalendarDays
+                    size={19}
+                    strokeWidth={1.5}
+                  />
+                </div>
+              </div>
+            </div>
+          </Link>
+
           {/* STUDENTS */}
 
           <Link
@@ -356,7 +447,7 @@ export default async function AdminPage({
                   text-[#8A8A84]
                 "
               >
-                02
+                03
               </span>
 
               <div
@@ -447,7 +538,7 @@ export default async function AdminPage({
                   text-[#8A8A84]
                 "
               >
-                03
+                04
               </span>
 
               <div
@@ -537,7 +628,7 @@ export default async function AdminPage({
                   text-[#8A8A84]
                 "
               >
-                04
+                05
               </span>
 
               <div
