@@ -119,6 +119,41 @@ type TeacherLessonProgress = {
   consumes_lesson: boolean;
 };
 
+type SubstituteCandidate = {
+  lesson_id: string;
+  lesson_number: number;
+  duration: number;
+  pht_date: string;
+  pht_time: string;
+  substitute_teacher_id: string | null;
+  student: {
+    id: string;
+    student_number: string | null;
+    full_name: string | null;
+    preferred_name: string | null;
+  };
+  regular_teacher: {
+    id: string;
+    full_name: string | null;
+    teacher_number: string | null;
+  } | null;
+};
+
+type SubstituteAssignment = {
+  lesson_id: string;
+  lesson_number: number;
+  duration: number;
+  pht_date: string;
+  pht_time: string;
+  attendance_status: string;
+  student: {
+    id: string;
+    student_number: string | null;
+    full_name: string | null;
+    preferred_name: string | null;
+  };
+};
+
 /* ========================================================================= */
 /* CONSTANTS                                                                 */
 /* ========================================================================= */
@@ -985,8 +1020,27 @@ export default function ManageTeacherPage() {
   const [selectedSlot, setSelectedSlot] =
     useState<{
       day: number;
+      date: string;
       time: string;
     } | null>(null);
+
+  const [showSlotChoice, setShowSlotChoice] =
+    useState(false);
+
+  const [showSubstitutePanel, setShowSubstitutePanel] =
+    useState(false);
+  const [substituteCandidates, setSubstituteCandidates] =
+    useState<SubstituteCandidate[]>([]);
+  const [substituteAssignments, setSubstituteAssignments] =
+    useState<SubstituteAssignment[]>([]);
+  const [selectedSubstituteLessonId, setSelectedSubstituteLessonId] =
+    useState("");
+  const [loadingSubstitutes, setLoadingSubstitutes] =
+    useState(false);
+  const [substituteError, setSubstituteError] =
+    useState("");
+  const [substituteSuccess, setSubstituteSuccess] =
+    useState("");
 
   const [assigning, setAssigning] =
     useState(false);
@@ -1073,6 +1127,7 @@ export default function ManageTeacherPage() {
           loadAssignments(),
           loadAvailability(),
           loadTeacherLessons(),
+          loadSubstituteAssignments(weekStart),
         ]);
       } catch (err) {
         console.error(
@@ -1285,6 +1340,41 @@ export default function ManageTeacherPage() {
   }
 
   /* ----------------------------------------------------------------------- */
+  /* SUBSTITUTE ASSIGNMENTS                                                  */
+  /* ----------------------------------------------------------------------- */
+
+  async function loadSubstituteAssignments(startDate = weekStart) {
+    const endDate = addDays(startDate, 6);
+
+    const response = await fetch(
+      `/api/admin/teachers/${teacherId}/substitutes?start_date=${encodeURIComponent(
+        startDate
+      )}&end_date=${encodeURIComponent(endDate)}`,
+      { method: "GET", cache: "no-store" }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Unable to load substitute assignments."
+      );
+    }
+
+    setSubstituteAssignments(
+      Array.isArray(data.assignments) ? data.assignments : []
+    );
+  }
+
+  useEffect(() => {
+    if (!teacher) return;
+
+    loadSubstituteAssignments(weekStart).catch((err) => {
+      console.error("Error loading substitute assignments:", err);
+    });
+  }, [weekStart, teacherId]);
+
+  /* ----------------------------------------------------------------------- */
   /* AVAILABILITY BY DAY                                                     */
   /* ----------------------------------------------------------------------- */
 
@@ -1378,15 +1468,55 @@ export default function ManageTeacherPage() {
     }, [subAvailability]);
 
   /* ----------------------------------------------------------------------- */
+  /* OPEN CALENDAR SLOT CHOICE                                               */
+  /* ----------------------------------------------------------------------- */
+
+  function openSlotChoice(day: number, time: string, date: string) {
+    // Always reset any previously open assignment UI first.
+    // This is especially important during Next.js Fast Refresh, which can
+    // preserve component state while this file is being edited.
+    setShowAssignPanel(false);
+    setShowSubstitutePanel(false);
+    setSelectedEnrollmentStudentId("");
+    setSelectedSubstituteLessonId("");
+    setAssignmentError("");
+    setSuccess("");
+    setSubstituteError("");
+    setSubstituteSuccess("");
+
+    setSelectedSlot({ day, date, time });
+    setShowSlotChoice(true);
+  }
+
+  function closeSlotChoice() {
+    setShowSlotChoice(false);
+  }
+
+  /* ----------------------------------------------------------------------- */
   /* OPEN ASSIGNMENT PANEL                                                   */
   /* ----------------------------------------------------------------------- */
 
   async function openAssignPanel(
     day: number,
-    time: string
+    time: string,
+    date = calendarDays.find((item) => item.day_of_week === day)?.date || weekStart,
+    openRegularDirectly = false
   ) {
+    // Any assignment opened from a real calendar slot must choose between
+    // Regular Student and Substitute Class first. The only callers allowed
+    // to bypass this are the explicit Regular Student choice and the
+    // standalone Assign Student button below the calendar.
+    if (!openRegularDirectly) {
+      openSlotChoice(day, time, date);
+      return;
+    }
+
+    setShowSlotChoice(false);
+    setShowSubstitutePanel(false);
+
     setSelectedSlot({
       day,
+      date,
       time,
     });
 
@@ -1540,6 +1670,109 @@ export default function ManageTeacherPage() {
   }
 
   /* ----------------------------------------------------------------------- */
+  /* SUBSTITUTE ASSIGNMENT                                                   */
+  /* ----------------------------------------------------------------------- */
+
+  async function openSubstitutePanel(date: string, day: number, time: string) {
+    setShowSlotChoice(false);
+    setShowAssignPanel(false);
+    setSelectedSlot({ date, day, time });
+    setShowAssignPanel(false);
+    setShowSubstitutePanel(true);
+    setSelectedSubstituteLessonId("");
+    setSubstituteError("");
+    setSubstituteSuccess("");
+
+    try {
+      setLoadingSubstitutes(true);
+      const response = await fetch(
+        `/api/admin/teachers/${teacherId}/substitutes?date=${encodeURIComponent(
+          date
+        )}&time=${encodeURIComponent(time)}`,
+        { method: "GET", cache: "no-store" }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to load scheduled classes.");
+      }
+      setSubstituteCandidates(
+        Array.isArray(data.candidates) ? data.candidates : []
+      );
+    } catch (err) {
+      setSubstituteError(
+        err instanceof Error ? err.message : "Unable to load scheduled classes."
+      );
+    } finally {
+      setLoadingSubstitutes(false);
+    }
+  }
+
+  async function handleAssignSubstitute() {
+    if (!selectedSlot || !selectedSubstituteLessonId) {
+      setSubstituteError("Please select a scheduled class.");
+      return;
+    }
+
+    try {
+      setAssigning(true);
+      setSubstituteError("");
+      setSubstituteSuccess("");
+      const response = await fetch(
+        `/api/admin/teachers/${teacherId}/substitutes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lesson_id: selectedSubstituteLessonId,
+            date: selectedSlot.date,
+            time: selectedSlot.time,
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to assign substitute class.");
+      }
+      setSubstituteSuccess("Substitute class assigned successfully.");
+      setSelectedSubstituteLessonId("");
+      await loadSubstituteAssignments(weekStart);
+      setTimeout(() => setShowSubstitutePanel(false), 650);
+    } catch (err) {
+      setSubstituteError(
+        err instanceof Error ? err.message : "Unable to assign substitute class."
+      );
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  async function handleRemoveSubstitute(lessonId: string) {
+    if (!window.confirm("Remove this substitute assignment?")) return;
+    try {
+      setAssigning(true);
+      const response = await fetch(
+        `/api/admin/teachers/${teacherId}/substitutes?lesson_id=${encodeURIComponent(lessonId)}`,
+        { method: "DELETE" }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to remove substitute assignment.");
+      await loadSubstituteAssignments(weekStart);
+    } catch (err) {
+      setAssignmentError(err instanceof Error ? err.message : "Unable to remove substitute assignment.");
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  function closeSubstitutePanel() {
+    if (assigning) return;
+    setShowSubstitutePanel(false);
+    setSelectedSubstituteLessonId("");
+    setSubstituteError("");
+    setSubstituteSuccess("");
+  }
+
+  /* ----------------------------------------------------------------------- */
   /* CLOSE ASSIGNMENT PANEL                                                  */
   /* ----------------------------------------------------------------------- */
 
@@ -1573,6 +1806,19 @@ export default function ManageTeacherPage() {
     day: number,
     time: string
   ) {
+    const substituteAssignment = substituteAssignments.find(
+      (item) =>
+        item.pht_date === date &&
+        normalizeTime(item.pht_time) === normalizeTime(time)
+    );
+
+    if (substituteAssignment) {
+      return {
+        type: "substitute" as const,
+        substituteAssignment,
+      };
+    }
+
     const additionalBlocks =
       additionalAvailabilityByDate[date] || [];
 
@@ -2141,22 +2387,48 @@ export default function ManageTeacherPage() {
                       const isAvailable =
                         slot.type === "available";
 
+                      const isSubstitute =
+                        slot.type === "substitute";
+
                       return (
                         <div
                           key={`${day.date}-${time}`}
                           className="border-r border-b border-[#E7E3DD] p-[3px] last:border-r-0"
                         >
-                          {isAdditionalAvailable ? (
-                            <div
-                              className="flex min-h-[39px] flex-col items-center justify-center rounded-[3px] border border-[#B8B1D8] bg-[#EAE7F5] px-2 py-1.5 text-center"
-                              aria-label={`Additional availability on ${day.label}, ${day.displayDate} at ${formatTime(
-                                time
-                              )}`}
+                          {isSubstitute ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRemoveSubstitute(slot.substituteAssignment.lesson_id)
+                              }
+                              className="flex min-h-[39px] w-full flex-col justify-center rounded-[3px] border border-[#AFA7CF] bg-[#E4E0F2] px-2 py-1.5 text-left transition-colors hover:bg-[#DCD7ED]"
+                              aria-label={`Substitute class for ${slot.substituteAssignment.student.preferred_name || slot.substituteAssignment.student.full_name || "student"}`}
                             >
-                              <p className="font-sans text-[8px] font-medium uppercase tracking-[0.08em] text-[#68618C]">
+                              <p className="truncate font-sans text-[10px] font-medium text-[#625B86]">
+                                {slot.substituteAssignment.student.preferred_name ||
+                                  slot.substituteAssignment.student.full_name ||
+                                  "Student"}
+                              </p>
+                              <p className="mt-0.5 truncate font-sans text-[8px] uppercase tracking-[0.08em] text-[#77709A]">
+                                Substitute
+                              </p>
+                            </button>
+                          ) : isAdditionalAvailable ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openSubstitutePanel(day.date, day.day_of_week, time)
+                              }
+                              className="group flex min-h-[39px] w-full flex-col items-center justify-center rounded-[3px] border border-[#B8B1D8] bg-[#EAE7F5] px-2 py-1.5 text-center transition-colors hover:bg-[#E0DCEF]"
+                              aria-label={`Assign substitute on ${day.label}, ${day.displayDate} at ${formatTime(time)}`}
+                            >
+                              <p className="font-sans text-[8px] font-medium uppercase tracking-[0.08em] text-[#68618C] group-hover:hidden">
                                 Additional Available
                               </p>
-                            </div>
+                              <p className="hidden font-sans text-[8px] font-medium uppercase tracking-[0.08em] text-[#68618C] group-hover:block">
+                                + Substitute
+                              </p>
+                            </button>
                           ) : isScheduled ? (
                             <div className="flex min-h-[39px] flex-col justify-center rounded-[3px] border border-[#D9BE6A] bg-[#F3E8B8] px-2 py-1.5">
                               <p className="truncate font-sans text-[10px] font-medium text-[#6F6440]">
@@ -2173,9 +2445,10 @@ export default function ManageTeacherPage() {
                             <button
                               type="button"
                               onClick={() =>
-                                openAssignPanel(
+                                openSlotChoice(
                                   day.day_of_week,
-                                  time
+                                  time,
+                                  day.date
                                 )
                               }
                               className="group flex min-h-[39px] w-full items-center justify-center rounded-[3px] border border-[#B9CBB5] bg-[#E8EFE5] px-2 transition-colors hover:border-[#6F8F72] hover:bg-[#DDE9D9]"
@@ -2206,13 +2479,74 @@ export default function ManageTeacherPage() {
         </div>
 
         <p className="mt-4 font-serif text-[13px] italic text-[#8A8780]">
-          Additional Available applies only to the displayed date. If it
-          overlaps a regular student&apos;s recurring schedule, the recurring
-          assignment remains unchanged and will appear as Scheduled again on
-          the next matching week. Green Available slots continue to open the
-          regular assignment panel.
+          Additional Available applies only to the displayed date and can be used for substitute coverage. Green Available slots can be used for either a regular assignment or a one-day substitute class. Substitute assignments change only the selected lesson and never replace the student&apos;s recurring teacher assignment.
         </p>
       </section>
+
+      {/* =================================================================== */}
+      {/* CALENDAR SLOT CHOICE                                                */}
+      {/* =================================================================== */}
+
+      {showSlotChoice && selectedSlot && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#292929]/25 px-4 py-6 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="slot-choice-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeSlotChoice();
+          }}
+        >
+          <section className="w-full max-w-[560px] border border-[#DCD8D2] bg-[#F7F5F1] shadow-[0_20px_60px_rgba(41,41,41,0.16)]">
+            <div className="px-6 py-7 sm:px-8 sm:py-8">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
+                    Assign from Calendar
+                  </p>
+                  <h3 id="slot-choice-title" className="mt-2 font-serif text-[27px] font-normal tracking-[-0.02em]">
+                    {DAYS[selectedSlot.day].label}, {formatTime(selectedSlot.time)} PHT
+                  </h3>
+                  <p className="mt-2 font-serif text-[14px] leading-6 text-[#74716B]">
+                    Choose whether this open slot will be used for a recurring student or for a one-day substitute class.
+                  </p>
+                </div>
+                <button type="button" onClick={closeSlotChoice} className="shrink-0 text-[#8A8780] transition-colors hover:text-[#6F8F72]" aria-label="Close assignment choices">
+                  <CloseIcon />
+                </button>
+              </div>
+
+              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const slot = selectedSlot;
+                    closeSlotChoice();
+                    void openAssignPanel(slot.day, slot.time, slot.date, true);
+                  }}
+                  className="border border-[#B9CBB5] bg-[#E8EFE5] px-5 py-5 text-left transition-colors hover:border-[#6F8F72] hover:bg-[#DDE9D9]"
+                >
+                  <p className="font-sans text-[12px] font-semibold uppercase tracking-[0.1em] text-[#607963]">Regular Student</p>
+                  <p className="mt-2 font-serif text-[13px] leading-5 text-[#74716B]">Create a recurring teacher assignment.</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const slot = selectedSlot;
+                    closeSlotChoice();
+                    void openSubstitutePanel(slot.date, slot.day, slot.time);
+                  }}
+                  className="border border-[#B8B1D8] bg-[#EAE7F5] px-5 py-5 text-left transition-colors hover:bg-[#E0DCEF]"
+                >
+                  <p className="font-sans text-[12px] font-semibold uppercase tracking-[0.1em] text-[#68618C]">Substitute Class</p>
+                  <p className="mt-2 font-serif text-[13px] leading-5 text-[#74716B]">Cover one scheduled lesson on this exact date and time.</p>
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* =================================================================== */}
       {/* ASSIGNMENT PANEL                                                    */}
@@ -2258,6 +2592,23 @@ export default function ManageTeacherPage() {
                     schedule fits within this teacher&apos;s
                     availability.
                   </p>
+
+                  {selectedSlot && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openSubstitutePanel(
+                          selectedSlot.date,
+                          selectedSlot.day,
+                          selectedSlot.time
+                        )
+                      }
+                      className="mt-4 inline-flex items-center gap-2 border-b border-[#7A729D] pb-1 font-sans text-[12px] text-[#6D668F] transition-colors hover:border-[#575173] hover:text-[#575173]"
+                    >
+                      <PlusIcon />
+                      Assign Substitute for This Slot
+                    </button>
+                  )}
                 </div>
 
                 <button
@@ -2443,6 +2794,122 @@ export default function ManageTeacherPage() {
       )}
 
       {/* =================================================================== */}
+      {/* SUBSTITUTE ASSIGNMENT PANEL                                         */}
+      {/* =================================================================== */}
+
+      {showSubstitutePanel && selectedSlot && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#292929]/25 px-4 py-6 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="substitute-panel-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeSubstitutePanel();
+          }}
+        >
+          <section className="w-full max-w-[720px] overflow-hidden border border-[#DCD8D2] bg-[#F7F5F1] shadow-[0_20px_60px_rgba(41,41,41,0.16)]">
+            <div className="max-h-[88vh] overflow-y-auto px-6 py-7 sm:px-8 sm:py-8">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#7A729D]">
+                    One-day coverage
+                  </p>
+                  <h3 id="substitute-panel-title" className="mt-2 font-serif text-[27px] font-normal tracking-[-0.02em]">
+                    Assign Substitute
+                  </h3>
+                  <p className="mt-2 font-serif text-[14px] leading-6 text-[#74716B]">
+                    {formatCalendarDate(selectedSlot.date)} · {formatTime(selectedSlot.time)} PHT
+                  </p>
+                  <p className="mt-1 max-w-[620px] font-serif text-[13px] leading-6 text-[#8A8780]">
+                    Only scheduled classes at this exact date and time are shown. This changes only the selected lesson; the student&apos;s recurring teacher assignment stays unchanged.
+                  </p>
+                </div>
+                <button type="button" onClick={closeSubstitutePanel} disabled={assigning} className="shrink-0 text-[#8A8780] transition-colors hover:text-[#6F8F72] disabled:opacity-50" aria-label="Close substitute panel">
+                  <CloseIcon />
+                </button>
+              </div>
+
+              {substituteSuccess && (
+                <div className="mt-6 border-l-2 border-[#6F8F72] bg-[#EDF2EA] px-4 py-3">
+                  <p className="font-sans text-[12px] text-[#607963]">{substituteSuccess}</p>
+                </div>
+              )}
+              {substituteError && (
+                <div className="mt-6 border-l-2 border-[#B87368] bg-[#F4E5E2] px-4 py-3">
+                  <p className="font-sans text-[12px] text-[#8B5C55]">{substituteError}</p>
+                </div>
+              )}
+
+              {loadingSubstitutes ? (
+                <div className="py-12 text-center">
+                  <p className="font-serif text-[16px] text-[#74716B]">Loading scheduled classes...</p>
+                </div>
+              ) : substituteCandidates.length > 0 ? (
+                <div className="mt-7 divide-y divide-[#E0DCD6] border-y border-[#DCD8D2]">
+                  {substituteCandidates.map((item) => {
+                    const name = item.student.preferred_name || item.student.full_name || "Unnamed student";
+                    const selected = selectedSubstituteLessonId === item.lesson_id;
+                    const alreadyAssignedElsewhere = Boolean(item.substitute_teacher_id && item.substitute_teacher_id !== teacherId);
+                    return (
+                      <button
+                        key={item.lesson_id}
+                        type="button"
+                        disabled={alreadyAssignedElsewhere}
+                        onClick={() => setSelectedSubstituteLessonId(item.lesson_id)}
+                        className={`flex w-full items-center justify-between gap-5 px-3 py-4 text-left transition-colors sm:px-4 ${
+                          selected ? "bg-[#EAE7F5]" : alreadyAssignedElsewhere ? "cursor-not-allowed opacity-50" : "hover:bg-[#F1EEF7]"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="font-serif text-[17px] leading-6">{name}</p>
+                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-sans text-[9px] uppercase tracking-[0.1em] text-[#8A8A84]">
+                            <span>{formatStudentNumber(item.student.student_number)}</span>
+                            <span>Lesson {item.lesson_number}</span>
+                            <span>{item.duration} min</span>
+                          </div>
+                          <p className="mt-2 font-sans text-[10px] text-[#6D668F]">
+                            Regular teacher: {item.regular_teacher?.full_name || "Not assigned"}
+                          </p>
+                          {alreadyAssignedElsewhere && (
+                            <p className="mt-1 font-sans text-[10px] text-[#9A625A]">Another substitute is already assigned.</p>
+                          )}
+                        </div>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#7A729D] bg-[#7A729D] text-white" : "border-[#CFCBC5] text-transparent"}`}>
+                          <CheckIcon />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-7 border-y border-[#DCD8D2] py-12 text-center">
+                  <h4 className="font-serif text-[22px] font-normal">No scheduled classes</h4>
+                  <p className="mx-auto mt-3 max-w-[520px] font-serif text-[14px] leading-6 text-[#74716B]">
+                    No student has a scheduled class at {formatTime(selectedSlot.time)} PHT on {formatCalendarDate(selectedSlot.date)}.
+                  </p>
+                </div>
+              )}
+
+              {substituteCandidates.length > 0 && (
+                <div className="mt-6 flex items-center justify-between gap-4">
+                  <button type="button" onClick={closeSubstitutePanel} disabled={assigning} className="font-sans text-[12px] text-[#77736B] hover:text-[#6F8F72] disabled:opacity-50">Cancel</button>
+                  <button
+                    type="button"
+                    onClick={handleAssignSubstitute}
+                    disabled={assigning || !selectedSubstituteLessonId}
+                    className="inline-flex items-center gap-2 border-b border-[#7A729D] pb-1 font-sans text-[13px] text-[#6D668F] transition-colors hover:border-[#575173] hover:text-[#575173] disabled:cursor-not-allowed disabled:border-[#CFCBC5] disabled:text-[#AAA69F]"
+                  >
+                    <PlusIcon />
+                    {assigning ? "Assigning..." : "Assign Substitute"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* =================================================================== */}
       {/* ASSIGNED STUDENTS                                                   */}
       {/* =================================================================== */}
 
@@ -2471,7 +2938,9 @@ export default function ManageTeacherPage() {
             onClick={() =>
               openAssignPanel(
                 0,
-                "05:00"
+                "05:00",
+                weekStart,
+                true
               )
             }
             className="inline-flex w-fit items-center gap-2 border-b border-[#6F8F72] pb-1 font-sans text-[13px] text-[#6F8F72] transition-colors hover:border-[#526B55] hover:text-[#526B55]"
