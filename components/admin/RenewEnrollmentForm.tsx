@@ -56,6 +56,12 @@ function getCurrencyStep(
   return currency === "KRW" ? "1" : "0.01";
 }
 
+function getCurrencyMin(
+  currency: SupportedCurrency
+) {
+  return currency === "KRW" ? "1" : "0.01";
+}
+
 function getCurrencyPlaceholder(
   currency: SupportedCurrency
 ) {
@@ -682,7 +688,9 @@ export default function RenewEnrollmentForm({
                     defaultValue={String(
                       tuitionAmount ?? ""
                     )}
-                    min="0.01"
+                    min={getCurrencyMin(
+                      tuitionCurrency
+                    )}
                     step={getCurrencyStep(
                       tuitionCurrency
                     )}

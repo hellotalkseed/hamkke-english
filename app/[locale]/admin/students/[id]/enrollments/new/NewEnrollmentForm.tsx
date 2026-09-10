@@ -1177,7 +1177,11 @@ export default function NewEnrollmentForm({
                               ? "120"
                               : "7000"
                       }
-                      min="0.01"
+                      min={
+                        tuitionCurrency === "KRW"
+                          ? "1"
+                          : "0.01"
+                      }
                       step={
                         tuitionCurrency === "KRW"
                           ? "1"
