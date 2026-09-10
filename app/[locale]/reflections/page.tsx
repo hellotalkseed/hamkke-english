@@ -39,27 +39,71 @@ export default async function ReflectionsPage({
 
   return (
     <main className="min-h-screen bg-[#FAF8F5]">
-
       {/* =====================================================
-          BACK BUTTON
+          HAMKKE HEADER
           ===================================================== */}
 
-      <div className="mx-auto max-w-7xl px-6 pt-8 lg:px-10">
-        <a
-          href={`/${locale}`}
+      <header
+        className="
+          w-full
+          px-6
+          pt-7
+          sm:px-8
+          sm:pt-8
+          lg:px-10
+          xl:px-12
+        "
+      >
+        <div
           className="
-            inline-flex
-            items-center
-            text-sm
-            text-[#6F8F72]
-            transition-colors
-            duration-300
-            hover:text-[#5B7960]
+            flex
+            w-full
+            items-start
+            justify-between
+            gap-8
           "
         >
-          ← Back to Hamkke
-        </a>
-      </div>
+          {/* BRAND + TAGLINE */}
+
+          <a
+  href={`/${locale}#student-stories`}
+            className="
+              shrink-0
+              text-left
+              transition-opacity
+              duration-200
+              hover:opacity-75
+            "
+          >
+            <p
+              className="
+                font-sans
+                text-[16px]
+                font-semibold
+                leading-none
+                tracking-[0.18em]
+                text-[#6F8F72]
+              "
+            >
+              HAMKKE │ 함께
+            </p>
+
+            <p
+              className="
+                mt-2
+                font-serif
+                text-[13px]
+                font-normal
+                leading-none
+                tracking-[0.02em]
+                text-[#6F8F72]
+              "
+            >
+              From Small Talk to Big Ideas
+            </p>
+          </a>
+        </div>
+      </header>
 
       {/* =====================================================
           PAGE INTRODUCTION
@@ -70,43 +114,23 @@ export default async function ReflectionsPage({
           mx-auto
           max-w-4xl
           px-6
-          pt-16
           pb-16
+          pt-16
           text-center
-
           sm:pt-18
-
-          lg:pt-20
           lg:pb-20
+          lg:pt-20
         "
       >
-
-        {/* Brand */}
-
-        <p
-          className="
-            text-[12px]
-            font-medium
-            uppercase
-            tracking-[0.35em]
-            text-[#6F8F72]
-          "
-        >
-          {t.reflections.brand}
-        </p>
-
-        {/* Title */}
+        {/* TITLE */}
 
         <h1
           className="
-            mt-0
             text-[48px]
             leading-[0.95]
             text-[#2B2B2B]
             [font-family:var(--font-cormorant)]
-
             sm:text-[58px]
-
             lg:text-[64px]
           "
         >
@@ -115,7 +139,7 @@ export default async function ReflectionsPage({
           {t.reflections.galleryTitleLineTwo}
         </h1>
 
-        {/* Description */}
+        {/* DESCRIPTION */}
 
         <p
           className="
@@ -125,7 +149,6 @@ export default async function ReflectionsPage({
             text-base
             leading-7
             text-[#5B5B5B]
-
             sm:text-lg
             sm:leading-8
           "
@@ -133,7 +156,7 @@ export default async function ReflectionsPage({
           {t.reflections.galleryDescription}
         </p>
 
-        {/* Story Count */}
+        {/* STORY COUNT */}
 
         <p
           className="
@@ -142,14 +165,12 @@ export default async function ReflectionsPage({
             uppercase
             tracking-[0.25em]
             text-[#8B8B8B]
-
             sm:text-xs
           "
         >
           {reflections?.length ?? 0}{" "}
           {t.reflections.storiesShared}
         </p>
-
       </section>
 
       {/* =====================================================
@@ -162,7 +183,6 @@ export default async function ReflectionsPage({
           max-w-7xl
           px-6
           pb-24
-
           lg:px-10
         "
       >
@@ -171,7 +191,6 @@ export default async function ReflectionsPage({
           locale={locale}
         />
       </section>
-
     </main>
   );
 }
