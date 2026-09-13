@@ -359,9 +359,23 @@ export default async function ContractPage({
     "To be confirmed"
   );
 
+  const acceptedByRelationshipValue =
+    contract.accepted_by_relationship
+      ?.trim()
+      .toLowerCase() ?? null;
+
+  const usesParentOrGuardianAcceptance =
+    Boolean(
+      contract.accepted_by_name &&
+      (
+        acceptedByRelationshipValue === "parent" ||
+        acceptedByRelationshipValue === "guardian"
+      )
+    );
+
   const acceptedByName =
     contract.accepted_by_name ||
-    "To be confirmed";
+    "";
 
   const acceptedByRelationship =
     formatAcceptedByRelationship(
@@ -736,16 +750,29 @@ export default async function ContractPage({
               the enrollment identified below.
             </p>
 
-            <p>
-              This agreement is provided digitally before
-              payment. By proceeding with payment for the
-              lesson package, the person accepting this
-              agreement confirms that they have had the
-              opportunity to review the agreement and agree
-              to the terms and lesson policies contained
-              herein on their own behalf or, where
-              applicable, on behalf of the student.
-            </p>
+            {usesParentOrGuardianAcceptance ? (
+              <p>
+                This agreement is provided digitally before
+                payment. By proceeding with payment for the
+                lesson package, the person accepting this
+                agreement confirms that they have had the
+                opportunity to review the agreement and agree
+                to the terms and lesson policies contained
+                herein on behalf of the student.
+              </p>
+            ) : (
+              <p>
+                This agreement is provided digitally before
+                payment. By proceeding with payment for the
+                lesson package, the{" "}
+                {isSharedEnrollment
+                  ? "students confirm"
+                  : "student confirms"}{" "}
+                that they have had the opportunity to review
+                the agreement and agree to the terms and lesson
+                policies contained herein.
+              </p>
+            )}
 
           </Section>
 
@@ -981,13 +1008,24 @@ export default async function ContractPage({
     applicable exchange rate at that time.
   </p>
 
-  <p>
-    The lesson package is reserved for the student upon
-    payment. Payment confirms acceptance of this
-    agreement and the lesson policies set out below by
-    the person accepting on their own behalf or, where
-    applicable, on behalf of the student.
-  </p>
+  {usesParentOrGuardianAcceptance ? (
+    <p>
+      The lesson package is reserved for the student upon
+      payment. Payment confirms acceptance of this
+      agreement and the lesson policies set out below by
+      the parent or guardian accepting on behalf of the
+      student.
+    </p>
+  ) : (
+    <p>
+      The lesson package is reserved for the{" "}
+      {isSharedEnrollment ? "students" : "student"} upon
+      payment. Payment confirms the{" "}
+      {isSharedEnrollment ? "students&apos;" : "student&apos;s"}{" "}
+      acceptance of this agreement and the lesson policies
+      set out below.
+    </p>
+  )}
 
   <p>
     Because lessons are purchased as a package, refunds
@@ -1259,31 +1297,61 @@ export default async function ContractPage({
             title="Agreement & Acceptance"
           >
 
-            <p>
-              This agreement is provided digitally before
-              payment so that the person accepting it may
-              review the lesson package and applicable
-              policies in advance.
-            </p>
+            {usesParentOrGuardianAcceptance ? (
+              <>
+                <p>
+                  This agreement is provided digitally before
+                  payment so that the parent or guardian
+                  accepting it may review the lesson package
+                  and applicable policies in advance.
+                </p>
 
-            <p>
-              By proceeding with payment for this enrollment,
-              the person accepting this agreement confirms
-              that they have read and understood the
-              agreement and agree to the lesson package
-              details and policies described herein on their
-              own behalf or, where applicable, on behalf of
-              the student.
-            </p>
+                <p>
+                  By proceeding with payment for this
+                  enrollment, the parent or guardian accepting
+                  this agreement confirms that they have read
+                  and understood the agreement and agree to the
+                  lesson package details and policies described
+                  herein on behalf of the student.
+                </p>
 
-            <p>
-              No handwritten signature is required for this
-              digital agreement. The payment associated with
-              this enrollment serves as confirmation of
-              acceptance of these terms by the person
-              identified in the Digital Agreement record
-              below.
-            </p>
+                <p>
+                  No handwritten signature is required for this
+                  digital agreement. The payment associated with
+                  this enrollment serves as confirmation of
+                  acceptance of these terms by the person
+                  identified in the Digital Agreement record
+                  below.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  This agreement is provided digitally before
+                  payment so that the{" "}
+                  {isSharedEnrollment ? "students" : "student"}{" "}
+                  may review the lesson package and applicable
+                  policies in advance.
+                </p>
+
+                <p>
+                  By proceeding with payment for this
+                  enrollment, the{" "}
+                  {isSharedEnrollment ? "students confirm" : "student confirms"}{" "}
+                  that they have read and understood the
+                  agreement and agree to the lesson package
+                  details and policies described herein.
+                </p>
+
+                <p>
+                  No handwritten signature is required for this
+                  digital agreement. The payment associated with
+                  this enrollment serves as confirmation of the{" "}
+                  {isSharedEnrollment ? "students&apos;" : "student&apos;s"}{" "}
+                  acceptance of these terms.
+                </p>
+              </>
+            )}
 
           </Section>
 
@@ -1335,58 +1403,95 @@ export default async function ContractPage({
 
               </div>
 
-              <div className="grid grid-cols-2">
+              {usesParentOrGuardianAcceptance ? (
+                <div className="grid grid-cols-2">
 
-                <div className="border-r border-b border-[#C8C8C4] px-5 py-4">
+                  <div className="border-r border-b border-[#C8C8C4] px-5 py-4">
 
-                  <Info
-                    label={
-                      isSharedEnrollment
-                        ? "Students"
-                        : "Student"
-                    }
-                    value={studentName}
-                  />
+                    <Info
+                      label={
+                        isSharedEnrollment
+                          ? "Students"
+                          : "Student"
+                      }
+                      value={studentName}
+                    />
+
+                  </div>
+
+                  <div className="border-b border-[#C8C8C4] px-5 py-4">
+
+                    <Info
+                      label="Accepted By"
+                      value={acceptedByName}
+                    />
+
+                  </div>
+
+                  <div className="border-r border-b border-[#C8C8C4] px-5 py-4">
+
+                    <Info
+                      label="Contract Number"
+                      value={contractNumber}
+                    />
+
+                  </div>
+
+                  <div className="border-b border-[#C8C8C4] px-5 py-4">
+
+                    <Info
+                      label="Relationship to Student"
+                      value={acceptedByRelationship}
+                    />
+
+                  </div>
+
+                  <div className="col-span-2 px-5 py-4">
+
+                    <Info
+                      label="Agreement Date"
+                      value={agreementDate}
+                    />
+
+                  </div>
 
                 </div>
+              ) : (
+                <div className="grid grid-cols-3">
 
-                <div className="border-b border-[#C8C8C4] px-5 py-4">
+                  <div className="border-r border-[#C8C8C4] px-5 py-4">
 
-                  <Info
-                    label="Accepted By"
-                    value={acceptedByName}
-                  />
+                    <Info
+                      label={
+                        isSharedEnrollment
+                          ? "Students"
+                          : "Student"
+                      }
+                      value={studentName}
+                    />
+
+                  </div>
+
+                  <div className="border-r border-[#C8C8C4] px-5 py-4">
+
+                    <Info
+                      label="Contract Number"
+                      value={contractNumber}
+                    />
+
+                  </div>
+
+                  <div className="px-5 py-4">
+
+                    <Info
+                      label="Agreement Date"
+                      value={agreementDate}
+                    />
+
+                  </div>
 
                 </div>
-
-                <div className="border-r border-b border-[#C8C8C4] px-5 py-4">
-
-                  <Info
-                    label="Contract Number"
-                    value={contractNumber}
-                  />
-
-                </div>
-
-                <div className="border-b border-[#C8C8C4] px-5 py-4">
-
-                  <Info
-                    label="Relationship to Student"
-                    value={acceptedByRelationship}
-                  />
-
-                </div>
-
-                <div className="col-span-2 px-5 py-4">
-
-                  <Info
-                    label="Agreement Date"
-                    value={agreementDate}
-                  />
-
-                </div>
-
-              </div>
+              )}
 
             </div>
 

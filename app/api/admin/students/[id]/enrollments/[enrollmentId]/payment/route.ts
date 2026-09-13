@@ -18,14 +18,13 @@ const SUPPORTED_CURRENCIES = [
 type SupportedCurrency =
   (typeof SUPPORTED_CURRENCIES)[number];
 
-const ACCEPTED_BY_RELATIONSHIPS = [
-  "self",
+const MINOR_ACCEPTED_BY_RELATIONSHIPS = [
   "parent",
   "guardian",
 ] as const;
 
-type AcceptedByRelationship =
-  (typeof ACCEPTED_BY_RELATIONSHIPS)[number];
+type MinorAcceptedByRelationship =
+  (typeof MINOR_ACCEPTED_BY_RELATIONSHIPS)[number];
 
 /* ========================================================================== */
 /* HELPERS                                                                    */
@@ -99,9 +98,9 @@ function normalizeCurrency(
   return null;
 }
 
-function normalizeAcceptedByRelationship(
+function normalizeMinorAcceptedByRelationship(
   value: unknown
-): AcceptedByRelationship | null {
+): MinorAcceptedByRelationship | null {
   if (
     value === null ||
     value === undefined
@@ -115,11 +114,11 @@ function normalizeAcceptedByRelationship(
       .toLowerCase();
 
   if (
-    ACCEPTED_BY_RELATIONSHIPS.includes(
-      normalized as AcceptedByRelationship
+    MINOR_ACCEPTED_BY_RELATIONSHIPS.includes(
+      normalized as MinorAcceptedByRelationship
     )
   ) {
-    return normalized as AcceptedByRelationship;
+    return normalized as MinorAcceptedByRelationship;
   }
 
   return null;
@@ -504,39 +503,63 @@ Message: ${
       "notes"
     );
 
-  const acceptedByName =
+  const minorAgreementValue =
+    getFormValue(
+      formData,
+      "accepted_by_minor"
+    );
+
+  const isMinorAgreement =
+    minorAgreementValue === "yes";
+
+  const submittedAcceptedByName =
     getFormValue(
       formData,
       "accepted_by_name"
     );
 
-  const acceptedByRelationshipValue =
+  const submittedAcceptedByRelationship =
     getFormValue(
       formData,
       "accepted_by_relationship"
     );
 
   /* ======================================================================== */
-  /* STEP 9: VALIDATE CONTRACT ACCEPTANCE                                     */
+  /* STEP 9: DETERMINE CONTRACT ACCEPTANCE MODE                               */
   /* ======================================================================== */
 
-  if (!acceptedByName) {
-    return new NextResponse(
-      "The name of the person accepting the agreement is required.",
-      { status: 400 }
-    );
-  }
+  let acceptedByName: string | null =
+    null;
 
-  const acceptedByRelationship =
-    normalizeAcceptedByRelationship(
-      acceptedByRelationshipValue
-    );
+  let acceptedByRelationship:
+    MinorAcceptedByRelationship | null =
+    null;
 
-  if (!acceptedByRelationship) {
-    return new NextResponse(
-      "A valid relationship to the student is required.",
-      { status: 400 }
-    );
+  if (isMinorAgreement) {
+    if (!submittedAcceptedByName) {
+      return new NextResponse(
+        "The parent or guardian name is required for a minor student.",
+        { status: 400 }
+      );
+    }
+
+    const normalizedRelationship =
+      normalizeMinorAcceptedByRelationship(
+        submittedAcceptedByRelationship
+      );
+
+    if (!normalizedRelationship) {
+      return new NextResponse(
+        "Please select Parent or Guardian for the minor student's agreement.",
+        { status: 400 }
+      );
+    }
+
+    acceptedByName =
+      submittedAcceptedByName;
+
+    acceptedByRelationship =
+      normalizedRelationship;
   }
 
   /* ======================================================================== */
@@ -815,7 +838,7 @@ Message: ${
         null;
 
   /* ======================================================================== */
-  /* STEP 19: RECORD CONTRACT ACCEPTANCE                                      */
+  /* STEP 19: RECORD CONTRACT ACCEPTANCE MODE                                 */
   /* ======================================================================== */
 
   const {
@@ -844,6 +867,7 @@ Message: ${
         enrollmentId,
         contractId:
           contractForAcceptance.id,
+        isMinorAgreement,
         code:
           contractAcceptanceError.code,
         message:
@@ -856,13 +880,13 @@ Message: ${
     );
 
     return new NextResponse(
-      "Unable to record the contract acceptance.",
+      "Unable to record the contract acceptance details.",
       { status: 500 }
     );
   }
 
   /* ======================================================================== */
-  /* STEP 20: VERIFY CONTRACT ACCEPTANCE                                      */
+  /* STEP 20: VERIFY CONTRACT ACCEPTANCE MODE                                 */
   /* ======================================================================== */
 
   const {
@@ -905,7 +929,7 @@ Message: ${
     );
 
     return new NextResponse(
-      "Contract acceptance was saved, but could not be verified.",
+      "Contract acceptance details were saved, but could not be verified.",
       { status: 500 }
     );
   }
@@ -1318,9 +1342,14 @@ Hint: ${
         enrollmentId,
         contractId:
           contract.id,
-        acceptedByName:
+        isMinorAgreement,
+        expectedAcceptedByName:
+          acceptedByName,
+        expectedAcceptedByRelationship:
+          acceptedByRelationship,
+        actualAcceptedByName:
           contract.accepted_by_name,
-        acceptedByRelationship:
+        actualAcceptedByRelationship:
           contract.accepted_by_relationship,
       }
     );
@@ -1432,6 +1461,11 @@ Hint: ${
 
       contractStatus:
         contract.status,
+
+      agreementMode:
+        isMinorAgreement
+          ? "parent_or_guardian"
+          : "adult_student",
 
       acceptedByName:
         contract.accepted_by_name,

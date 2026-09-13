@@ -2222,148 +2222,175 @@ export default async function StudentPage({
                   "
                 >
                   <div className="max-w-[720px]">
-                    <div>
-                      <p
-                        className="
-                          font-sans
-                          text-[11px]
-                          font-medium
-                          uppercase
-                          tracking-[0.12em]
-                          text-[#6F8F72]
-                        "
-                      >
-                        Digital Agreement
-                      </p>
-
-                      <p
-                        className="
-                          mt-2
-                          max-w-[620px]
-                          font-sans
-                          text-[12px]
-                          leading-[1.7]
-                          text-[#8A8A84]
-                        "
-                      >
-                        Record the person who accepted the
-                        lesson agreement before confirming
-                        payment. For a minor student, enter
-                        the parent or guardian who accepted
-                        on the student&apos;s behalf.
-                      </p>
-                    </div>
-
-                    <div
+                    <p
                       className="
-                        mt-5
-                        grid
-                        gap-4
-                        sm:grid-cols-2
+                        font-sans
+                        text-[11px]
+                        font-medium
+                        uppercase
+                        tracking-[0.12em]
+                        text-[#6F8F72]
                       "
                     >
-                      <div>
-                        <label
-                          htmlFor="accepted_by_name"
-                          className="
-                            mb-2
-                            block
-                            font-sans
-                            text-[10px]
-                            font-medium
-                            uppercase
-                            tracking-[0.12em]
-                            text-[#777771]
-                          "
-                        >
-                          Accepted by
-                        </label>
+                      Digital Agreement
+                    </p>
 
-                        <input
-                          id="accepted_by_name"
-                          name="accepted_by_name"
-                          type="text"
-                          form="confirm-payment-form"
-                          required
-                          autoComplete="name"
-                          placeholder="Full name"
-                          className="
-                            w-full
-                            rounded-xl
-                            border
-                            border-[#DCD8D2]
-                            bg-white
-                            px-4
-                            py-3
-                            font-sans
-                            text-[13px]
-                            text-[#292929]
-                            outline-none
-                            transition-colors
-                            placeholder:text-[#AAA6A0]
-                            focus:border-[#6F8F72]
-                          "
-                        />
-                      </div>
+                    <p
+                      className="
+                        mt-2
+                        max-w-[620px]
+                        font-sans
+                        text-[12px]
+                        leading-[1.7]
+                        text-[#8A8A84]
+                      "
+                    >
+                      For an adult student, no additional
+                      agreement information is needed. If
+                      the student is a minor, indicate that
+                      a parent or guardian accepted the
+                      agreement on the student&apos;s behalf.
+                    </p>
 
-                      <div>
-                        <label
-                          htmlFor="accepted_by_relationship"
-                          className="
-                            mb-2
-                            block
-                            font-sans
-                            text-[10px]
-                            font-medium
-                            uppercase
-                            tracking-[0.12em]
-                            text-[#777771]
-                          "
-                        >
-                          Relationship to Student
-                        </label>
+                    <div className="mt-5">
+                      <input
+                        id="accepted_by_minor"
+                        name="accepted_by_minor"
+                        type="checkbox"
+                        value="yes"
+                        form="confirm-payment-form"
+                        className="
+                          peer
+                          h-4
+                          w-4
+                          rounded
+                          border-[#CFCBC4]
+                          accent-[#6F8F72]
+                        "
+                      />
 
-                        <select
-                          id="accepted_by_relationship"
-                          name="accepted_by_relationship"
-                          form="confirm-payment-form"
-                          required
-                          defaultValue=""
-                          className="
-                            w-full
-                            rounded-xl
-                            border
-                            border-[#DCD8D2]
-                            bg-white
-                            px-4
-                            py-3
-                            font-sans
-                            text-[13px]
-                            text-[#292929]
-                            outline-none
-                            transition-colors
-                            focus:border-[#6F8F72]
-                          "
-                        >
-                          <option
-                            value=""
-                            disabled
+                      <label
+                        htmlFor="accepted_by_minor"
+                        className="
+                          ml-2.5
+                          cursor-pointer
+                          align-middle
+                          font-sans
+                          text-[13px]
+                          leading-6
+                          text-[#5F655F]
+                        "
+                      >
+                        A parent or guardian is accepting this
+                        agreement on behalf of the student.
+                      </label>
+
+                      <div
+                        className="
+                          mt-5
+                          hidden
+                          gap-4
+                          peer-checked:grid
+                          sm:grid-cols-2
+                        "
+                      >
+                        <div>
+                          <label
+                            htmlFor="accepted_by_name"
+                            className="
+                              mb-2
+                              block
+                              font-sans
+                              text-[10px]
+                              font-medium
+                              uppercase
+                              tracking-[0.12em]
+                              text-[#777771]
+                            "
                           >
-                            Select relationship
-                          </option>
+                            Accepted by
+                          </label>
 
-                          <option value="self">
-                            Self
-                          </option>
+                          <input
+                            id="accepted_by_name"
+                            name="accepted_by_name"
+                            type="text"
+                            form="confirm-payment-form"
+                            autoComplete="name"
+                            placeholder="Parent or guardian full name"
+                            className="
+                              w-full
+                              rounded-xl
+                              border
+                              border-[#DCD8D2]
+                              bg-white
+                              px-4
+                              py-3
+                              font-sans
+                              text-[13px]
+                              text-[#292929]
+                              outline-none
+                              transition-colors
+                              placeholder:text-[#AAA6A0]
+                              focus:border-[#6F8F72]
+                            "
+                          />
+                        </div>
 
-                          <option value="parent">
-                            Parent
-                          </option>
+                        <div>
+                          <label
+                            htmlFor="accepted_by_relationship"
+                            className="
+                              mb-2
+                              block
+                              font-sans
+                              text-[10px]
+                              font-medium
+                              uppercase
+                              tracking-[0.12em]
+                              text-[#777771]
+                            "
+                          >
+                            Relationship to Student
+                          </label>
 
-                          <option value="guardian">
-                            Guardian
-                          </option>
-                        </select>
+                          <select
+                            id="accepted_by_relationship"
+                            name="accepted_by_relationship"
+                            form="confirm-payment-form"
+                            defaultValue=""
+                            className="
+                              w-full
+                              rounded-xl
+                              border
+                              border-[#DCD8D2]
+                              bg-white
+                              px-4
+                              py-3
+                              font-sans
+                              text-[13px]
+                              text-[#292929]
+                              outline-none
+                              transition-colors
+                              focus:border-[#6F8F72]
+                            "
+                          >
+                            <option
+                              value=""
+                              disabled
+                            >
+                              Select relationship
+                            </option>
+
+                            <option value="parent">
+                              Parent
+                            </option>
+
+                            <option value="guardian">
+                              Guardian
+                            </option>
+                          </select>
+                        </div>
                       </div>
                     </div>
 
