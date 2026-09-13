@@ -325,7 +325,9 @@ export default async function ContractPage({
     .select(`
       id,
       contract_number,
-      agreement_date
+      agreement_date,
+      accepted_by_name,
+      accepted_by_relationship
     `)
     .eq("enrollment_id", enrollmentId)
     .single();
@@ -356,6 +358,15 @@ export default async function ContractPage({
     contract.agreement_date,
     "To be confirmed"
   );
+
+  const acceptedByName =
+    contract.accepted_by_name ||
+    "To be confirmed";
+
+  const acceptedByRelationship =
+    formatAcceptedByRelationship(
+      contract.accepted_by_relationship
+    );
 
   const startDate = formatDate(
     enrollment.start_date,
@@ -728,13 +739,12 @@ export default async function ContractPage({
             <p>
               This agreement is provided digitally before
               payment. By proceeding with payment for the
-              lesson package, the{" "}
-              {isSharedEnrollment
-                ? "students"
-                : "student"}{" "}
-              confirms that they have had the opportunity to
-              review this agreement and agree to the terms
-              and lesson policies contained herein.
+              lesson package, the person accepting this
+              agreement confirms that they have had the
+              opportunity to review the agreement and agree
+              to the terms and lesson policies contained
+              herein on their own behalf or, where
+              applicable, on behalf of the student.
             </p>
 
           </Section>
@@ -973,9 +983,10 @@ export default async function ContractPage({
 
   <p>
     The lesson package is reserved for the student upon
-    payment. Payment confirms the student&apos;s
-    acceptance of this agreement and the lesson
-    policies set out below.
+    payment. Payment confirms acceptance of this
+    agreement and the lesson policies set out below by
+    the person accepting on their own behalf or, where
+    applicable, on behalf of the student.
   </p>
 
   <p>
@@ -1249,25 +1260,29 @@ export default async function ContractPage({
           >
 
             <p>
-              This agreement is provided to the student
-              before payment so that the student may review
-              the lesson package and applicable policies in
-              advance.
+              This agreement is provided digitally before
+              payment so that the person accepting it may
+              review the lesson package and applicable
+              policies in advance.
             </p>
 
             <p>
               By proceeding with payment for this enrollment,
-              the student confirms that they have read and
-              understood the agreement and agree to the
-              lesson package details and policies described
-              herein.
+              the person accepting this agreement confirms
+              that they have read and understood the
+              agreement and agree to the lesson package
+              details and policies described herein on their
+              own behalf or, where applicable, on behalf of
+              the student.
             </p>
 
             <p>
               No handwritten signature is required for this
               digital agreement. The payment associated with
               this enrollment serves as confirmation of
-              acceptance of these terms.
+              acceptance of these terms by the person
+              identified in the Digital Agreement record
+              below.
             </p>
 
           </Section>
@@ -1320,69 +1335,49 @@ export default async function ContractPage({
 
               </div>
 
-              <div
-                className={
-                  isSharedEnrollment
-                    ? "grid grid-cols-2"
-                    : "grid grid-cols-3"
-                }
-              >
+              <div className="grid grid-cols-2">
 
-                {isSharedEnrollment ? (
-                  <>
-                    <div className="border-r border-[#C8C8C4] px-5 py-4">
+                <div className="border-r border-b border-[#C8C8C4] px-5 py-4">
 
-                      <Info
-                        label="Students"
-                        value={studentName}
-                      />
+                  <Info
+                    label={
+                      isSharedEnrollment
+                        ? "Students"
+                        : "Student"
+                    }
+                    value={studentName}
+                  />
 
-                    </div>
+                </div>
 
-                    <div className="px-5 py-4">
+                <div className="border-b border-[#C8C8C4] px-5 py-4">
 
-                      <Info
-                        label="Contract Number"
-                        value={contractNumber}
-                      />
+                  <Info
+                    label="Accepted By"
+                    value={acceptedByName}
+                  />
 
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="border-r border-[#C8C8C4] px-5 py-4">
+                </div>
 
-                      <Info
-                        label="Student"
-                        value={studentName}
-                      />
+                <div className="border-r border-b border-[#C8C8C4] px-5 py-4">
 
-                    </div>
+                  <Info
+                    label="Contract Number"
+                    value={contractNumber}
+                  />
 
-                    <div className="border-r border-[#C8C8C4] px-5 py-4">
+                </div>
 
-                      <Info
-                        label="Contract Number"
-                        value={contractNumber}
-                      />
+                <div className="border-b border-[#C8C8C4] px-5 py-4">
 
-                    </div>
+                  <Info
+                    label="Relationship to Student"
+                    value={acceptedByRelationship}
+                  />
 
-                    <div className="px-5 py-4">
+                </div>
 
-                      <Info
-                        label="Agreement Date"
-                        value={agreementDate}
-                      />
-
-                    </div>
-                  </>
-                )}
-
-              </div>
-
-              {isSharedEnrollment && (
-                <div className="border-t border-[#C8C8C4] px-5 py-4">
+                <div className="col-span-2 px-5 py-4">
 
                   <Info
                     label="Agreement Date"
@@ -1390,7 +1385,8 @@ export default async function ContractPage({
                   />
 
                 </div>
-              )}
+
+              </div>
 
             </div>
 
@@ -2010,6 +2006,27 @@ function normalizeScheduleDays(
       (day, index, array) =>
         array.indexOf(day) === index
     );
+}
+
+/* -------------------------------------------------------------------------- */
+/* ACCEPTANCE RELATIONSHIP                                                    */
+/* -------------------------------------------------------------------------- */
+
+function formatAcceptedByRelationship(
+  value: string | null | undefined
+): string {
+  const normalized =
+    value?.trim().toLowerCase();
+
+  const labels: Record<string, string> = {
+    self: "Self",
+    parent: "Parent",
+    guardian: "Guardian",
+  };
+
+  return normalized
+    ? labels[normalized] ?? value ?? "To be confirmed"
+    : "To be confirmed";
 }
 
 /* -------------------------------------------------------------------------- */

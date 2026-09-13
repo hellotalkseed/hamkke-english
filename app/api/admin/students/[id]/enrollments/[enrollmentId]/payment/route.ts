@@ -8,10 +8,6 @@ interface RouteContext {
   }>;
 }
 
-interface EnrollmentParticipant {
-  student_id: string;
-}
-
 const SUPPORTED_CURRENCIES = [
   "KRW",
   "CNY",
@@ -21,6 +17,15 @@ const SUPPORTED_CURRENCIES = [
 
 type SupportedCurrency =
   (typeof SUPPORTED_CURRENCIES)[number];
+
+const ACCEPTED_BY_RELATIONSHIPS = [
+  "self",
+  "parent",
+  "guardian",
+] as const;
+
+type AcceptedByRelationship =
+  (typeof ACCEPTED_BY_RELATIONSHIPS)[number];
 
 /* ========================================================================== */
 /* HELPERS                                                                    */
@@ -94,6 +99,32 @@ function normalizeCurrency(
   return null;
 }
 
+function normalizeAcceptedByRelationship(
+  value: unknown
+): AcceptedByRelationship | null {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return null;
+  }
+
+  const normalized =
+    String(value)
+      .trim()
+      .toLowerCase();
+
+  if (
+    ACCEPTED_BY_RELATIONSHIPS.includes(
+      normalized as AcceptedByRelationship
+    )
+  ) {
+    return normalized as AcceptedByRelationship;
+  }
+
+  return null;
+}
+
 /* ========================================================================== */
 /* POST                                                                       */
 /* ========================================================================== */
@@ -113,20 +144,6 @@ export async function POST(
   /* ======================================================================== */
   /* STEP 1: VERIFY ENROLLMENT                                                */
   /* ======================================================================== */
-
-  /*
-   * Individual enrollment:
-   *
-   *   enrollments.student_id = originating student
-   *
-   * Shared enrollment:
-   *
-   *   enrollments.student_id = NULL
-   *
-   * We therefore find the enrollment by ID first,
-   * then verify whether the selected student may
-   * manage it.
-   */
 
   const {
     data: enrollment,
@@ -274,7 +291,10 @@ export async function POST(
           student_id
         `
       )
-      .eq("enrollment_id", enrollmentId);
+      .eq(
+        "enrollment_id",
+        enrollmentId
+      );
 
     if (participantsError) {
       console.error(
@@ -337,10 +357,16 @@ export async function POST(
         status
       `
     )
-    .eq("enrollment_id", enrollmentId)
-    .order("created_at", {
-      ascending: false,
-    })
+    .eq(
+      "enrollment_id",
+      enrollmentId
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false,
+      }
+    )
     .limit(1)
     .maybeSingle();
 
@@ -423,10 +449,6 @@ Message: ${
       "tuition_amount"
     );
 
-  /*
-   * Legacy KRW-specific aliases remain accepted
-   * so older forms can still confirm older payments.
-   */
   const tuitionAmountKrwValue =
     getFormValue(
       formData,
@@ -482,17 +504,110 @@ Message: ${
       "notes"
     );
 
+  const acceptedByName =
+    getFormValue(
+      formData,
+      "accepted_by_name"
+    );
+
+  const acceptedByRelationshipValue =
+    getFormValue(
+      formData,
+      "accepted_by_relationship"
+    );
+
   /* ======================================================================== */
-  /* STEP 9: DETERMINE PAYMENT CURRENCY                                       */
+  /* STEP 9: VALIDATE CONTRACT ACCEPTANCE                                     */
   /* ======================================================================== */
 
-  /*
-   * The enrollment is the authority for the agreed
-   * tuition currency.
-   *
-   * A submitted currency is accepted only when it
-   * matches the enrollment currency.
-   */
+  if (!acceptedByName) {
+    return new NextResponse(
+      "The name of the person accepting the agreement is required.",
+      { status: 400 }
+    );
+  }
+
+  const acceptedByRelationship =
+    normalizeAcceptedByRelationship(
+      acceptedByRelationshipValue
+    );
+
+  if (!acceptedByRelationship) {
+    return new NextResponse(
+      "A valid relationship to the student is required.",
+      { status: 400 }
+    );
+  }
+
+  /* ======================================================================== */
+  /* STEP 10: FIND CONTRACT FOR THIS ENROLLMENT                               */
+  /* ======================================================================== */
+
+  const {
+    data: contractForAcceptance,
+    error: contractLookupError,
+  } = await supabase
+    .from("contracts")
+    .select(
+      `
+        id,
+        enrollment_id,
+        status,
+        accepted_by_name,
+        accepted_by_relationship
+      `
+    )
+    .eq(
+      "enrollment_id",
+      enrollmentId
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false,
+      }
+    )
+    .limit(1)
+    .maybeSingle();
+
+  if (contractLookupError) {
+    console.error(
+      "CONTRACT ACCEPTANCE LOOKUP ERROR:",
+      {
+        enrollmentId,
+        code: contractLookupError.code,
+        message: contractLookupError.message,
+        details: contractLookupError.details,
+        hint: contractLookupError.hint,
+      }
+    );
+
+    return new NextResponse(
+      "Unable to verify the contract before confirming payment.",
+      { status: 500 }
+    );
+  }
+
+  if (!contractForAcceptance) {
+    return new NextResponse(
+      "Contract not found for this enrollment.",
+      { status: 404 }
+    );
+  }
+
+  if (
+    contractForAcceptance.enrollment_id !==
+    enrollmentId
+  ) {
+    return new NextResponse(
+      "The contract does not belong to the selected enrollment.",
+      { status: 400 }
+    );
+  }
+
+  /* ======================================================================== */
+  /* STEP 11: DETERMINE PAYMENT CURRENCY                                      */
+  /* ======================================================================== */
 
   const submittedCurrency =
     currencyValue
@@ -526,20 +641,8 @@ Message: ${
     enrollmentCurrency;
 
   /* ======================================================================== */
-  /* STEP 10: DETERMINE ORIGINAL PAYMENT AMOUNT                              */
+  /* STEP 12: DETERMINE ORIGINAL PAYMENT AMOUNT                               */
   /* ======================================================================== */
-
-  /*
-   * payments.amount is the agreed / original amount
-   * in payments.currency.
-   *
-   * Priority:
-   *
-   * 1. submitted amount / tuition_amount
-   * 2. legacy KRW aliases when currency is KRW
-   * 3. existing payment.amount
-   * 4. enrollment.tuition_amount
-   */
 
   let amount =
     payment.amount !== null
@@ -596,18 +699,8 @@ Message: ${
   }
 
   /* ======================================================================== */
-  /* STEP 11: DETERMINE PHP AMOUNT                                            */
+  /* STEP 13: DETERMINE PHP AMOUNT                                            */
   /* ======================================================================== */
-
-  /*
-   * amount_php is always Hamkke's actual PHP receipt.
-   *
-   * Priority:
-   *
-   * 1. tuition_amount_php
-   * 2. amount_php
-   * 3. existing amount_php
-   */
 
   let amountPhp =
     payment.amount_php !== null
@@ -652,18 +745,8 @@ Message: ${
   }
 
   /* ======================================================================== */
-  /* STEP 12: LEGACY KRW COMPATIBILITY AMOUNT                                */
+  /* STEP 14: LEGACY KRW COMPATIBILITY AMOUNT                                 */
   /* ======================================================================== */
-
-  /*
-   * amount_krw is now a compatibility field only.
-   *
-   * KRW payment:
-   *     amount_krw = amount
-   *
-   * CNY / USD / PHP payment:
-   *     amount_krw = null
-   */
 
   const amountKrw =
     currency === "KRW"
@@ -671,7 +754,7 @@ Message: ${
       : null;
 
   /* ======================================================================== */
-  /* STEP 13: PAYMENT DATE                                                    */
+  /* STEP 15: PAYMENT DATE                                                    */
   /* ======================================================================== */
 
   const today =
@@ -687,15 +770,8 @@ Message: ${
         today;
 
   /* ======================================================================== */
-  /* STEP 14: PAYMENT METHOD                                                  */
+  /* STEP 16: PAYMENT METHOD                                                  */
   /* ======================================================================== */
-
-  /*
-   * "pending" is a payment status, not a payment method.
-   *
-   * If the submitted payment method is "pending", preserve
-   * the existing payment method instead.
-   */
 
   let paymentMethod =
     payment.payment_method ||
@@ -719,7 +795,7 @@ Message: ${
   }
 
   /* ======================================================================== */
-  /* STEP 15: REFERENCE                                                       */
+  /* STEP 17: REFERENCE                                                       */
   /* ======================================================================== */
 
   const reference =
@@ -729,7 +805,7 @@ Message: ${
         null;
 
   /* ======================================================================== */
-  /* STEP 16: NOTES                                                           */
+  /* STEP 18: NOTES                                                           */
   /* ======================================================================== */
 
   const notes =
@@ -739,20 +815,116 @@ Message: ${
         null;
 
   /* ======================================================================== */
-  /* STEP 17: CONFIRM PAYMENT                                                 */
+  /* STEP 19: RECORD CONTRACT ACCEPTANCE                                      */
   /* ======================================================================== */
 
-  /*
-   * This route changes this payment to paid.
-   *
-   * The database trigger handles:
-   *
-   * - enrollment activation
-   * - contract activation
-   * - lesson generation
-   *
-   * Only the selected enrollment is affected.
-   */
+  const {
+    error: contractAcceptanceError,
+  } = await supabase
+    .from("contracts")
+    .update({
+      accepted_by_name:
+        acceptedByName,
+      accepted_by_relationship:
+        acceptedByRelationship,
+    })
+    .eq(
+      "id",
+      contractForAcceptance.id
+    )
+    .eq(
+      "enrollment_id",
+      enrollmentId
+    );
+
+  if (contractAcceptanceError) {
+    console.error(
+      "CONTRACT ACCEPTANCE UPDATE ERROR:",
+      {
+        enrollmentId,
+        contractId:
+          contractForAcceptance.id,
+        code:
+          contractAcceptanceError.code,
+        message:
+          contractAcceptanceError.message,
+        details:
+          contractAcceptanceError.details,
+        hint:
+          contractAcceptanceError.hint,
+      }
+    );
+
+    return new NextResponse(
+      "Unable to record the contract acceptance.",
+      { status: 500 }
+    );
+  }
+
+  /* ======================================================================== */
+  /* STEP 20: VERIFY CONTRACT ACCEPTANCE                                      */
+  /* ======================================================================== */
+
+  const {
+    data: acceptedContract,
+    error: acceptedContractError,
+  } = await supabase
+    .from("contracts")
+    .select(
+      `
+        id,
+        enrollment_id,
+        status,
+        accepted_by_name,
+        accepted_by_relationship
+      `
+    )
+    .eq(
+      "id",
+      contractForAcceptance.id
+    )
+    .eq(
+      "enrollment_id",
+      enrollmentId
+    )
+    .single();
+
+  if (
+    acceptedContractError ||
+    !acceptedContract
+  ) {
+    console.error(
+      "CONTRACT ACCEPTANCE VERIFICATION ERROR:",
+      {
+        enrollmentId,
+        contractId:
+          contractForAcceptance.id,
+        error:
+          acceptedContractError,
+      }
+    );
+
+    return new NextResponse(
+      "Contract acceptance was saved, but could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  if (
+    acceptedContract.accepted_by_name !==
+      acceptedByName ||
+    acceptedContract.accepted_by_relationship !==
+      acceptedByRelationship
+  ) {
+    return new NextResponse(
+      "Contract acceptance details could not be verified.",
+      { status: 500 }
+    );
+  }
+
+  /* ======================================================================== */
+  /* STEP 21: CONFIRM PAYMENT                                                 */
+  /* ======================================================================== */
 
   const {
     error: paymentUpdateError,
@@ -784,7 +956,7 @@ Message: ${
     );
 
   /* ======================================================================== */
-  /* STEP 18: HANDLE PAYMENT UPDATE ERROR                                     */
+  /* STEP 22: HANDLE PAYMENT UPDATE ERROR                                     */
   /* ======================================================================== */
 
   if (paymentUpdateError) {
@@ -832,7 +1004,7 @@ Hint: ${
   }
 
   /* ======================================================================== */
-  /* STEP 19: VERIFY PAYMENT                                                  */
+  /* STEP 23: VERIFY PAYMENT                                                  */
   /* ======================================================================== */
 
   const {
@@ -962,7 +1134,7 @@ Hint: ${
   }
 
   /* ======================================================================== */
-  /* STEP 20: VERIFY ENROLLMENT ACTIVATION                                    */
+  /* STEP 24: VERIFY ENROLLMENT ACTIVATION                                    */
   /* ======================================================================== */
 
   const {
@@ -1026,7 +1198,7 @@ Hint: ${
   }
 
   /* ======================================================================== */
-  /* STEP 21: VERIFY CONTRACT ACTIVATION                                      */
+  /* STEP 25: VERIFY CONTRACT ACTIVATION                                      */
   /* ======================================================================== */
 
   const {
@@ -1038,7 +1210,9 @@ Hint: ${
       `
         id,
         enrollment_id,
-        status
+        status,
+        accepted_by_name,
+        accepted_by_relationship
       `
     )
     .eq(
@@ -1132,8 +1306,33 @@ Hint: ${
     );
   }
 
+  if (
+    contract.accepted_by_name !==
+      acceptedByName ||
+    contract.accepted_by_relationship !==
+      acceptedByRelationship
+  ) {
+    console.error(
+      "CONTRACT ACCEPTANCE FINAL VERIFICATION FAILED:",
+      {
+        enrollmentId,
+        contractId:
+          contract.id,
+        acceptedByName:
+          contract.accepted_by_name,
+        acceptedByRelationship:
+          contract.accepted_by_relationship,
+      }
+    );
+
+    return new NextResponse(
+      "Payment was confirmed, but the contract acceptance details could not be verified.",
+      { status: 500 }
+    );
+  }
+
   /* ======================================================================== */
-  /* STEP 22: VERIFY LESSON GENERATION                                        */
+  /* STEP 26: VERIFY LESSON GENERATION                                        */
   /* ======================================================================== */
 
   const {
@@ -1194,7 +1393,7 @@ Hint: ${
   }
 
   /* ======================================================================== */
-  /* STEP 23: FINAL LOG                                                       */
+  /* STEP 27: FINAL LOG                                                       */
   /* ======================================================================== */
 
   console.log(
@@ -1234,12 +1433,18 @@ Hint: ${
       contractStatus:
         contract.status,
 
+      acceptedByName:
+        contract.accepted_by_name,
+
+      acceptedByRelationship:
+        contract.accepted_by_relationship,
+
       lessonCount,
     }
   );
 
   /* ======================================================================== */
-  /* STEP 24: RETURN TO STUDENT RECORD                                        */
+  /* STEP 28: RETURN TO STUDENT RECORD                                        */
   /* ======================================================================== */
 
   return NextResponse.redirect(

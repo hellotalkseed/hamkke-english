@@ -2035,6 +2035,7 @@ export default async function StudentPage({
               paymentIsPending &&
               currentEnrollment && (
                 <form
+                  id="confirm-payment-form"
                   method="POST"
                   action={`/api/admin/students/${student.id}/enrollments/${currentEnrollment.id}/payment`}
                 >
@@ -2220,23 +2221,171 @@ export default async function StudentPage({
                     pt-6
                   "
                 >
-                  <p
-                    className="
-                      max-w-[560px]
-                      font-sans
-                      text-[12px]
-                      leading-[1.7]
-                      text-[#8A8A84]
-                    "
-                  >
-                    The payment details were submitted
-                    with this enrollment. Confirm the
-                    payment once the student&apos;s payment
-                    has been received. Confirmation will
-                    activate this enrollment and generate
-                    the lessons belonging to this
-                    enrollment.
-                  </p>
+                  <div className="max-w-[720px]">
+                    <div>
+                      <p
+                        className="
+                          font-sans
+                          text-[11px]
+                          font-medium
+                          uppercase
+                          tracking-[0.12em]
+                          text-[#6F8F72]
+                        "
+                      >
+                        Digital Agreement
+                      </p>
+
+                      <p
+                        className="
+                          mt-2
+                          max-w-[620px]
+                          font-sans
+                          text-[12px]
+                          leading-[1.7]
+                          text-[#8A8A84]
+                        "
+                      >
+                        Record the person who accepted the
+                        lesson agreement before confirming
+                        payment. For a minor student, enter
+                        the parent or guardian who accepted
+                        on the student&apos;s behalf.
+                      </p>
+                    </div>
+
+                    <div
+                      className="
+                        mt-5
+                        grid
+                        gap-4
+                        sm:grid-cols-2
+                      "
+                    >
+                      <div>
+                        <label
+                          htmlFor="accepted_by_name"
+                          className="
+                            mb-2
+                            block
+                            font-sans
+                            text-[10px]
+                            font-medium
+                            uppercase
+                            tracking-[0.12em]
+                            text-[#777771]
+                          "
+                        >
+                          Accepted by
+                        </label>
+
+                        <input
+                          id="accepted_by_name"
+                          name="accepted_by_name"
+                          type="text"
+                          form="confirm-payment-form"
+                          required
+                          autoComplete="name"
+                          placeholder="Full name"
+                          className="
+                            w-full
+                            rounded-xl
+                            border
+                            border-[#DCD8D2]
+                            bg-white
+                            px-4
+                            py-3
+                            font-sans
+                            text-[13px]
+                            text-[#292929]
+                            outline-none
+                            transition-colors
+                            placeholder:text-[#AAA6A0]
+                            focus:border-[#6F8F72]
+                          "
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="accepted_by_relationship"
+                          className="
+                            mb-2
+                            block
+                            font-sans
+                            text-[10px]
+                            font-medium
+                            uppercase
+                            tracking-[0.12em]
+                            text-[#777771]
+                          "
+                        >
+                          Relationship to Student
+                        </label>
+
+                        <select
+                          id="accepted_by_relationship"
+                          name="accepted_by_relationship"
+                          form="confirm-payment-form"
+                          required
+                          defaultValue=""
+                          className="
+                            w-full
+                            rounded-xl
+                            border
+                            border-[#DCD8D2]
+                            bg-white
+                            px-4
+                            py-3
+                            font-sans
+                            text-[13px]
+                            text-[#292929]
+                            outline-none
+                            transition-colors
+                            focus:border-[#6F8F72]
+                          "
+                        >
+                          <option
+                            value=""
+                            disabled
+                          >
+                            Select relationship
+                          </option>
+
+                          <option value="self">
+                            Self
+                          </option>
+
+                          <option value="parent">
+                            Parent
+                          </option>
+
+                          <option value="guardian">
+                            Guardian
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <p
+                      className="
+                        mt-5
+                        max-w-[620px]
+                        font-sans
+                        text-[12px]
+                        leading-[1.7]
+                        text-[#8A8A84]
+                      "
+                    >
+                      The payment details were submitted
+                      with this enrollment. Confirm the
+                      payment once payment has been
+                      received. Confirmation will activate
+                      this enrollment, activate the
+                      contract, and generate the lessons
+                      belonging to this enrollment.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
