@@ -67,6 +67,40 @@ function addDays(dateKey: string, days: number) {
   )}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
+function getWeekDates(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const selected = new Date(Date.UTC(year, month - 1, day));
+  const sunday = addDays(dateKey, -selected.getUTCDay());
+
+  return Array.from({ length: 7 }, (_, index) => addDays(sunday, index));
+}
+
+function formatCompactDate(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+function formatWeekday(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    timeZone: "UTC",
+  })
+    .format(new Date(Date.UTC(year, month - 1, day)))
+    .toUpperCase();
+}
+
+function formatDayNumber(dateKey: string) {
+  return String(Number(dateKey.split("-")[2]));
+}
+
 function formatDate(dateKey: string) {
   const [year, month, day] = dateKey.split("-").map(Number);
 
@@ -178,6 +212,8 @@ export default function DailySchedulePage() {
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const weekDates = useMemo(() => getWeekDates(date), [date]);
 
   async function loadSchedule(targetDate = date) {
     try {
@@ -377,7 +413,21 @@ export default function DailySchedulePage() {
       <section className="mx-auto w-full max-w-[1180px] px-6 pb-20 pt-12 sm:px-8 sm:pt-16 lg:px-10">
         <div className="flex flex-col gap-7 border-b border-[#DCD8D2] pb-9 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="flex items-center gap-2 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]">
+            <div
+            className="
+              relative
+              left-1/2
+              flex
+              w-full
+              -translate-x-1/2
+              items-start
+              justify-between
+              gap-8
+              lg:w-[calc(100%+8rem)]
+              xl:w-[calc(100%+10rem)]
+              2xl:w-[calc(100%+12rem)]
+            "
+          >
               <CalendarDays size={15} strokeWidth={1.6} />
               Daily operations
             </div>
@@ -409,45 +459,96 @@ export default function DailySchedulePage() {
               flex
               w-full
               -translate-x-1/2
-              items-center
-              justify-between
+              flex-col
+              gap-4
               border-y
               border-[#DCD8D2]
-              bg-[#F6E7A8]
+              bg-white
               px-4
               py-4
               sm:px-5
               lg:w-[calc(100%+8rem)]
+              lg:flex-row
+              lg:items-center
+              lg:justify-between
               xl:w-[calc(100%+10rem)]
               2xl:w-[calc(100%+12rem)]
             "
           >
-            <button
-              type="button"
-              onClick={() => setDate((current) => addDays(current, -1))}
-              className="flex h-9 w-9 items-center justify-center text-[#77746E] transition hover:text-[#6F8F72]"
-              aria-label="Previous day"
-            >
-              <ChevronLeft size={18} strokeWidth={1.5} />
-            </button>
+            <div className="flex shrink-0 items-center gap-3">
+              <p className="font-sans text-[21px] font-normal tracking-[-0.02em] text-[#292929] sm:text-[23px]">
+                {formatCompactDate(date)}
+              </p>
 
-            <div className="text-center">
-              <p className="font-serif text-[20px] font-normal leading-7 tracking-[-0.01em] text-[#292929]">
-                {formatDate(date)}
-              </p>
-              <p className="mt-1 font-sans text-[9px] font-medium uppercase tracking-[0.16em] text-[#8A8A84]">
-                Philippine Time
-              </p>
+              <CalendarDays
+                size={21}
+                strokeWidth={1.7}
+                className="text-[#4F514F]"
+              />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setDate((current) => addDays(current, 1))}
-              className="flex h-9 w-9 items-center justify-center text-[#77746E] transition hover:text-[#6F8F72]"
-              aria-label="Next day"
-            >
-              <ChevronRight size={18} strokeWidth={1.5} />
-            </button>
+            <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => setDate((current) => addDays(current, -7))}
+                className="flex h-9 w-9 shrink-0 items-center justify-center text-[#565A56] transition hover:text-[#6F8F72]"
+                aria-label="Previous week"
+              >
+                <ChevronLeft size={20} strokeWidth={1.7} />
+              </button>
+
+              <div className="flex min-w-0 items-center justify-center gap-1 sm:gap-2">
+                {weekDates.map((weekDate) => {
+                  const selected = weekDate === date;
+
+                  return (
+                    <button
+                      key={weekDate}
+                      type="button"
+                      onClick={() => setDate(weekDate)}
+                      aria-label={`View ${formatDate(weekDate)}`}
+                      aria-current={selected ? "date" : undefined}
+                      className={`
+                        flex
+                        h-[64px]
+                        w-[50px]
+                        shrink-0
+                        flex-col
+                        items-center
+                        justify-center
+                        rounded-full
+                        font-sans
+                        transition-colors
+                        sm:h-[70px]
+                        sm:w-[56px]
+                        ${
+                          selected
+                            ? "bg-[#BFE6FF] text-[#1F2D33]"
+                            : "text-[#4E514F] hover:bg-[#F2F4F2]"
+                        }
+                      `}
+                    >
+                      <span className="text-[10px] font-semibold uppercase leading-none tracking-[0.04em] sm:text-[11px]">
+                        {formatWeekday(weekDate)}
+                      </span>
+
+                      <span className="mt-2 text-[17px] font-medium leading-none sm:text-[18px]">
+                        {formatDayNumber(weekDate)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDate((current) => addDays(current, 7))}
+                className="flex h-9 w-9 shrink-0 items-center justify-center text-[#565A56] transition hover:text-[#6F8F72]"
+                aria-label="Next week"
+              >
+                <ChevronRight size={20} strokeWidth={1.7} />
+              </button>
+            </div>
           </div>
 
           <div
