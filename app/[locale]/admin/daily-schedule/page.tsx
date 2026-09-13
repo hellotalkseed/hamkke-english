@@ -410,48 +410,67 @@ export default function DailySchedulePage() {
         </div>
       </header>
 
-      <section className="mx-auto w-full max-w-[1180px] px-6 pb-20 pt-12 sm:px-8 sm:pt-16 lg:px-10">
-        <div className="flex flex-col gap-7 border-b border-[#DCD8D2] pb-9 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div
+      <section className="mx-auto w-full max-w-[1180px] px-6 pb-20 pt-12 sm:px-8 sm:pt-16 lg:px-10">        <div className="pb-9">
+          <div className="relative left-1/2 flex w-full -translate-x-1/2 flex-col gap-7 lg:w-[calc(100%+8rem)] lg:flex-row lg:items-end lg:justify-between xl:w-[calc(100%+10rem)] 2xl:w-[calc(100%+12rem)]">
+            <div>
+              <div className="flex items-center gap-2 font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]">
+                <CalendarDays size={14} strokeWidth={1.5} />
+                Daily operations
+              </div>
+
+              <h1 className="mt-4 font-serif text-[46px] font-normal leading-none tracking-[-0.035em] sm:text-[56px]">
+                Daily Schedule
+              </h1>
+
+              <p className="mt-5 max-w-2xl font-serif text-[18px] leading-8 text-[#66645F]">
+                See every class for the day and assign regular or substitute
+                teachers without checking each teacher calendar.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-col">
+          <div
             className="
               relative
               left-1/2
               flex
               w-full
               -translate-x-1/2
-              items-start
-              justify-between
-              gap-8
+              justify-end
+              pb-2
               lg:w-[calc(100%+8rem)]
               xl:w-[calc(100%+10rem)]
               2xl:w-[calc(100%+12rem)]
             "
           >
-              <CalendarDays size={15} strokeWidth={1.6} />
-              Daily operations
-            </div>
-
-            <h1 className="mt-4 font-serif text-[46px] font-normal leading-none tracking-[-0.035em] sm:text-[56px]">
-              Daily Schedule
-            </h1>
-
-            <p className="mt-5 max-w-2xl font-serif text-[18px] leading-8 text-[#66645F]">
-              See every class for the day and assign regular or substitute
-              teachers without checking each teacher calendar.
-            </p>
+            <button
+              type="button"
+              onClick={() => setDate(getPhtToday())}
+              className="
+                rounded-full
+                border
+                border-[#BFE6FF]
+                bg-[#BFE6FF]
+                px-4
+                py-2
+                font-sans
+                text-[10px]
+                font-medium
+                uppercase
+                tracking-[0.14em]
+                text-[#1F2D33]
+                transition
+                hover:border-[#A9BBAA]
+                hover:text-[#557259]
+              "
+            >
+              Today
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setDate(getPhtToday())}
-            className="self-start rounded-full border border-[#C9C5BE] px-5 py-2.5 font-sans text-[13px] font-medium text-[#5F655F] transition hover:border-[#6F8F72] hover:text-[#6F8F72] lg:self-auto"
-          >
-            Today
-          </button>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-5">
           <div
             className="
               relative
@@ -461,9 +480,7 @@ export default function DailySchedulePage() {
               -translate-x-1/2
               flex-col
               gap-4
-              border-y
-              border-[#DCD8D2]
-              bg-white
+              bg-transparent
               px-4
               py-4
               sm:px-5
@@ -476,14 +493,14 @@ export default function DailySchedulePage() {
             "
           >
             <div className="flex shrink-0 items-center gap-3">
-              <p className="font-sans text-[21px] font-normal tracking-[-0.02em] text-[#292929] sm:text-[23px]">
+              <p className="font-serif text-[18px] font-normal leading-none tracking-[-0.01em] text-[#292929] sm:text-[19px]">
                 {formatCompactDate(date)}
               </p>
 
               <CalendarDays
-                size={21}
-                strokeWidth={1.7}
-                className="text-[#4F514F]"
+                size={18}
+                strokeWidth={1.5}
+                className="text-[#8A8A84]"
               />
             </div>
 
@@ -491,7 +508,7 @@ export default function DailySchedulePage() {
               <button
                 type="button"
                 onClick={() => setDate((current) => addDays(current, -7))}
-                className="flex h-9 w-9 shrink-0 items-center justify-center text-[#565A56] transition hover:text-[#6F8F72]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center text-[#8A8A84] transition hover:text-[#6F8F72]"
                 aria-label="Previous week"
               >
                 <ChevronLeft size={20} strokeWidth={1.7} />
@@ -500,6 +517,7 @@ export default function DailySchedulePage() {
               <div className="flex min-w-0 items-center justify-center gap-1 sm:gap-2">
                 {weekDates.map((weekDate) => {
                   const selected = weekDate === date;
+                  const isToday = weekDate === getPhtToday();
 
                   return (
                     <button
@@ -510,8 +528,8 @@ export default function DailySchedulePage() {
                       aria-current={selected ? "date" : undefined}
                       className={`
                         flex
-                        h-[64px]
-                        w-[50px]
+                        h-[56px]
+                        w-[46px]
                         shrink-0
                         flex-col
                         items-center
@@ -519,20 +537,22 @@ export default function DailySchedulePage() {
                         rounded-full
                         font-sans
                         transition-colors
-                        sm:h-[70px]
-                        sm:w-[56px]
+                        sm:h-[60px]
+                        sm:w-[50px]
                         ${
                           selected
-                            ? "bg-[#BFE6FF] text-[#1F2D33]"
-                            : "text-[#4E514F] hover:bg-[#F2F4F2]"
+                            ? isToday
+                              ? "bg-[#BFE6FF] text-[#1F2D33]"
+                              : "bg-[#F3E6E6] text-[#8A5A5A]"
+                            : "text-[#6B6B66] hover:bg-[#F3F1ED]"
                         }
                       `}
                     >
-                      <span className="text-[10px] font-semibold uppercase leading-none tracking-[0.04em] sm:text-[11px]">
+                      <span className="font-sans text-[9px] font-medium uppercase leading-none tracking-[0.12em]">
                         {formatWeekday(weekDate)}
                       </span>
 
-                      <span className="mt-2 text-[17px] font-medium leading-none sm:text-[18px]">
+                      <span className="mt-2 font-serif text-[16px] font-normal leading-none tracking-[-0.01em] sm:text-[17px]">
                         {formatDayNumber(weekDate)}
                       </span>
                     </button>
@@ -543,7 +563,7 @@ export default function DailySchedulePage() {
               <button
                 type="button"
                 onClick={() => setDate((current) => addDays(current, 7))}
-                className="flex h-9 w-9 shrink-0 items-center justify-center text-[#565A56] transition hover:text-[#6F8F72]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center text-[#8A8A84] transition hover:text-[#6F8F72]"
                 aria-label="Next week"
               >
                 <ChevronRight size={20} strokeWidth={1.7} />
@@ -555,6 +575,7 @@ export default function DailySchedulePage() {
             className="
               relative
               left-1/2
+              mt-5
               flex
               w-full
               -translate-x-1/2
