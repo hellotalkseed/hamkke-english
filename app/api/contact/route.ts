@@ -10,16 +10,17 @@ export async function POST(request: Request) {
     const {
       name,
       email,
-      country,
-      timezone,
+      contactMethod,
+      contactId,
       level,
       goal,
       message,
+      inquirySource,
     } = body;
 
     await resend.emails.send({
       from: "Hamkke <hello@hamkkeenglish.com>",
-      to: "hello.talkseed@gmail.com",
+      to: "hamkke.english@gmail.com",
       replyTo: email,
       subject: `New Hamkke Inquiry from ${name}`,
       html: `
@@ -27,19 +28,20 @@ export async function POST(request: Request) {
 
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Country:</strong> ${country}</p>
-        <p><strong>Time Zone:</strong> ${timezone}</p>
+        <p><strong>Preferred Contact Method:</strong> ${contactMethod}</p>
+        <p><strong>Contact ID:</strong> ${contactId || "Not provided"}</p>
         <p><strong>English Level:</strong> ${level}</p>
         <p><strong>Learning Goal:</strong> ${goal}</p>
+        <p><strong>Inquiry Source:</strong> ${inquirySource}</p>
 
         <hr />
 
-        <p>${message}</p>
+        <p><strong>Message:</strong></p>
+        <p>${message || "No additional message provided."}</p>
       `,
     });
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
     console.error(error);
 
