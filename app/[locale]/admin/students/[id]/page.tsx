@@ -1049,9 +1049,29 @@ export default async function StudentPage({
     ).length;
 
   const consumedLessons =
-    currentLessons.filter(
-      (lesson) => lesson.consumes_lesson
-    ).length;
+    currentLessons.filter((lesson) => {
+      if (lesson.consumes_lesson === true) {
+        return true;
+      }
+
+      if (
+        lesson.attendance_status === "completed" ||
+        lesson.attendance_status === "no_show" ||
+        lesson.attendance_status === "late_cancellation"
+      ) {
+        return true;
+      }
+
+      if (
+        lesson.attendance_status ===
+          "unexpected_circumstance" &&
+        lesson.resolution === "counted_as_completed"
+      ) {
+        return true;
+      }
+
+      return false;
+    }).length;
 
   const totalLessons =
     currentEnrollment?.number_of_lessons ?? 0;
@@ -1146,20 +1166,20 @@ export default async function StudentPage({
           {/* Back to Administration */}
 
           <Link
-            href={`/${locale}/admin`}
-            className="
-              shrink-0
-              font-sans
-              text-[15px]
-              text-[#5F655F]
-              transition-colors
-              duration-200
-              hover:text-[#6F8F72]
-              sm:text-[16px]
-            "
-          >
-            &larr; Administration
-          </Link>
+  href={`/${locale}/admin/students`}
+  className="
+    shrink-0
+    font-sans
+    text-[15px]
+    text-[#5F655F]
+    transition-colors
+    duration-200
+    hover:text-[#6F8F72]
+    sm:text-[16px]
+  "
+>
+  &larr; Students
+</Link>
 
           {/* Hamkke Brand */}
 

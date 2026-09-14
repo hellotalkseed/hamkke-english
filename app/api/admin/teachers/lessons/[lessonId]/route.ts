@@ -84,6 +84,442 @@ interface PreviousClassInfoRecord {
   class_info_updated_at: string | null;
 }
 
+
+interface RolloverSourceLesson {
+  id: string;
+  enrollment_id: string;
+  student_id: string | null;
+  lesson_date: string;
+  schedule_time: string | null;
+  duration: number;
+}
+
+interface RolloverScheduleRow {
+  student_id: string | null;
+  day_of_week: number;
+  schedule_time: string;
+}
+
+function addUtcDays(
+  dateKey: string,
+  days: number
+) {
+  const [year, month, day] =
+    dateKey.split("-").map(Number);
+
+  const date = new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day
+    )
+  );
+
+  date.setUTCDate(
+    date.getUTCDate() + days
+  );
+
+  return [
+    date.getUTCFullYear(),
+    String(
+      date.getUTCMonth() + 1
+    ).padStart(2, "0"),
+    String(
+      date.getUTCDate()
+    ).padStart(2, "0"),
+  ].join("-");
+}
+
+function getUtcDayOfWeek(
+  dateKey: string
+) {
+  const [year, month, day] =
+    dateKey.split("-").map(Number);
+
+  return new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day
+    )
+  ).getUTCDay();
+}
+
+async function createAutomaticRolloverLesson(
+  supabase: Awaited<
+    ReturnType<typeof createClient>
+  >,
+  sourceLesson: RolloverSourceLesson
+) {
+  /*
+   * One credited lesson may create only one rollover lesson.
+   * The unique database index on rollover_source_lesson_id
+   * protects this even if the request is retried.
+   */
+  const {
+    data: existingRollover,
+    error: existingRolloverError,
+  } = await supabase
+    .from("lessons")
+    .select(`
+      id,
+      enrollment_id,
+      student_id,
+      lesson_number,
+      lesson_date,
+      schedule_time,
+      duration,
+      attendance_status,
+      consumes_lesson,
+      rollover_source_lesson_id
+    `)
+    .eq(
+      "rollover_source_lesson_id",
+      sourceLesson.id
+    )
+    .maybeSingle();
+
+  if (existingRolloverError) {
+    throw new Error(
+      `Unable to check for an existing rollover lesson: ${existingRolloverError.message}`
+    );
+  }
+
+  if (existingRollover) {
+    return existingRollover;
+  }
+
+  /*
+   * IMPORTANT SHARED-ENROLLMENT RULE
+   *
+   * A credit adds ONE lesson back to the package as a whole.
+   * It does not necessarily add a lesson for the student who
+   * received the original credit.
+   *
+   * We therefore continue the enrollment's complete recurring
+   * schedule in chronological order and assign the new lesson to
+   * whichever participant owns that next recurring slot.
+   */
+  const {
+    data: enrollmentLessons,
+    error: enrollmentLessonsError,
+  } = await supabase
+    .from("lessons")
+    .select(`
+      lesson_number,
+      lesson_date,
+      schedule_time
+    `)
+    .eq(
+      "enrollment_id",
+      sourceLesson.enrollment_id
+    );
+
+  if (enrollmentLessonsError) {
+    throw new Error(
+      `Unable to load the enrollment lessons: ${enrollmentLessonsError.message}`
+    );
+  }
+
+  const highestLessonNumber =
+    (enrollmentLessons ?? [])
+      .reduce(
+        (highest, lesson) =>
+          Math.max(
+            highest,
+            Number(
+              lesson.lesson_number ?? 0
+            )
+          ),
+        0
+      );
+
+  const lessonPoints =
+    (enrollmentLessons ?? [])
+      .filter(
+        (lesson) =>
+          Boolean(lesson.lesson_date)
+      )
+      .map((lesson) => ({
+        date: String(lesson.lesson_date),
+        time:
+          lesson.schedule_time
+            ? String(lesson.schedule_time)
+            : "00:00:00",
+      }))
+      .sort((a, b) => {
+        const dateCompare =
+          a.date.localeCompare(b.date);
+
+        if (dateCompare !== 0) {
+          return dateCompare;
+        }
+
+        return a.time.localeCompare(b.time);
+      });
+
+  const lastExistingPoint =
+    lessonPoints[
+      lessonPoints.length - 1
+    ] ?? {
+      date: sourceLesson.lesson_date,
+      time:
+        sourceLesson.schedule_time ??
+        "00:00:00",
+    };
+
+  const {
+    data: scheduleRows,
+    error: scheduleRowsError,
+  } = await supabase
+    .from("enrollment_schedules")
+    .select(`
+      student_id,
+      day_of_week,
+      schedule_time
+    `)
+    .eq(
+      "enrollment_id",
+      sourceLesson.enrollment_id
+    );
+
+  if (scheduleRowsError) {
+    throw new Error(
+      `Unable to load the recurring schedule: ${scheduleRowsError.message}`
+    );
+  }
+
+  const allScheduleRows =
+    ((scheduleRows ?? []) as RolloverScheduleRow[])
+      .filter(
+        (row) =>
+          row.schedule_time !== null &&
+          row.schedule_time !== undefined
+      )
+      .sort((a, b) => {
+        const dayDifference =
+          Number(a.day_of_week) -
+          Number(b.day_of_week);
+
+        if (dayDifference !== 0) {
+          return dayDifference;
+        }
+
+        return String(
+          a.schedule_time
+        ).localeCompare(
+          String(b.schedule_time)
+        );
+      });
+
+  if (allScheduleRows.length === 0) {
+    throw new Error(
+      "No recurring enrollment schedule was found for this enrollment."
+    );
+  }
+
+  let rolloverDate: string | null =
+    null;
+  let rolloverTime: string | null =
+    null;
+  let rolloverStudentId:
+    | string
+    | null = null;
+
+  /*
+   * Search from the current final lesson forward.
+   * Offset 0 is intentional: when a shared enrollment has two
+   * students on the same day, a later slot that same day must be
+   * eligible to become the next package lesson.
+   */
+  for (
+    let offset = 0;
+    offset <= 366;
+    offset += 1
+  ) {
+    const candidateDate =
+      addUtcDays(
+        lastExistingPoint.date,
+        offset
+      );
+
+    const candidateDay =
+      getUtcDayOfWeek(
+        candidateDate
+      );
+
+    const matchingRows =
+      allScheduleRows
+        .filter(
+          (row) =>
+            Number(
+              row.day_of_week
+            ) === candidateDay
+        )
+        .sort((a, b) =>
+          String(
+            a.schedule_time
+          ).localeCompare(
+            String(
+              b.schedule_time
+            )
+          )
+        );
+
+    for (const row of matchingRows) {
+      const candidateTime =
+        String(row.schedule_time);
+
+      const isAfterCurrentEnd =
+        candidateDate >
+          lastExistingPoint.date ||
+        (
+          candidateDate ===
+            lastExistingPoint.date &&
+          candidateTime >
+            lastExistingPoint.time
+        );
+
+      if (!isAfterCurrentEnd) {
+        continue;
+      }
+
+      rolloverDate = candidateDate;
+      rolloverTime = candidateTime;
+      rolloverStudentId =
+        row.student_id ??
+        sourceLesson.student_id;
+
+      break;
+    }
+
+    if (
+      rolloverDate &&
+      rolloverTime
+    ) {
+      break;
+    }
+  }
+
+  if (
+    !rolloverDate ||
+    !rolloverTime ||
+    !rolloverStudentId
+  ) {
+    throw new Error(
+      "Unable to find the next recurring enrollment slot for the rollover lesson."
+    );
+  }
+
+  const {
+    data: rolloverLesson,
+    error: rolloverInsertError,
+  } = await supabase
+    .from("lessons")
+    .insert({
+      enrollment_id:
+        sourceLesson.enrollment_id,
+
+      student_id:
+        rolloverStudentId,
+
+      lesson_number:
+        highestLessonNumber + 1,
+
+      lesson_date:
+        rolloverDate,
+
+      duration:
+        sourceLesson.duration,
+
+      schedule_time:
+        rolloverTime,
+
+      attendance_status:
+        "scheduled",
+
+      consumes_lesson:
+        false,
+
+      resolution:
+        null,
+
+      notes:
+        null,
+
+      original_lesson_date:
+        sourceLesson.lesson_date,
+
+      rescheduled_at:
+        null,
+
+      actual_teacher_id:
+        null,
+
+      substitute_teacher_id:
+        null,
+
+      rollover_source_lesson_id:
+        sourceLesson.id,
+    })
+    .select(`
+      id,
+      enrollment_id,
+      student_id,
+      lesson_number,
+      lesson_date,
+      schedule_time,
+      duration,
+      attendance_status,
+      consumes_lesson,
+      rollover_source_lesson_id
+    `)
+    .single();
+
+  if (rolloverInsertError) {
+    if (
+      rolloverInsertError.code ===
+      "23505"
+    ) {
+      const {
+        data: retryRollover,
+        error: retryLookupError,
+      } = await supabase
+        .from("lessons")
+        .select(`
+          id,
+          enrollment_id,
+          student_id,
+          lesson_number,
+          lesson_date,
+          schedule_time,
+          duration,
+          attendance_status,
+          consumes_lesson,
+          rollover_source_lesson_id
+        `)
+        .eq(
+          "rollover_source_lesson_id",
+          sourceLesson.id
+        )
+        .maybeSingle();
+
+      if (
+        !retryLookupError &&
+        retryRollover
+      ) {
+        return retryRollover;
+      }
+    }
+
+    throw new Error(
+      `Unable to create the rollover lesson: ${rolloverInsertError.message}`
+    );
+  }
+
+  return rolloverLesson;
+}
+
 function convertStudentTimeToPhilippineTime(
   lessonDate: string,
   scheduleTime: string | null,
@@ -2342,12 +2778,88 @@ export async function PATCH(
         );
       }
 
+      /*
+       * -------------------------------------------------------
+       * AUTOMATIC LESSON-CREDIT ROLLOVER
+       * -------------------------------------------------------
+       *
+       * Keep the credited lesson as history and append one new
+       * scheduled lesson after the package's current last date.
+       * Explicit rescheduling keeps its existing behavior.
+       */
+      let rolloverLesson = null;
+
+      if (
+        resolution ===
+          "lesson_credit" &&
+        consumesLesson ===
+          false
+      ) {
+        try {
+          rolloverLesson =
+            await createAutomaticRolloverLesson(
+              admin,
+              {
+                id:
+                  lesson.id,
+
+                enrollment_id:
+                  lesson.enrollment_id,
+
+                student_id:
+                  lesson.student_id,
+
+                lesson_date:
+                  lesson.lesson_date,
+
+                schedule_time:
+                  lesson.schedule_time,
+
+                duration:
+                  Number(
+                    lesson.duration
+                  ),
+              }
+            );
+        } catch (
+          rolloverError
+        ) {
+          console.error(
+            "AUTOMATIC ROLLOVER ERROR:",
+            rolloverError
+          );
+
+          return NextResponse.json(
+            {
+              error:
+                "The lesson credit was saved, but the automatic rollover lesson could not be created.",
+
+              credit_saved:
+                true,
+
+              details:
+                rolloverError instanceof Error
+                  ? rolloverError.message
+                  : "Unknown rollover error.",
+            },
+            {
+              status: 500,
+            }
+          );
+        }
+      }
+
       return NextResponse.json({
         message:
-          "Lesson attendance updated successfully.",
+          rolloverLesson
+            ? "Lesson attendance updated and the lesson credit was rolled forward automatically."
+            : "Lesson attendance updated successfully.",
 
         lesson:
           updatedLesson,
+
+        rollover_lesson:
+          rolloverLesson,
       });
     }
 
