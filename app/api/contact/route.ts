@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     } = body;
 
     await resend.emails.send({
-      from: "Hamkke <onboarding@resend.dev>",
+      from: "Hamkke <hello@hamkkeenglish.com>",
       to: "hello.talkseed@gmail.com",
       replyTo: email,
       subject: `New Hamkke Inquiry from ${name}`,
