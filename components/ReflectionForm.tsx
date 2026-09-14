@@ -9,12 +9,217 @@ interface ReflectionFormProps {
   locale: Locale;
 }
 
+/* =========================================================
+   COUNTRIES
+   ========================================================= */
+
+const countries = [
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cabo Verde",
+  "Cambodia",
+  "Cameroon",
+  "Canada",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czechia",
+  "Democratic Republic of the Congo",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Ivory Coast",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Africa",
+  "South Korea",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Taiwan",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Timor-Leste",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe",
+];
+
+/* =========================================================
+   TRANSLATIONS
+   ========================================================= */
+
 const translations = {
   en: {
     ratingTitle:
       "⭐ How would you rate your learning experience?",
-    ratingRequired:
-      "Select a rating",
+    ratingRequired: "Select a rating",
     ratingLabels: {
       1: "Needs Improvement",
       2: "Fair",
@@ -26,17 +231,16 @@ const translations = {
     name: "Name",
     nameHelp:
       "Use your real name, English name, nickname, or initials. This is how your name will appear on the website.",
-    namePlaceholder:
-      "Enter your name",
+    namePlaceholder: "Enter your name",
 
     role: "I am a...",
     student: "Student",
     parent: "Parent / Guardian",
 
     country: "Country / Region",
-    optional: "Optional",
     countryPlaceholder:
-      "Country or region",
+      "Start typing a country or region",
+    noCountryFound: "No country found",
 
     reflection: "Share your story",
     reflectionPlaceholder:
@@ -57,9 +261,7 @@ const translations = {
     thankYouMessage:
       "Thank you for taking the time to share your experience with Hamkke. Your story may encourage someone else to begin their own English journey, and I'm truly grateful you've chosen to share it with us.",
 
-    closing:
-      "See you in our next conversation.",
-
+    closing: "See you in our next conversation.",
     return: "Return to Hamkke",
 
     requiredFields:
@@ -75,8 +277,7 @@ const translations = {
   ko: {
     ratingTitle:
       "⭐ 영어 학습 경험은 어떠셨나요?",
-    ratingRequired:
-      "별점을 선택해 주세요",
+    ratingRequired: "별점을 선택해 주세요",
     ratingLabels: {
       1: "개선이 필요해요",
       2: "괜찮아요",
@@ -88,17 +289,17 @@ const translations = {
     name: "이름",
     nameHelp:
       "실명, 영어 이름, 별명 또는 이니셜을 사용해 주세요. 웹사이트에 표시될 이름입니다.",
-    namePlaceholder:
-      "이름을 입력해 주세요",
+    namePlaceholder: "이름을 입력해 주세요",
 
     role: "저는...",
     student: "학생",
     parent: "학부모 / 보호자",
 
     country: "국가 / 지역",
-    optional: "선택 사항",
     countryPlaceholder:
-      "국가 또는 지역",
+      "국가 또는 지역을 입력해 주세요",
+    noCountryFound:
+      "일치하는 국가를 찾을 수 없습니다",
 
     reflection: "여러분의 이야기를 들려주세요",
     reflectionPlaceholder:
@@ -119,9 +320,7 @@ const translations = {
     thankYouMessage:
       "소중한 시간을 내어 Hamkke와 함께한 경험을 나누어 주셔서 감사합니다. 여러분의 이야기가 다른 누군가가 자신의 영어 여정을 시작하는 데 작은 용기가 될 수 있습니다. 함께 이야기를 나눠 주셔서 진심으로 감사합니다.",
 
-    closing:
-      "다음 대화에서 다시 만나요.",
-
+    closing: "다음 대화에서 다시 만나요.",
     return: "Hamkke로 돌아가기",
 
     requiredFields:
@@ -137,8 +336,7 @@ const translations = {
   zh: {
     ratingTitle:
       "⭐ 你会如何评价自己的英语学习体验？",
-    ratingRequired:
-      "请选择评分",
+    ratingRequired: "请选择评分",
     ratingLabels: {
       1: "需要改进",
       2: "还不错",
@@ -150,17 +348,15 @@ const translations = {
     name: "姓名",
     nameHelp:
       "你可以填写真实姓名、英文名、昵称或姓名首字母。这是之后显示在网站上的名字。",
-    namePlaceholder:
-      "请输入你的名字",
+    namePlaceholder: "请输入你的名字",
 
     role: "我是...",
     student: "学生",
     parent: "家长 / 监护人",
 
     country: "国家 / 地区",
-    optional: "选填",
-    countryPlaceholder:
-      "国家或地区",
+    countryPlaceholder: "请输入国家或地区",
+    noCountryFound: "没有找到匹配的国家或地区",
 
     reflection: "分享你的故事",
     reflectionPlaceholder:
@@ -181,9 +377,7 @@ const translations = {
     thankYouMessage:
       "谢谢你愿意花时间分享与 Hamkke 一起学习英语的经历。你的故事也许会鼓励另一个人开始自己的英语学习旅程。真的很感谢你愿意与我们分享。",
 
-    closing:
-      "期待在下一次交流中与你见面。",
-
+    closing: "期待在下一次交流中与你见面。",
     return: "返回 Hamkke",
 
     requiredFields:
@@ -207,19 +401,56 @@ export default function ReflectionForm({
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [country, setCountry] = useState("");
-  const [reflection, setReflection] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [permission, setPermission] = useState(false);
 
-  const [submitted, setSubmitted] = useState(false);
+  const [country, setCountry] = useState("");
+  const [countrySearch, setCountrySearch] =
+    useState("");
+  const [showCountries, setShowCountries] =
+    useState(false);
+
+  const [reflection, setReflection] = useState("");
+  const [photo, setPhoto] =
+    useState<File | null>(null);
+  const [permission, setPermission] =
+    useState(false);
+
+  const [submitted, setSubmitted] =
+    useState(false);
   const [loading, setLoading] = useState(false);
+
+  /* =====================================================
+     COUNTRY FILTER
+     ===================================================== */
+
+  const filteredCountries =
+    countrySearch.trim() === ""
+      ? countries
+      : countries.filter((item) =>
+          item
+            .toLowerCase()
+            .includes(
+              countrySearch.trim().toLowerCase()
+            )
+        );
+
+  const selectCountry = (
+    selectedCountry: string
+  ) => {
+    setCountry(selectedCountry);
+    setCountrySearch(selectedCountry);
+    setShowCountries(false);
+  };
+
+  /* =====================================================
+     SUBMIT
+     ===================================================== */
 
   const handleSubmit = async () => {
     if (
       rating === 0 ||
       !name.trim() ||
       !role ||
+      !country ||
       !reflection.trim()
     ) {
       alert(t.requiredFields);
@@ -261,7 +492,7 @@ export default function ReflectionForm({
           rating,
           name: name.trim(),
           role,
-          country: country.trim() || null,
+          country,
           reflection: reflection.trim(),
           photo_url: photoUrl,
           photo_name: photo ? photo.name : null,
@@ -368,9 +599,7 @@ export default function ReflectionForm({
         md:p-12
       "
     >
-      {/* =================================================
-          RATING
-          ================================================= */}
+      {/* RATING */}
 
       <div>
         <label
@@ -381,11 +610,8 @@ export default function ReflectionForm({
             text-[#2B2B2B]
           "
         >
-          {t.ratingTitle}
-          <span className="text-red-500">
-            {" "}
-            *
-          </span>
+          {t.ratingTitle}{" "}
+          <span className="text-red-500">*</span>
         </label>
 
         <div
@@ -406,12 +632,8 @@ export default function ReflectionForm({
                 type="button"
                 aria-label={`${star} stars`}
                 onClick={() => setRating(star)}
-                onMouseEnter={() =>
-                  setHover(star)
-                }
-                onMouseLeave={() =>
-                  setHover(0)
-                }
+                onMouseEnter={() => setHover(star)}
+                onMouseLeave={() => setHover(0)}
                 className="
                   cursor-pointer
                   text-[1.9rem]
@@ -446,8 +668,7 @@ export default function ReflectionForm({
           >
             {hover || rating
               ? t.ratingLabels[
-                  (hover ||
-                    rating) as
+                  (hover || rating) as
                     | 1
                     | 2
                     | 3
@@ -459,9 +680,7 @@ export default function ReflectionForm({
         </div>
       </div>
 
-      {/* =================================================
-          NAME
-          ================================================= */}
+      {/* NAME */}
 
       <div className="mt-10">
         <label
@@ -473,9 +692,7 @@ export default function ReflectionForm({
           "
         >
           {t.name}{" "}
-          <span className="text-red-500">
-            *
-          </span>
+          <span className="text-red-500">*</span>
         </label>
 
         <p
@@ -491,11 +708,10 @@ export default function ReflectionForm({
 
         <input
           type="text"
+          required
           placeholder={t.namePlaceholder}
           value={name}
-          onChange={(e) =>
-            setName(e.target.value)
-          }
+          onChange={(e) => setName(e.target.value)}
           className="
             mt-4
             w-full
@@ -514,9 +730,7 @@ export default function ReflectionForm({
         />
       </div>
 
-      {/* =================================================
-          ROLE
-          ================================================= */}
+      {/* ROLE */}
 
       <div className="mt-10">
         <label
@@ -528,14 +742,10 @@ export default function ReflectionForm({
           "
         >
           {t.role}{" "}
-          <span className="text-red-500">
-            *
-          </span>
+          <span className="text-red-500">*</span>
         </label>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {/* Student */}
-
           <label
             className="
               flex
@@ -557,9 +767,7 @@ export default function ReflectionForm({
               name="role"
               value="Student"
               checked={role === "Student"}
-              onChange={(e) =>
-                setRole(e.target.value)
-              }
+              onChange={(e) => setRole(e.target.value)}
               className="accent-[#6F8F72]"
             />
 
@@ -567,8 +775,6 @@ export default function ReflectionForm({
               {t.student}
             </span>
           </label>
-
-          {/* Parent */}
 
           <label
             className="
@@ -590,12 +796,8 @@ export default function ReflectionForm({
               type="radio"
               name="role"
               value="Parent / Guardian"
-              checked={
-                role === "Parent / Guardian"
-              }
-              onChange={(e) =>
-                setRole(e.target.value)
-              }
+              checked={role === "Parent / Guardian"}
+              onChange={(e) => setRole(e.target.value)}
               className="accent-[#6F8F72]"
             />
 
@@ -606,9 +808,7 @@ export default function ReflectionForm({
         </div>
       </div>
 
-      {/* =================================================
-          COUNTRY
-          ================================================= */}
+      {/* COUNTRY */}
 
       <div className="mt-10">
         <label
@@ -619,47 +819,113 @@ export default function ReflectionForm({
             text-[#2B2B2B]
           "
         >
-          {t.country}
+          {t.country}{" "}
+          <span className="text-red-500">*</span>
         </label>
 
-        <p
-          className="
-            mt-2
-            text-sm
-            text-[#6B6B6B]
-          "
-        >
-          {t.optional}
-        </p>
+        <div className="relative mt-4">
+          <input
+            type="text"
+            required
+            placeholder={t.countryPlaceholder}
+            value={countrySearch}
+            autoComplete="off"
+            onFocus={() => setShowCountries(true)}
+            onChange={(e) => {
+              setCountrySearch(e.target.value);
 
-        <input
-          type="text"
-          placeholder={t.countryPlaceholder}
-          value={country}
-          onChange={(e) =>
-            setCountry(e.target.value)
-          }
-          className="
-            mt-4
-            w-full
-            rounded-xl
-            border
-            border-[#DDE9D8]
-            bg-white
-            px-5
-            py-3
-            text-[#2B2B2B]
-            placeholder:text-[#858585]
-            outline-none
-            transition
-            focus:border-[#6F8F72]
-          "
-        />
+              // Clear the saved country while typing.
+              // A valid country is saved only after selection.
+              setCountry("");
+              setShowCountries(true);
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                setShowCountries(false);
+
+                // Don't allow arbitrary free-text countries.
+                if (!country) {
+                  setCountrySearch("");
+                }
+              }, 150);
+            }}
+            className="
+              w-full
+              rounded-xl
+              border
+              border-[#DDE9D8]
+              bg-white
+              px-5
+              py-3
+              text-[#2B2B2B]
+              placeholder:text-[#858585]
+              outline-none
+              transition
+              focus:border-[#6F8F72]
+            "
+          />
+
+          {showCountries && (
+            <div
+              className="
+                absolute
+                left-0
+                right-0
+                z-30
+                mt-2
+                max-h-64
+                overflow-y-auto
+                rounded-xl
+                border
+                border-[#DDE9D8]
+                bg-white
+                py-2
+                shadow-xl
+              "
+            >
+              {filteredCountries.length > 0 ? (
+                filteredCountries.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      selectCountry(item);
+                    }}
+                    className="
+                      block
+                      w-full
+                      px-5
+                      py-3
+                      text-left
+                      text-sm
+                      text-[#2B2B2B]
+                      transition
+                      hover:bg-[#F4F7F2]
+                      hover:text-[#5B7960]
+                    "
+                  >
+                    {item}
+                  </button>
+                ))
+              ) : (
+                <p
+                  className="
+                    px-5
+                    py-3
+                    text-sm
+                    text-[#858585]
+                  "
+                >
+                  {t.noCountryFound}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* =================================================
-          REFLECTION
-          ================================================= */}
+      {/* REFLECTION */}
 
       <div className="mt-10">
         <label
@@ -671,13 +937,12 @@ export default function ReflectionForm({
           "
         >
           {t.reflection}{" "}
-          <span className="text-red-500">
-            *
-          </span>
+          <span className="text-red-500">*</span>
         </label>
 
         <textarea
           rows={8}
+          required
           placeholder={t.reflectionPlaceholder}
           value={reflection}
           onChange={(e) =>
@@ -702,9 +967,7 @@ export default function ReflectionForm({
         />
       </div>
 
-      {/* =================================================
-          PHOTO
-          ================================================= */}
+      {/* PHOTO */}
 
       <div className="mt-10">
         <label
@@ -766,9 +1029,7 @@ export default function ReflectionForm({
         />
       </div>
 
-      {/* =================================================
-          PERMISSION
-          ================================================= */}
+      {/* PERMISSION */}
 
       <div className="mt-10">
         <label
@@ -785,9 +1046,7 @@ export default function ReflectionForm({
             type="checkbox"
             checked={permission}
             onChange={(e) =>
-              setPermission(
-                e.target.checked
-              )
+              setPermission(e.target.checked)
             }
             className="
               mt-1
@@ -798,15 +1057,11 @@ export default function ReflectionForm({
             "
           />
 
-          <span>
-            {t.permission}
-          </span>
+          <span>{t.permission}</span>
         </label>
       </div>
 
-      {/* =================================================
-          SUBMIT
-          ================================================= */}
+      {/* SUBMIT */}
 
       <button
         type="button"
@@ -827,9 +1082,7 @@ export default function ReflectionForm({
           disabled:opacity-50
         "
       >
-        {loading
-          ? t.sending
-          : t.submit}
+        {loading ? t.sending : t.submit}
       </button>
     </section>
   );
