@@ -2038,6 +2038,10 @@ export default async function StudentPage({
                   id="confirm-payment-form"
                   method="POST"
                   action={`/api/admin/students/${student.id}/enrollments/${currentEnrollment.id}/payment`}
+                  className="
+                    w-full
+                    max-w-[430px]
+                  "
                 >
                   <input
                     type="hidden"
@@ -2045,25 +2049,166 @@ export default async function StudentPage({
                     value={locale}
                   />
 
-                  <button
-                    type="submit"
-                    className="
-                      inline-flex
-                      items-center
-                      rounded-full
-                      bg-[#6F8F72]
-                      px-5
-                      py-2.5
-                      font-sans
-                      text-sm
-                      font-medium
-                      text-white
-                      transition-opacity
-                      hover:opacity-85
-                    "
-                  >
-                    Confirm Payment
-                  </button>
+                  <div className="relative w-full">
+                    <input
+                      id="accepted_by_minor"
+                      name="accepted_by_minor"
+                      type="checkbox"
+                      value="yes"
+                      className="
+                        peer
+                        absolute
+                        right-[248px]
+                        top-[3px]
+                        h-4
+                        w-4
+                        rounded
+                        border-[#CFCBC4]
+                        accent-[#6F8F72]
+                      "
+                    />
+
+                    <label
+                      htmlFor="accepted_by_minor"
+                      className="
+                        block
+                        cursor-pointer
+                        text-right
+                        font-sans
+                        text-[12px]
+                        leading-5
+                        text-[#5F655F]
+                      "
+                    >
+                      Parent or guardian is accepting on behalf
+                      of a minor.
+                    </label>
+
+                    <div
+                      className="
+                        mt-4
+                        hidden
+                        gap-3
+                        peer-checked:grid
+                        sm:grid-cols-2
+                      "
+                    >
+                    <div>
+                      <label
+                        htmlFor="accepted_by_name"
+                        className="
+                          mb-2
+                          block
+                          font-sans
+                          text-[9px]
+                          font-medium
+                          uppercase
+                          tracking-[0.12em]
+                          text-[#777771]
+                        "
+                      >
+                        Accepted by
+                      </label>
+
+                      <input
+                        id="accepted_by_name"
+                        name="accepted_by_name"
+                        type="text"
+                        autoComplete="name"
+                        placeholder="Parent or guardian full name"
+                        className="
+                          w-full
+                          rounded-xl
+                          border
+                          border-[#DCD8D2]
+                          bg-white
+                          px-4
+                          py-3
+                          font-sans
+                          text-[13px]
+                          text-[#292929]
+                          outline-none
+                          transition-colors
+                          placeholder:text-[#AAA6A0]
+                          focus:border-[#6F8F72]
+                        "
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="accepted_by_relationship"
+                        className="
+                          mb-2
+                          block
+                          font-sans
+                          text-[9px]
+                          font-medium
+                          uppercase
+                          tracking-[0.12em]
+                          text-[#777771]
+                        "
+                      >
+                        Relationship to Student
+                      </label>
+
+                      <select
+                        id="accepted_by_relationship"
+                        name="accepted_by_relationship"
+                        defaultValue=""
+                        className="
+                          w-full
+                          rounded-xl
+                          border
+                          border-[#DCD8D2]
+                          bg-white
+                          px-4
+                          py-3
+                          font-sans
+                          text-[13px]
+                          text-[#292929]
+                          outline-none
+                          transition-colors
+                          focus:border-[#6F8F72]
+                        "
+                      >
+                        <option value="" disabled>
+                          Select relationship
+                        </option>
+
+                        <option value="parent">
+                          Parent
+                        </option>
+
+                        <option value="guardian">
+                          Guardian
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                  </div>
+
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="submit"
+                      className="
+                        inline-flex
+                        items-center
+                        rounded-full
+                        bg-[#6F8F72]
+                        px-5
+                        py-2.5
+                        font-sans
+                        text-sm
+                        font-medium
+                        text-white
+                        transition-opacity
+                        hover:opacity-85
+                      "
+                    >
+                      Confirm Payment
+                    </button>
+                  </div>
                 </form>
               )}
           </div>
@@ -2251,148 +2396,6 @@ export default async function StudentPage({
                       a parent or guardian accepted the
                       agreement on the student&apos;s behalf.
                     </p>
-
-                    <div className="mt-5">
-                      <input
-                        id="accepted_by_minor"
-                        name="accepted_by_minor"
-                        type="checkbox"
-                        value="yes"
-                        form="confirm-payment-form"
-                        className="
-                          peer
-                          h-4
-                          w-4
-                          rounded
-                          border-[#CFCBC4]
-                          accent-[#6F8F72]
-                        "
-                      />
-
-                      <label
-                        htmlFor="accepted_by_minor"
-                        className="
-                          ml-2.5
-                          cursor-pointer
-                          align-middle
-                          font-sans
-                          text-[13px]
-                          leading-6
-                          text-[#5F655F]
-                        "
-                      >
-                        A parent or guardian is accepting this
-                        agreement on behalf of the student.
-                      </label>
-
-                      <div
-                        className="
-                          mt-5
-                          hidden
-                          gap-4
-                          peer-checked:grid
-                          sm:grid-cols-2
-                        "
-                      >
-                        <div>
-                          <label
-                            htmlFor="accepted_by_name"
-                            className="
-                              mb-2
-                              block
-                              font-sans
-                              text-[10px]
-                              font-medium
-                              uppercase
-                              tracking-[0.12em]
-                              text-[#777771]
-                            "
-                          >
-                            Accepted by
-                          </label>
-
-                          <input
-                            id="accepted_by_name"
-                            name="accepted_by_name"
-                            type="text"
-                            form="confirm-payment-form"
-                            autoComplete="name"
-                            placeholder="Parent or guardian full name"
-                            className="
-                              w-full
-                              rounded-xl
-                              border
-                              border-[#DCD8D2]
-                              bg-white
-                              px-4
-                              py-3
-                              font-sans
-                              text-[13px]
-                              text-[#292929]
-                              outline-none
-                              transition-colors
-                              placeholder:text-[#AAA6A0]
-                              focus:border-[#6F8F72]
-                            "
-                          />
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="accepted_by_relationship"
-                            className="
-                              mb-2
-                              block
-                              font-sans
-                              text-[10px]
-                              font-medium
-                              uppercase
-                              tracking-[0.12em]
-                              text-[#777771]
-                            "
-                          >
-                            Relationship to Student
-                          </label>
-
-                          <select
-                            id="accepted_by_relationship"
-                            name="accepted_by_relationship"
-                            form="confirm-payment-form"
-                            defaultValue=""
-                            className="
-                              w-full
-                              rounded-xl
-                              border
-                              border-[#DCD8D2]
-                              bg-white
-                              px-4
-                              py-3
-                              font-sans
-                              text-[13px]
-                              text-[#292929]
-                              outline-none
-                              transition-colors
-                              focus:border-[#6F8F72]
-                            "
-                          >
-                            <option
-                              value=""
-                              disabled
-                            >
-                              Select relationship
-                            </option>
-
-                            <option value="parent">
-                              Parent
-                            </option>
-
-                            <option value="guardian">
-                              Guardian
-                            </option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
 
                     <p
                       className="
