@@ -528,38 +528,38 @@ howItWorks: {
   },
 
   lessonExperience: {
-    brand: "Hamkke │ 함께",
+  brand: "Hamkke │ 함께",
 
-    title: "수업은 어떤 느낌일까요?",
+  title: "Hamkke가 함께하는 방식",
 
-    steps: {
-      talk: {
-        title: "함께 이야기해요.",
-        description:
-          "먼저 당신에게 실제로 의미 있고 자연스러운 주제로 이야기를 시작합니다.",
-      },
-
-      goDeeper: {
-        title: "조금 더 깊이 들어가요.",
-        description:
-          "생각을 설명하고, 구체적으로 표현하고, 더 확장할 수 있도록 질문을 드립니다.",
-      },
-
-      refine: {
-        title: "함께 다듬어 가요.",
-        description:
-          "더 자연스러운 영어를 위해 어휘, 발음, 문법, 표현 등을 함께 살펴봅니다.",
-      },
-
-      tryAgain: {
-        title: "다시 사용해 봐요.",
-        description:
-          "배운 내용을 새로운 대화 속에서 다시 사용해 봅니다.",
-      },
+  steps: {
+    talk: {
+      title: "함께 이야기해요.",
+      description:
+        "먼저 당신에게 실제로 의미 있고 자연스러운 주제로 이야기를 시작합니다.",
     },
 
-    closing: "그렇게 조금씩 성장해 갑니다.",
+    goDeeper: {
+      title: "조금 더 깊이 들어가요.",
+      description:
+        "생각을 설명하고, 구체적으로 표현하고, 더 확장할 수 있도록 질문을 드립니다.",
+    },
+
+    refine: {
+      title: "함께 다듬어 가요.",
+      description:
+        "더 자연스러운 영어를 위해 어휘, 발음, 문법, 표현 등을 함께 살펴봅니다.",
+    },
+
+    tryAgain: {
+      title: "다시 사용해 봐요.",
+      description:
+        "배운 내용을 새로운 대화 속에서 다시 사용해 봅니다.",
+    },
   },
+
+  closing: "그렇게 조금씩 성장해 갑니다.",
+},
 
     lessonDetails: {
     brand: "Hamkke │ 함께",

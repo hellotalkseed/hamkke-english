@@ -529,38 +529,38 @@ howItWorks: {
   },
 
   lessonExperience: {
-    brand: "Hamkke │ 함께",
+  brand: "Hamkke │ 함께",
 
-    title: "一节课，真正会是什么样？",
+  title: "Hamkke 的学习方式",
 
-    steps: {
-      talk: {
-        title: "我们先聊起来。",
-        description:
-          "从与你有关、真实而自然的话题开始。",
-      },
-
-      goDeeper: {
-        title: "我们继续深入。",
-        description:
-          "我会通过提问，帮助你进一步解释、理清并拓展自己的想法。",
-      },
-
-      refine: {
-        title: "我们一起调整。",
-        description:
-          "我会帮助你注意词汇、发音、语法和表达方式，让你的英语听起来更加自然。",
-      },
-
-      tryAgain: {
-        title: "你再试一次。",
-        description:
-          "把刚刚学到的东西带到下一次交流中，真正用起来。",
-      },
+  steps: {
+    talk: {
+      title: "我们先聊起来。",
+      description:
+        "从与你有关、真实而自然的话题开始。",
     },
 
-    closing: "这就是我们一起成长的方式。",
+    goDeeper: {
+      title: "我们继续深入。",
+      description:
+        "我会通过提问，帮助你进一步解释、理清并拓展自己的想法。",
+    },
+
+    refine: {
+      title: "我们一起调整。",
+      description:
+        "我会帮助你注意词汇、发音、语法和表达方式，让你的英语听起来更加自然。",
+    },
+
+    tryAgain: {
+      title: "你再试一次。",
+      description:
+        "把刚刚学到的东西带到下一次交流中，真正用起来。",
+    },
   },
+
+  closing: "这就是我们一起成长的方式。",
+},
 
     lessonDetails: {
     brand: "Hamkke │ 함께",

@@ -530,7 +530,7 @@ howItWorks: {
   lessonExperience: {
     brand: "Hamkke │ 함께",
 
-    title: "What a lesson feels like.",
+    title: "The Hamkke Approach",
 
     steps: {
       talk: {
