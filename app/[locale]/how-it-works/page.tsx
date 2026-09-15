@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  ArrowDown,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import Link from "next/link";
 
 import { getMessages } from "../../../lib/getMessages";
@@ -27,6 +24,13 @@ export default async function HowItWorksPage({
   const howItWorks = t.howItWorks;
 
   const steps = Object.values(howItWorks.steps);
+
+  const backToLessonDetails =
+    locale === "ko"
+      ? "수업 안내로 돌아가기"
+      : locale === "zh"
+        ? "返回课程介绍"
+        : "Back to Lesson Details";
 
   return (
     <main
@@ -56,56 +60,56 @@ export default async function HowItWorksPage({
       >
         <div
           className="
-            relative
             flex
             w-full
             items-center
             justify-between
+            gap-6
           "
         >
-          {/* BACK TO HAMKKE */}
+          {/* =================================================
+              BACK TO LESSON DETAILS
+              ================================================= */}
 
           <Link
-            href={`/${locale}`}
+            href={`/${locale}#lesson-details`}
             className="
+              group
+              inline-flex
               shrink-0
+              items-center
+              gap-2
+
               font-sans
-              text-[15px]
+              text-[14px]
               text-[#5F655F]
+
               transition-colors
               duration-200
+
               hover:text-[#6F8F72]
 
-              sm:text-[16px]
+              sm:text-[15px]
             "
           >
-            ← Hamkke
+            <span
+              className="
+                transition-transform
+                duration-200
+
+                group-hover:-translate-x-1
+              "
+              aria-hidden="true"
+            >
+              ←
+            </span>
+
+            <span>{backToLessonDetails}</span>
           </Link>
 
-          {/* DESKTOP BRAND */}
-
-          <div
-            className="
-              absolute
-              left-1/2
-              -translate-x-1/2
-              whitespace-nowrap
-
-              hidden
-
-              font-sans
-              text-[15px]
-              font-medium
-              text-[#6F8F72]
-
-              sm:block
-              sm:text-[16px]
-            "
-          >
-            Hamkke │ 함께
-          </div>
-
-          {/* LANGUAGE SELECTOR */}
+          {/* =================================================
+              LANGUAGE SELECTOR
+              ================================================= */}
 
           <div
             className="
@@ -167,9 +171,10 @@ export default async function HowItWorksPage({
           mx-auto
           w-full
           max-w-[1040px]
+
           px-6
           pb-12
-          pt-10
+          pt-16
 
           sm:px-8
           sm:pb-14
@@ -180,25 +185,6 @@ export default async function HowItWorksPage({
           lg:pt-24
         "
       >
-        {/* MOBILE BRAND */}
-
-        <div
-          className="
-            mb-0
-            text-center
-
-            font-sans
-            text-[14px]
-            font-medium
-            tracking-[0.02em]
-            text-[#6F8F72]
-
-            sm:hidden
-          "
-        >
-          Hamkke │ 함께
-        </div>
-
         {/* PAGE TITLE */}
 
         <h1
@@ -258,6 +244,7 @@ export default async function HowItWorksPage({
           mx-auto
           w-full
           max-w-[1040px]
+
           px-6
           pb-20
 
@@ -283,9 +270,11 @@ export default async function HowItWorksPage({
                 <div
                   className={`
                     relative
+
                     rounded-[24px]
                     border
                     border-[#E7DDD1]
+
                     px-7
                     py-8
 
@@ -319,8 +308,10 @@ export default async function HowItWorksPage({
                         shrink-0
                         items-center
                         justify-center
+
                         rounded-full
                         bg-[#E2EBDD]
+
                         font-sans
                         text-[12px]
                         font-medium
@@ -351,6 +342,7 @@ export default async function HowItWorksPage({
                       <p
                         className="
                           mt-3
+
                           font-sans
                           text-[15px]
                           leading-7
@@ -384,6 +376,7 @@ export default async function HowItWorksPage({
                         w-9
                         items-center
                         justify-center
+
                         rounded-full
                         bg-[#E2EBDD]
                         text-[#6F8F72]
@@ -408,8 +401,10 @@ export default async function HowItWorksPage({
         <div
           className="
             mt-20
+
             border-t
             border-[#E7DDD1]
+
             pt-16
             text-center
 

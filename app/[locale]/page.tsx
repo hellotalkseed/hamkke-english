@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Hero from "../../components/Hero";
 import StudentProblem from "../../components/StudentProblem";
 import LessonExperience from "../../components/LessonExperience";
+import LessonDetails from "../../components/LessonDetails";
 import Audience from "../../components/Audience";
 import Reflections from "../../components/Reflections";
 import WhatYouWontFindHere from "../../components/WhatYouWontFindHere";
@@ -43,6 +44,8 @@ export default async function Home({
       <LessonExperience
         locale={locale}
       />
+
+      <LessonDetails locale={locale} />
 
       <Audience locale={locale} />
 

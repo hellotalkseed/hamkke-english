@@ -561,6 +561,49 @@ howItWorks: {
     closing: "That's how we grow.",
   },
 
+    lessonDetails: {
+    brand: "Hamkke │ 함께",
+
+    title: "Private English lessons, built around real conversation.",
+
+    description:
+      "A space to use the English you already know, build on it, and become more comfortable expressing what you really want to say.",
+
+    details: {
+      private: {
+        title: "1:1 Online Lessons",
+        text:
+          "Your lesson is focused entirely on you and how you communicate.",
+      },
+
+      duration: {
+        title: "25 Minutes",
+        text:
+          "Focused time for conversation, practice, and feedback that fits naturally into your day.",
+      },
+
+      personalized: {
+        title: "Personalized to You",
+        text:
+          "Your level, interests, goals, and the things you actually want to talk about shape the lesson.",
+      },
+
+      feedback: {
+        title: "Natural Feedback",
+        text:
+          "We work on grammar, vocabulary, pronunciation, and expression without losing the flow of the conversation.",
+      },
+
+      teacher: {
+        title: "A Consistent Teacher",
+        text:
+          "Learn with someone who gets to know how you speak, where you struggle, and what you're working toward.",
+      },
+    },
+
+    link: "See How Lessons Work",
+  },
+
   audience: {
     brand: "Hamkke │ 함께",
 
