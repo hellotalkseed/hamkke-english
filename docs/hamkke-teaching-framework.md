@@ -1,6 +1,8 @@
 # The Hamkke Teaching Framework
 
-**Internal Teaching Standard**
+**Version:** 1.0  
+**Document Owner:** Hamkke │ 함께  
+**Status:** Internal Teaching Standard
 
 **Hamkke │ 함께**  
 *From Small Talk to Big Ideas.*
@@ -11,7 +13,9 @@
 
 The Hamkke Teaching Framework defines the educational principles and teaching standards that guide lessons at Hamkke.
 
-It exists to ensure that learners receive a consistent Hamkke learning experience while allowing teachers to bring their own personality, professional judgment, and teaching strengths into the classroom.
+This framework applies to live online English lessons delivered through Hamkke, across different lesson durations, learner ages, English levels, and learning goals.
+
+It exists to ensure that learners receive a consistent educational experience across Hamkke while allowing teachers to bring their own personality, professional judgment, and teaching strengths into the classroom.
 
 The framework is not a fixed lesson script.
 
@@ -418,7 +422,7 @@ Learner progress should be considered in terms of both developing language knowl
 
 ---
 
-## A Shared Standard, Not a Script
+### A Shared Standard, Not a Script
 
 These principles establish what should remain recognizable across Hamkke lessons.
 
@@ -571,7 +575,7 @@ Both learners can still experience:
 
 ---
 
-## The Hamkke Consistency Principle
+### The Hamkke Consistency Principle
 
 Consistency at Hamkke does not mean that every classroom looks the same.
 
@@ -739,6 +743,8 @@ Young learners may appropriately receive:
 - encouragement to attempt an answer before receiving the full language
 
 Teachers should avoid immediately supplying answers that the learner may be capable of producing with appropriate support.
+
+In an online lesson, teachers should also remain attentive to the learner's engagement and ability to participate through the screen. When appropriate, teachers may vary the pace, type of interaction, visual support, or activity while preserving the educational purpose of the lesson.
 
 ---
 
@@ -1027,7 +1033,7 @@ Possible signs of progress include:
 
 ---
 
-## One Approach Across Different Learners
+### One Approach Across Different Learners
 
 Young learners, teens, and adults may experience very different Hamkke lessons.
 
@@ -1353,7 +1359,7 @@ Lesson records should help Hamkke understand the learner over time and support c
 
 ### Continuity Across Hamkke
 
-A Hamkke lesson should not exist as an isolated 25-minute interaction.
+A Hamkke lesson should not exist as an isolated interaction.
 
 Over time, teachers should increasingly understand:
 
@@ -2020,7 +2026,7 @@ A learner may communicate very well in one lesson and struggle in another becaus
 
 - unfamiliar topics
 - fatigue
-- confidence
+- hesitation or reduced confidence in the moment
 - difficulty of the language
 - increased complexity
 - limited background knowledge
