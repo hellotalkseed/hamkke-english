@@ -4,6 +4,10 @@ const en = {
   goals: "Goals",
   stories: "Stories",
   policy: "Policy",
+
+  lessons: "Lessons",
+  about: "About",
+
   startConversation: "Start a Conversation",
 },
 

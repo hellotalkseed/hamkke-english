@@ -4,6 +4,10 @@ const ko = {
   goals: "목표",
   stories: "학생 이야기",
   policy: "수업 안내",
+
+  lessons: "수업",
+  about: "소개",
+
   startConversation: "대화 시작하기",
 },
 

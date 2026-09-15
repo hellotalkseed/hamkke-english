@@ -4,6 +4,10 @@ const zh = {
   goals: "学习目标",
   stories: "学生故事",
   policy: "课程须知",
+
+  lessons: "课程",
+  about: "关于我们",
+
   startConversation: "开始交流",
 },
 

@@ -73,13 +73,7 @@ export default function Navbar() {
   const [isLanguageOpen, setIsLanguageOpen] =
     useState(false);
 
-  const [isInfoOpen, setIsInfoOpen] =
-    useState(false);
-
   const [isMobileLanguageOpen, setIsMobileLanguageOpen] =
-    useState(false);
-
-  const [isMobileInfoOpen, setIsMobileInfoOpen] =
     useState(false);
 
   const [inquirySource, setInquirySource] =
@@ -88,44 +82,21 @@ export default function Navbar() {
     );
 
   /* =====================================================
-     PRIMARY NAVIGATION LINKS
+     NAVIGATION
      ===================================================== */
 
   const navLinks = [
     {
-      href: `/${locale}#experience`,
-      label: t.nav.experience,
+      href: `/${locale}#lesson-details`,
+      label: t.nav.lessons,
     },
-    {
-      href: `/${locale}#goals`,
-      label: t.nav.goals,
-    },
-    {
-      href: `/${locale}#student-stories`,
-      label: t.nav.stories,
-    },
-  ];
-
-  /* =====================================================
-     INFO DROPDOWN LINKS
-     ===================================================== */
-
-  const infoLinks = [
     {
       href: `/${locale}/pricing`,
       label: t.info.pricing,
     },
     {
-      href: `/${locale}/how-it-works`,
-      label: t.info.howItWorks,
-    },
-    {
-      href: `/${locale}/platform`,
-      label: t.info.platform,
-    },
-    {
-      href: `/${locale}/policy`,
-      label: t.info.policy,
+      href: `/${locale}#coach`,
+      label: t.nav.about,
     },
     {
       href: `/${locale}/faq`,
@@ -146,8 +117,7 @@ export default function Navbar() {
 
     setIsMobileMenuOpen(false);
     setIsMobileLanguageOpen(false);
-    setIsMobileInfoOpen(false);
-    setIsInfoOpen(false);
+    setIsLanguageOpen(false);
   };
 
   /* =====================================================
@@ -171,8 +141,6 @@ export default function Navbar() {
     setIsLanguageOpen(false);
     setIsMobileLanguageOpen(false);
     setIsMobileMenuOpen(false);
-    setIsInfoOpen(false);
-    setIsMobileInfoOpen(false);
 
     router.push(newPath);
   };
@@ -320,18 +288,18 @@ export default function Navbar() {
             className="
               hidden
               items-center
-              gap-8
+              gap-7
               md:flex
+              lg:gap-8
             "
           >
-            {/* PRIMARY LINKS */}
-
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className="
                   relative
+                  whitespace-nowrap
                   text-[15px]
                   font-medium
                   text-[#555]
@@ -356,94 +324,6 @@ export default function Navbar() {
             ))}
 
             {/* =================================================
-                INFO DROPDOWN
-                ================================================= */}
-
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() =>
-                  setIsInfoOpen(
-                    (previous) => !previous
-                  )
-                }
-                aria-haspopup="true"
-                aria-expanded={isInfoOpen}
-                className="
-                  flex
-                  items-center
-                  gap-1.5
-                  text-[15px]
-                  font-medium
-                  text-[#555]
-                  transition-colors
-                  duration-300
-                  hover:text-[#6F8F72]
-                "
-              >
-                <span>
-                  {t.info.title}
-                </span>
-
-                <ChevronDown
-                  size={15}
-                  className={`
-                    transition-transform
-                    duration-200
-                    ${
-                      isInfoOpen
-                        ? "rotate-180"
-                        : ""
-                    }
-                  `}
-                />
-              </button>
-
-              {isInfoOpen && (
-                <div
-                  className="
-                    absolute
-                    left-1/2
-                    top-full
-                    mt-3
-                    w-48
-                    -translate-x-1/2
-                    overflow-hidden
-                    rounded-2xl
-                    border
-                    border-[#E7DDD1]
-                    bg-[#FAF8F5]
-                    py-2
-                    shadow-lg
-                  "
-                >
-                  {infoLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() =>
-                        setIsInfoOpen(false)
-                      }
-                      className="
-                        block
-                        px-5
-                        py-2.5
-                        text-sm
-                        text-[#555]
-                        transition-colors
-                        duration-200
-                        hover:bg-[#F1ECE5]
-                        hover:text-[#6F8F72]
-                      "
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* =================================================
                 LANGUAGE DROPDOWN
                 ================================================= */}
 
@@ -461,6 +341,7 @@ export default function Navbar() {
                   flex
                   items-center
                   gap-1.5
+                  whitespace-nowrap
                   text-[15px]
                   font-medium
                   text-[#555]
@@ -554,10 +435,11 @@ export default function Navbar() {
                 )
               }
               className="
-                ml-2
+                ml-1
+                whitespace-nowrap
                 rounded-full
                 bg-[#6F8F72]
-                px-7
+                px-6
                 py-3
                 text-[15px]
                 font-medium
@@ -567,6 +449,8 @@ export default function Navbar() {
                 hover:-translate-y-0.5
                 hover:bg-[#5B7960]
                 hover:shadow-lg
+
+                lg:px-7
               "
             >
               {t.nav.startConversation}
@@ -579,11 +463,12 @@ export default function Navbar() {
 
           <button
             type="button"
-            onClick={() =>
+            onClick={() => {
               setIsMobileMenuOpen(
                 (previous) => !previous
-              )
-            }
+              );
+              setIsMobileLanguageOpen(false);
+            }}
             aria-label="Toggle navigation"
             aria-expanded={isMobileMenuOpen}
             className="
@@ -622,7 +507,7 @@ export default function Navbar() {
             md:hidden
             ${
               isMobileMenuOpen
-                ? "max-h-[900px] border-t border-[#E7DDD1]"
+                ? "max-h-[700px] border-t border-[#E7DDD1]"
                 : "max-h-0"
             }
           `}
@@ -638,139 +523,57 @@ export default function Navbar() {
               className="
                 flex
                 flex-col
-                gap-5
               "
             >
-              {/* MOBILE PRIMARY LINKS */}
-
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() =>
-                    setIsMobileMenuOpen(
-                      false
-                    )
-                  }
-                  className="
-                    text-lg
-                    font-medium
-                    text-[#555]
-                    transition-colors
-                    duration-300
-                    hover:text-[#6F8F72]
-                  "
-                >
-                  {link.label}
-                </Link>
-              ))}
-
               {/* =================================================
-                  MOBILE INFO
+                  MOBILE NAVIGATION LINKS
                   ================================================= */}
 
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setIsMobileInfoOpen(
-                      (previous) =>
-                        !previous
-                    )
-                  }
-                  aria-haspopup="true"
-                  aria-expanded={
-                    isMobileInfoOpen
-                  }
-                  className="
-                    flex
-                    w-full
-                    items-center
-                    justify-between
-                    text-lg
-                    font-medium
-                    text-[#555]
-                    transition-colors
-                    duration-300
-                    hover:text-[#6F8F72]
-                  "
-                >
-                  <span>
-                    {t.info.title}
-                  </span>
-
-                  <ChevronDown
-                    size={19}
-                    className={`
-                      transition-transform
-                      duration-200
-                      ${
-                        isMobileInfoOpen
-                          ? "rotate-180"
-                          : ""
-                      }
-                    `}
-                  />
-                </button>
-
-                <div
-                  className={`
-                    overflow-hidden
-                    transition-all
-                    duration-300
-                    ${
-                      isMobileInfoOpen
-                        ? "mt-3 max-h-80"
-                        : "max-h-0"
-                    }
-                  `}
-                >
-                  <div
+              <div
+                className="
+                  flex
+                  flex-col
+                "
+              >
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => {
+                      setIsMobileMenuOpen(
+                        false
+                      );
+                      setIsMobileLanguageOpen(
+                        false
+                      );
+                    }}
                     className="
-                      ml-1
-                      flex
-                      flex-col
-                      gap-1
+                      border-b
+                      border-[#E7DDD1]
+                      py-4
+                      text-lg
+                      font-medium
+                      text-[#555]
+                      transition-colors
+                      duration-300
+                      hover:text-[#6F8F72]
                     "
                   >
-                    {infoLinks.map(
-                      (link) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          onClick={() => {
-                            setIsMobileInfoOpen(
-                              false
-                            );
-                            setIsMobileMenuOpen(
-                              false
-                            );
-                          }}
-                          className="
-                            rounded-xl
-                            px-4
-                            py-2.5
-                            text-base
-                            text-[#666]
-                            transition-colors
-                            duration-200
-                            hover:bg-[#F1ECE5]
-                            hover:text-[#6F8F72]
-                          "
-                        >
-                          {link.label}
-                        </Link>
-                      )
-                    )}
-                  </div>
-                </div>
+                    {link.label}
+                  </Link>
+                ))}
               </div>
 
               {/* =================================================
                   MOBILE LANGUAGE
                   ================================================= */}
 
-              <div className="pt-1">
+              <div
+                className="
+                  border-b
+                  border-[#E7DDD1]
+                "
+              >
                 <button
                   type="button"
                   onClick={() =>
@@ -788,6 +591,7 @@ export default function Navbar() {
                     w-full
                     items-center
                     justify-between
+                    py-4
                     text-lg
                     font-medium
                     text-[#555]
@@ -821,14 +625,13 @@ export default function Navbar() {
                     duration-300
                     ${
                       isMobileLanguageOpen
-                        ? "mt-3 max-h-40"
+                        ? "max-h-44 pb-3"
                         : "max-h-0"
                     }
                   `}
                 >
                   <div
                     className="
-                      ml-1
                       flex
                       flex-col
                       gap-1
@@ -882,7 +685,7 @@ export default function Navbar() {
                   )
                 }
                 className="
-                  mt-3
+                  mt-6
                   rounded-full
                   bg-[#6F8F72]
                   py-3.5
