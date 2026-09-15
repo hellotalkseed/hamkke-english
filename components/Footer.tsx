@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import AssessmentModal from "./InquiryModal";
+import InquiryModal from "./InquiryModal";
 import { getMessages } from "../lib/getMessages";
 import type { Locale } from "../lib/i18n";
 
@@ -25,51 +26,48 @@ export default function Footer() {
       <footer
         className="
           bg-[#2B2B2B]
-          py-4
+          px-6
+          pb-7
+          pt-14
 
-          sm:py-5
+          sm:px-8
+          sm:pb-8
+          sm:pt-16
+
+          lg:px-10
+          lg:pb-9
+          lg:pt-18
         "
       >
-        <div
-          className="
-            w-full
-            px-6
+        <div className="mx-auto max-w-[1200px]">
+          {/* =====================================================
+              MAIN FOOTER
+              ===================================================== */}
 
-            md:px-8
-            lg:px-10
-          "
-        >
           <div
             className="
-              flex
-              flex-col
-              items-center
-              gap-3
+              grid
+              gap-12
 
-              md:grid
-              md:grid-cols-[1fr_auto_1fr]
-              md:items-center
-              md:gap-6
+              md:grid-cols-[1.4fr_0.8fr_0.8fr_0.9fr]
+              md:gap-8
+
+              lg:gap-12
             "
           >
-            {/* =====================================================
+            {/* ===================================================
                 BRAND
-                ===================================================== */}
+                =================================================== */}
 
-            <div
-              className="
-                text-center
-
-                md:justify-self-start
-                md:text-left
-              "
-            >
+            <div className="max-w-[360px]">
               <h3
                 className="
-                  text-[21px]
+                  text-[30px]
                   leading-none
                   text-white
                   [font-family:var(--font-cormorant)]
+
+                  sm:text-[34px]
                 "
               >
                 {t.footer.brand}
@@ -77,77 +75,290 @@ export default function Footer() {
 
               <p
                 className="
-                  mt-1
-                  text-[10px]
-                  tracking-wide
-                  text-white/50
+                  mt-3
+                  text-[11px]
+                  uppercase
+                  tracking-[0.18em]
+                  text-white/45
                 "
               >
                 {t.footer.tagline}
               </p>
+
+              <div
+                className="
+                  mt-7
+                  h-px
+                  w-10
+                  bg-[#6F8F72]
+                "
+              />
+
+              <p
+                className="
+                  mt-5
+                  text-[13px]
+                  leading-6
+                  text-white/45
+                "
+              >
+                {locale === "ko" ? (
+                  <>
+                    <span className="block">
+                      모든 의미 있는 대화에는 시작이 있습니다.
+                    </span>
+
+                    <span className="block">
+                      어쩌면 당신의 대화가 여기서 시작될지도 몰라요.
+                    </span>
+                  </>
+                ) : locale === "zh" ? (
+                  <>
+                    <span className="block">
+                      每一段有意义的对话，都有一个开始。
+                    </span>
+
+                    <span className="block">
+                      也许，你的故事就从这里开始。
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="block whitespace-nowrap">
+                      Every meaningful conversation starts somewhere.
+                    </span>
+
+                    <span className="block whitespace-nowrap">
+                      Perhaps yours starts here.
+                    </span>
+                  </>
+                )}
+              </p>
             </div>
 
-            {/* =====================================================
-                COPYRIGHT
-                ===================================================== */}
+            {/* ===================================================
+                LESSONS
+                =================================================== */}
 
+            <div>
+              <p
+                className="
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.24em]
+                  text-[#9DB49A]
+                "
+              >
+                {t.footer.lessonsGroup}
+              </p>
+
+              <nav
+                className="
+                  mt-5
+                  flex
+                  flex-col
+                  items-start
+                  gap-3.5
+                "
+              >
+                <Link
+                  href={`/${locale}#lesson-details`}
+                  className="
+                    text-[13px]
+                    text-white/65
+                    transition-colors
+                    duration-200
+                    hover:text-white
+                  "
+                >
+                  {t.footer.lessons}
+                </Link>
+
+                <Link
+                  href={`/${locale}/how-it-works`}
+                  className="
+                    text-[13px]
+                    text-white/65
+                    transition-colors
+                    duration-200
+                    hover:text-white
+                  "
+                >
+                  {t.footer.howItWorks}
+                </Link>
+
+                <Link
+                  href={`/${locale}/pricing`}
+                  className="
+                    text-[13px]
+                    text-white/65
+                    transition-colors
+                    duration-200
+                    hover:text-white
+                  "
+                >
+                  {t.footer.pricing}
+                </Link>
+
+                <Link
+                  href={`/${locale}/platform`}
+                  className="
+                    text-[13px]
+                    text-white/65
+                    transition-colors
+                    duration-200
+                    hover:text-white
+                  "
+                >
+                  {t.footer.platform}
+                </Link>
+              </nav>
+            </div>
+
+            {/* ===================================================
+                HAMKKE
+                =================================================== */}
+
+            <div>
+              <p
+                className="
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.24em]
+                  text-[#9DB49A]
+                "
+              >
+                {t.footer.hamkkeGroup}
+              </p>
+
+              <nav
+                className="
+                  mt-5
+                  flex
+                  flex-col
+                  items-start
+                  gap-3.5
+                "
+              >
+                <Link
+                  href={`/${locale}#coach`}
+                  className="
+                    text-[13px]
+                    text-white/65
+                    transition-colors
+                    duration-200
+                    hover:text-white
+                  "
+                >
+                  {t.footer.about}
+                </Link>
+
+                <Link
+                  href={`/${locale}/faq`}
+                  className="
+                    text-[13px]
+                    text-white/65
+                    transition-colors
+                    duration-200
+                    hover:text-white
+                  "
+                >
+                  {t.footer.faq}
+                </Link>
+
+                <Link
+                  href={`/${locale}/policy`}
+                  className="
+                    text-[13px]
+                    text-white/65
+                    transition-colors
+                    duration-200
+                    hover:text-white
+                  "
+                >
+                  {t.footer.policy}
+                </Link>
+              </nav>
+            </div>
+
+            {/* ===================================================
+                CONNECT
+                =================================================== */}
+
+            <div>
+              <p
+                className="
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.24em]
+                  text-[#9DB49A]
+                "
+              >
+                {t.footer.connectGroup}
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setIsInquiryOpen(true)
+                }
+                className="
+                  group
+                  mt-5
+                  inline-flex
+                  items-center
+                  gap-2
+                  text-left
+                  text-[13px]
+                  text-white/65
+                  transition-colors
+                  duration-200
+                  hover:text-white
+                "
+              >
+                <span>
+                  {t.footer.startConversation}
+                </span>
+
+                <span
+                  className="
+                    transition-transform
+                    duration-200
+                    group-hover:translate-x-1
+                  "
+                  aria-hidden="true"
+                >
+                  →
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* =====================================================
+              BOTTOM
+              ===================================================== */}
+
+          <div
+            className="
+              mt-14
+              border-t
+              border-white/10
+              pt-6
+
+              sm:mt-16
+            "
+          >
             <p
               className="
-                text-center
                 text-[10px]
                 text-white/30
-
-                md:justify-self-center
               "
             >
               {t.footer.copyright}
             </p>
-
-            {/* =====================================================
-                NAVIGATION
-                ===================================================== */}
-
-            <nav
-              className="
-                flex
-                flex-wrap
-                justify-center
-                gap-x-4
-                text-[11px]
-                text-white/60
-
-                md:justify-self-end
-              "
-            >
-              <a
-                href={`/${locale}#experience`}
-                className="transition hover:text-white"
-              >
-                {t.footer.experience}
-              </a>
-
-              <a
-                href={`/${locale}#goals`}
-                className="transition hover:text-white"
-              >
-                {t.footer.goals}
-              </a>
-
-              <a
-                href={`/${locale}#student-stories`}
-                className="transition hover:text-white"
-              >
-                {t.footer.stories}
-              </a>
-
-              <button
-                type="button"
-                onClick={() => setIsInquiryOpen(true)}
-                className="transition hover:text-white"
-              >
-                {t.footer.contact}
-              </button>
-            </nav>
           </div>
         </div>
       </footer>
@@ -156,9 +367,11 @@ export default function Footer() {
           INQUIRY MODAL
           ===================================================== */}
 
-      <AssessmentModal
+      <InquiryModal
         isOpen={isInquiryOpen}
-        onClose={() => setIsInquiryOpen(false)}
+        onClose={() =>
+          setIsInquiryOpen(false)
+        }
         source="start-a-conversation"
         locale={locale}
       />

@@ -781,10 +781,19 @@ howItWorks: {
   brand: "Hamkke │ 함께",
   tagline: "From Small Talk to Big Ideas",
 
-  experience: "수업 방식",
-  goals: "목표",
-  stories: "학생 이야기",
-  contact: "문의하기",
+  lessons: "수업",
+  lessonsGroup: "수업 안내",
+  howItWorks: "수업 시작 과정",
+  pricing: "수강료",
+  platform: "수업 플랫폼",
+
+  hamkkeGroup: "Hamkke",
+  about: "소개",
+  faq: "자주 묻는 질문",
+  policy: "수업 정책",
+
+  connectGroup: "문의",
+  startConversation: "대화 시작하기",
 
   copyright:
     "© 2026 Hamkke │ 함께. All rights reserved.",

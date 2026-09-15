@@ -782,10 +782,19 @@ howItWorks: {
   brand: "Hamkke │ 함께",
   tagline: "From Small Talk to Big Ideas",
 
-  experience: "Experience",
-  goals: "Goals",
-  stories: "Stories",
-  contact: "Contact",
+  lessons: "Lessons",
+  lessonsGroup: "Lessons",
+  howItWorks: "How It Works",
+  pricing: "Pricing",
+  platform: "Platform",
+
+  hamkkeGroup: "Hamkke",
+  about: "About",
+  faq: "FAQ",
+  policy: "Lesson Policy",
+
+  connectGroup: "Connect",
+  startConversation: "Start a Conversation",
 
   copyright:
     "© 2026 Hamkke │ 함께. All rights reserved.",

@@ -782,10 +782,19 @@ howItWorks: {
   brand: "Hamkke │ 함께",
   tagline: "From Small Talk to Big Ideas",
 
-  experience: "课程体验",
-  goals: "学习目标",
-  stories: "学生故事",
-  contact: "联系我",
+  lessons: "课程",
+  lessonsGroup: "课程",
+  howItWorks: "上课流程",
+  pricing: "课程费用",
+  platform: "上课平台",
+
+  hamkkeGroup: "Hamkke",
+  about: "关于我们",
+  faq: "常见问题",
+  policy: "课程须知",
+
+  connectGroup: "联系",
+  startConversation: "开始交流",
 
   copyright:
     "© 2026 Hamkke │ 함께. All rights reserved.",
