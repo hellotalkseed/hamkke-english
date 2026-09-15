@@ -6,7 +6,10 @@ const en = {
   policy: "Policy",
 
   lessons: "Lessons",
+  teachers: "Teachers",
+  approach: "Approach",
   about: "About",
+  login: "Login",
 
   startConversation: "Start a Conversation",
 },

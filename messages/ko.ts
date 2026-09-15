@@ -6,7 +6,10 @@ const ko = {
   policy: "수업 안내",
 
   lessons: "수업",
+  teachers: "선생님",
+  approach: "수업 방식",
   about: "소개",
+  login: "로그인",
 
   startConversation: "대화 시작하기",
 },

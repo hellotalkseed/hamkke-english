@@ -6,7 +6,10 @@ const zh = {
   policy: "课程须知",
 
   lessons: "课程",
+  teachers: "教师",
+  approach: "教学方式",
   about: "关于我们",
+  login: "登录",
 
   startConversation: "开始交流",
 },

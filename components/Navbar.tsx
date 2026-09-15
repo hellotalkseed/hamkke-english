@@ -14,8 +14,6 @@ import {
   X,
 } from "lucide-react";
 
-import InquiryModal from "./InquiryModal";
-import type { InquirySource } from "./InquiryForm";
 import type { Locale } from "../lib/i18n";
 
 import en from "@/messages/en";
@@ -64,22 +62,16 @@ export default function Navbar() {
      STATE
      ===================================================== */
 
-  const [isInquiryOpen, setIsInquiryOpen] =
-    useState(false);
-
   const [isMobileMenuOpen, setIsMobileMenuOpen] =
     useState(false);
 
   const [isLanguageOpen, setIsLanguageOpen] =
     useState(false);
 
-  const [isMobileLanguageOpen, setIsMobileLanguageOpen] =
-    useState(false);
-
-  const [inquirySource, setInquirySource] =
-    useState<InquirySource>(
-      "start-a-conversation"
-    );
+  const [
+    isMobileLanguageOpen,
+    setIsMobileLanguageOpen,
+  ] = useState(false);
 
   /* =====================================================
      NAVIGATION
@@ -87,38 +79,22 @@ export default function Navbar() {
 
   const navLinks = [
     {
-      href: `/${locale}#lesson-details`,
+      href: `/${locale}#lessons`,
       label: t.nav.lessons,
     },
     {
-      href: `/${locale}/pricing`,
-      label: t.info.pricing,
+      href: `/${locale}#teachers`,
+      label: t.nav.teachers,
     },
     {
-      href: `/${locale}#coach`,
-      label: t.nav.about,
+      href: `/${locale}/how-it-works`,
+      label: t.nav.approach,
     },
     {
-      href: `/${locale}/faq`,
-      label: t.info.faq,
+      href: `/${locale}/policy`,
+      label: t.nav.policy,
     },
   ];
-
-  /* =====================================================
-     INQUIRY
-     ===================================================== */
-
-  const openInquiry = (
-    source: InquirySource =
-      "start-a-conversation"
-  ) => {
-    setInquirySource(source);
-    setIsInquiryOpen(true);
-
-    setIsMobileMenuOpen(false);
-    setIsMobileLanguageOpen(false);
-    setIsLanguageOpen(false);
-  };
 
   /* =====================================================
      LANGUAGE SWITCHING
@@ -156,141 +132,128 @@ export default function Navbar() {
     ) ?? languages[0];
 
   return (
-    <>
-      {/* =====================================================
-          NAVBAR
-          ===================================================== */}
-
-      <header
+    <header
+      className="
+        relative
+        z-50
+        bg-[#F8F4EB]
+      "
+    >
+      <div
         className="
-          fade-up
-          sticky
-          top-0
-          z-50
-          border-b
-          border-[#E7DDD1]
-          bg-[#FAF8F5]/90
-          backdrop-blur-md
+          mx-auto
+          flex
+          w-full
+          max-w-[1600px]
+          items-center
+          px-6
+          py-4
+          sm:px-8
+          lg:px-10
+          xl:px-12
         "
       >
+        {/* =====================================================
+            LEFT GROUP
+            BRAND + PRIMARY NAVIGATION
+            ===================================================== */}
+
         <div
           className="
             flex
-            w-full
+            min-w-0
             items-center
-            justify-between
-            px-6
-            py-3
-            sm:px-8
-            sm:py-4
-            lg:px-10
-            xl:px-12
           "
         >
-          {/* =====================================================
-              LOGO
-              ===================================================== */}
+          {/* ===================================================
+              BRAND
+              =================================================== */}
 
           <Link
-            href={`/${locale}`}
-            className="
-              flex
-              shrink-0
-              items-center
-              gap-0
-            "
-          >
+  href={`/${locale}`}
+  className="
+    -ml-3
+    flex
+    shrink-0
+    items-center
+    gap-0
+    sm:-ml-4
+    lg:-ml-6
+    xl:-ml-8
+  "
+>
             <Image
               src="/logo/hamkke-icon.svg"
               alt="Hamkke logo"
-              width={100}
-              height={100}
+              width={72}
+              height={72}
               priority
               className="
-                h-[52px]
-                w-[52px]
-                sm:h-[56px]
-                sm:w-[56px]
+                h-[36px]
+                w-[36px]
+                shrink-0
+                object-contain
               "
             />
 
             <div
               className="
                 flex
-                flex-col
-                justify-center
+                items-center
                 leading-none
+                text-[#293A30]
               "
             >
-              <h1
+              <span
                 className="
-                  flex
-                  items-baseline
-                  text-[1.7rem]
+                  text-[25px]
                   font-semibold
-                  text-[#2B2B2B]
+                  leading-none
                   [font-family:var(--font-cormorant)]
-                  sm:text-[1.9rem]
-                  md:text-[2rem]
                 "
               >
-                <span>
-                  Hamkke
-                </span>
+                Hamkke
+              </span>
 
-                <span
-                  className="
-                    mx-2
-                    h-[0.8em]
-                    w-px
-                    self-center
-                    bg-[#A8BCA5]
-                    opacity-50
-                  "
-                />
-
-                <span
-                  className="
-                    translate-y-[1px]
-                    text-[0.62em]
-                    font-medium
-                    leading-none
-                    text-[#6F8F72]
-                  "
-                >
-                  함께
-                </span>
-              </h1>
-
-              <p
+              <span
                 className="
-                  mt-1
-                  text-[8px]
-                  uppercase
-                  tracking-[0.22em]
-                  text-[#6F8F72]
-                  sm:text-[9px]
-                  sm:tracking-[0.25em]
-                  md:text-[10px]
-                  md:tracking-[0.34em]
+                  mx-2.5
+                  h-[18px]
+                  w-px
+                  shrink-0
+                  bg-[#A8BCA5]
+                  opacity-60
+                "
+              />
+
+              <span
+                className="
+                  text-[16px]
+                  font-medium
+                  leading-none
+                  text-[#718A73]
                 "
               >
-                From Small Talk to Big Ideas
-              </p>
+                함께
+              </span>
             </div>
           </Link>
 
-          {/* =====================================================
-              DESKTOP NAVIGATION
-              ===================================================== */}
+          {/* ===================================================
+              DESKTOP PRIMARY NAVIGATION
+              =================================================== */}
 
           <nav
             className="
+              ml-16
               hidden
               items-center
-              gap-7
+              gap-6
               md:flex
-              lg:gap-8
+              lg:ml-20
+              lg:gap-7
+              xl:ml-24
+              xl:gap-8
             "
           >
             {navLinks.map((link) => (
@@ -302,17 +265,17 @@ export default function Navbar() {
                   whitespace-nowrap
                   text-[15px]
                   font-medium
-                  text-[#555]
+                  text-[#46564B]
                   transition-colors
                   duration-300
-                  hover:text-[#6F8F72]
+                  hover:text-[#718A73]
 
                   after:absolute
-                  after:-bottom-1
+                  after:-bottom-1.5
                   after:left-0
-                  after:h-[1.5px]
+                  after:h-px
                   after:w-0
-                  after:bg-[#6F8F72]
+                  after:bg-[#718A73]
                   after:transition-all
                   after:duration-300
 
@@ -322,32 +285,289 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+          </nav>
+        </div>
 
+        {/* =====================================================
+            DESKTOP UTILITIES
+            LANGUAGE + LOGIN
+            ===================================================== */}
+
+        <div
+          className="
+            ml-auto
+            hidden
+            items-center
+            gap-7
+            md:flex
+          "
+        >
+          {/* ===================================================
+              LANGUAGE
+              =================================================== */}
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() =>
+                setIsLanguageOpen(
+                  (previous) => !previous
+                )
+              }
+              aria-haspopup="true"
+              aria-expanded={isLanguageOpen}
+              className="
+                flex
+                items-center
+                gap-1.5
+                whitespace-nowrap
+                text-[15px]
+                font-medium
+                text-[#46564B]
+                transition-colors
+                duration-300
+                hover:text-[#718A73]
+              "
+            >
+              <span>
+                {currentLanguage.label}
+              </span>
+
+              <ChevronDown
+                size={14}
+                strokeWidth={1.8}
+                className={`
+                  transition-transform
+                  duration-200
+                  ${
+                    isLanguageOpen
+                      ? "rotate-180"
+                      : ""
+                  }
+                `}
+              />
+            </button>
+
+            {isLanguageOpen && (
+              <div
+                className="
+                  absolute
+                  right-0
+                  top-full
+                  mt-4
+                  min-w-[145px]
+                  overflow-hidden
+                  rounded-xl
+                  border
+                  border-[#E7DDD1]
+                  bg-[#FFFDF8]
+                  py-2
+                  shadow-[0_14px_40px_rgba(41,58,48,0.10)]
+                "
+              >
+                {languages.map(
+                  (language) => (
+                    <button
+                      key={language.locale}
+                      type="button"
+                      onClick={() =>
+                        changeLanguage(
+                          language.locale
+                        )
+                      }
+                      className={`
+                        flex
+                        w-full
+                        items-center
+                        px-5
+                        py-2.5
+                        text-left
+                        text-sm
+                        transition-colors
+                        duration-200
+                        ${
+                          language.locale ===
+                          locale
+                            ? "bg-[#EEF2EA] font-medium text-[#718A73]"
+                            : "text-[#46564B] hover:bg-[#F4F0E7] hover:text-[#718A73]"
+                        }
+                      `}
+                    >
+                      {language.label}
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ===================================================
+              LOGIN
+              =================================================== */}
+
+          <Link
+            href={`/${locale}#login`}
+            className="
+              relative
+              whitespace-nowrap
+              text-[15px]
+              font-medium
+              text-[#293A30]
+              transition-colors
+              duration-300
+              hover:text-[#718A73]
+
+              after:absolute
+              after:-bottom-1.5
+              after:left-0
+              after:h-px
+              after:w-0
+              after:bg-[#718A73]
+              after:transition-all
+              after:duration-300
+
+              hover:after:w-full
+            "
+          >
+            {t.nav.login}
+          </Link>
+        </div>
+
+        {/* =====================================================
+            MOBILE MENU BUTTON
+            ===================================================== */}
+
+        <button
+          type="button"
+          onClick={() => {
+            setIsMobileMenuOpen(
+              (previous) => !previous
+            );
+            setIsMobileLanguageOpen(false);
+          }}
+          aria-label="Toggle navigation"
+          aria-expanded={isMobileMenuOpen}
+          className="
+            ml-auto
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            text-[#293A30]
+            transition-colors
+            duration-300
+            hover:bg-[#EDE7DB]
+            md:hidden
+          "
+        >
+          {isMobileMenuOpen ? (
+            <X
+              size={23}
+              strokeWidth={1.8}
+            />
+          ) : (
+            <Menu
+              size={23}
+              strokeWidth={1.8}
+            />
+          )}
+        </button>
+      </div>
+
+      {/* =====================================================
+          MOBILE MENU
+          ===================================================== */}
+
+      <div
+        className={`
+          overflow-hidden
+          transition-all
+          duration-300
+          ease-in-out
+          md:hidden
+          ${
+            isMobileMenuOpen
+              ? "max-h-[620px]"
+              : "max-h-0"
+          }
+        `}
+      >
+        <nav
+          className="
+            bg-[#F8F4EB]
+            px-6
+            pb-6
+            pt-2
+          "
+        >
+          <div className="flex flex-col">
             {/* =================================================
-                LANGUAGE DROPDOWN
+                MOBILE NAVIGATION LINKS
                 ================================================= */}
 
-            <div className="relative">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsMobileLanguageOpen(
+                    false
+                  );
+                }}
+                className="
+                  border-b
+                  border-[#E7DDD1]
+                  py-4
+                  text-lg
+                  font-medium
+                  text-[#46564B]
+                  transition-colors
+                  duration-300
+                  hover:text-[#718A73]
+                "
+              >
+                {link.label}
+              </Link>
+            ))}
+
+            {/* =================================================
+                MOBILE LANGUAGE
+                ================================================= */}
+
+            <div
+              className="
+                border-b
+                border-[#E7DDD1]
+              "
+            >
               <button
                 type="button"
                 onClick={() =>
-                  setIsLanguageOpen(
-                    (previous) => !previous
+                  setIsMobileLanguageOpen(
+                    (previous) =>
+                      !previous
                   )
                 }
                 aria-haspopup="true"
-                aria-expanded={isLanguageOpen}
+                aria-expanded={
+                  isMobileLanguageOpen
+                }
                 className="
                   flex
+                  w-full
                   items-center
-                  gap-1.5
-                  whitespace-nowrap
-                  text-[15px]
+                  justify-between
+                  py-4
+                  text-lg
                   font-medium
-                  text-[#555]
+                  text-[#46564B]
                   transition-colors
                   duration-300
-                  hover:text-[#6F8F72]
+                  hover:text-[#718A73]
                 "
               >
                 <span>
@@ -355,12 +575,13 @@ export default function Navbar() {
                 </span>
 
                 <ChevronDown
-                  size={15}
+                  size={18}
+                  strokeWidth={1.8}
                   className={`
                     transition-transform
                     duration-200
                     ${
-                      isLanguageOpen
+                      isMobileLanguageOpen
                         ? "rotate-180"
                         : ""
                     }
@@ -368,21 +589,23 @@ export default function Navbar() {
                 />
               </button>
 
-              {isLanguageOpen && (
+              <div
+                className={`
+                  overflow-hidden
+                  transition-all
+                  duration-300
+                  ${
+                    isMobileLanguageOpen
+                      ? "max-h-44 pb-3"
+                      : "max-h-0"
+                  }
+                `}
+              >
                 <div
                   className="
-                    absolute
-                    right-0
-                    top-full
-                    mt-3
-                    min-w-[145px]
-                    overflow-hidden
-                    rounded-2xl
-                    border
-                    border-[#E7DDD1]
-                    bg-[#FAF8F5]
-                    py-2
-                    shadow-lg
+                    flex
+                    flex-col
+                    gap-1
                   "
                 >
                   {languages.map(
@@ -398,20 +621,18 @@ export default function Navbar() {
                           )
                         }
                         className={`
-                          flex
-                          w-full
-                          items-center
-                          px-5
+                          rounded-xl
+                          px-4
                           py-2.5
                           text-left
-                          text-sm
+                          text-base
                           transition-colors
                           duration-200
                           ${
                             language.locale ===
                             locale
-                              ? "bg-[#EEF5EE] font-medium text-[#6F8F72]"
-                              : "text-[#555] hover:bg-[#F1ECE5] hover:text-[#6F8F72]"
+                              ? "bg-[#EEF2EA] font-medium text-[#718A73]"
+                              : "text-[#5E6A61] hover:bg-[#F0EBE1] hover:text-[#718A73]"
                           }
                         `}
                       >
@@ -420,301 +641,36 @@ export default function Navbar() {
                     )
                   )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* =================================================
-                START CONVERSATION
+                MOBILE LOGIN
                 ================================================= */}
 
-            <button
-              type="button"
-              onClick={() =>
-                openInquiry(
-                  "start-a-conversation"
-                )
-              }
+            <Link
+              href={`/${locale}#login`}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsMobileLanguageOpen(
+                  false
+                );
+              }}
               className="
-                ml-1
-                whitespace-nowrap
-                rounded-full
-                bg-[#6F8F72]
-                px-6
-                py-3
-                text-[15px]
+                py-4
+                text-lg
                 font-medium
-                text-white
-                transition-all
+                text-[#293A30]
+                transition-colors
                 duration-300
-                hover:-translate-y-0.5
-                hover:bg-[#5B7960]
-                hover:shadow-lg
-
-                lg:px-7
+                hover:text-[#718A73]
               "
             >
-              {t.nav.startConversation}
-            </button>
-          </nav>
-
-          {/* =====================================================
-              MOBILE MENU BUTTON
-              ===================================================== */}
-
-          <button
-            type="button"
-            onClick={() => {
-              setIsMobileMenuOpen(
-                (previous) => !previous
-              );
-              setIsMobileLanguageOpen(false);
-            }}
-            aria-label="Toggle navigation"
-            aria-expanded={isMobileMenuOpen}
-            className="
-              flex
-              h-11
-              w-11
-              shrink-0
-              items-center
-              justify-center
-              rounded-xl
-              text-[#2B2B2B]
-              transition-colors
-              duration-300
-              hover:bg-[#EFE8DE]
-              md:hidden
-            "
-          >
-            {isMobileMenuOpen ? (
-              <X size={26} />
-            ) : (
-              <Menu size={26} />
-            )}
-          </button>
-        </div>
-
-        {/* =====================================================
-            MOBILE MENU
-            ===================================================== */}
-
-        <div
-          className={`
-            overflow-hidden
-            transition-all
-            duration-300
-            ease-in-out
-            md:hidden
-            ${
-              isMobileMenuOpen
-                ? "max-h-[700px] border-t border-[#E7DDD1]"
-                : "max-h-0"
-            }
-          `}
-        >
-          <nav
-            className="
-              bg-[#FAF8F5]
-              px-6
-              py-6
-            "
-          >
-            <div
-              className="
-                flex
-                flex-col
-              "
-            >
-              {/* =================================================
-                  MOBILE NAVIGATION LINKS
-                  ================================================= */}
-
-              <div
-                className="
-                  flex
-                  flex-col
-                "
-              >
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => {
-                      setIsMobileMenuOpen(
-                        false
-                      );
-                      setIsMobileLanguageOpen(
-                        false
-                      );
-                    }}
-                    className="
-                      border-b
-                      border-[#E7DDD1]
-                      py-4
-                      text-lg
-                      font-medium
-                      text-[#555]
-                      transition-colors
-                      duration-300
-                      hover:text-[#6F8F72]
-                    "
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-
-              {/* =================================================
-                  MOBILE LANGUAGE
-                  ================================================= */}
-
-              <div
-                className="
-                  border-b
-                  border-[#E7DDD1]
-                "
-              >
-                <button
-                  type="button"
-                  onClick={() =>
-                    setIsMobileLanguageOpen(
-                      (previous) =>
-                        !previous
-                    )
-                  }
-                  aria-haspopup="true"
-                  aria-expanded={
-                    isMobileLanguageOpen
-                  }
-                  className="
-                    flex
-                    w-full
-                    items-center
-                    justify-between
-                    py-4
-                    text-lg
-                    font-medium
-                    text-[#555]
-                    transition-colors
-                    duration-300
-                    hover:text-[#6F8F72]
-                  "
-                >
-                  <span>
-                    {currentLanguage.label}
-                  </span>
-
-                  <ChevronDown
-                    size={19}
-                    className={`
-                      transition-transform
-                      duration-200
-                      ${
-                        isMobileLanguageOpen
-                          ? "rotate-180"
-                          : ""
-                      }
-                    `}
-                  />
-                </button>
-
-                <div
-                  className={`
-                    overflow-hidden
-                    transition-all
-                    duration-300
-                    ${
-                      isMobileLanguageOpen
-                        ? "max-h-44 pb-3"
-                        : "max-h-0"
-                    }
-                  `}
-                >
-                  <div
-                    className="
-                      flex
-                      flex-col
-                      gap-1
-                    "
-                  >
-                    {languages.map(
-                      (language) => (
-                        <button
-                          key={
-                            language.locale
-                          }
-                          type="button"
-                          onClick={() =>
-                            changeLanguage(
-                              language.locale
-                            )
-                          }
-                          className={`
-                            rounded-xl
-                            px-4
-                            py-2.5
-                            text-left
-                            text-base
-                            transition-colors
-                            duration-200
-                            ${
-                              language.locale ===
-                              locale
-                                ? "bg-[#EEF5EE] font-medium text-[#6F8F72]"
-                                : "text-[#666] hover:bg-[#F1ECE5] hover:text-[#6F8F72]"
-                            }
-                          `}
-                        >
-                          {language.label}
-                        </button>
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* =================================================
-                  MOBILE START CONVERSATION
-                  ================================================= */}
-
-              <button
-                type="button"
-                onClick={() =>
-                  openInquiry(
-                    "start-a-conversation"
-                  )
-                }
-                className="
-                  mt-6
-                  rounded-full
-                  bg-[#6F8F72]
-                  py-3.5
-                  font-medium
-                  text-white
-                  transition-all
-                  duration-300
-                  hover:bg-[#5B7960]
-                "
-              >
-                {t.nav.startConversation}
-              </button>
-            </div>
-          </nav>
-        </div>
-      </header>
-
-      {/* =====================================================
-          INQUIRY MODAL
-          ===================================================== */}
-
-      <InquiryModal
-        isOpen={isInquiryOpen}
-        onClose={() =>
-          setIsInquiryOpen(false)
-        }
-        source={inquirySource}
-        locale={locale}
-      />
-    </>
+              {t.nav.login}
+            </Link>
+          </div>
+        </nav>
+      </div>
+    </header>
   );
 }
