@@ -161,7 +161,7 @@ The goal is for every learner to experience the same underlying educational phil
 
 ---
 
-# Hamkke Teaching Principles
+## Hamkke Teaching Principles
 
 The following principles apply across Hamkke lessons regardless of the learner's age, level, goals, or lesson materials.
 
@@ -171,7 +171,7 @@ Teachers may adapt how these principles are applied, but the principles themselv
 
 ---
 
-## Principle 1: Communication Comes Before Perfection
+### Principle 1: Communication Comes Before Perfection
 
 The purpose of English is communication.
 
@@ -183,13 +183,13 @@ This does not mean accuracy is ignored.
 
 It means correction should support communication rather than constantly interrupt it.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should allow learners reasonable space to complete their thoughts before correcting language unless immediate support is necessary for understanding, communication, or the learner's ability to continue.
 
 ---
 
-## Principle 2: Listen Before You Teach
+### Principle 2: Listen Before You Teach
 
 Teachers should not assume what a learner needs simply because a topic, grammar point, or vocabulary item appears in the lesson material.
 
@@ -206,13 +206,13 @@ Their communication can reveal:
 
 Teaching decisions should respond, whenever appropriate, to evidence from the learner's actual communication.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Before providing unnecessary language or explanations, teachers should first consider whether the learner can express the idea independently.
 
 ---
 
-## Principle 3: Follow the Learner's Thought
+### Principle 3: Follow the Learner's Thought
 
 Lesson materials provide direction, but meaningful conversation does not always follow a predetermined sequence.
 
@@ -220,7 +220,7 @@ When a learner introduces a relevant idea, experience, question, or perspective 
 
 Completing every prepared question or activity is not more important than meaningful language use.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers may depart from prepared questions or materials when doing so creates a worthwhile learning opportunity and remains appropriate to the purpose of the lesson.
 
@@ -230,7 +230,7 @@ The material supports the conversation.
 
 ---
 
-## Principle 4: Ask With Purpose
+### Principle 4: Ask With Purpose
 
 Follow-up questions are a central part of the Hamkke Approach.
 
@@ -250,7 +250,7 @@ Questions should help learners develop communication by encouraging them to:
 
 The complexity of the question should be appropriate to the learner.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should respond to what the learner actually says rather than mechanically asking a predetermined sequence of follow-up questions.
 
@@ -258,7 +258,7 @@ Conversation should feel responsive, not like an interrogation.
 
 ---
 
-## Principle 5: Correct Selectively
+### Principle 5: Correct Selectively
 
 Not every mistake requires correction.
 
@@ -276,7 +276,7 @@ Priority may be given to language that is:
 - likely to be useful again
 - preventing the learner from communicating clearly
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should prioritize useful feedback rather than attempting to identify and correct every error.
 
@@ -290,7 +290,7 @@ It is:
 
 ---
 
-## Principle 6: Preserve the Learner's Voice
+### Principle 6: Preserve the Learner's Voice
 
 Hamkke helps learners express their own thoughts more effectively.
 
@@ -310,13 +310,13 @@ A teacher could refine this to:
 
 The goal is not to transform it into language that the learner would be unlikely to understand, remember, or naturally use.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Refinement should improve the learner's English while preserving their intended meaning and helping them develop language they can realistically make their own.
 
 ---
 
-## Principle 7: Teach Language in Context Whenever Possible
+### Principle 7: Teach Language in Context Whenever Possible
 
 Grammar, vocabulary, pronunciation, and expressions become more meaningful when learners understand why they need them.
 
@@ -330,13 +330,13 @@ There are times when direct teaching, focused practice, textbooks, exercises, or
 
 The important question is whether learners can eventually connect what they learn to actual language use.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Language instruction should, whenever practical, return to communication.
 
 ---
 
-## Principle 8: Give the Learner Another Opportunity to Use It
+### Principle 8: Give the Learner Another Opportunity to Use It
 
 Understanding an explanation is not the same as being able to use the language independently.
 
@@ -357,13 +357,13 @@ A useful progression is:
 
 **Teacher provides → Teacher prompts → Learner retrieves → Learner uses independently**
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Whenever appropriate, feedback should lead back to language use rather than ending with explanation alone.
 
 ---
 
-## Principle 9: Adapt Support to the Learner
+### Principle 9: Adapt Support to the Learner
 
 Personalization is more than changing the conversation topic.
 
@@ -385,7 +385,7 @@ Support may include:
 
 The teacher should adjust support according to the learner's age, level, confidence, goals, and current ability.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should provide enough support for the learner to communicate successfully while avoiding unnecessary dependence on the teacher.
 
@@ -393,7 +393,7 @@ As the learner develops, appropriate support should gradually decrease.
 
 ---
 
-## Principle 10: Progress Means Greater Independence
+### Principle 10: Progress Means Greater Independence
 
 Hamkke does not define progress only by the amount of material completed or the number of grammar points and vocabulary words studied.
 
@@ -412,13 +412,13 @@ Signs of developing independence may include:
 - relying less on teacher prompts
 - expressing thoughts with greater comfort and clarity
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Learner progress should be considered in terms of both developing language knowledge and the learner's growing ability to use that knowledge independently.
 
 ---
 
-# A Shared Standard, Not a Script
+## A Shared Standard, Not a Script
 
 These principles establish what should remain recognizable across Hamkke lessons.
 
@@ -444,7 +444,7 @@ The standard is therefore not identical teaching.
 
 ---
 
-# Teaching Standards and Professional Flexibility
+## Teaching Standards and Professional Flexibility
 
 Hamkke aims to provide a recognizable and consistent learning experience without requiring teachers to conduct identical lessons.
 
@@ -458,7 +458,7 @@ Understanding the difference between these levels allows Hamkke to maintain educ
 
 ---
 
-## 1. Hamkke Required Standards
+### 1. Hamkke Required Standards
 
 Required standards represent the educational practices that should remain consistent across Hamkke.
 
@@ -487,7 +487,7 @@ A teacher's individual style may differ, but these principles should remain reco
 
 ---
 
-## 2. Teacher Professional Judgment
+### 2. Teacher Professional Judgment
 
 Hamkke teachers are not expected to follow a fixed script.
 
@@ -512,7 +512,7 @@ Professional flexibility does not mean teaching without standards.
 
 Teacher decisions should remain consistent with the purpose and principles of the Hamkke Teaching Framework.
 
-### Guiding Question
+#### Guiding Question
 
 When making an instructional decision, teachers should be able to ask:
 
@@ -522,7 +522,7 @@ If there is a clear educational reason, the teacher has room to make that decisi
 
 ---
 
-## 3. Learner-Specific Adaptation
+### 3. Learner-Specific Adaptation
 
 Hamkke does not expect every learner to experience the same lesson in the same way.
 
@@ -571,7 +571,7 @@ Both learners can still experience:
 
 ---
 
-# The Hamkke Consistency Principle
+## The Hamkke Consistency Principle
 
 Consistency at Hamkke does not mean that every classroom looks the same.
 
@@ -593,7 +593,7 @@ However, the learner should still recognize the underlying Hamkke experience.
 
 ---
 
-# Learner Application Standards
+## Learner Application Standards
 
 The Hamkke Approach remains consistent across learner groups.
 
@@ -609,9 +609,9 @@ Individual learners within the same age group may require very different levels 
 
 ---
 
-## Young Learners
+### Young Learners
 
-### Educational Focus
+#### Educational Focus
 
 For young learners, Hamkke aims to develop comfort using English as a means of communication while gradually building vocabulary, sentence formation, listening comprehension, pronunciation, and speaking independence.
 
@@ -637,9 +637,9 @@ Each stage represents greater communicative ability.
 
 ---
 
-### Applying the Hamkke Approach
+#### Applying the Hamkke Approach
 
-#### We Talk
+##### We Talk
 
 Begin with concrete, familiar, and age-appropriate topics.
 
@@ -661,7 +661,7 @@ Teachers may use visuals, gestures, choices, and modeling to make communication 
 
 The goal is to discover what the learner can already understand and express.
 
-#### We Go Deeper
+##### We Go Deeper
 
 Help the learner add one manageable layer to the first answer.
 
@@ -689,7 +689,7 @@ Going deeper with a young learner does not require abstract discussion.
 
 The goal is to help the learner gradually add information, reasons, descriptions, and simple opinions.
 
-#### We Refine
+##### We Refine
 
 Focus on language the learner can realistically understand and reuse.
 
@@ -706,7 +706,7 @@ Avoid overwhelming the learner with multiple corrections at once.
 
 Modeling and natural reformulation may often be more appropriate than lengthy explanations.
 
-#### You Try Again
+##### You Try Again
 
 Give the learner another simple opportunity to use the language.
 
@@ -723,7 +723,7 @@ Repetition may be useful, but whenever possible it should return to meaning rath
 
 ---
 
-### Teacher Support
+#### Teacher Support
 
 Young learners may appropriately receive:
 
@@ -742,7 +742,7 @@ Teachers should avoid immediately supplying answers that the learner may be capa
 
 ---
 
-### Signs of Progress
+#### Signs of Progress
 
 Possible signs of progress include:
 
@@ -759,9 +759,9 @@ Possible signs of progress include:
 
 ---
 
-## Teen Learners
+### Teen Learners
 
-### Educational Focus
+#### Educational Focus
 
 For teen learners, Hamkke aims to develop increasingly independent communication while helping learners express more detailed ideas, experiences, preferences, and opinions.
 
@@ -771,9 +771,9 @@ Conversation should not feel unnecessarily childish, nor should learners be push
 
 ---
 
-### Applying the Hamkke Approach
+#### Applying the Hamkke Approach
 
-#### We Talk
+##### We Talk
 
 Use topics that are relevant to the learner's actual life and interests.
 
@@ -794,7 +794,7 @@ These may include:
 
 Teachers should create space for the learner to contribute rather than turning the lesson into a sequence of teacher-led questions.
 
-#### We Go Deeper
+##### We Go Deeper
 
 Encourage learners to move beyond statements and begin supporting their ideas.
 
@@ -814,7 +814,7 @@ may develop into:
 
 As ability develops, learners can increasingly practice explaining, comparing, supporting opinions, and considering different situations.
 
-#### We Refine
+##### We Refine
 
 Help learners develop more precise and natural ways to express ideas they already want to communicate.
 
@@ -830,7 +830,7 @@ Feedback may increasingly include:
 
 Avoid replacing the learner's voice with language that sounds unnecessarily formal or advanced.
 
-#### You Try Again
+##### You Try Again
 
 Ask the learner to apply useful language to another example, situation, or part of the conversation.
 
@@ -838,7 +838,7 @@ As independence develops, teacher prompting should gradually decrease.
 
 ---
 
-### Teacher Support
+#### Teacher Support
 
 Teen learners may benefit from:
 
@@ -855,7 +855,7 @@ Teachers should remain attentive to confidence and avoid creating an atmosphere 
 
 ---
 
-### Signs of Progress
+#### Signs of Progress
 
 Possible signs of progress include:
 
@@ -872,9 +872,9 @@ Possible signs of progress include:
 
 ---
 
-## Adult Learners
+### Adult Learners
 
-### Educational Focus
+#### Educational Focus
 
 For adult learners, Hamkke aims to help learners use English more independently, precisely, and comfortably in conversations relevant to their lives and goals.
 
@@ -884,9 +884,9 @@ The challenge may therefore be less about learning English for the first time an
 
 ---
 
-### Applying the Hamkke Approach
+#### Applying the Hamkke Approach
 
-#### We Talk
+##### We Talk
 
 Begin with genuine communication appropriate to the learner's interests, experiences, responsibilities, or goals.
 
@@ -908,7 +908,7 @@ Topics may include:
 
 The teacher should allow the learner's responses to influence where the conversation develops.
 
-#### We Go Deeper
+##### We Go Deeper
 
 Encourage learners to explain the thinking behind their first response.
 
@@ -929,7 +929,7 @@ Depth should serve communication.
 
 A conversation does not need to become intellectually complex simply for the sake of appearing advanced.
 
-#### We Refine
+##### We Refine
 
 Adult learners may benefit from more precise feedback involving:
 
@@ -948,7 +948,7 @@ Teachers should distinguish between language that is technically possible and la
 
 The goal is not to make every learner sound identical or unnecessarily formal.
 
-#### You Try Again
+##### You Try Again
 
 Create opportunities for the learner to retrieve and apply refined language independently.
 
@@ -966,7 +966,7 @@ As ability develops, learners should increasingly retrieve useful language witho
 
 ---
 
-### Goal-Specific Adult Lessons
+#### Goal-Specific Adult Lessons
 
 Some adult learners may have specific communication goals such as:
 
@@ -990,7 +990,7 @@ The goal is to help the learner remain capable when the conversation becomes une
 
 ---
 
-### Teacher Support
+#### Teacher Support
 
 Adult learners may benefit from:
 
@@ -1008,7 +1008,7 @@ Support should remain appropriate to the learner's actual ability rather than as
 
 ---
 
-### Signs of Progress
+#### Signs of Progress
 
 Possible signs of progress include:
 
@@ -1027,7 +1027,7 @@ Possible signs of progress include:
 
 ---
 
-# One Approach Across Different Learners
+## One Approach Across Different Learners
 
 Young learners, teens, and adults may experience very different Hamkke lessons.
 
@@ -1046,7 +1046,7 @@ Hamkke standardizes the educational purpose.
 
 ---
 
-# Lesson Delivery Standards
+## Lesson Delivery Standards
 
 Hamkke lessons should feel personal and responsive while maintaining a consistent educational purpose.
 
@@ -1056,7 +1056,7 @@ Instead, they are expected to prepare appropriately, respond to the learner duri
 
 ---
 
-## Before the Lesson
+### Before the Lesson
 
 Teachers should arrive prepared to teach the learner in front of them.
 
@@ -1074,7 +1074,7 @@ Preparation does not require predicting exactly how the conversation will develo
 
 A teacher should be prepared enough to provide direction while remaining flexible enough to respond to the learner.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should understand the purpose and relevant context of the lesson before it begins.
 
@@ -1082,9 +1082,9 @@ Lesson preparation should support responsive teaching rather than create a scrip
 
 ---
 
-# During the Lesson
+### During the Lesson
 
-## 1. Begin With Connection
+#### 1. Begin With Connection
 
 Where appropriate, begin by reconnecting with the learner.
 
@@ -1108,13 +1108,13 @@ It can provide valuable opportunities to:
 
 The length and form of this interaction should depend on the learner and the lesson.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Opening conversation should have communicative value and should not become routine filler.
 
 ---
 
-## 2. Create Meaningful Learner Speaking Opportunities
+#### 2. Create Meaningful Learner Speaking Opportunities
 
 Hamkke lessons should provide learners with genuine opportunities to communicate.
 
@@ -1132,7 +1132,7 @@ Teacher talk is valuable when it:
 
 Teacher talk becomes less useful when it consistently replaces opportunities for the learner to think, retrieve language, and communicate.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should create sufficient space for learners to participate actively rather than treating them primarily as listeners.
 
@@ -1142,7 +1142,7 @@ The appropriate balance depends on the learner and the educational purpose of th
 
 ---
 
-## 3. Use Materials as Tools
+#### 3. Use Materials as Tools
 
 Hamkke may use textbooks, worksheets, articles, pictures, videos, discussion materials, teacher-created resources, digital activities, or other appropriate learning materials.
 
@@ -1160,7 +1160,7 @@ A reading passage may lead to explanation, comparison, reflection, or opinion.
 
 An exercise may reveal language that needs further practice in conversation.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers are not expected to complete every page, question, or activity simply because it appears in the material.
 
@@ -1170,7 +1170,7 @@ At the same time, teachers should not repeatedly abandon structured learning mat
 
 ---
 
-## 4. Correct Without Taking Over the Conversation
+#### 4. Correct Without Taking Over the Conversation
 
 Correction should follow the principles established in the Hamkke Teaching Framework.
 
@@ -1196,7 +1196,7 @@ The teacher should consider:
 - whether immediate correction will unnecessarily interrupt communication
 - whether the learner can realistically use the improved language
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Correction should have a clear learning purpose.
 
@@ -1204,7 +1204,7 @@ Teachers should avoid turning spontaneous communication into continuous error co
 
 ---
 
-## 5. Develop the Learner's First Answer
+#### 5. Develop the Learner's First Answer
 
 A learner's first response is often the beginning of a learning opportunity rather than the end of one.
 
@@ -1222,13 +1222,13 @@ When appropriate, teachers should use follow-up questions to help learners:
 
 However, teachers should also recognize when a topic has reached its natural end.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should develop worthwhile communication rather than asking additional questions simply to prolong a topic.
 
 ---
 
-## 6. Create Opportunities to Reuse Language
+#### 6. Create Opportunities to Reuse Language
 
 Useful language introduced during a lesson should, whenever practical, return to communication.
 
@@ -1245,13 +1245,13 @@ Not every language point requires immediate repetition.
 
 Teachers should use professional judgment to determine when another opportunity to use the language would be educationally valuable.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Whenever practical, learning should move beyond explanation toward application.
 
 ---
 
-## 7. Respond to the Learner's State
+#### 7. Respond to the Learner's State
 
 Learner performance can vary from lesson to lesson.
 
@@ -1269,7 +1269,7 @@ Possible adjustments may include:
 - using more structured practice
 - providing a greater challenge when the learner is ready
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Adaptation should help the learner participate meaningfully.
 
@@ -1277,7 +1277,7 @@ It should not automatically remove challenge whenever the learner experiences di
 
 ---
 
-# Lesson Timing
+### Lesson Timing
 
 Hamkke lessons should not be divided into mandatory time blocks for each stage of the Hamkke Approach.
 
@@ -1297,7 +1297,7 @@ Goal-specific lessons may require focused practice.
 
 Teachers should manage lesson time according to learner needs and lesson purpose.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Lesson time should be used intentionally.
 
@@ -1305,7 +1305,7 @@ Teachers should avoid both rushing through material for the sake of completion a
 
 ---
 
-# Closing the Lesson
+### Closing the Lesson
 
 When appropriate, the end of a lesson should help create continuity rather than feeling like an abrupt stop.
 
@@ -1320,13 +1320,13 @@ Depending on the learner and lesson, the teacher may:
 
 A formal summary is not required after every lesson.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should remain aware of what is worth carrying forward into future lessons.
 
 ---
 
-# After the Lesson
+### After the Lesson
 
 Where Hamkke systems require lesson records or teacher notes, teachers should record information that is useful for educational continuity.
 
@@ -1345,13 +1345,13 @@ Teacher notes should be factual and useful.
 
 They should not make unsupported claims about learner progress.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Lesson records should help Hamkke understand the learner over time and support continuity across lessons, reports, and teachers.
 
 ---
 
-# Continuity Across Hamkke
+### Continuity Across Hamkke
 
 A Hamkke lesson should not exist as an isolated 25-minute interaction.
 
@@ -1374,7 +1374,7 @@ The objective is not simply to deliver individual lessons.
 
 ---
 
-# Feedback and Correction Standards
+## Feedback and Correction Standards
 
 Feedback at Hamkke should help learners communicate more effectively without making them afraid to communicate imperfectly.
 
@@ -1388,7 +1388,7 @@ The purpose is to help the learner notice and use language that will meaningfull
 
 ---
 
-## The Hamkke Correction Principle
+### The Hamkke Correction Principle
 
 Before correcting a learner, teachers should consider:
 
@@ -1410,7 +1410,7 @@ A mistake does not automatically require correction simply because the teacher n
 
 ---
 
-# When Immediate Correction May Be Appropriate
+### When Immediate Correction May Be Appropriate
 
 Immediate correction may be useful when:
 
@@ -1435,7 +1435,7 @@ The corrected form is modeled while the conversation continues.
 
 ---
 
-# When Delayed Correction May Be More Appropriate
+### When Delayed Correction May Be More Appropriate
 
 Delayed correction may be useful when:
 
@@ -1457,7 +1457,7 @@ The teacher can then return the language to conversation.
 
 ---
 
-# When Correction May Not Be Necessary
+### When Correction May Not Be Necessary
 
 Teachers may reasonably choose not to correct an error when:
 
@@ -1476,37 +1476,37 @@ Selective correction is an instructional decision.
 
 ---
 
-# Correction Priorities
+### Correction Priorities
 
 When several possible corrections appear, teachers should prioritize rather than attempt to address everything.
 
 A useful order of consideration is:
 
-### 1. Meaning and Understanding
+#### 1. Meaning and Understanding
 
 Does the language create misunderstanding or prevent communication?
 
-### 2. Recurring Patterns
+#### 2. Recurring Patterns
 
 Is the learner repeatedly making the same error?
 
-### 3. Learner Need
+#### 3. Learner Need
 
 Was the learner actively trying to express something they did not have the language for?
 
-### 4. Usefulness
+#### 4. Usefulness
 
 Is the corrected language likely to be useful again?
 
-### 5. Learner Goals
+#### 5. Learner Goals
 
 Is the language particularly relevant to the learner's reason for studying English?
 
-### 6. Readiness
+#### 6. Readiness
 
 Can the learner reasonably understand and begin using the improved language?
 
-### 7. Naturalness and Precision
+#### 7. Naturalness and Precision
 
 Would refinement help the learner express the intended meaning more naturally or accurately?
 
@@ -1516,7 +1516,7 @@ Teachers should use them to make purposeful correction decisions.
 
 ---
 
-# Correction Techniques
+### Correction Techniques
 
 Hamkke does not require one correction technique for every learner or situation.
 
@@ -1524,7 +1524,7 @@ Teachers may use different techniques depending on the educational purpose.
 
 ---
 
-## Natural Reformulation
+#### Natural Reformulation
 
 The teacher naturally repeats the learner's meaning using improved language.
 
@@ -1536,7 +1536,7 @@ This is especially useful when the teacher wants to preserve conversational flow
 
 ---
 
-## Explicit Correction
+#### Explicit Correction
 
 The teacher directly explains what should change.
 
@@ -1546,7 +1546,7 @@ This can be appropriate when clarity is useful and the learner is ready for dire
 
 ---
 
-## Prompted Self-Correction
+#### Prompted Self-Correction
 
 The teacher gives the learner an opportunity to notice and repair the language.
 
@@ -1562,7 +1562,7 @@ However, teachers should avoid repeatedly prompting learners when they clearly d
 
 ---
 
-## Clarification
+#### Clarification
 
 The teacher asks for clarification when the intended meaning is uncertain.
 
@@ -1572,7 +1572,7 @@ This allows language development to begin with understanding what the learner ac
 
 ---
 
-## Language Expansion
+#### Language Expansion
 
 The teacher keeps the learner's original meaning while helping them express it more fully.
 
@@ -1586,7 +1586,7 @@ The learner may develop:
 
 ---
 
-## Providing a Natural Alternative
+#### Providing a Natural Alternative
 
 Sometimes a learner's sentence is understandable and grammatically possible but does not sound natural in the situation.
 
@@ -1598,7 +1598,7 @@ Teachers should avoid presenting personal stylistic preferences as absolute lang
 
 ---
 
-## Pronunciation Feedback
+#### Pronunciation Feedback
 
 Pronunciation feedback should prioritize intelligibility and useful communication.
 
@@ -1615,13 +1615,13 @@ The goal is not to eliminate the learner's accent.
 
 A learner does not need to sound like a native speaker in order to communicate successfully.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Pronunciation instruction should aim for clearer, more comfortable, and more intelligible communication rather than accent elimination.
 
 ---
 
-# Protect the Learner's Meaning
+### Protect the Learner's Meaning
 
 Before reformulating a learner's sentence, the teacher should understand what the learner intends to communicate.
 
@@ -1639,7 +1639,7 @@ This distinction is especially important when working with intermediate and adva
 
 ---
 
-# Avoid Correction Overload
+### Avoid Correction Overload
 
 A learner may produce many correctable forms during spontaneous speech.
 
@@ -1658,7 +1658,7 @@ It is better for a learner to meaningfully understand and use a small number of 
 
 ---
 
-# Feedback Should Return to Use
+### Feedback Should Return to Use
 
 Whenever appropriate, correction should not end with:
 
@@ -1684,7 +1684,7 @@ and supports the final stage of the Hamkke Approach:
 
 ---
 
-# Positive Feedback
+### Positive Feedback
 
 Feedback at Hamkke is not limited to correcting errors.
 
@@ -1720,7 +1720,7 @@ This helps learners understand what they are actually doing well.
 
 ---
 
-# Feedback Across Lessons
+### Feedback Across Lessons
 
 Not every language issue needs to be solved within one lesson.
 
@@ -1736,13 +1736,13 @@ Teachers should distinguish between:
 
 This distinction becomes important when recording learner observations and preparing Progress Reports.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Formal progress statements should be based on observable patterns rather than isolated moments whenever possible.
 
 ---
 
-# Feedback Standard
+### Feedback Standard
 
 Hamkke feedback should be:
 
@@ -1762,7 +1762,7 @@ The purpose of feedback is not to show learners everything that is wrong with th
 
 ---
 
-# Learner Progress Standards
+## Learner Progress Standards
 
 Hamkke views learner progress as the development of both English knowledge and the ability to use that knowledge meaningfully and increasingly independently.
 
@@ -1780,7 +1780,7 @@ Hamkke therefore considers progress through observable changes in how learners u
 
 ---
 
-# The Hamkke View of Progress
+### The Hamkke View of Progress
 
 A learner may be making meaningful progress when they become increasingly able to:
 
@@ -1805,7 +1805,7 @@ Progress should be interpreted in relation to the learner's starting point, goal
 
 ---
 
-# Progress Areas
+### Progress Areas
 
 For internal observation and future Progress Reports, Hamkke organizes communicative development into the following areas.
 
@@ -1815,7 +1815,7 @@ They provide a shared language for understanding learner development across Hamk
 
 ---
 
-## 1. Communication and Expression
+#### 1. Communication and Expression
 
 This area considers how effectively the learner communicates their intended meaning.
 
@@ -1829,7 +1829,7 @@ Teachers may observe:
 - clarity of intended meaning
 - willingness to attempt communication
 
-### Possible Development
+##### Possible Development
 
 A learner may move from:
 
@@ -1841,7 +1841,7 @@ toward:
 
 ---
 
-## 2. Answer Development
+#### 2. Answer Development
 
 This area considers the learner's ability to move beyond an initial response.
 
@@ -1856,7 +1856,7 @@ Teachers may observe whether the learner can:
 - express opinions
 - reflect when appropriate to their level
 
-### Possible Development
+##### Possible Development
 
 A learner may move from:
 
@@ -1872,7 +1872,7 @@ Development should reflect greater ability to communicate meaningful information
 
 ---
 
-## 3. Language Range
+#### 3. Language Range
 
 This area considers the learner's developing ability to use vocabulary, expressions, and sentence structures appropriate to what they want to communicate.
 
@@ -1885,13 +1885,13 @@ Teachers may observe:
 - ability to retrieve previously introduced language
 - ability to express increasingly complex meanings
 
-### Possible Development
+##### Possible Development
 
 A learner may move from repeatedly relying on familiar basic language toward having more options for expressing similar or more precise meanings.
 
 ---
 
-## 4. Accuracy and Language Control
+#### 4. Accuracy and Language Control
 
 This area considers the learner's developing control of grammar, sentence structure, word forms, and other language patterns.
 
@@ -1906,7 +1906,7 @@ Teachers should consider:
 - ability to self-correct
 - increasing control during spontaneous communication
 
-### Possible Development
+##### Possible Development
 
 A learner may first use a corrected form only after teacher support, then begin using it with prompts, and eventually use it independently.
 
@@ -1916,7 +1916,7 @@ Progress therefore may appear as:
 
 ---
 
-## 5. Vocabulary and Expression Use
+#### 5. Vocabulary and Expression Use
 
 Knowing a word is different from being able to retrieve and use it during communication.
 
@@ -1929,13 +1929,13 @@ Teachers may observe whether learners:
 - choose more precise language
 - paraphrase when a word is unavailable
 
-### Possible Development
+##### Possible Development
 
 Progress may appear when a learner begins using previously introduced vocabulary without waiting for the teacher to provide it again.
 
 ---
 
-## 6. Pronunciation and Intelligibility
+#### 6. Pronunciation and Intelligibility
 
 Hamkke evaluates pronunciation primarily according to communication.
 
@@ -1953,13 +1953,13 @@ The goal is not accent elimination.
 
 Different accents are compatible with effective English communication.
 
-### Possible Development
+##### Possible Development
 
 Progress may appear when the learner becomes easier to understand, produces important words more consistently, or adjusts pronunciation with less teacher support.
 
 ---
 
-## 7. Interaction and Conversation Skills
+#### 7. Interaction and Conversation Skills
 
 Communication involves more than answering questions.
 
@@ -1978,13 +1978,13 @@ Teachers may observe the learner's developing ability to:
 
 Expectations should remain appropriate to the learner's age and level.
 
-### Possible Development
+##### Possible Development
 
 A learner may move from primarily responding to teacher questions toward contributing more actively to the direction of the conversation.
 
 ---
 
-## 8. Independence
+#### 8. Independence
 
 Independence is a central indicator of progress within the Hamkke Approach.
 
@@ -2000,7 +2000,7 @@ Teachers may observe how much support the learner requires to:
 - handle an unfamiliar question
 - communicate around missing language
 
-### Possible Development
+##### Possible Development
 
 A learner may progress through stages such as:
 
@@ -2012,7 +2012,7 @@ The goal is for support to become more targeted as the learner becomes increasin
 
 ---
 
-# Progress Is Not Always Linear
+### Progress Is Not Always Linear
 
 Learner performance naturally varies.
 
@@ -2030,13 +2030,13 @@ One weaker lesson does not necessarily indicate regression.
 
 Likewise, one unusually strong performance does not necessarily demonstrate established improvement.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Progress judgments should be based on patterns observed across time whenever possible.
 
 ---
 
-# Distinguishing Observation From Progress
+### Distinguishing Observation From Progress
 
 Teacher observations and progress claims are not the same thing.
 
@@ -2054,13 +2054,13 @@ For example:
 
 The second statement requires evidence from more than one point in time.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Teachers should not convert isolated observations into claims of improvement without reasonable evidence of development across lessons.
 
 ---
 
-# Evidence of Progress
+### Evidence of Progress
 
 Evidence may come from:
 
@@ -2082,7 +2082,7 @@ The type of evidence should remain appropriate to the learner and program.
 
 ---
 
-# Progress Relative to the Learner
+### Progress Relative to the Learner
 
 Hamkke does not compare learners against one another when describing individual progress.
 
@@ -2098,7 +2098,7 @@ This allows progress reporting to remain personal and meaningful.
 
 ---
 
-# Avoiding Unsupported Progress Claims
+### Avoiding Unsupported Progress Claims
 
 Teachers should avoid statements such as:
 
@@ -2114,7 +2114,7 @@ For example:
 
 This communicates both development and the learner's current support needs.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Progress reporting should be specific, evidence-based, and balanced.
 
@@ -2122,7 +2122,7 @@ Hamkke should never invent improvement in order to make a report sound positive.
 
 ---
 
-# Recognizing Strengths
+### Recognizing Strengths
 
 Progress reporting should not focus only on difficulties.
 
@@ -2154,7 +2154,7 @@ when reporting.
 
 ---
 
-# Areas for Continued Development
+### Areas for Continued Development
 
 Progress Reports should also identify useful next areas of focus.
 
@@ -2179,7 +2179,7 @@ The second statement explains why the development area matters.
 
 ---
 
-# Progress Across an Enrollment
+### Progress Across an Enrollment
 
 Hamkke Progress Reports should consider development across the enrollment or reporting period rather than functioning as a summary of one recent lesson.
 
@@ -2199,7 +2199,7 @@ A truthful report may identify areas that remain stable or continue to require s
 
 ---
 
-# The Hamkke Progress Principle
+### The Hamkke Progress Principle
 
 Hamkke does not measure progress only by asking:
 
@@ -2216,7 +2216,7 @@ Meaningful progress is increasingly visible when learners can take knowledge tha
 
 ---
 
-# Teacher Records and Documentation Standards
+## Teacher Records and Documentation Standards
 
 Hamkke maintains learner records to support educational continuity, informed teaching decisions, Progress Reports, and consistency across the company.
 
@@ -2228,7 +2228,7 @@ The purpose is to preserve information that may meaningfully help Hamkke underst
 
 ---
 
-# Documentation Principles
+### Documentation Principles
 
 Teacher documentation should be:
 
@@ -2246,7 +2246,7 @@ A short, meaningful observation is more useful than a long note containing littl
 
 ---
 
-# Lesson Records
+### Lesson Records
 
 Where Hamkke systems require a lesson record, teachers should record information that is useful for continuity.
 
@@ -2270,17 +2270,17 @@ Teachers should record what is educationally meaningful.
 
 ---
 
-# Observation vs. Interpretation
+### Observation vs. Interpretation
 
 Teachers should distinguish between what they directly observed and what they infer from it.
 
 For example:
 
-### Observation
+#### Observation
 
 > "Needed sentence starters to explain why she preferred the first option."
 
-### Interpretation
+#### Interpretation
 
 > "Still benefits from support when explaining reasons spontaneously."
 
@@ -2302,7 +2302,7 @@ unless the learner or an appropriate guardian has directly provided relevant inf
 
 ---
 
-# Recording Strengths
+### Recording Strengths
 
 Teacher records should not function only as error logs.
 
@@ -2324,7 +2324,7 @@ These observations can later help Hamkke identify patterns of strength and devel
 
 ---
 
-# Recording Difficulties
+### Recording Difficulties
 
 When documenting difficulties, teachers should be specific.
 
@@ -2356,7 +2356,7 @@ Specific observations are more useful for future teaching and progress reporting
 
 ---
 
-# Recording Teacher Support
+### Recording Teacher Support
 
 The amount of support a learner requires can provide important evidence of development.
 
@@ -2382,7 +2382,7 @@ This provides stronger evidence of development than simply writing:
 
 ---
 
-# Recording Language
+### Recording Language
 
 Teachers do not need to transcribe learner speech extensively.
 
@@ -2408,7 +2408,7 @@ These examples can provide useful evidence for future reports.
 
 ---
 
-# Continuity Between Lessons
+### Continuity Between Lessons
 
 Before teaching a learner, teachers should have reasonable access to relevant previous information where Hamkke systems provide it.
 
@@ -2423,13 +2423,13 @@ However, recent or important records may help the teacher:
 - reduce unnecessary repetition
 - recognize developing independence
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Documentation should help lessons feel connected over time rather than functioning as unrelated individual sessions.
 
 ---
 
-# Documentation Across Teachers
+### Documentation Across Teachers
 
 As Hamkke grows, a learner may occasionally study with another authorized Hamkke teacher.
 
@@ -2437,13 +2437,13 @@ Records should therefore be written with enough clarity that another teacher can
 
 Documentation should focus on the learner's educational needs and lesson history rather than personal judgments about the learner.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Learner records belong to Hamkke's educational system and should support responsible continuity of service.
 
 ---
 
-# Preparing for a Progress Report
+### Preparing for a Progress Report
 
 A Progress Report should not require the teacher to reconstruct an entire enrollment from memory.
 
@@ -2464,31 +2464,31 @@ Teachers should look for patterns across the reporting period.
 
 ---
 
-# Documentation and Progress Claims
+### Documentation and Progress Claims
 
 The following distinction should remain clear:
 
-### Lesson Observation
+#### Lesson Observation
 
 > "Used two previously introduced expressions independently today."
 
-### Emerging Pattern
+#### Emerging Pattern
 
 > "Has begun retrieving previously introduced expressions with less prompting."
 
-### Demonstrated Progress
+#### Demonstrated Progress
 
 > "Across recent lessons, the learner has increasingly retrieved and applied previously introduced expressions independently."
 
 The strength of the statement should reflect the strength of the available evidence.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 The wording of learner records and reports should never be more certain than the evidence supports.
 
 ---
 
-# Documentation Efficiency
+### Documentation Efficiency
 
 Hamkke should design its systems so teachers can record useful observations efficiently.
 
@@ -2507,7 +2507,7 @@ The documentation system should support teaching rather than compete with teachi
 
 ---
 
-# Professional and Respectful Records
+### Professional and Respectful Records
 
 Teacher notes should be written with the understanding that they are part of a professional educational record.
 
@@ -2533,7 +2533,7 @@ Teachers should describe what they know rather than speculate about why it happe
 
 ---
 
-# Record Only What Is Necessary
+### Record Only What Is Necessary
 
 Learner records should contain information relevant to Hamkke's educational service.
 
@@ -2543,7 +2543,7 @@ Personal information may naturally arise in conversational lessons.
 
 That does not mean every personal detail belongs in the learner's permanent educational record.
 
-### Hamkke Standard
+#### Hamkke Standard
 
 Record what Hamkke needs to teach and support the learner responsibly.
 
@@ -2551,7 +2551,7 @@ Do not turn natural conversation into unnecessary personal documentation.
 
 ---
 
-# The Hamkke Documentation Principle
+### The Hamkke Documentation Principle
 
 Documentation exists to preserve educational understanding.
 
