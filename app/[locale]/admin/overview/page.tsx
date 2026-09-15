@@ -1163,6 +1163,35 @@ export default async function OverviewPage({
       </section>
 
       {/* =================================================================== */}
+      {/* MONTHLY INCOME RECORDS                                              */}
+      {/* =================================================================== */}
+
+      <div
+        className="
+          mx-auto
+          max-w-[1200px]
+          px-6
+          sm:px-8
+          lg:px-10
+        "
+      >
+        <div className="flex justify-end pb-3">
+          <Link
+            href={`/${locale}/admin/income`}
+            className="
+              font-sans
+              text-[13px]
+              text-[#6F8F72]
+              transition-colors
+              hover:text-[#526B55]
+            "
+          >
+            Monthly Income Records →
+          </Link>
+        </div>
+      </div>
+
+      {/* =================================================================== */}
       {/* SUMMARY                                                             */}
       {/* =================================================================== */}
 
