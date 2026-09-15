@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import PrintMonthlyIncomeButton from "./PrintMonthlyIncomeButton";
+import PrintMonthlyIncomeButton from "./print-button";
 
 interface IncomePageProps {
   params: Promise<{
