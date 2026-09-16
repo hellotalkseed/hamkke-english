@@ -250,6 +250,7 @@ export default function HeroContent({
         <FadeUp delay={0.4}>
           <div className="mt-7 lg:mt-8">
             <button
+              type="button"
               className="
                 group
                 relative

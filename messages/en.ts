@@ -516,6 +516,39 @@ howItWorks: {
   },
 },
 
+  findYourLesson: {
+  eyebrow: "FIND YOUR LESSON",
+  title: "Find the lesson that fits you.",
+  description:
+    "See the lesson format, package, and tuition before you continue.",
+
+  online: "ONLINE",
+  lesson: "Private 1:1 English",
+  learners: "Kids · Teens · Adults",
+
+  platforms: "PLATFORMS",
+
+  format: "LESSON FORMAT",
+  voice: "Voice",
+  voiceDetail: "Audio only",
+  video: "Video",
+  videoDetail: "Camera optional",
+
+  durationLabel: "LESSON DURATION",
+  perLesson: "per lesson",
+
+  lessonsLabel: "LESSONS",
+  lessons: "20 lessons",
+  perPackage: "per package",
+
+  tuitionLabel: "TUITION",
+
+  chooseLesson: "Choose This Lesson",
+
+  decreaseDuration: "Shorten lesson duration",
+  increaseDuration: "Extend lesson duration",
+},
+
   studentProblem: {
     brand: "Hamkke │ 함께",
 
@@ -917,10 +950,11 @@ howItWorks: {
 },
 
   language: {
-    english: "English",
-    korean: "한국어",
-    chinese: "中文",
-  },
+  english: "English",
+  korean: "한국어",
+  chinese: "中文",
+  japanese: "日本語",
+},
 };
 
 export default en;

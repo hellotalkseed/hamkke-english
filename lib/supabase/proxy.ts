@@ -41,12 +41,12 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   const isAdminRoute =
-    /^\/(en|ko|zh)\/admin(?:\/|$)/.test(pathname);
+    /^\/(en|ko|zh|ja)\/admin(?:\/|$)/.test(pathname);
 
   const isApiRoute = pathname.startsWith("/api/");
 
   const isLoginPage =
-    /^\/(en|ko|zh)\/admin\/login(?:\/|$)/.test(
+    /^\/(en|ko|zh|ja)\/admin\/login(?:\/|$)/.test(
       pathname
     );
 
@@ -55,7 +55,7 @@ export async function updateSession(request: NextRequest) {
 
     if (!data?.claims) {
       const locale =
-        pathname.match(/^\/(en|ko|zh)/)?.[1] ?? "en";
+        pathname.match(/^\/(en|ko|zh|ja)/)?.[1] ?? "en";
 
       const loginUrl = request.nextUrl.clone();
 

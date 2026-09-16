@@ -32,17 +32,17 @@ export default function Hero({
             w-full
             max-w-[1600px]
 
-            gap-4
+            gap-0
 
             px-6
-            pb-20
-            pt-12
+            pb-16
+            pt-9
 
             sm:px-8
-            sm:pb-24
-            sm:pt-14
+            sm:pb-20
+            sm:pt-11
 
-            md:pb-28
+            md:pb-24
 
             lg:min-h-[calc(100vh-72px)]
             lg:grid-cols-[1.12fr_0.88fr]
@@ -79,7 +79,7 @@ export default function Hero({
               relative
               z-10
 
-              mt-2
+              mt-0
 
               lg:-ml-16
               lg:mt-0
@@ -120,20 +120,19 @@ export default function Hero({
             ===================================================== */}
 
         <div
-          className="
-            pointer-events-none
-            absolute
-            bottom-0
-            left-0
-            z-30
-            h-[90px]
-            w-full
-
-            sm:h-[110px]
-            lg:h-[125px]
-          "
-          aria-hidden="true"
-        >
+  className="
+    pointer-events-none
+    absolute
+    -bottom-[2px]
+    left-0
+    z-30
+    h-[92px]
+    w-full
+    sm:h-[112px]
+    lg:h-[127px]
+  "
+  aria-hidden="true"
+>
           <svg
             viewBox="0 0 1440 130"
             preserveAspectRatio="none"

@@ -20,11 +20,13 @@ import type { Locale } from "../lib/i18n";
 import en from "@/messages/en";
 import ko from "@/messages/ko";
 import zh from "@/messages/zh";
+import ja from "@/messages/ja";
 
 const translations = {
   en,
   ko,
   zh,
+  ja,
 };
 
 const languages = [
@@ -40,6 +42,10 @@ const languages = [
     locale: "zh" as Locale,
     label: "中文",
   },
+  {
+    locale: "ja" as Locale,
+    label: "日本語",
+  },
 ];
 
 export default function Navbar() {
@@ -53,7 +59,8 @@ export default function Navbar() {
 
   const locale: Locale =
     params.locale === "ko" ||
-    params.locale === "zh"
+    params.locale === "zh" ||
+    params.locale === "ja"
       ? params.locale
       : "en";
 
@@ -106,7 +113,7 @@ export default function Navbar() {
   ) => {
     const pathWithoutLocale =
       pathname.replace(
-        /^\/(en|ko|zh)(?=\/|$)/,
+        /^\/(en|ko|zh|ja)(?=\/|$)/,
         ""
       );
 
@@ -611,7 +618,7 @@ export default function Navbar() {
                   duration-300
                   ${
                     isMobileLanguageOpen
-                      ? "max-h-44 pb-3"
+                      ? "max-h-56 pb-3"
                       : "max-h-0"
                   }
                 `}

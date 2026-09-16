@@ -389,6 +389,67 @@ const translations = {
     submissionError:
       "提交故事时出现了一些问题，请再试一次。",
   },
+
+  ja: {
+    ratingTitle:
+      "⭐ 英語学習の体験はいかがでしたか？",
+    ratingRequired: "評価を選んでください",
+    ratingLabels: {
+      1: "改善が必要",
+      2: "まあまあ",
+      3: "良かった",
+      4: "とても良かった",
+      5: "素晴らしかった",
+    },
+
+    name: "お名前",
+    nameHelp:
+      "本名、英語名、ニックネーム、またはイニシャルをご入力ください。こちらのお名前がウェブサイトに表示されます。",
+    namePlaceholder: "お名前を入力してください",
+
+    role: "私は...",
+    student: "受講者",
+    parent: "保護者",
+
+    country: "国 / 地域",
+    countryPlaceholder:
+      "国または地域を入力してください",
+    noCountryFound:
+      "該当する国または地域が見つかりません",
+
+    reflection:
+      "あなたのストーリーを聞かせてください",
+    reflectionPlaceholder:
+      "英語学習について少し聞かせてください。どのような成長を感じたか、レッスンで楽しかったこと、以前はできなかったけれど今はできるようになったことなど、自由にお書きください。",
+
+    photo: "写真",
+    photoOptional: "（任意）",
+    photoHelp:
+      "ストーリーと一緒に写真を掲載したい場合は、こちらからアップロードできます。",
+
+    permission:
+      "私が投稿したストーリーと、アップロードした写真（ある場合）をHamkkeのウェブサイトに掲載することに同意します。",
+
+    submit: "ストーリーを送る",
+    sending: "送信中...",
+
+    thankYou: "ありがとうございます。",
+    thankYouMessage:
+      "Hamkkeでの体験を共有してくださり、ありがとうございます。あなたのストーリーが、これから英語を学び始める誰かの小さなきっかけになるかもしれません。大切な経験を私たちと共有してくださったことに、心より感謝しています。",
+
+    closing:
+      "また次の会話でお会いしましょう。",
+    return: "Hamkkeに戻る",
+
+    requiredFields:
+      "必須項目をすべて入力してから送信してください。",
+
+    permissionRequired:
+      "送信する前に、ストーリーの掲載に同意してください。",
+
+    submissionError:
+      "ストーリーの送信中に問題が発生しました。もう一度お試しください。",
+  },
 } as const;
 
 export default function ReflectionForm({
@@ -408,7 +469,8 @@ export default function ReflectionForm({
   const [showCountries, setShowCountries] =
     useState(false);
 
-  const [reflection, setReflection] = useState("");
+  const [reflection, setReflection] =
+    useState("");
   const [photo, setPhoto] =
     useState<File | null>(null);
   const [permission, setPermission] =
@@ -767,7 +829,9 @@ export default function ReflectionForm({
               name="role"
               value="Student"
               checked={role === "Student"}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) =>
+                setRole(e.target.value)
+              }
               className="accent-[#6F8F72]"
             />
 
@@ -797,7 +861,9 @@ export default function ReflectionForm({
               name="role"
               value="Parent / Guardian"
               checked={role === "Parent / Guardian"}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) =>
+                setRole(e.target.value)
+              }
               className="accent-[#6F8F72]"
             />
 

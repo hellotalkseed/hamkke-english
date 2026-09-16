@@ -517,6 +517,39 @@ howItWorks: {
   },
 },
 
+  findYourLesson: {
+  eyebrow: "找到适合你的课程",
+  title: "找到适合你的英语课。",
+  description:
+    "继续之前，先了解课程形式、课时套餐和学费。",
+
+  online: "在线",
+  lesson: "1:1 私人英语课",
+  learners: "儿童 · 青少年 · 成人",
+
+  platforms: "上课平台",
+
+  format: "上课方式",
+  voice: "语音",
+  voiceDetail: "仅语音",
+  video: "视频",
+  videoDetail: "摄像头可选",
+
+  durationLabel: "课程时长",
+  perLesson: "每节课",
+
+  lessonsLabel: "课时",
+  lessons: "20节课",
+  perPackage: "每个套餐",
+
+  tuitionLabel: "学费",
+
+  chooseLesson: "选择这门课程",
+
+  decreaseDuration: "缩短课程时间",
+  increaseDuration: "延长课程时间",
+},
+
   studentProblem: {
     brand: "Hamkke │ 함께",
 
@@ -919,10 +952,11 @@ howItWorks: {
   },
 
   language: {
-    english: "English",
-    korean: "한국어",
-    chinese: "中文",
-  },
+  english: "English",
+  korean: "한국어",
+  chinese: "中文",
+  japanese: "日本語",
+},
 };
 
 export default zh;

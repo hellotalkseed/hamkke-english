@@ -125,3 +125,30 @@ body {
   animation-duration: 180ms;
   animation-timing-function: ease;
 }
+
+/* ===============================
+   Hamkke Scrollbar
+================================ */
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #a8b5a5 transparent;
+}
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a8b5a5;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #718a73;
+}

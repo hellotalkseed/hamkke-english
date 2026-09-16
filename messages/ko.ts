@@ -516,6 +516,39 @@ howItWorks: {
   },
 },
 
+  findYourLesson: {
+  eyebrow: "나에게 맞는 수업 찾기",
+  title: "나에게 맞는 수업을 찾아보세요.",
+  description:
+    "수업 방식과 패키지, 수강료를 한눈에 확인해 보세요.",
+
+  online: "온라인",
+  lesson: "1:1 개인 영어 수업",
+  learners: "어린이 · 청소년 · 성인",
+
+  platforms: "수업 플랫폼",
+
+  format: "수업 방식",
+  voice: "음성",
+  voiceDetail: "오디오 수업",
+  video: "화상",
+  videoDetail: "카메라 선택 가능",
+
+  durationLabel: "수업 시간",
+  perLesson: "회당",
+
+  lessonsLabel: "수업 횟수",
+  lessons: "20회 수업",
+  perPackage: "패키지",
+
+  tuitionLabel: "수강료",
+
+  chooseLesson: "이 수업 선택하기",
+
+  decreaseDuration: "수업 시간 줄이기",
+  increaseDuration: "수업 시간 늘리기",
+},
+
   studentProblem: {
     brand: "Hamkke │ 함께",
 
@@ -917,10 +950,11 @@ howItWorks: {
   },
 
   language: {
-    english: "English",
-    korean: "한국어",
-    chinese: "中文",
-  },
+  english: "English",
+  korean: "한국어",
+  chinese: "中文",
+  japanese: "日本語",
+},
 };
 
 export default ko;
