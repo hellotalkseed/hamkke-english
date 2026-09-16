@@ -3,6 +3,7 @@ import {
   Inter,
   Cormorant_Garamond,
   Jua,
+  Coiny,
 } from "next/font/google";
 import "./globals.css";
 
@@ -20,6 +21,12 @@ const cormorant = Cormorant_Garamond({
 const jua = Jua({
   subsets: ["latin"],
   variable: "--font-jua",
+  weight: "400",
+});
+
+const coiny = Coiny({
+  subsets: ["latin"],
+  variable: "--font-coiny",
   weight: "400",
 });
 
@@ -41,6 +48,7 @@ export default function RootLayout({
           ${inter.variable}
           ${cormorant.variable}
           ${jua.variable}
+          ${coiny.variable}
         `}
       >
         {children}

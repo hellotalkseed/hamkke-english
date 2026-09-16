@@ -1,17 +1,17 @@
 const ko = {
   nav: {
   experience: "수업 방식",
-  goals: "목표",
-  stories: "학생 이야기",
-  policy: "수업 안내",
+  goals: "학습 목표",
+  stories: "수강 후기",
+  policy: "수업 정책",
 
   lessons: "수업",
   teachers: "선생님",
   approach: "수업 방식",
-  about: "소개",
+  about: "Hamkke 소개",
   login: "로그인",
 
-  startConversation: "대화 시작하기",
+  startConversation: "상담 시작하기",
 },
 
   info: {
@@ -494,13 +494,26 @@ howItWorks: {
 },
 
   hero: {
-  brand: "Hamkke │ 함께",
-  title: "의미 있는 대화는 언제나 작은 한마디에서 시작됩니다.",
-  signature:
-    '때로는 "오늘 하루 어땠어요?"라는 짧은 한마디일 수도 있습니다. 또 어떤 대화는 그보다 더 깊은 이야기로 이어지기도 합니다.',
-  description:
-    "영어는 실제로 사용할 때 더 의미 있어집니다. Hamkke는 대화를 통해 자신의 생각을 자연스럽게 표현하고, 영어로 소통하는 자신감을 키워갈 수 있도록 돕습니다.",
-  startConversation: "대화 시작하기",
+  eyebrow: "1:1 온라인 영어",
+
+  titleFirst: "From Small Talk",
+  titleSecond: "to",
+  titleAccent: "Big Ideas.",
+
+  descriptionFirst:
+    "영어는 실제로 사용할 수 있을 때 더 의미 있어집니다.",
+
+  descriptionSecond:
+    "이미 알고 있는 영어에서 시작해, 하고 싶은 말을 더 풍부하게 표현해 보세요.",
+
+  assessment: "무료 체험수업 예약하기",
+
+  features: {
+    conversation: "대화 중심",
+    learners: "어린이부터 성인까지",
+    online: "100% 온라인",
+    personalized: "맞춤형 수업",
+  },
 },
 
   studentProblem: {

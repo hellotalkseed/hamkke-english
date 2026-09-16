@@ -1,7 +1,9 @@
 "use client";
 
 import FadeUp from "./animations/FadeUp";
+
 import type { Locale } from "../lib/i18n";
+import { getMessages } from "../lib/getMessages";
 
 interface HeroContentProps {
   locale: Locale;
@@ -10,55 +12,8 @@ interface HeroContentProps {
 export default function HeroContent({
   locale,
 }: HeroContentProps) {
-  const content = {
-    en: {
-      eyebrow: "1:1 ONLINE ENGLISH",
-      titleFirst: "From Small Talk",
-      titleSecond: "to",
-      titleAccent: "Big Ideas.",
-      description:
-        "Use the English you already know to say more of what you mean.",
-      assessment: "Book a Free Assessment",
-      features: {
-        conversation: "Conversation-focused",
-        learners: "Kids to Adults",
-        online: "100% Online",
-        personalized: "Personalized Lessons",
-      },
-    },
-
-    ko: {
-      eyebrow: "1:1 ONLINE ENGLISH",
-      titleFirst: "From Small Talk",
-      titleSecond: "to",
-      titleAccent: "Big Ideas.",
-      description:
-        "이미 알고 있는 영어로, 하고 싶은 말을 더 자연스럽게 표현해 보세요.",
-      assessment: "무료 레벨 상담 예약하기",
-      features: {
-        conversation: "대화 중심",
-        learners: "어린이부터 성인까지",
-        online: "100% 온라인",
-        personalized: "맞춤형 수업",
-      },
-    },
-
-    zh: {
-      eyebrow: "1:1 ONLINE ENGLISH",
-      titleFirst: "From Small Talk",
-      titleSecond: "to",
-      titleAccent: "Big Ideas.",
-      description:
-        "用你已经掌握的英语，更自然地表达真正想说的话。",
-      assessment: "预约免费评估",
-      features: {
-        conversation: "以对话为中心",
-        learners: "儿童到成人",
-        online: "100% 在线",
-        personalized: "个性化课程",
-      },
-    },
-  }[locale];
+  const messages = getMessages(locale);
+  const content = messages.hero;
 
   const featureLabelClass = `
     text-[12px]
@@ -124,7 +79,7 @@ export default function HeroContent({
           <h1
             className="
               w-full
-              max-w-[840px]
+              max-w-[900px]
 
               text-[54px]
               font-medium
@@ -170,38 +125,40 @@ export default function HeroContent({
                 {content.titleSecond}
               </span>
 
+              {/* BUBBLE-STYLE ACCENT */}
+
               <span
                 className="
-  relative
-  ml-3
-  inline-block
+                  relative
+                  ml-3
+                  inline-block
 
-  translate-y-[5px]
-  -rotate-[1.5deg]
+                  translate-y-[6px]
+                  -rotate-[1.5deg]
 
-  text-[0.96em]
-  font-normal
-  not-italic
-  leading-[0.82]
-  tracking-[-0.035em]
-  text-[#607D68]
+                  text-[1.1em]
+                  font-normal
+                  not-italic
+                  leading-[0.78]
+                  tracking-[-0.015em]
+                  text-[#607D68]
 
-  [font-family:var(--font-jua)]
+                  [font-family:var(--font-coiny)]
 
-  sm:ml-4
-  sm:text-[1em]
+                  sm:ml-4
+                  sm:text-[1.14em]
 
-  md:ml-5
-  md:text-[1.04em]
+                  md:ml-5
+                  md:text-[1.18em]
 
-  lg:ml-7
-  lg:translate-y-[10px]
-  lg:text-[1.08em]
+                  lg:ml-7
+                  lg:translate-y-[11px]
+                  lg:text-[1.22em]
 
-  xl:ml-9
-  xl:translate-y-[12px]
-  xl:text-[1.12em]
-"
+                  xl:ml-9
+                  xl:translate-y-[13px]
+                  xl:text-[1.28em]
+                "
               >
                 {content.titleAccent}
 
@@ -245,33 +202,45 @@ export default function HeroContent({
             ===================================================== */}
 
         <FadeUp delay={0.3}>
-          <p
+          <div
             className="
               mt-10
-              max-w-[600px]
+              max-w-[700px]
 
-              text-[20px]
-              leading-[1.45]
               text-[#56645B]
 
               [font-family:var(--font-cormorant)]
 
-              sm:text-[23px]
-
               lg:mt-12
-              lg:text-[25px]
             "
           >
-            {locale === "en" ? (
-              <>
-                Use the English you already know
-                <br />
-                to say more of what you mean.
-              </>
-            ) : (
-              content.description
-            )}
-          </p>
+            <p
+              className="
+                text-[20px]
+                font-medium
+                leading-[1.4]
+
+                sm:text-[23px]
+                lg:text-[25px]
+              "
+            >
+              {content.descriptionFirst}
+            </p>
+
+            <p
+              className="
+                mt-1
+
+                text-[18px]
+                leading-[1.45]
+
+                sm:text-[20px]
+                lg:text-[22px]
+              "
+            >
+              {content.descriptionSecond}
+            </p>
+          </div>
         </FadeUp>
 
         {/* =====================================================
@@ -281,45 +250,51 @@ export default function HeroContent({
         <FadeUp delay={0.4}>
           <div className="mt-7 lg:mt-8">
             <button
-              type="button"
               className="
                 group
+                relative
                 inline-flex
                 items-center
-                justify-center
-                gap-4
+                justify-between
+                gap-8
 
-                rounded-full
-                bg-[#304A39]
+                rounded-[22px]
+                bg-[#365844]
 
                 px-7
                 py-4
 
-                text-[15px]
+                text-[16px]
                 font-medium
                 text-[#FFFDF8]
 
                 transition-all
-                duration-300
+                duration-200
 
-                hover:-translate-y-0.5
-                hover:bg-[#293F31]
+                before:absolute
+                before:inset-x-0
+                before:top-[10px]
+                before:-z-10
+                before:h-full
+                before:rounded-[22px]
+                before:bg-[#718A73]
 
-                sm:px-8
-                sm:py-[18px]
-                sm:text-[16px]
+                hover:-translate-y-[2px]
+                hover:before:top-[12px]
+
+                active:translate-y-[4px]
+                active:before:top-[3px]
               "
             >
               <span>{content.assessment}</span>
 
               <span
                 className="
-                  text-[19px]
+                  text-[30px]
+                  font-light
                   leading-none
-
                   transition-transform
-                  duration-300
-
+                  duration-200
                   group-hover:translate-x-1
                 "
                 aria-hidden="true"

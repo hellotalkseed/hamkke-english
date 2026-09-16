@@ -19,7 +19,7 @@ export default function Hero({
         className="
           relative
           overflow-hidden
-          bg-[#F8F4EB]
+          bg-[#F3EDDD]
         "
       >
         <section
@@ -35,21 +35,22 @@ export default function Hero({
             gap-4
 
             px-6
-            pb-10
-            pt-8
+            pb-20
+            pt-12
 
             sm:px-8
-            sm:pt-10
+            sm:pb-24
+            sm:pt-14
 
-            md:pb-12
+            md:pb-28
 
             lg:min-h-[calc(100vh-72px)]
             lg:grid-cols-[1.12fr_0.88fr]
             lg:items-center
             lg:gap-0
             lg:px-10
-            lg:pb-10
-            lg:pt-4
+            lg:pb-24
+            lg:pt-10
 
             xl:px-12
           "
@@ -71,10 +72,6 @@ export default function Hero({
 
           {/* =====================================================
               HAMKKE MASCOT
-
-              Pulled toward the center so the illustration and
-              headline feel like one composition rather than
-              two isolated columns.
               ===================================================== */}
 
           <div
@@ -117,6 +114,46 @@ export default function Hero({
           "
           aria-hidden="true"
         />
+
+        {/* =====================================================
+            ASYMMETRIC SECTION TRANSITION
+            ===================================================== */}
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            bottom-0
+            left-0
+            z-30
+            h-[90px]
+            w-full
+
+            sm:h-[110px]
+            lg:h-[125px]
+          "
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 1440 130"
+            preserveAspectRatio="none"
+            className="h-full w-full"
+          >
+            <path
+              d="
+                M0 50
+                C170 58, 240 115, 430 104
+                C610 94, 690 42, 870 48
+                C1040 54, 1130 100, 1275 92
+                C1350 88, 1400 72, 1440 64
+                L1440 130
+                L0 130
+                Z
+              "
+              fill="#FFFDF8"
+            />
+          </svg>
+        </div>
       </main>
     </>
   );

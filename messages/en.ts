@@ -494,13 +494,26 @@ howItWorks: {
 },
 
   hero: {
-  brand: "Hamkke │ 함께",
-  title: "Every meaningful conversation starts somewhere.",
-  signature:
-    'Sometimes it\'s a simple "How was your day?" Other times, it opens the door to something more.',
-  description:
-    "English becomes more useful when you can actually use it. Hamkke helps you build the confidence to express your thoughts naturally, one conversation at a time.",
-  startConversation: "Start a Conversation",
+  eyebrow: "1:1 ONLINE ENGLISH",
+
+  titleFirst: "From Small Talk",
+  titleSecond: "to",
+  titleAccent: "Big Ideas.",
+
+  descriptionFirst:
+    "English becomes more useful when you can actually use it.",
+
+  descriptionSecond:
+    "Start with what you already know, and learn to say more of what you mean.",
+
+  assessment: "Book a Free Assessment",
+
+  features: {
+    conversation: "Conversation-focused",
+    learners: "Kids to Adults",
+    online: "100% Online",
+    personalized: "Personalized Lessons",
+  },
 },
 
   studentProblem: {

@@ -1,17 +1,17 @@
 const zh = {
   nav: {
-  experience: "课程体验",
+  experience: "学习方式",
   goals: "学习目标",
-  stories: "学生故事",
-  policy: "课程须知",
+  stories: "学员反馈",
+  policy: "课程政策",
 
   lessons: "课程",
   teachers: "教师",
   approach: "教学方式",
-  about: "关于我们",
+  about: "关于 Hamkke",
   login: "登录",
 
-  startConversation: "开始交流",
+  startConversation: "开始咨询",
 },
 
   info: {
@@ -495,13 +495,26 @@ howItWorks: {
 },
 
   hero: {
-  brand: "Hamkke │ 함께",
-  title: "每一次有意义的交流，都始于一句话。",
-  signature:
-    '有时候，只是一句“今天过得怎么样？”这样简单的问候。又或者，一次交流，会让我们聊到更多、更深的话题。',
-  description:
-    "当你真正能够用英语表达自己时，英语才会变得更加有意义。Hamkke希望帮助你建立表达的自信，让你能够更自然地说出自己的想法，在一次次交流中慢慢成长。",
-  startConversation: "开始交流",
+  eyebrow: "1:1 在线英语",
+
+  titleFirst: "From Small Talk",
+  titleSecond: "to",
+  titleAccent: "Big Ideas.",
+
+  descriptionFirst:
+    "英语真正用得出来时，才会变得更有意义。",
+
+  descriptionSecond:
+    "从你已经掌握的英语开始，慢慢表达更多你真正想说的话。",
+
+  assessment: "预约免费体验课",
+
+  features: {
+    conversation: "以对话为中心",
+    learners: "儿童到成人",
+    online: "100% 在线",
+    personalized: "个性化课程",
+  },
 },
 
   studentProblem: {

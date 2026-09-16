@@ -10,6 +10,7 @@ import {
 } from "next/navigation";
 import {
   ChevronDown,
+  CircleUserRound,
   Menu,
   X,
 } from "lucide-react";
@@ -136,11 +137,12 @@ export default function Navbar() {
       className="
         relative
         z-50
-        bg-[#F8F4EB]
+        bg-[#F3EDDD]
       "
     >
       <div
         className="
+          relative
           mx-auto
           flex
           w-full
@@ -154,139 +156,131 @@ export default function Navbar() {
         "
       >
         {/* =====================================================
-            LEFT GROUP
-            BRAND + PRIMARY NAVIGATION
+            BRAND
             ===================================================== */}
 
-        <div
+        <Link
+          href={`/${locale}`}
           className="
+            -ml-3
             flex
-            min-w-0
+            shrink-0
             items-center
+            gap-0
+            sm:-ml-4
+            lg:-ml-6
+            xl:-ml-8
           "
         >
-          {/* ===================================================
-              BRAND
-              =================================================== */}
+          <Image
+            src="/logo/hamkke-icon.svg"
+            alt="Hamkke logo"
+            width={72}
+            height={72}
+            priority
+            className="
+              h-[36px]
+              w-[36px]
+              shrink-0
+              object-contain
+            "
+          />
 
-          <Link
-  href={`/${locale}`}
-  className="
-    -ml-3
-    flex
-    shrink-0
-    items-center
-    gap-0
-    sm:-ml-4
-    lg:-ml-6
-    xl:-ml-8
-  "
->
-            <Image
-              src="/logo/hamkke-icon.svg"
-              alt="Hamkke logo"
-              width={72}
-              height={72}
-              priority
+          <div
+            className="
+              flex
+              items-center
+              leading-none
+              text-[#293A30]
+            "
+          >
+            <span
               className="
-                h-[36px]
-                w-[36px]
+                text-[25px]
+                font-semibold
+                leading-none
+                [font-family:var(--font-cormorant)]
+              "
+            >
+              Hamkke
+            </span>
+
+            <span
+              className="
+                mx-2.5
+                h-[18px]
+                w-px
                 shrink-0
-                object-contain
+                bg-[#A8BCA5]
+                opacity-60
               "
             />
 
-            <div
+            <span
               className="
-                flex
-                items-center
+                text-[16px]
+                font-medium
                 leading-none
-                text-[#293A30]
+                text-[#718A73]
               "
             >
-              <span
-                className="
-                  text-[25px]
-                  font-semibold
-                  leading-none
-                  [font-family:var(--font-cormorant)]
-                "
-              >
-                Hamkke
-              </span>
+              함께
+            </span>
+          </div>
+        </Link>
 
-              <span
-                className="
-                  mx-2.5
-                  h-[18px]
-                  w-px
-                  shrink-0
-                  bg-[#A8BCA5]
-                  opacity-60
-                "
-              />
+        {/* =====================================================
+            DESKTOP PRIMARY NAVIGATION
 
-              <span
-                className="
-                  text-[16px]
-                  font-medium
-                  leading-none
-                  text-[#718A73]
-                "
-              >
-                함께
-              </span>
-            </div>
-          </Link>
+            Positioned independently from the logo so the
+            navigation occupies the visual center of the header.
+            ===================================================== */}
 
-          {/* ===================================================
-              DESKTOP PRIMARY NAVIGATION
-              =================================================== */}
+        <nav
+          className="
+            absolute
+            left-1/2
+            hidden
+            -translate-x-1/2
+            items-center
+            gap-7
 
-          <nav
-            className="
-              ml-16
-              hidden
-              items-center
-              gap-6
-              md:flex
-              lg:ml-20
-              lg:gap-7
-              xl:ml-24
-              xl:gap-8
-            "
-          >
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="
-                  relative
-                  whitespace-nowrap
-                  text-[15px]
-                  font-medium
-                  text-[#46564B]
-                  transition-colors
-                  duration-300
-                  hover:text-[#718A73]
+            md:flex
 
-                  after:absolute
-                  after:-bottom-1.5
-                  after:left-0
-                  after:h-px
-                  after:w-0
-                  after:bg-[#718A73]
-                  after:transition-all
-                  after:duration-300
+            lg:gap-9
+            xl:gap-10
+          "
+        >
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="
+                relative
+                whitespace-nowrap
+                text-[15px]
+                font-medium
+                text-[#46564B]
+                transition-colors
+                duration-300
+                hover:text-[#718A73]
 
-                  hover:after:w-full
-                "
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
+                after:absolute
+                after:-bottom-1.5
+                after:left-0
+                after:h-px
+                after:w-0
+                after:bg-[#718A73]
+                after:transition-all
+                after:duration-300
+
+                hover:after:w-full
+              "
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
         {/* =====================================================
             DESKTOP UTILITIES
@@ -402,13 +396,16 @@ export default function Navbar() {
           </div>
 
           {/* ===================================================
-              LOGIN
+              LOGIN + PROFILE ICON
               =================================================== */}
 
           <Link
             href={`/${locale}#login`}
             className="
-              relative
+              group
+              flex
+              items-center
+              gap-2
               whitespace-nowrap
               text-[15px]
               font-medium
@@ -416,20 +413,38 @@ export default function Navbar() {
               transition-colors
               duration-300
               hover:text-[#718A73]
-
-              after:absolute
-              after:-bottom-1.5
-              after:left-0
-              after:h-px
-              after:w-0
-              after:bg-[#718A73]
-              after:transition-all
-              after:duration-300
-
-              hover:after:w-full
             "
           >
-            {t.nav.login}
+            <span
+              className="
+                relative
+
+                after:absolute
+                after:-bottom-1.5
+                after:left-0
+                after:h-px
+                after:w-0
+                after:bg-[#718A73]
+                after:transition-all
+                after:duration-300
+
+                group-hover:after:w-full
+              "
+            >
+              {t.nav.login}
+            </span>
+
+            <CircleUserRound
+              size={20}
+              strokeWidth={1.55}
+              className="
+                text-[#607568]
+                transition-transform
+                duration-300
+                group-hover:scale-105
+              "
+              aria-hidden="true"
+            />
           </Link>
         </div>
 
@@ -497,7 +512,7 @@ export default function Navbar() {
       >
         <nav
           className="
-            bg-[#F8F4EB]
+            bg-[#F3EDDD]
             px-6
             pb-6
             pt-2
@@ -657,6 +672,9 @@ export default function Navbar() {
                 );
               }}
               className="
+                flex
+                items-center
+                gap-2.5
                 py-4
                 text-lg
                 font-medium
@@ -666,7 +684,13 @@ export default function Navbar() {
                 hover:text-[#718A73]
               "
             >
-              {t.nav.login}
+              <CircleUserRound
+                size={21}
+                strokeWidth={1.6}
+                aria-hidden="true"
+              />
+
+              <span>{t.nav.login}</span>
             </Link>
           </div>
         </nav>
