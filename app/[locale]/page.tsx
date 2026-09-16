@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Hero from "../../components/Hero";
 import FindYourLesson from "../../components/FindYourLesson";
 import HamkkeApproach from "../../components/HamkkeApproach";
+import LearnerStages from "../../components/LearnerStages";
 import StudentProblem from "../../components/StudentProblem";
 import LessonExperience from "../../components/LessonExperience";
 import LessonDetails from "../../components/LessonDetails";
@@ -42,6 +43,8 @@ export default async function Home({
       <FindYourLesson locale={locale} />
 
       <HamkkeApproach locale={locale} />
+
+      <LearnerStages locale={locale} />
 
       <StudentProblem
         locale={locale}
