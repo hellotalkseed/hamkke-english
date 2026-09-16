@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import Hero from "../../components/Hero";
 import FindYourLesson from "../../components/FindYourLesson";
+import HamkkeApproach from "../../components/HamkkeApproach";
 import StudentProblem from "../../components/StudentProblem";
 import LessonExperience from "../../components/LessonExperience";
 import LessonDetails from "../../components/LessonDetails";
@@ -39,6 +40,8 @@ export default async function Home({
       <Hero locale={locale} />
 
       <FindYourLesson locale={locale} />
+
+      <HamkkeApproach locale={locale} />
 
       <StudentProblem
         locale={locale}
