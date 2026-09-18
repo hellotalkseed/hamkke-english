@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const TEACHER_AVATAR_BUCKET = "teacher-avatars";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const admin = createAdminClient();
@@ -18,7 +20,7 @@ export async function GET() {
         card_label,
         learner_groups,
         display_order,
-        profiles!teacher_public_profiles_teacher_id_fkey (
+        profiles!teacher_public_profiles_teacher_id_fkey!inner (
           full_name,
           avatar_path,
           role,
@@ -26,6 +28,8 @@ export async function GET() {
         )
       `)
       .eq("is_published", true)
+      .eq("profiles.role", "teacher")
+      .eq("profiles.status", "active")
       .order("display_order", {
         ascending: true,
       });
@@ -37,48 +41,58 @@ export async function GET() {
       );
 
       return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
+        {
+          error: error.message,
+        },
+        {
+          status: 500,
+        }
       );
     }
 
-    const teachers = (publicProfiles || [])
-      .filter((item) => {
-        const profile = Array.isArray(item.profiles)
+    const teachers = (publicProfiles || []).map(
+      (item) => {
+        const profile = Array.isArray(
+          item.profiles
+        )
           ? item.profiles[0]
           : item.profiles;
 
-        return (
-          profile?.role === "teacher" &&
-          profile?.status === "active"
-        );
-      })
-      .map((item) => {
-        const profile = Array.isArray(item.profiles)
-          ? item.profiles[0]
-          : item.profiles;
-
-        const avatarUrl = profile?.avatar_path
-          ? admin.storage
-              .from(TEACHER_AVATAR_BUCKET)
-              .getPublicUrl(profile.avatar_path)
-              .data.publicUrl
-          : null;
+        const avatarUrl =
+          profile?.avatar_path
+            ? admin.storage
+                .from(
+                  TEACHER_AVATAR_BUCKET
+                )
+                .getPublicUrl(
+                  profile.avatar_path
+                ).data.publicUrl
+            : null;
 
         return {
           id: item.teacher_id,
           slug: item.slug,
           name: profile?.full_name || "",
           avatar_url: avatarUrl,
-          card_label: item.card_label,
+          card_label:
+            item.card_label || null,
           learner_groups:
             item.learner_groups || [],
         };
-      });
+      }
+    );
 
-    return NextResponse.json({
-      teachers,
-    });
+    return NextResponse.json(
+      {
+        teachers,
+      },
+      {
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error) {
     console.error(
       "Public teachers GET error:",
@@ -92,7 +106,9 @@ export async function GET() {
             ? error.message
             : "Unable to load teachers.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
