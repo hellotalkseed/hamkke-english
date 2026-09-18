@@ -11,6 +11,7 @@ import Footer from "../../components/Footer";
 import TeacherInviteHandler from "@/components/admin/TeacherInviteHandler";
 
 import { isValidLocale } from "../../lib/i18n";
+import { getPublicReflections } from "@/lib/getPublicReflections";
 
 interface HomePageProps {
   params: Promise<{
@@ -27,6 +28,11 @@ export default async function Home({
     notFound();
   }
 
+  const {
+    reflections,
+    total,
+  } = await getPublicReflections();
+
   return (
     <>
       <TeacherInviteHandler locale={locale} />
@@ -41,7 +47,11 @@ export default async function Home({
 
       <Teachers locale={locale} />
 
-      <LearnerStories locale={locale} />
+      <LearnerStories
+        locale={locale}
+        reflections={reflections}
+        total={total}
+      />
 
       <GetStarted locale={locale} />
 
