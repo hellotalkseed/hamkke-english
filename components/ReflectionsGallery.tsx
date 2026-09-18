@@ -9,39 +9,34 @@ import {
 import ReflectionCard from "./ReflectionCard";
 import ReflectionModal from "./ReflectionModal";
 
-import { getMessages } from "../lib/getMessages";
+import type { PublicReflection } from "../lib/getPublicReflections";
 import type { Locale } from "../lib/i18n";
 
-type Reflection = {
-  id: string;
-  rating: number;
-  name: string;
-  role: string;
-  country: string | null;
-  reflection: string;
-  photo_url: string | null;
-};
-
 interface ReflectionsGalleryProps {
-  reflections: Reflection[];
+  reflections: PublicReflection[];
   locale: Locale;
 }
 
 export default function ReflectionsGallery({
   reflections,
-  locale,
 }: ReflectionsGalleryProps) {
-  const [selectedReflection, setSelectedReflection] =
-    useState<Reflection | null>(null);
-
-  const t = getMessages(locale);
+  const [
+    selectedReflection,
+    setSelectedReflection,
+  ] = useState<PublicReflection | null>(null);
 
   const currentIndex = reflections.findIndex(
-    (item) => item.id === selectedReflection?.id
+    (item) =>
+      item.id === selectedReflection?.id
   );
 
   const showPrevious = useCallback(() => {
-    if (currentIndex === -1) return;
+    if (
+      currentIndex === -1 ||
+      reflections.length === 0
+    ) {
+      return;
+    }
 
     const previousIndex =
       currentIndex === 0
@@ -54,10 +49,16 @@ export default function ReflectionsGallery({
   }, [currentIndex, reflections]);
 
   const showNext = useCallback(() => {
-    if (currentIndex === -1) return;
+    if (
+      currentIndex === -1 ||
+      reflections.length === 0
+    ) {
+      return;
+    }
 
     const nextIndex =
-      currentIndex === reflections.length - 1
+      currentIndex ===
+      reflections.length - 1
         ? 0
         : currentIndex + 1;
 
@@ -70,7 +71,9 @@ export default function ReflectionsGallery({
     const handleKeyDown = (
       event: KeyboardEvent
     ) => {
-      if (!selectedReflection) return;
+      if (!selectedReflection) {
+        return;
+      }
 
       if (event.key === "Escape") {
         setSelectedReflection(null);
@@ -107,18 +110,21 @@ export default function ReflectionsGallery({
       <div
         className="
           grid
-          gap-8
-          md:grid-cols-2
-          xl:grid-cols-3
+          grid-cols-1
+          gap-4
+          sm:grid-cols-2
+          lg:grid-cols-3
+          xl:grid-cols-4
+          lg:gap-5
         "
       >
-        {reflections.map((item) => (
+        {reflections.map((reflection, index) => (
           <ReflectionCard
-            key={item.id}
-            reflection={item}
-            readMoreLabel={t.reflections.readMoreCard}
+            key={reflection.id}
+            reflection={reflection}
+            index={index}
             onClick={() =>
-              setSelectedReflection(item)
+              setSelectedReflection(reflection)
             }
           />
         ))}
@@ -132,6 +138,7 @@ export default function ReflectionsGallery({
         }
         onPrevious={showPrevious}
         onNext={showNext}
+        showNavigation={reflections.length > 1}
       />
     </>
   );

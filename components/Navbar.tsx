@@ -136,6 +136,12 @@ export default function Navbar() {
   const isHomePage =
     pathname === `/${locale}`;
 
+  const isReflectionsPage =
+    pathname === `/${locale}/reflections` ||
+    pathname.startsWith(
+      `/${locale}/reflections/`
+    );
+
   const isLessonsPage =
     pathname === `/${locale}/lessons` ||
     pathname.startsWith(
@@ -170,6 +176,14 @@ export default function Navbar() {
     isLessonsPage ||
     isApproachPage ||
     isPolicyPage;
+
+  /* =====================================================
+     SPECIAL HOME DESTINATION
+     ===================================================== */
+
+  const homeHref = isReflectionsPage
+    ? `/${locale}#learner-stories`
+    : `/${locale}`;
 
   /* =====================================================
      HOMEPAGE BACKGROUND DETECTION
@@ -426,7 +440,7 @@ export default function Navbar() {
 
   const navLinks = [
     {
-      href: `/${locale}`,
+      href: homeHref,
       label: "Home",
       active: isHomePage,
     },
@@ -526,11 +540,10 @@ export default function Navbar() {
       >
         {/* =====================================================
             MOBILE BRAND
-            Separate from desktop styling
             ===================================================== */}
 
         <Link
-          href={`/${locale}`}
+          href={homeHref}
           className="
             flex
             min-w-0
@@ -616,11 +629,10 @@ export default function Navbar() {
 
         {/* =====================================================
             DESKTOP BRAND
-            Original desktop settings preserved
             ===================================================== */}
 
         <Link
-          href={`/${locale}`}
+          href={homeHref}
           className="
             -ml-3
             hidden
@@ -767,8 +779,6 @@ export default function Navbar() {
             md:flex
           "
         >
-          {/* LANGUAGE */}
-
           <div className="relative">
             <button
               type="button"
@@ -871,8 +881,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* LOGIN */}
-
           <Link
             href={`/${locale}#login`}
             className="
@@ -936,8 +944,6 @@ export default function Navbar() {
             md:hidden
           "
         >
-          {/* MOBILE LANGUAGE */}
-
           <div className="relative">
             <button
               type="button"
@@ -1048,8 +1054,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* MOBILE MENU BUTTON */}
-
           <button
             type="button"
             onClick={() => {
@@ -1130,8 +1134,6 @@ export default function Navbar() {
           "
         >
           <div className="flex flex-col">
-            {/* NAVIGATION LINKS */}
-
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -1145,6 +1147,7 @@ export default function Navbar() {
                   setIsMobileMenuOpen(
                     false
                   );
+
                   setIsMobileLanguageOpen(
                     false
                   );
@@ -1169,14 +1172,13 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* MOBILE LOGIN */}
-
             <Link
               href={`/${locale}#login`}
               onClick={() => {
                 setIsMobileMenuOpen(
                   false
                 );
+
                 setIsMobileLanguageOpen(
                   false
                 );

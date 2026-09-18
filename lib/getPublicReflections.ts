@@ -30,28 +30,49 @@ type TeacherRow = {
   full_name: string | null;
 };
 
-export async function getPublicReflections(): Promise<{
+type GetPublicReflectionsOptions = {
+  limit?: number | null;
+  teacherId?: string;
+};
+
+export async function getPublicReflections(
+  options: GetPublicReflectionsOptions = {}
+): Promise<{
   reflections: PublicReflection[];
   total: number;
 }> {
+  const {
+    limit = 20,
+    teacherId,
+  } = options;
+
   const admin = createAdminClient();
 
   /*
    * -------------------------------------------------------
-   * GET TOTAL NUMBER OF APPROVED REFLECTIONS
+   * TOTAL APPROVED REFLECTIONS
    * -------------------------------------------------------
    */
 
-  const {
-    count,
-    error: countError,
-  } = await admin
+  let countQuery = admin
     .from("reflections")
     .select("id", {
       count: "exact",
       head: true,
     })
     .eq("approved", true);
+
+  if (teacherId) {
+    countQuery = countQuery.eq(
+      "teacher_id",
+      teacherId
+    );
+  }
+
+  const {
+    count,
+    error: countError,
+  } = await countQuery;
 
   if (countError) {
     console.error(
@@ -62,14 +83,11 @@ export async function getPublicReflections(): Promise<{
 
   /*
    * -------------------------------------------------------
-   * GET NEWEST 20 APPROVED REFLECTIONS
+   * APPROVED REFLECTIONS
    * -------------------------------------------------------
    */
 
-  const {
-    data: reflectionData,
-    error: reflectionsError,
-  } = await admin
+  let reflectionsQuery = admin
     .from("reflections")
     .select(`
       id,
@@ -85,8 +103,24 @@ export async function getPublicReflections(): Promise<{
     .eq("approved", true)
     .order("created_at", {
       ascending: false,
-    })
-    .limit(20);
+    });
+
+  if (teacherId) {
+    reflectionsQuery = reflectionsQuery.eq(
+      "teacher_id",
+      teacherId
+    );
+  }
+
+  if (limit !== null) {
+    reflectionsQuery =
+      reflectionsQuery.limit(limit);
+  }
+
+  const {
+    data: reflectionData,
+    error: reflectionsError,
+  } = await reflectionsQuery;
 
   if (reflectionsError) {
     console.error(
@@ -112,7 +146,7 @@ export async function getPublicReflections(): Promise<{
 
   /*
    * -------------------------------------------------------
-   * GET TEACHERS USED BY THESE REFLECTIONS
+   * TEACHERS
    * -------------------------------------------------------
    */
 
@@ -148,13 +182,14 @@ export async function getPublicReflections(): Promise<{
   const teacherMap = new Map(
     teachers.map((teacher) => [
       teacher.id,
-      teacher.full_name?.trim() || "Hamkke Teacher",
+      teacher.full_name?.trim() ||
+        "Hamkke Teacher",
     ])
   );
 
   /*
    * -------------------------------------------------------
-   * BUILD PUBLIC REFLECTIONS
+   * PUBLIC DATA
    * -------------------------------------------------------
    */
 

@@ -1,244 +1,158 @@
 "use client";
 
-type Reflection = {
-  id: string;
-  rating: number;
-  name: string;
-  role: string;
-  country: string | null;
-  reflection: string;
-  photo_url: string | null;
-};
+import Image from "next/image";
+
+import type { PublicReflection } from "../lib/getPublicReflections";
 
 interface ReflectionCardProps {
-  reflection: Reflection;
-  readMoreLabel: string;
+  reflection: PublicReflection;
+  index: number;
   onClick?: () => void;
 }
 
+const cardBackgrounds = [
+  "bg-[#FFFDF8]",
+  "bg-[#DCE4D7]",
+  "bg-[#FFFDF8]",
+  "bg-[#EDE3D2]",
+  "bg-[#FFFDF8]",
+];
+
 export default function ReflectionCard({
   reflection,
-  readMoreLabel,
+  index,
   onClick,
 }: ReflectionCardProps) {
-  /*
-   * Different languages use different amounts of visual space.
-   * Korean and Chinese therefore use a shorter character limit
-   * so the cards remain visually consistent with English cards.
-   */
-  const isKorean =
-    /[\uAC00-\uD7AF]/.test(reflection.reflection);
+  const background =
+    cardBackgrounds[
+      index % cardBackgrounds.length
+    ];
 
-  const isChinese =
-    /[\u4E00-\u9FFF]/.test(reflection.reflection);
-
-  const MAX_PREVIEW_LENGTH =
-    isKorean || isChinese ? 95 : 180;
-
-  const isLongReflection =
-    reflection.reflection.length > MAX_PREVIEW_LENGTH;
-
-  const preview = isLongReflection
-    ? reflection.reflection
-        .slice(0, MAX_PREVIEW_LENGTH)
-        .trimEnd() + "..."
-    : reflection.reflection;
-
-  const handleReadMore = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.stopPropagation();
-
-    if (onClick) {
-      onClick();
-    }
-  };
+  const learnerDetails = [
+    reflection.role,
+    reflection.country,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <article
-      onClick={onClick}
-      className="
+      className={`
+        group
         flex
-        h-[360px]
-        w-[88vw]
-        max-w-[380px]
-        flex-shrink-0
-        cursor-pointer
+        h-[270px]
         flex-col
-
-        rounded-[2rem]
-        bg-[#DDE9D8]
-
-        p-6
-        shadow-md
-
-        transition-all
-        duration-500
-
-        hover:-translate-y-2
-        hover:shadow-xl
-
-        sm:w-[360px]
-        sm:p-7
-
-        lg:w-[380px]
-        lg:p-8
-      "
+        overflow-hidden
+        rounded-[24px]
+        ${background}
+        p-5
+        transition-transform
+        duration-200
+        sm:h-[280px]
+        sm:p-6
+        lg:h-[290px]
+        hover:-translate-y-[2px]
+      `}
     >
-      {/* =====================================================
-          RATING
-          ===================================================== */}
+      {/* TOP */}
 
-      <div
-        className="
-          shrink-0
-          text-lg
-          tracking-wide
-          text-[#D8A437]
-        "
-      >
-        {"★".repeat(reflection.rating)}
-      </div>
+      <div className="flex items-start justify-between gap-4">
+        <div
+          className="font-serif text-[36px] leading-[0.65] text-[#718A73]"
+          aria-hidden="true"
+        >
+          “
+        </div>
 
-      {/* =====================================================
-          REFLECTION
-          ===================================================== */}
-
-      <blockquote
-        className="
-          mt-5
-          h-[140px]
-          shrink-0
-          overflow-hidden
-
-          text-[16px]
-          leading-7
-          italic
-
-          text-[#4A4A4A]
-
-          [font-family:var(--font-cormorant)]
-
-          sm:mt-6
-          sm:h-[150px]
-          sm:text-[17px]
-          sm:leading-8
-        "
-      >
-        “{preview}”
-      </blockquote>
-
-      {/* =====================================================
-          READ MORE
-          ===================================================== */}
-
-      <div className="mt-4 h-6 shrink-0">
-        {isLongReflection && onClick && (
-          <button
-            type="button"
-            onClick={handleReadMore}
-            className="
-              inline-flex
-              items-center
-
-              text-sm
-              font-medium
-
-              text-[#6F8F72]
-
-              transition-colors
-              duration-300
-
-              hover:text-[#5B7960]
-              hover:underline
-            "
-          >
-            {readMoreLabel} →
-          </button>
-        )}
-      </div>
-
-      {/* =====================================================
-          PROFILE
-          ===================================================== */}
-
-      <div
-        className="
-          mt-4
-          flex
-          min-h-[56px]
-          items-center
-          gap-4
-        "
-      >
-        {reflection.photo_url ? (
-          <img
-            src={reflection.photo_url}
-            alt={reflection.name}
-            className="
-              h-12
-              w-12
-              flex-shrink-0
-
-              rounded-full
-              object-cover
-
-              sm:h-14
-              sm:w-14
-            "
-          />
-        ) : (
+        {reflection.rating > 0 && (
           <div
-            className="
-              flex
-              h-12
-              w-12
-              flex-shrink-0
-
-              items-center
-              justify-center
-
-              rounded-full
-
-              bg-[#EEF5EE]
-
-              text-base
-              font-medium
-              text-[#6F8F72]
-
-              sm:h-14
-              sm:w-14
-              sm:text-lg
-            "
+            className="flex shrink-0 gap-[2px] text-[10px] text-[#B99454]"
+            aria-label={`${reflection.rating} out of 5 stars`}
           >
-            {reflection.name.charAt(0)}
+            {Array.from({
+              length: Math.min(
+                reflection.rating,
+                5
+              ),
+            }).map((_, starIndex) => (
+              <span key={starIndex}>★</span>
+            ))}
           </div>
         )}
+      </div>
 
-        <div className="min-w-0">
-          <h3
-            className="
-              text-[17px]
-              font-medium
-              text-[#2B2B2B]
+      {/* REFLECTION PREVIEW */}
 
-              sm:text-[18px]
-            "
-          >
-            {reflection.name}
-          </h3>
+      <blockquote className="mt-4 line-clamp-6 font-serif text-[17px] leading-[1.4] tracking-[-0.015em] text-[#304A39]">
+        {reflection.reflection}
+      </blockquote>
 
-          <p
-            className="
-              mt-1
-              text-sm
-              text-[#6B6B6B]
-            "
-          >
-            {reflection.role}
-            {reflection.country &&
-              ` • ${reflection.country}`}
-          </p>
+      {/* READ FULL STORY */}
+
+      <button
+        type="button"
+        onClick={onClick}
+        className="
+          mt-3
+          w-fit
+          text-[10px]
+          font-semibold
+          text-[#718A73]
+          underline
+          decoration-[#718A73]/30
+          underline-offset-[3px]
+          transition-colors
+          hover:text-[#304A39]
+        "
+      >
+        Read full story
+      </button>
+
+      {/* ATTRIBUTION */}
+
+      <div className="mt-auto pt-4">
+        <div
+          className="h-px w-8 bg-[#718A73]/25"
+          aria-hidden="true"
+        />
+
+        <div className="mt-3 flex items-end justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] leading-[1.4] text-[#52685A]">
+              <span className="font-semibold">
+                {reflection.name}
+              </span>
+
+              <span className="text-[#758477]">
+                {" "}
+                · with{" "}
+              </span>
+
+              <span className="font-bold text-[#718A73]">
+                {reflection.teacher_name}
+              </span>
+            </p>
+
+            {learnerDetails && (
+              <p className="mt-1 text-[10px] leading-[1.4] text-[#758477]">
+                {learnerDetails}
+              </p>
+            )}
+          </div>
+
+          {/* PHOTO ONLY WHEN PROVIDED */}
+
+          {reflection.photo_url && (
+            <div className="relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-full border border-[#718A73]/15 bg-[#FFFDF8]">
+              <Image
+                src={reflection.photo_url}
+                alt=""
+                fill
+                sizes="46px"
+                className="object-cover"
+              />
+            </div>
+          )}
         </div>
       </div>
     </article>

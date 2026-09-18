@@ -1,17 +1,22 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+} from "framer-motion";
 
-type Reflection = {
-  id: string;
-  rating: number;
-  name: string;
-  role: string;
-  country: string | null;
-  reflection: string;
-  photo_url: string | null;
-};
+import type { PublicReflection } from "../lib/getPublicReflections";
+
+interface ReflectionModalProps {
+  reflection: PublicReflection | null;
+  open: boolean;
+  onClose: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
+  showNavigation?: boolean;
+}
 
 export default function ReflectionModal({
   reflection,
@@ -19,36 +24,38 @@ export default function ReflectionModal({
   onClose,
   onPrevious,
   onNext,
-}: {
-  reflection: Reflection | null;
-  open: boolean;
-  onClose: () => void;
-  onPrevious: () => void;
-  onNext: () => void;
-}) {
+  showNavigation = true,
+}: ReflectionModalProps) {
   /*
    * =====================================================
    * LOCK BACKGROUND SCROLL
    * =====================================================
-   *
-   * This prevents the page behind the modal from scrolling,
-   * especially on mobile / iOS.
    */
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     const scrollY = window.scrollY;
 
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalBodyPosition = document.body.style.position;
-    const originalBodyTop = document.body.style.top;
-    const originalBodyWidth = document.body.style.width;
+    const originalBodyOverflow =
+      document.body.style.overflow;
+
+    const originalBodyPosition =
+      document.body.style.position;
+
+    const originalBodyTop =
+      document.body.style.top;
+
+    const originalBodyWidth =
+      document.body.style.width;
 
     const originalHtmlOverflow =
       document.documentElement.style.overflow;
 
-    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.overflow =
+      "hidden";
 
     document.body.style.overflow = "hidden";
     document.body.style.position = "fixed";
@@ -82,79 +89,70 @@ export default function ReflectionModal({
           className="
             fixed
             inset-0
-            z-50
-
+            z-[100]
             flex
             items-center
             justify-center
-
-            bg-black/30
-
+            bg-[#293A30]/45
             px-4
             py-6
-
+            backdrop-blur-[2px]
             sm:px-6
             sm:py-8
-
-            lg:px-8
           "
           onClick={onClose}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
+          initial={{
+            opacity: 0,
+          }}
+          animate={{
+            opacity: 1,
+          }}
+          exit={{
+            opacity: 0,
+          }}
+          transition={{
+            duration: 0.2,
+          }}
           style={{
             overscrollBehavior: "contain",
-            touchAction: "none",
           }}
         >
-          {/* =================================================
-              MODAL CARD
-              ================================================= */}
-
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Learner story from ${reflection.name}`}
             className="
               relative
-
+              max-h-[86vh]
               w-full
-
-              max-w-[92vw]
-              sm:max-w-2xl
-              lg:max-w-5xl
-              xl:max-w-6xl
-
-              max-h-[84vh]
-              sm:max-h-[86vh]
-              lg:max-h-[88vh]
-
+              max-w-[680px]
               overflow-y-auto
               overscroll-contain
-
-              rounded-[2rem]
-              sm:rounded-[2.25rem]
-              lg:rounded-[2.5rem]
-
-              bg-[#E6F0E2]
-
+              rounded-[28px]
+              bg-[#FFFDF8]
               px-6
-              py-7
-
+              pb-6
+              pt-7
+              shadow-[0_24px_80px_rgba(48,74,57,0.22)]
               sm:px-8
-              sm:py-9
-
+              sm:pb-8
+              sm:pt-8
+              lg:max-w-[760px]
               lg:px-10
-              lg:py-10
-
-              shadow-2xl
-
+              lg:pb-9
+              lg:pt-10
               [scrollbar-width:thin]
             "
-            onClick={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+            onWheel={(event) =>
+              event.stopPropagation()
+            }
             initial={{
               opacity: 0,
-              scale: 0.97,
-              y: 12,
+              scale: 0.98,
+              y: 10,
             }}
             animate={{
               opacity: 1,
@@ -163,331 +161,219 @@ export default function ReflectionModal({
             }}
             exit={{
               opacity: 0,
-              scale: 0.97,
-              y: 12,
+              scale: 0.98,
+              y: 10,
             }}
             transition={{
-              duration: 0.3,
+              duration: 0.25,
               ease: "easeOut",
             }}
             style={{
-              overscrollBehavior: "contain",
               WebkitOverflowScrolling: "touch",
               touchAction: "pan-y",
             }}
           >
-            {/* =================================================
-                CLOSE BUTTON
-                ================================================= */}
+            {/* CLOSE */}
 
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close reflection"
+              aria-label="Close learner story"
               className="
                 absolute
-                right-4
-                top-4
-
+                right-5
+                top-5
+                z-10
                 flex
-                h-10
-                w-10
+                h-9
+                w-9
                 items-center
                 justify-center
-
                 rounded-full
-
-                bg-[#F5F8F3]
-
-                text-[22px]
-                font-light
-                leading-none
-
-                text-[#6F8F72]
-
-                transition
-                duration-200
-
-                hover:bg-white
-                hover:scale-105
-
-                sm:right-5
-                sm:top-5
-
-                lg:right-7
-                lg:top-7
+                border
+                border-[#718A73]/20
+                text-[#718A73]
+                transition-colors
+                hover:bg-[#DCE4D7]
+                hover:text-[#304A39]
               "
             >
-              ×
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-[14px] w-[14px]"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 3L13 13M13 3L3 13"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
             </button>
 
-            {/* =================================================
-                RATING
-                ================================================= */}
+            {/* TOP */}
 
-            <div
-              className="
-                flex
-                gap-1
+            <div className="pr-12">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#718A73]">
+                Learner story
+              </p>
 
-                text-[17px]
-                text-[#D9A441]
-
-                sm:text-[18px]
-              "
-            >
-              {Array.from({
-                length: reflection.rating,
-              }).map((_, i) => (
-                <span key={i}>★</span>
-              ))}
-            </div>
-
-            {/* =================================================
-                PROFILE
-                ================================================= */}
-
-            <div
-              className="
-                mt-6
-
-                flex
-                items-center
-                gap-4
-
-                sm:mt-7
-                sm:gap-5
-
-                lg:mt-6
-              "
-            >
-              {reflection.photo_url ? (
-                <img
-                  src={reflection.photo_url}
-                  alt={reflection.name}
-                  className="
-                    h-14
-                    w-14
-                    shrink-0
-
-                    rounded-full
-
-                    object-cover
-
-                    sm:h-16
-                    sm:w-16
-
-                    lg:h-[68px]
-                    lg:w-[68px]
-                  "
-                />
-              ) : (
+              {reflection.rating > 0 && (
                 <div
-                  className="
-                    flex
-                    h-14
-                    w-14
-                    shrink-0
-
-                    items-center
-                    justify-center
-
-                    rounded-full
-
-                    bg-[#F5F8F3]
-
-                    text-xl
-                    font-medium
-
-                    text-[#6F8F72]
-
-                    sm:h-16
-                    sm:w-16
-                    sm:text-2xl
-
-                    lg:h-[68px]
-                    lg:w-[68px]
-                  "
+                  className="mt-3 flex gap-[3px] text-[12px] text-[#B99454]"
+                  aria-label={`${reflection.rating} out of 5 stars`}
                 >
-                  {reflection.name.charAt(0)}
+                  {Array.from({
+                    length: Math.min(
+                      reflection.rating,
+                      5
+                    ),
+                  }).map((_, index) => (
+                    <span key={index}>★</span>
+                  ))}
                 </div>
               )}
+            </div>
 
-              <div>
-                <h2
-                  className="
-                    text-[25px]
-                    font-medium
-                    leading-tight
+            {/* QUOTE */}
 
-                    tracking-[-0.02em]
+            <div
+              className="mt-7 font-serif text-[52px] leading-[0.65] text-[#718A73]"
+              aria-hidden="true"
+            >
+              “
+            </div>
 
-                    text-[#2B2B2B]
+            {/* FULL REFLECTION */}
 
-                    sm:text-[28px]
+            <blockquote className="mt-5 whitespace-pre-line font-serif text-[20px] leading-[1.55] tracking-[-0.015em] text-[#304A39] sm:text-[22px] sm:leading-[1.6]">
+              {reflection.reflection}
+            </blockquote>
 
-                    lg:text-[30px]
-                  "
-                >
-                  {reflection.name}
-                </h2>
+            {/* ATTRIBUTION */}
 
-                <p
-                  className="
-                    mt-1
+            <div className="mt-8 border-t border-[#718A73]/15 pt-5">
+              <div className="flex items-end justify-between gap-5">
+                <div className="min-w-0">
+                  <p className="text-[12px] leading-[1.5] text-[#52685A]">
+                    <span className="font-semibold">
+                      {reflection.name}
+                    </span>
 
-                    text-[13px]
-                    leading-5
+                    <span className="text-[#758477]">
+                      {" "}
+                      · with{" "}
+                    </span>
 
-                    text-[#6F8F72]
+                    <span className="font-bold text-[#718A73]">
+                      {reflection.teacher_name}
+                    </span>
+                  </p>
 
-                    sm:text-sm
-                  "
-                >
-                  {reflection.role}
-                  {reflection.country &&
-                    ` • ${reflection.country}`}
-                </p>
+                  {[reflection.role, reflection.country]
+                    .filter(Boolean)
+                    .length > 0 && (
+                    <p className="mt-1 text-[11px] leading-5 text-[#758477]">
+                      {[
+                        reflection.role,
+                        reflection.country,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
+                </div>
+
+                {reflection.photo_url && (
+                  <div className="relative h-[58px] w-[58px] shrink-0 overflow-hidden rounded-full border border-[#718A73]/20 bg-[#F3EDDD]">
+                    <Image
+                      src={reflection.photo_url}
+                      alt=""
+                      fill
+                      sizes="58px"
+                      className="object-cover"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* =================================================
-                DIVIDER
-                ================================================= */}
+            {/* NAVIGATION */}
 
-            <div
-              className="
-                mt-6
-                h-px
-                bg-[#CBD9C7]
+            {showNavigation && (
+              <div className="mt-7 flex items-center justify-between border-t border-[#718A73]/15 pt-5">
+                <button
+                  type="button"
+                  onClick={onPrevious}
+                  className="
+                    group
+                    inline-flex
+                    items-center
+                    gap-2
+                    text-[11px]
+                    font-semibold
+                    text-[#718A73]
+                    transition-colors
+                    hover:text-[#304A39]
+                  "
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-[14px] w-[14px] transition-transform group-hover:-translate-x-1"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M13 8H3M7 4L3 8L7 12"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
 
-                sm:mt-7
+                  Previous
+                </button>
 
-                lg:mt-8
-              "
-            />
+                <button
+                  type="button"
+                  onClick={onNext}
+                  className="
+                    group
+                    inline-flex
+                    items-center
+                    gap-2
+                    text-[11px]
+                    font-semibold
+                    text-[#718A73]
+                    transition-colors
+                    hover:text-[#304A39]
+                  "
+                >
+                  Next
 
-            {/* =================================================
-                QUOTE MARK
-                ================================================= */}
-
-            <div
-              className="
-                mt-5
-
-                text-[48px]
-                font-serif
-                leading-none
-
-                text-[#BFD2BA]
-
-                sm:mt-6
-                sm:text-[54px]
-              "
-            >
-              "
-            </div>
-
-            {/* =================================================
-                REFLECTION
-                ================================================= */}
-
-            <blockquote
-              className="
-                -mt-2
-
-                whitespace-pre-line
-
-                text-[17px]
-                font-normal
-                leading-[1.75]
-
-                tracking-[-0.005em]
-
-                text-[#3F4540]
-
-                sm:-mt-3
-                sm:text-[18px]
-                sm:leading-[1.8]
-
-                lg:text-[19px]
-                lg:leading-[1.8]
-
-                xl:text-[20px]
-                xl:leading-[1.8]
-              "
-            >
-              “{reflection.reflection}”
-            </blockquote>
-
-            {/* =================================================
-                NAVIGATION
-                ================================================= */}
-
-            <div
-              className="
-                mt-8
-
-                flex
-                items-center
-                justify-between
-
-                border-t
-                border-[#CBD9C7]
-
-                pt-5
-
-                sm:mt-9
-                sm:pt-6
-
-                lg:mt-10
-                lg:pt-7
-              "
-            >
-              <button
-                type="button"
-                onClick={onPrevious}
-                className="
-                  text-[14px]
-                  font-medium
-
-                  text-[#6F8F72]
-
-                  transition
-                  duration-200
-
-                  hover:underline
-
-                  sm:text-[15px]
-
-                  lg:text-base
-                "
-              >
-                ← Previous
-              </button>
-
-              <button
-                type="button"
-                onClick={onNext}
-                className="
-                  text-[14px]
-                  font-medium
-
-                  text-[#6F8F72]
-
-                  transition
-                  duration-200
-
-                  hover:underline
-
-                  sm:text-[15px]
-
-                  lg:text-base
-                "
-              >
-                Next →
-              </button>
-            </div>
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-[14px] w-[14px] transition-transform group-hover:translate-x-1"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 8H13M9 4L13 8L9 12"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

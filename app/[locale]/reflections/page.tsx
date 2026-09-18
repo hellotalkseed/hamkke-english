@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 
-import { supabase } from "@/lib/supabase";
+import Navbar from "@/components/Navbar";
 import ReflectionsGallery from "@/components/ReflectionsGallery";
+import { getPublicReflections } from "@/lib/getPublicReflections";
 
-import { getMessages } from "../../../lib/getMessages";
 import { isValidLocale } from "../../../lib/i18n";
 
 interface ReflectionsPageProps {
@@ -17,180 +17,186 @@ export default async function ReflectionsPage({
 }: ReflectionsPageProps) {
   const { locale } = await params;
 
-  // Make sure the locale is valid
   if (!isValidLocale(locale)) {
     notFound();
   }
 
-  const t = getMessages(locale);
-
-  // Get approved student reflections
-  const { data: reflections, error } = await supabase
-    .from("reflections")
-    .select("*")
-    .eq("approved", true)
-    .order("created_at", {
-      ascending: false,
-    });
-
-  if (error) {
-    console.error("Error fetching reflections:", error);
-  }
+  const {
+    reflections,
+    total,
+  } = await getPublicReflections({
+    limit: null,
+  });
 
   return (
-    <main className="min-h-screen bg-[#FAF8F5]">
-      {/* =====================================================
-          HAMKKE HEADER
-          ===================================================== */}
+    <>
+      <Navbar />
 
-      <header
-        className="
-          w-full
-          px-6
-          pt-7
-          sm:px-8
-          sm:pt-8
-          lg:px-10
-          xl:px-12
-        "
-      >
-        <div
-          className="
-            flex
-            w-full
-            items-start
-            justify-between
-            gap-8
-          "
-        >
-          {/* BRAND + TAGLINE */}
+      <main className="min-h-screen bg-[#F3EDDD]">
+        {/* =====================================================
+            INTRO
+            ===================================================== */}
 
-          <a
-  href={`/${locale}#student-stories`}
-            className="
-              shrink-0
-              text-left
-              transition-opacity
-              duration-200
-              hover:opacity-75
-            "
-          >
-            <p
-              className="
-                font-sans
-                text-[16px]
-                font-semibold
-                leading-none
-                tracking-[0.18em]
-                text-[#6F8F72]
-              "
-            >
-              HAMKKE │ 함께
-            </p>
-
-            <p
-              className="
-                mt-2
-                font-serif
-                text-[13px]
-                font-normal
-                leading-none
-                tracking-[0.02em]
-                text-[#6F8F72]
-              "
-            >
-              From Small Talk to Big Ideas
-            </p>
-          </a>
-        </div>
-      </header>
-
-      {/* =====================================================
-          PAGE INTRODUCTION
-          ===================================================== */}
-
-      <section
-        className="
-          mx-auto
-          max-w-4xl
-          px-6
-          pb-16
-          pt-16
-          text-center
-          sm:pt-18
-          lg:pb-20
-          lg:pt-20
-        "
-      >
-        {/* TITLE */}
-
-        <h1
-          className="
-            text-[48px]
-            leading-[0.95]
-            text-[#2B2B2B]
-            [font-family:var(--font-cormorant)]
-            sm:text-[58px]
-            lg:text-[64px]
-          "
-        >
-          {t.reflections.galleryTitleLineOne}
-          <br />
-          {t.reflections.galleryTitleLineTwo}
-        </h1>
-
-        {/* DESCRIPTION */}
-
-        <p
+        <section
           className="
             mx-auto
-            mt-7
-            max-w-2xl
-            text-base
-            leading-7
-            text-[#5B5B5B]
-            sm:text-lg
-            sm:leading-8
+            max-w-[1440px]
+            px-5
+            pb-9
+            pt-12
+
+            sm:px-10
+            sm:pb-11
+            sm:pt-16
+
+            lg:px-16
+            lg:pb-12
+            lg:pt-20
           "
         >
-          {t.reflections.galleryDescription}
-        </p>
+          <div
+            className="
+              flex
+              flex-col
+              gap-7
+              border-b
+              border-[#718A73]/20
+              pb-9
 
-        {/* STORY COUNT */}
+              sm:flex-row
+              sm:items-end
+              sm:justify-between
 
-        <p
+              lg:pb-11
+            "
+          >
+            {/* INTRO COPY */}
+
+            <div className="min-w-0 lg:max-w-none">
+              <p
+                className="
+                  text-[11px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.28em]
+                  text-[#718A73]
+
+                  sm:text-xs
+                "
+              >
+                Passed Along
+              </p>
+
+              <h1
+                className="
+                  mt-3
+                  font-serif
+                  text-[44px]
+                  leading-[0.96]
+                  tracking-[-0.035em]
+                  text-[#304A39]
+
+                  sm:text-[58px]
+
+                  lg:whitespace-nowrap
+                  lg:text-[64px]
+
+                  xl:text-[68px]
+                "
+              >
+                Kind words, passed along.
+              </h1>
+
+              <p
+                className="
+                  mt-5
+                  max-w-[660px]
+                  text-[14px]
+                  leading-6
+                  text-[#758477]
+
+                  sm:text-[15px]
+                  sm:leading-7
+                "
+              >
+                Experiences, milestones, and thoughts shared
+                by learners and families along the way.
+              </p>
+            </div>
+
+            {/* TOTAL */}
+
+            <div className="shrink-0 sm:text-right">
+              <p
+                className="
+                  font-serif
+                  text-[64px]
+                  leading-[0.8]
+                  tracking-[-0.055em]
+                  text-[#304A39]
+
+                  sm:text-[76px]
+                "
+              >
+                {total}
+              </p>
+
+              <p
+                className="
+                  mt-3
+                  text-[10px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.2em]
+                  text-[#718A73]
+                "
+              >
+                Stories shared
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            COLLECTION
+            ===================================================== */}
+
+        <section
           className="
-            mt-5
-            text-[11px]
-            uppercase
-            tracking-[0.25em]
-            text-[#8B8B8B]
-            sm:text-xs
+            mx-auto
+            max-w-[1440px]
+            px-5
+            pb-20
+
+            sm:px-10
+            sm:pb-24
+
+            lg:px-16
+            lg:pb-28
           "
         >
-          {reflections?.length ?? 0}{" "}
-          {t.reflections.storiesShared}
-        </p>
-      </section>
-
-      {/* =====================================================
-          REFLECTION GALLERY
-          ===================================================== */}
-
-      <section
-        className="
-          mx-auto
-          max-w-7xl
-          px-6
-          pb-24
-          lg:px-10
-        "
-      >
-        <ReflectionsGallery
-          reflections={reflections ?? []}
-          locale={locale}
-        />
-      </section>
-    </main>
+          {reflections.length > 0 ? (
+            <ReflectionsGallery
+              reflections={reflections}
+              locale={locale}
+            />
+          ) : (
+            <div
+              className="
+                rounded-[24px]
+                bg-[#FFFDF8]
+                px-6
+                py-16
+                text-center
+              "
+            >
+              <p className="font-serif text-[24px] text-[#304A39]">
+                No learner stories have been shared yet.
+              </p>
+            </div>
+          )}
+        </section>
+      </main>
+    </>
   );
 }
