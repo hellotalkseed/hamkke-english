@@ -8,6 +8,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 
 type Qualification = {
@@ -74,7 +75,6 @@ type ConvertedSlot = PublicSlot & {
 };
 
 const INITIAL_STORIES = 6;
-const LONG_STORY_LENGTH = 240;
 
 const DAYS = [
   "Sun",
@@ -491,11 +491,12 @@ export default function TeacherProfileTabs({
   ] = useState(false);
 
   const [
-    expandedStories,
-    setExpandedStories,
-  ] = useState<Set<string>>(
-    new Set()
-  );
+    selectedStory,
+    setSelectedStory,
+  ] =
+    useState<TeacherReflection | null>(
+      null
+    );
 
   const [
     availabilityData,
@@ -544,6 +545,45 @@ export default function TeacherProfileTabs({
     setTimezoneReady(true);
   }, []);
 
+  /* =====================================================
+     LEARNER STORY MODAL
+     ===================================================== */
+
+  useEffect(() => {
+    if (!selectedStory) {
+      return;
+    }
+
+    const previousOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow =
+      "hidden";
+
+    const handleKeyDown = (
+      event: KeyboardEvent
+    ) => {
+      if (event.key === "Escape") {
+        setSelectedStory(null);
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+    };
+  }, [selectedStory]);
+
   const visibleReflections =
     showAllStories
       ? safeReflections
@@ -551,25 +591,6 @@ export default function TeacherProfileTabs({
           0,
           INITIAL_STORIES
         );
-
-  const toggleStory = (
-    id: string
-  ) => {
-    setExpandedStories(
-      (current) => {
-        const next =
-          new Set(current);
-
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.add(id);
-        }
-
-        return next;
-      }
-    );
-  };
 
   /*
    * -------------------------------------------------------
@@ -1031,107 +1052,108 @@ export default function TeacherProfileTabs({
           {safeReflections.length >
           0 ? (
             <>
-              <div className="mt-6 grid items-start gap-4 md:grid-cols-2">
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {visibleReflections.map(
-                  (
-                    reflection
-                  ) => {
-                    const isLong =
-                      reflection
-                        .reflection
-                        .length >
-                      LONG_STORY_LENGTH;
+                  (reflection) => (
+                    <article
+  key={reflection.id}
+  className="
+    flex
+    h-[260px]
+    flex-col
+    rounded-[22px]
+    border
+    border-[#718A73]/25
+    bg-[#F1F4ED]
+    p-5
+    shadow-[0_5px_18px_rgba(48,74,57,0.035)]
+    transition
+    hover:border-[#718A73]/45
+  "
+>
+  {/* RATING */}
 
-                    const isExpanded =
-                      expandedStories.has(
-                        reflection.id
-                      );
+  <div
+    className="
+      shrink-0
+      text-[14px]
+      tracking-[0.1em]
+      text-[#C69A3B]
+    "
+    aria-label={`${reflection.rating} out of 5 stars`}
+  >
+    {"★".repeat(
+      Math.max(
+        0,
+        Math.min(
+          5,
+          reflection.rating
+        )
+      )
+    )}
+  </div>
 
-                    return (
-                      <article
-                        key={
-                          reflection.id
-                        }
-                        className="flex min-h-[220px] flex-col rounded-[22px] border border-[#718A73]/25 bg-[#F1F4ED] p-5 shadow-[0_5px_18px_rgba(48,74,57,0.035)] transition hover:border-[#718A73]/45"
-                      >
-                        <div
-                          className="text-[14px] tracking-[0.1em] text-[#C69A3B]"
-                          aria-label={`${reflection.rating} out of 5 stars`}
-                        >
-                          {"★".repeat(
-                            Math.max(
-                              0,
-                              Math.min(
-                                5,
-                                reflection.rating
-                              )
-                            )
-                          )}
-                        </div>
+  {/* STORY PREVIEW */}
 
-                        <div className="mt-4">
-                          <p
-                            className={`text-[14px] leading-6 text-[#536157] ${
-                              !isExpanded &&
-                              isLong
-                                ? "line-clamp-6"
-                                : ""
-                            }`}
-                          >
-                            “
-                            {
-                              reflection.reflection
-                            }
-                            ”
-                          </p>
+  <div className="mt-4 min-h-0 flex-1 overflow-hidden">
+    <p
+      className="
+        line-clamp-4
+        text-[14px]
+        leading-6
+        text-[#536157]
+      "
+    >
+      “{reflection.reflection}”
+    </p>
+  </div>
 
-                          {isLong && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                toggleStory(
-                                  reflection.id
-                                )
-                              }
-                              aria-expanded={
-                                isExpanded
-                              }
-                              className="mt-2 text-[12px] font-semibold text-[#718A73] transition hover:text-[#304A39]"
-                            >
-                              {isExpanded
-                                ? "Show less"
-                                : "Read more"}
-                            </button>
-                          )}
-                        </div>
+  {/* READ MORE */}
 
-                        <div className="mt-auto pt-5">
-                          <div className="h-px bg-[#304A39]/10" />
+  <div className="shrink-0 pt-2">
+    <button
+      type="button"
+      onClick={() => {
+        setSelectedStory(
+          reflection
+        );
+      }}
+      className="
+        relative
+        z-10
+        text-[12px]
+        font-semibold
+        text-[#718A73]
+        transition
+        hover:text-[#304A39]
+      "
+    >
+      Read more
+    </button>
+  </div>
 
-                          <div className="mt-4">
-                            <p className="text-[13px] font-semibold text-[#304A39]">
-                              {
-                                reflection.name
-                              }
-                            </p>
+  {/* LEARNER */}
 
-                            <p className="mt-1 text-[11px] text-[#758477]">
-                              {[
-                                reflection.role,
-                                reflection.country,
-                              ]
-                                .filter(
-                                  Boolean
-                                )
-                                .join(
-                                  " · "
-                                )}
-                            </p>
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  }
+  <div className="shrink-0 pt-4">
+    <div className="h-px bg-[#304A39]/10" />
+
+    <div className="mt-3">
+      <p className="text-[13px] font-semibold text-[#304A39]">
+        {reflection.name}
+      </p>
+
+      <p className="mt-1 text-[11px] text-[#758477]">
+        {[
+          reflection.role,
+          reflection.country,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+    </div>
+  </div>
+</article>
+                  )
                 )}
               </div>
 
@@ -1471,6 +1493,167 @@ export default function TeacherProfileTabs({
                 </p>
               </>
             )}
+        </div>
+      )}
+
+      {/* =====================================================
+          LEARNER STORY MODAL
+          ===================================================== */}
+
+      {selectedStory && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[100]
+            flex
+            items-center
+            justify-center
+            bg-[#203329]/45
+            px-4
+            py-8
+            backdrop-blur-[3px]
+          "
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setSelectedStory(
+                null
+              );
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Learner story from ${selectedStory.name}`}
+            className="
+              relative
+              max-h-[85vh]
+              w-full
+              max-w-[680px]
+              overflow-y-auto
+              rounded-[28px]
+              bg-[#FFFDF8]
+              px-6
+              py-7
+              shadow-[0_24px_80px_rgba(32,51,41,0.20)]
+
+              sm:px-9
+              sm:py-9
+            "
+          >
+            {/* CLOSE */}
+
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedStory(
+                  null
+                )
+              }
+              aria-label="Close learner story"
+              className="
+                absolute
+                right-5
+                top-5
+                flex
+                h-9
+                w-9
+                items-center
+                justify-center
+                rounded-full
+                text-[#758477]
+                transition
+                hover:bg-[#EEF2EA]
+                hover:text-[#304A39]
+              "
+            >
+              <X
+                size={18}
+                strokeWidth={1.7}
+              />
+            </button>
+
+            {/* LABEL */}
+
+            <p
+              className="
+                pr-12
+                text-[10px]
+                font-semibold
+                uppercase
+                tracking-[0.2em]
+                text-[#718A73]
+              "
+            >
+              Learner story
+            </p>
+
+            {/* RATING */}
+
+            <div
+              className="
+                mt-5
+                text-[14px]
+                tracking-[0.1em]
+                text-[#C69A3B]
+              "
+              aria-label={`${selectedStory.rating} out of 5 stars`}
+            >
+              {"★".repeat(
+                Math.max(
+                  0,
+                  Math.min(
+                    5,
+                    selectedStory.rating
+                  )
+                )
+              )}
+            </div>
+
+            {/* FULL STORY */}
+
+            <p
+              className="
+                mt-5
+                whitespace-pre-wrap
+                text-[15px]
+                leading-7
+                text-[#536157]
+
+                sm:text-[16px]
+                sm:leading-8
+              "
+            >
+              “
+              {
+                selectedStory.reflection
+              }
+              ”
+            </p>
+
+            {/* LEARNER */}
+
+            <div className="mt-7 border-t border-[#304A39]/10 pt-5">
+              <p className="text-[14px] font-semibold text-[#304A39]">
+                {
+                  selectedStory.name
+                }
+              </p>
+
+              <p className="mt-1 text-[12px] text-[#758477]">
+                {[
+                  selectedStory.role,
+                  selectedStory.country,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </>
