@@ -12,7 +12,9 @@ export default function Footer() {
   const params = useParams();
 
   const locale: Locale =
-    params.locale === "ko" || params.locale === "zh"
+    params.locale === "ko" ||
+    params.locale === "zh" ||
+    params.locale === "ja"
       ? params.locale
       : "en";
 
@@ -21,22 +23,98 @@ export default function Footer() {
   const [isInquiryOpen, setIsInquiryOpen] =
     useState(false);
 
+  const footerCopy = {
+    en: {
+      description:
+        "Conversation-centered English lessons for kids, teens, and adults.",
+      learnGroup: "Learn",
+      lessons: "Lessons",
+      approach: "Approach",
+      hamkkeGroup: "Hamkke",
+      teachers: "Teachers",
+      about: "About",
+      policy: "Policy",
+      connectGroup: "Connect",
+      startConversation: "Start a Conversation",
+      instagram: "Instagram",
+    },
+
+    ko: {
+      description:
+        "어린이, 청소년, 성인을 위한 대화 중심 영어 수업.",
+      learnGroup: "배우기",
+      lessons: "수업",
+      approach: "Hamkke 방식",
+      hamkkeGroup: "Hamkke",
+      teachers: "선생님",
+      about: "소개",
+      policy: "정책",
+      connectGroup: "연결",
+      startConversation: "대화 시작하기",
+      instagram: "Instagram",
+    },
+
+    zh: {
+      description:
+        "为儿童、青少年和成人提供以对话为中心的英语课程。",
+      learnGroup: "学习",
+      lessons: "课程",
+      approach: "Hamkke 教学方式",
+      hamkkeGroup: "Hamkke",
+      teachers: "老师",
+      about: "关于我们",
+      policy: "政策",
+      connectGroup: "联系",
+      startConversation: "开始交流",
+      instagram: "Instagram",
+    },
+
+    ja: {
+      description:
+        "子ども・中高生・大人のための、会話を中心とした英語レッスン。",
+      learnGroup: "学ぶ",
+      lessons: "レッスン",
+      approach: "Hamkkeのアプローチ",
+      hamkkeGroup: "Hamkke",
+      teachers: "講師",
+      about: "Hamkkeについて",
+      policy: "ポリシー",
+      connectGroup: "つながる",
+      startConversation: "相談してみる",
+      instagram: "Instagram",
+    },
+  } satisfies Record<
+    Locale,
+    {
+      description: string;
+      learnGroup: string;
+      lessons: string;
+      approach: string;
+      hamkkeGroup: string;
+      teachers: string;
+      about: string;
+      policy: string;
+      connectGroup: string;
+      startConversation: string;
+      instagram: string;
+    }
+  >;
+
+  const copy = footerCopy[locale];
+
   return (
     <>
       <footer
         className="
           bg-[#2B2B2B]
           px-6
-          pb-7
-          pt-14
+          py-9
 
           sm:px-8
-          sm:pb-8
-          sm:pt-16
+          sm:py-10
 
           lg:px-10
-          lg:pb-9
-          lg:pt-18
+          lg:py-11
         "
       >
         <div className="mx-auto max-w-[1200px]">
@@ -47,27 +125,27 @@ export default function Footer() {
           <div
             className="
               grid
-              gap-12
+              gap-8
 
-              md:grid-cols-[1.4fr_0.8fr_0.8fr_0.9fr]
-              md:gap-8
+              md:grid-cols-[1.6fr_0.65fr_0.65fr_0.8fr]
+              md:gap-7
 
-              lg:gap-12
+              lg:gap-10
             "
           >
             {/* ===================================================
                 BRAND
                 =================================================== */}
 
-            <div className="max-w-[360px]">
+            <div>
               <h3
                 className="
-                  text-[30px]
+                  text-[28px]
                   leading-none
                   text-white
                   [font-family:var(--font-cormorant)]
 
-                  sm:text-[34px]
+                  sm:text-[30px]
                 "
               >
                 {t.footer.brand}
@@ -75,10 +153,10 @@ export default function Footer() {
 
               <p
                 className="
-                  mt-3
-                  text-[11px]
+                  mt-2
+                  text-[10px]
                   uppercase
-                  tracking-[0.18em]
+                  tracking-[0.17em]
                   text-white/45
                 "
               >
@@ -87,131 +165,77 @@ export default function Footer() {
 
               <div
                 className="
-                  mt-7
+                  mt-4
                   h-px
-                  w-10
+                  w-8
                   bg-[#6F8F72]
                 "
               />
 
               <p
                 className="
-                  mt-5
-                  text-[13px]
-                  leading-6
+                  mt-3
+                  text-[12px]
+                  leading-5
                   text-white/45
+
+                  lg:whitespace-nowrap
                 "
               >
-                {locale === "ko" ? (
-                  <>
-                    <span className="block">
-                      모든 의미 있는 대화에는 시작이 있습니다.
-                    </span>
-
-                    <span className="block">
-                      어쩌면 당신의 대화가 여기서 시작될지도 몰라요.
-                    </span>
-                  </>
-                ) : locale === "zh" ? (
-                  <>
-                    <span className="block">
-                      每一段有意义的对话，都有一个开始。
-                    </span>
-
-                    <span className="block">
-                      也许，你的故事就从这里开始。
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="block whitespace-nowrap">
-                      Every meaningful conversation starts somewhere.
-                    </span>
-
-                    <span className="block whitespace-nowrap">
-                      Perhaps yours starts here.
-                    </span>
-                  </>
-                )}
+                {copy.description}
               </p>
             </div>
 
             {/* ===================================================
-                LESSONS
+                LEARN
                 =================================================== */}
 
             <div>
               <p
                 className="
-                  text-[10px]
+                  text-[9px]
                   font-medium
                   uppercase
-                  tracking-[0.24em]
+                  tracking-[0.22em]
                   text-[#9DB49A]
                 "
               >
-                {t.footer.lessonsGroup}
+                {copy.learnGroup}
               </p>
 
               <nav
                 className="
-                  mt-5
+                  mt-3
                   flex
                   flex-col
                   items-start
-                  gap-3.5
+                  gap-2.5
                 "
               >
                 <Link
-                  href={`/${locale}#lesson-details`}
+                  href={`/${locale}/lessons`}
                   className="
-                    text-[13px]
+                    text-[12px]
                     text-white/65
                     transition-colors
                     duration-200
                     hover:text-white
                   "
                 >
-                  {t.footer.lessons}
+                  {copy.lessons}
                 </Link>
 
                 <Link
                   href={`/${locale}/how-it-works`}
                   className="
-                    text-[13px]
+                    text-[12px]
                     text-white/65
                     transition-colors
                     duration-200
                     hover:text-white
                   "
                 >
-                  {t.footer.howItWorks}
-                </Link>
-
-                <Link
-                  href={`/${locale}/pricing`}
-                  className="
-                    text-[13px]
-                    text-white/65
-                    transition-colors
-                    duration-200
-                    hover:text-white
-                  "
-                >
-                  {t.footer.pricing}
-                </Link>
-
-                <Link
-                  href={`/${locale}/platform`}
-                  className="
-                    text-[13px]
-                    text-white/65
-                    transition-colors
-                    duration-200
-                    hover:text-white
-                  "
-                >
-                  {t.footer.platform}
+                  {copy.approach}
                 </Link>
               </nav>
             </div>
@@ -223,62 +247,62 @@ export default function Footer() {
             <div>
               <p
                 className="
-                  text-[10px]
+                  text-[9px]
                   font-medium
                   uppercase
-                  tracking-[0.24em]
+                  tracking-[0.22em]
                   text-[#9DB49A]
                 "
               >
-                {t.footer.hamkkeGroup}
+                {copy.hamkkeGroup}
               </p>
 
               <nav
                 className="
-                  mt-5
+                  mt-3
                   flex
                   flex-col
                   items-start
-                  gap-3.5
+                  gap-2.5
                 "
               >
                 <Link
-                  href={`/${locale}#coach`}
+                  href={`/${locale}/teachers`}
                   className="
-                    text-[13px]
+                    text-[12px]
                     text-white/65
                     transition-colors
                     duration-200
                     hover:text-white
                   "
                 >
-                  {t.footer.about}
+                  {copy.teachers}
                 </Link>
 
                 <Link
-                  href={`/${locale}/faq`}
+                  href={`/${locale}#about`}
                   className="
-                    text-[13px]
+                    text-[12px]
                     text-white/65
                     transition-colors
                     duration-200
                     hover:text-white
                   "
                 >
-                  {t.footer.faq}
+                  {copy.about}
                 </Link>
 
                 <Link
                   href={`/${locale}/policy`}
                   className="
-                    text-[13px]
+                    text-[12px]
                     text-white/65
                     transition-colors
                     duration-200
                     hover:text-white
                   "
                 >
-                  {t.footer.policy}
+                  {copy.policy}
                 </Link>
               </nav>
             </div>
@@ -290,50 +314,91 @@ export default function Footer() {
             <div>
               <p
                 className="
-                  text-[10px]
+                  text-[9px]
                   font-medium
                   uppercase
-                  tracking-[0.24em]
+                  tracking-[0.22em]
                   text-[#9DB49A]
                 "
               >
-                {t.footer.connectGroup}
+                {copy.connectGroup}
               </p>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setIsInquiryOpen(true)
-                }
+              <div
                 className="
-                  group
-                  mt-5
-                  inline-flex
-                  items-center
-                  gap-2
-                  text-left
-                  text-[13px]
-                  text-white/65
-                  transition-colors
-                  duration-200
-                  hover:text-white
+                  mt-3
+                  flex
+                  flex-col
+                  items-start
+                  gap-2.5
                 "
               >
-                <span>
-                  {t.footer.startConversation}
-                </span>
-
-                <span
+                <button
+                  type="button"
+                  onClick={() =>
+                    setIsInquiryOpen(true)
+                  }
                   className="
-                    transition-transform
+                    group
+                    inline-flex
+                    items-center
+                    gap-2
+                    text-left
+                    text-[12px]
+                    text-white/65
+                    transition-colors
                     duration-200
-                    group-hover:translate-x-1
+                    hover:text-white
                   "
-                  aria-hidden="true"
                 >
-                  →
-                </span>
-              </button>
+                  <span>
+                    {copy.startConversation}
+                  </span>
+
+                  <span
+                    className="
+                      transition-transform
+                      duration-200
+                      group-hover:translate-x-1
+                    "
+                    aria-hidden="true"
+                  >
+                    →
+                  </span>
+                </button>
+
+                <a
+                  href="https://www.instagram.com/hamkke.english/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="
+                    group
+                    inline-flex
+                    items-center
+                    gap-2
+                    text-[12px]
+                    text-white/65
+                    transition-colors
+                    duration-200
+                    hover:text-white
+                  "
+                >
+                  <span>{copy.instagram}</span>
+
+                  <span
+                    className="
+                      text-[10px]
+                      transition-transform
+                      duration-200
+                      group-hover:translate-x-[2px]
+                      group-hover:-translate-y-[2px]
+                    "
+                    aria-hidden="true"
+                  >
+                    ↗
+                  </span>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -343,17 +408,15 @@ export default function Footer() {
 
           <div
             className="
-              mt-14
+              mt-8
               border-t
               border-white/10
-              pt-6
-
-              sm:mt-16
+              pt-4
             "
           >
             <p
               className="
-                text-[10px]
+                text-[9px]
                 text-white/30
               "
             >
