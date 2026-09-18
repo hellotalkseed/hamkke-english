@@ -1,59 +1,18 @@
 import Link from "next/link";
 
 import type { Locale } from "../lib/i18n";
-import TeachersCarousel, {
-  type PublicTeacher,
-} from "./TeachersCarousel";
+import { getPublicTeachers } from "../lib/getPublicTeachers";
+
+import TeachersCarousel from "./TeachersCarousel";
 
 type TeachersProps = {
   locale: Locale;
 };
 
-async function getTeachers(): Promise<PublicTeacher[]> {
-  try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
-
-    const response = await fetch(
-      `${baseUrl}/api/teachers`,
-      {
-        next: {
-          revalidate: 60,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      console.error(
-        "Unable to load public teachers:",
-        response.status,
-        response.statusText
-      );
-
-      return [];
-    }
-
-    const data = (await response.json()) as {
-      teachers?: PublicTeacher[];
-    };
-
-    return data.teachers || [];
-  } catch (error) {
-    console.error(
-      "Unable to load public teachers:",
-      error
-    );
-
-    return [];
-  }
-}
-
 export default async function Teachers({
   locale,
 }: TeachersProps) {
-  const teachers = await getTeachers();
+  const teachers = await getPublicTeachers();
 
   return (
     <section

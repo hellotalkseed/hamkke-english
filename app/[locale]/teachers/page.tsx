@@ -3,19 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Navbar from "../../../components/Navbar";
+import { getPublicTeachers } from "../../../lib/getPublicTeachers";
 import {
   isValidLocale,
   type Locale,
 } from "../../../lib/i18n";
-
-type PublicTeacher = {
-  id: string;
-  slug: string;
-  name: string;
-  avatar_url: string | null;
-  card_label: string | null;
-  learner_groups: string[];
-};
 
 type TeacherSpecialty = {
   title: string;
@@ -57,47 +49,6 @@ const teacherPresentation: Record<
   },
 };
 
-async function getTeachers(): Promise<PublicTeacher[]> {
-  try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
-
-    const response = await fetch(
-      `${baseUrl}/api/teachers`,
-      {
-        next: {
-          revalidate: 60,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      console.error(
-        "Unable to load public teachers:",
-        response.status,
-        response.statusText
-      );
-
-      return [];
-    }
-
-    const data = (await response.json()) as {
-      teachers?: PublicTeacher[];
-    };
-
-    return data.teachers || [];
-  } catch (error) {
-    console.error(
-      "Unable to load public teachers:",
-      error
-    );
-
-    return [];
-  }
-}
-
 export default async function TeachersPage({
   params,
 }: PageProps) {
@@ -108,7 +59,7 @@ export default async function TeachersPage({
   }
 
   const locale = localeParam as Locale;
-  const teachers = await getTeachers();
+  const teachers = await getPublicTeachers();
 
   return (
     <>
@@ -370,7 +321,9 @@ export default async function TeachersPage({
                             >
                               {teacher.avatar_url ? (
                                 <Image
-                                  src={teacher.avatar_url}
+                                  src={
+                                    teacher.avatar_url
+                                  }
                                   alt={`${teacher.name}, ${presentation.role}`}
                                   fill
                                   sizes="118px"
@@ -445,8 +398,8 @@ export default async function TeachersPage({
 
                         {/* Learner groups */}
 
-                        {teacher.learner_groups.length >
-                          0 && (
+                        {teacher.learner_groups
+                          .length > 0 && (
                           <div className="mt-5 flex flex-wrap gap-2">
                             {teacher.learner_groups.map(
                               (audience) => (
@@ -482,7 +435,9 @@ export default async function TeachersPage({
                               index
                             ) => (
                               <div
-                                key={specialty.title}
+                                key={
+                                  specialty.title
+                                }
                                 className={
                                   index !==
                                   presentation
@@ -534,7 +489,9 @@ export default async function TeachersPage({
                                     text-[#758477]
                                   "
                                 >
-                                  {specialty.description}
+                                  {
+                                    specialty.description
+                                  }
                                 </p>
                               </div>
                             )
@@ -625,7 +582,8 @@ export default async function TeachersPage({
                     text-[#304A39]
                   "
                 >
-                  Teacher profiles are being prepared.
+                  Teacher profiles are being
+                  prepared.
                 </p>
 
                 <p
@@ -636,8 +594,8 @@ export default async function TeachersPage({
                     text-[#758477]
                   "
                 >
-                  Please check back soon to meet the
-                  Hamkke teachers.
+                  Please check back soon to meet
+                  the Hamkke teachers.
                 </p>
               </div>
             )}
