@@ -6,27 +6,16 @@ import useEmblaCarousel from "embla-carousel-react";
 import ReflectionCard from "./ReflectionCard";
 import ReflectionModal from "./ReflectionModal";
 
-import { getMessages } from "../lib/getMessages";
 import type { Locale } from "../lib/i18n";
-
-type Reflection = {
-  id: string;
-  rating: number;
-  name: string;
-  role: string;
-  country: string | null;
-  reflection: string;
-  photo_url: string | null;
-};
+import type { PublicReflection } from "../lib/getPublicReflections";
 
 interface ReflectionCarouselProps {
-  reflections: Reflection[];
+  reflections: PublicReflection[];
   locale: Locale;
 }
 
 export default function ReflectionCarousel({
   reflections,
-  locale,
 }: ReflectionCarouselProps) {
   const [paused, setPaused] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -35,12 +24,12 @@ export default function ReflectionCarousel({
      MODAL STATE
      ===================================================== */
 
-  const [selectedReflection, setSelectedReflection] =
-    useState<Reflection | null>(null);
+  const [
+    selectedReflection,
+    setSelectedReflection,
+  ] = useState<PublicReflection | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
-
-  const t = getMessages(locale);
 
   /* =====================================================
      EMBLA
@@ -57,10 +46,14 @@ export default function ReflectionCarousel({
      ===================================================== */
 
   useEffect(() => {
-    if (!emblaApi) return;
+    if (!emblaApi) {
+      return;
+    }
 
     const onSelect = () => {
-      setCurrentIndex(emblaApi.selectedScrollSnap());
+      setCurrentIndex(
+        emblaApi.selectedScrollSnap()
+      );
     };
 
     emblaApi.on("select", onSelect);
@@ -76,7 +69,9 @@ export default function ReflectionCarousel({
      OPEN MODAL
      ===================================================== */
 
-  const openReflection = (reflection: Reflection) => {
+  const openReflection = (
+    reflection: PublicReflection
+  ) => {
     setSelectedReflection(reflection);
     setModalOpen(true);
   };
@@ -94,13 +89,18 @@ export default function ReflectionCarousel({
      ===================================================== */
 
   const handlePrevious = () => {
-    if (!selectedReflection || reflections.length === 0) {
+    if (
+      !selectedReflection ||
+      reflections.length === 0
+    ) {
       return;
     }
 
-    const currentReflectionIndex = reflections.findIndex(
-      (item) => item.id === selectedReflection.id
-    );
+    const currentReflectionIndex =
+      reflections.findIndex(
+        (item) =>
+          item.id === selectedReflection.id
+      );
 
     if (currentReflectionIndex === -1) {
       return;
@@ -111,7 +111,9 @@ export default function ReflectionCarousel({
         ? reflections.length - 1
         : currentReflectionIndex - 1;
 
-    setSelectedReflection(reflections[previousIndex]);
+    setSelectedReflection(
+      reflections[previousIndex]
+    );
   };
 
   /* =====================================================
@@ -119,24 +121,32 @@ export default function ReflectionCarousel({
      ===================================================== */
 
   const handleNext = () => {
-    if (!selectedReflection || reflections.length === 0) {
+    if (
+      !selectedReflection ||
+      reflections.length === 0
+    ) {
       return;
     }
 
-    const currentReflectionIndex = reflections.findIndex(
-      (item) => item.id === selectedReflection.id
-    );
+    const currentReflectionIndex =
+      reflections.findIndex(
+        (item) =>
+          item.id === selectedReflection.id
+      );
 
     if (currentReflectionIndex === -1) {
       return;
     }
 
     const nextIndex =
-      currentReflectionIndex === reflections.length - 1
+      currentReflectionIndex ===
+      reflections.length - 1
         ? 0
         : currentReflectionIndex + 1;
 
-    setSelectedReflection(reflections[nextIndex]);
+    setSelectedReflection(
+      reflections[nextIndex]
+    );
   };
 
   /* =====================================================
@@ -168,26 +178,26 @@ export default function ReflectionCarousel({
               gap-5
             "
           >
-            {reflections.map((item) => (
-              <div
-                key={item.id}
-                className="
-                  flex
-                  flex-[0_0_100%]
-                  justify-center
-                "
-              >
-                <ReflectionCard
-                  reflection={item}
-                  readMoreLabel={
-                    t.reflections.readMoreCard
-                  }
-                  onClick={() =>
-                    openReflection(item)
-                  }
-                />
-              </div>
-            ))}
+            {reflections.map(
+              (item, index) => (
+                <div
+                  key={item.id}
+                  className="
+                    flex
+                    flex-[0_0_100%]
+                    justify-center
+                  "
+                >
+                  <ReflectionCard
+                    reflection={item}
+                    index={index}
+                    onClick={() =>
+                      openReflection(item)
+                    }
+                  />
+                </div>
+              )
+            )}
           </div>
         </div>
 
@@ -303,18 +313,23 @@ export default function ReflectionCarousel({
               : "running",
           }}
         >
-          {desktopItems.map((item, index) => (
-            <ReflectionCard
-              key={`${item.id}-${index}`}
-              reflection={item}
-              readMoreLabel={
-                t.reflections.readMoreCard
-              }
-              onClick={() =>
-                openReflection(item)
-              }
-            />
-          ))}
+          {desktopItems.map(
+            (item, index) => (
+              <ReflectionCard
+                key={`${item.id}-${index}`}
+                reflection={item}
+                index={
+                  reflections.length > 0
+                    ? index %
+                      reflections.length
+                    : index
+                }
+                onClick={() =>
+                  openReflection(item)
+                }
+              />
+            )
+          )}
         </div>
       </div>
 
@@ -328,6 +343,9 @@ export default function ReflectionCarousel({
         onClose={closeReflection}
         onPrevious={handlePrevious}
         onNext={handleNext}
+        showNavigation={
+          reflections.length > 1
+        }
       />
     </>
   );
