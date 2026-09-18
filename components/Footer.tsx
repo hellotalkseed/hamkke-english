@@ -384,26 +384,29 @@ export default function Footer() {
                 >
                   <span>{copy.instagram}</span>
 
-                  <span
-                    className="
-                      inline
-                      border-0
-                      bg-transparent
-                      p-0
-                      text-[10px]
-                      font-normal
-                      leading-none
-                      shadow-none
-                      outline-none
-                      transition-transform
-                      duration-200
-                      group-hover:translate-x-[2px]
-                      group-hover:-translate-y-[2px]
-                    "
-                    aria-hidden="true"
-                  >
-                    ↗
-                  </span>
+                  <svg
+  viewBox="0 0 12 12"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  className="
+    h-[10px]
+    w-[10px]
+    shrink-0
+    transition-transform
+    duration-200
+    group-hover:translate-x-[2px]
+    group-hover:-translate-y-[2px]
+  "
+  aria-hidden="true"
+>
+  <path
+    d="M3 9L9 3M5 3H9V7"
+    stroke="currentColor"
+    strokeWidth="1.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  />
+</svg>
                 </a>
               </div>
             </div>

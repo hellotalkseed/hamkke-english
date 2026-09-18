@@ -287,12 +287,18 @@ export default function TeacherAudioPlayer({
               <span className="h-3 w-[3px] rounded-full bg-white" />
             </span>
           ) : (
-            <span
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="ml-0.5 h-[13px] w-[13px]"
               aria-hidden="true"
-              className="ml-0.5 text-[12px]"
             >
-              ▶
-            </span>
+              <path
+                d="M4.5 3.25L12.25 8L4.5 12.75V3.25Z"
+                fill="currentColor"
+              />
+            </svg>
           )}
         </button>
 
