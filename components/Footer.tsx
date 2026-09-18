@@ -20,8 +20,7 @@ export default function Footer() {
 
   const t = getMessages(locale);
 
-  const [isInquiryOpen, setIsInquiryOpen] =
-    useState(false);
+  const [isInquiryOpen, setIsInquiryOpen] = useState(false);
 
   const footerCopy = {
     en: {
@@ -333,11 +332,11 @@ export default function Footer() {
                   gap-2.5
                 "
               >
+                {/* Start a Conversation — unchanged */}
+
                 <button
                   type="button"
-                  onClick={() =>
-                    setIsInquiryOpen(true)
-                  }
+                  onClick={() => setIsInquiryOpen(true)}
                   className="
                     group
                     inline-flex
@@ -351,9 +350,7 @@ export default function Footer() {
                     hover:text-white
                   "
                 >
-                  <span>
-                    {copy.startConversation}
-                  </span>
+                  <span>{copy.startConversation}</span>
 
                   <span
                     className="
@@ -366,6 +363,8 @@ export default function Footer() {
                     →
                   </span>
                 </button>
+
+                {/* Instagram */}
 
                 <a
                   href="https://www.instagram.com/hamkke.english/"
@@ -387,7 +386,15 @@ export default function Footer() {
 
                   <span
                     className="
+                      inline
+                      border-0
+                      bg-transparent
+                      p-0
                       text-[10px]
+                      font-normal
+                      leading-none
+                      shadow-none
+                      outline-none
                       transition-transform
                       duration-200
                       group-hover:translate-x-[2px]
@@ -432,9 +439,7 @@ export default function Footer() {
 
       <InquiryModal
         isOpen={isInquiryOpen}
-        onClose={() =>
-          setIsInquiryOpen(false)
-        }
+        onClose={() => setIsInquiryOpen(false)}
         source="start-a-conversation"
         locale={locale}
       />

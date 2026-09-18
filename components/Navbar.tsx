@@ -272,13 +272,6 @@ export default function Navbar() {
 
   /* =====================================================
      AUTOMATIC PAGE SECTION BACKGROUND DETECTION
-
-     Used by:
-     - Lessons
-     - Approach
-     - Policy
-
-     Reads the actual rendered section background.
      ===================================================== */
 
   useEffect(() => {
@@ -301,10 +294,6 @@ export default function Navbar() {
       const navbarHeight =
         header.offsetHeight;
 
-      /*
-       * Inspect the content immediately below
-       * the sticky navbar.
-       */
       const x =
         Math.min(
           window.innerWidth / 2,
@@ -324,9 +313,6 @@ export default function Navbar() {
         return;
       }
 
-      /*
-       * Find the section containing that content.
-       */
       const section =
         elementUnderNavbar.closest(
           "section"
@@ -336,18 +322,12 @@ export default function Navbar() {
         return;
       }
 
-      /*
-       * Read the actual rendered background.
-       */
       const computedStyle =
         window.getComputedStyle(section);
 
       const backgroundColor =
         computedStyle.backgroundColor;
 
-      /*
-       * Ignore transparent sections.
-       */
       if (
         !backgroundColor ||
         backgroundColor ===
@@ -381,10 +361,6 @@ export default function Navbar() {
         );
     };
 
-    /*
-     * Lessons, Approach, and Policy all
-     * begin with the Soft Ivory hero.
-     */
     setPageNavbarBackground(
       "#FFFDF8"
     );
@@ -534,26 +510,127 @@ export default function Navbar() {
           w-full
           max-w-[1600px]
           items-center
-          px-6
-          py-4
-          sm:px-8
+
+          px-4
+          py-3
+
+          sm:px-6
+          sm:py-3.5
+
+          md:px-8
+          md:py-4
+
           lg:px-10
           xl:px-12
         "
       >
         {/* =====================================================
-            BRAND
+            MOBILE BRAND
+            Separate from desktop styling
+            ===================================================== */}
+
+        <Link
+          href={`/${locale}`}
+          className="
+            flex
+            min-w-0
+            shrink
+            items-center
+            md:hidden
+          "
+        >
+          <div
+            className="
+              relative
+              flex
+              h-[30px]
+              w-[30px]
+              shrink-0
+              items-center
+              justify-center
+              overflow-hidden
+              bg-transparent
+            "
+          >
+            <Image
+              src="/logo/hamkke-icon.svg"
+              alt="Hamkke logo"
+              width={60}
+              height={60}
+              priority
+              className="
+                block
+                h-[30px]
+                w-[30px]
+                object-contain
+              "
+            />
+          </div>
+
+          <div
+            className="
+              ml-1
+              flex
+              min-w-0
+              items-center
+              leading-none
+              text-[#293A30]
+            "
+          >
+            <span
+              className="
+                whitespace-nowrap
+                text-[21px]
+                font-semibold
+                leading-none
+                [font-family:var(--font-cormorant)]
+              "
+            >
+              Hamkke
+            </span>
+
+            <span
+              className="
+                mx-2
+                h-[15px]
+                w-px
+                shrink-0
+                bg-[#A8BCA5]
+                opacity-60
+              "
+            />
+
+            <span
+              className="
+                whitespace-nowrap
+                text-[13px]
+                font-medium
+                leading-none
+                text-[#718A73]
+              "
+            >
+              함께
+            </span>
+          </div>
+        </Link>
+
+        {/* =====================================================
+            DESKTOP BRAND
+            Original desktop settings preserved
             ===================================================== */}
 
         <Link
           href={`/${locale}`}
           className="
             -ml-3
-            flex
+            hidden
             shrink-0
             items-center
             gap-0
-            sm:-ml-4
+
+            md:flex
+            md:-ml-4
+
             lg:-ml-6
             xl:-ml-8
           "
@@ -846,53 +923,176 @@ export default function Navbar() {
         </div>
 
         {/* =====================================================
-            MOBILE MENU BUTTON
+            MOBILE UTILITIES
             ===================================================== */}
 
-        <button
-          type="button"
-          onClick={() => {
-            setIsMobileMenuOpen(
-              (previous) =>
-                !previous
-            );
-
-            setIsMobileLanguageOpen(
-              false
-            );
-          }}
-          aria-label="Toggle navigation"
-          aria-expanded={
-            isMobileMenuOpen
-          }
+        <div
           className="
             ml-auto
             flex
-            h-10
-            w-10
             shrink-0
             items-center
-            justify-center
-            rounded-xl
-            text-[#293A30]
-            transition-colors
-            duration-300
-            hover:bg-[#EDE7DB]
+            gap-1
             md:hidden
           "
         >
-          {isMobileMenuOpen ? (
-            <X
-              size={23}
-              strokeWidth={1.8}
-            />
-          ) : (
-            <Menu
-              size={23}
-              strokeWidth={1.8}
-            />
-          )}
-        </button>
+          {/* MOBILE LANGUAGE */}
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileLanguageOpen(
+                  (previous) =>
+                    !previous
+                );
+
+                setIsMobileMenuOpen(
+                  false
+                );
+              }}
+              aria-haspopup="true"
+              aria-expanded={
+                isMobileLanguageOpen
+              }
+              className="
+                flex
+                h-9
+                items-center
+                gap-1
+                rounded-lg
+                px-2
+                text-[13px]
+                font-medium
+                text-[#46564B]
+                transition-colors
+                duration-200
+                hover:bg-[#EDE7DB]
+                hover:text-[#718A73]
+              "
+            >
+              <span>
+                {currentLanguage.label}
+              </span>
+
+              <ChevronDown
+                size={13}
+                strokeWidth={1.8}
+                className={`
+                  transition-transform
+                  duration-200
+
+                  ${
+                    isMobileLanguageOpen
+                      ? "rotate-180"
+                      : ""
+                  }
+                `}
+              />
+            </button>
+
+            {isMobileLanguageOpen && (
+              <div
+                className="
+                  absolute
+                  right-0
+                  top-full
+                  z-50
+                  mt-2
+                  min-w-[135px]
+                  overflow-hidden
+                  rounded-xl
+                  border
+                  border-[#E7DDD1]
+                  bg-[#FFFDF8]
+                  py-2
+                  shadow-[0_14px_40px_rgba(41,58,48,0.12)]
+                "
+              >
+                {languages.map(
+                  (language) => (
+                    <button
+                      key={
+                        language.locale
+                      }
+                      type="button"
+                      onClick={() =>
+                        changeLanguage(
+                          language.locale
+                        )
+                      }
+                      className={`
+                        flex
+                        w-full
+                        items-center
+                        px-4
+                        py-2.5
+                        text-left
+                        text-[13px]
+                        transition-colors
+                        duration-200
+
+                        ${
+                          language.locale ===
+                          locale
+                            ? "bg-[#EEF2EA] font-medium text-[#718A73]"
+                            : "text-[#46564B] hover:bg-[#F4F0E7] hover:text-[#718A73]"
+                        }
+                      `}
+                    >
+                      {language.label}
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* MOBILE MENU BUTTON */}
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMenuOpen(
+                (previous) =>
+                  !previous
+              );
+
+              setIsMobileLanguageOpen(
+                false
+              );
+            }}
+            aria-label="Toggle navigation"
+            aria-expanded={
+              isMobileMenuOpen
+            }
+            className="
+              flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-[#293A30]
+              transition-colors
+              duration-200
+              hover:bg-[#EDE7DB]
+            "
+          >
+            {isMobileMenuOpen ? (
+              <X
+                size={21}
+                strokeWidth={1.8}
+              />
+            ) : (
+              <Menu
+                size={21}
+                strokeWidth={1.8}
+              />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* =====================================================
@@ -909,7 +1109,7 @@ export default function Navbar() {
 
           ${
             isMobileMenuOpen
-              ? "max-h-[620px]"
+              ? "max-h-[540px]"
               : "max-h-0"
           }
         `}
@@ -920,11 +1120,13 @@ export default function Navbar() {
               navbarBackground,
           }}
           className="
-            px-6
-            pb-6
-            pt-2
+            px-4
+            pb-5
+            pt-1
             transition-colors
             duration-300
+
+            sm:px-6
           "
         >
           <div className="flex flex-col">
@@ -950,8 +1152,8 @@ export default function Navbar() {
                 className={`
                   border-b
                   border-[#E7DDD1]
-                  py-4
-                  text-lg
+                  py-3.5
+                  text-[16px]
                   font-semibold
                   transition-colors
                   duration-300
@@ -966,117 +1168,6 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-
-            {/* MOBILE LANGUAGE */}
-
-            <div
-              className="
-                border-b
-                border-[#E7DDD1]
-              "
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  setIsMobileLanguageOpen(
-                    (previous) =>
-                      !previous
-                  )
-                }
-                aria-haspopup="true"
-                aria-expanded={
-                  isMobileLanguageOpen
-                }
-                className="
-                  flex
-                  w-full
-                  items-center
-                  justify-between
-                  py-4
-                  text-lg
-                  font-medium
-                  text-[#46564B]
-                  transition-colors
-                  duration-300
-                  hover:text-[#718A73]
-                "
-              >
-                <span>
-                  {currentLanguage.label}
-                </span>
-
-                <ChevronDown
-                  size={18}
-                  strokeWidth={1.8}
-                  className={`
-                    transition-transform
-                    duration-200
-
-                    ${
-                      isMobileLanguageOpen
-                        ? "rotate-180"
-                        : ""
-                    }
-                  `}
-                />
-              </button>
-
-              <div
-                className={`
-                  overflow-hidden
-                  transition-all
-                  duration-300
-
-                  ${
-                    isMobileLanguageOpen
-                      ? "max-h-56 pb-3"
-                      : "max-h-0"
-                  }
-                `}
-              >
-                <div
-                  className="
-                    flex
-                    flex-col
-                    gap-1
-                  "
-                >
-                  {languages.map(
-                    (language) => (
-                      <button
-                        key={
-                          language.locale
-                        }
-                        type="button"
-                        onClick={() =>
-                          changeLanguage(
-                            language.locale
-                          )
-                        }
-                        className={`
-                          rounded-xl
-                          px-4
-                          py-2.5
-                          text-left
-                          text-base
-                          transition-colors
-                          duration-200
-
-                          ${
-                            language.locale ===
-                            locale
-                              ? "bg-[#EEF2EA] font-medium text-[#718A73]"
-                              : "text-[#5E6A61] hover:bg-[#F0EBE1] hover:text-[#718A73]"
-                          }
-                        `}
-                      >
-                        {language.label}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-            </div>
 
             {/* MOBILE LOGIN */}
 
@@ -1094,8 +1185,8 @@ export default function Navbar() {
                 flex
                 items-center
                 gap-2.5
-                py-4
-                text-lg
+                py-3.5
+                text-[16px]
                 font-medium
                 text-[#293A30]
                 transition-colors
@@ -1104,7 +1195,7 @@ export default function Navbar() {
               "
             >
               <CircleUserRound
-                size={21}
+                size={20}
                 strokeWidth={1.6}
                 aria-hidden="true"
               />

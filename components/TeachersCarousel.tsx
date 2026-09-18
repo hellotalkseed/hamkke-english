@@ -161,7 +161,7 @@ export default function TeachersCarousel({
   ]);
 
   /* ====================================================================== */
-  /* PAGE SCROLL                                                            */
+  /* DESKTOP PAGE SCROLL                                                    */
   /* ====================================================================== */
 
   const scroll = useCallback(
@@ -173,17 +173,6 @@ export default function TeachersCarousel({
         return;
       }
 
-      /*
-       * We scroll by one full visible viewport.
-       *
-       * Desktop = 3 teacher cards
-       * Tablet = 2 teacher cards
-       * Mobile = 1 teacher card
-       *
-       * Because the card widths are designed around
-       * those breakpoints, clientWidth gives us the
-       * cleanest page-by-page movement.
-       */
       const pageWidth =
         container.clientWidth;
 
@@ -215,7 +204,8 @@ export default function TeachersCarousel({
   return (
     <div className="relative">
       {/* ================================================================ */}
-      {/* LEFT NAVIGATION                                                  */}
+      {/* DESKTOP LEFT NAVIGATION                                         */}
+      {/* Hidden completely below lg                                      */}
       {/* ================================================================ */}
 
       {totalSlots > 1 && (
@@ -223,17 +213,18 @@ export default function TeachersCarousel({
           className="
             pointer-events-none
             absolute
-            left-[-34px]
+            left-[-68px]
             top-1/2
             z-30
+            hidden
             -translate-y-1/2
-            sm:left-[-48px]
-            lg:left-[-68px]
+            lg:block
             xl:left-[-78px]
           "
         >
           <div className="relative">
             {/* Sage lower layer */}
+
             <div
               className={`
                 absolute
@@ -254,6 +245,7 @@ export default function TeachersCarousel({
             />
 
             {/* Main white button */}
+
             <button
               type="button"
               onClick={() =>
@@ -267,8 +259,8 @@ export default function TeachersCarousel({
                 relative
                 z-10
                 flex
-                h-[50px]
-                w-[50px]
+                h-[58px]
+                w-[58px]
                 items-center
                 justify-center
                 rounded-full
@@ -278,10 +270,6 @@ export default function TeachersCarousel({
                 shadow-[0_5px_16px_rgba(48,74,57,0.08)]
                 transition-all
                 duration-200
-                sm:h-[54px]
-                sm:w-[54px]
-                lg:h-[58px]
-                lg:w-[58px]
 
                 ${
                   canScrollLeft
@@ -307,13 +295,12 @@ export default function TeachersCarousel({
                   block
                   -translate-y-[1px]
                   font-serif
-                  text-[25px]
+                  text-[27px]
                   font-normal
                   leading-none
                   text-[#304A39]
                   transition-transform
                   duration-200
-                  sm:text-[27px]
 
                   ${
                     canScrollLeft
@@ -332,6 +319,8 @@ export default function TeachersCarousel({
 
       {/* ================================================================ */}
       {/* CARDS                                                            */}
+      {/* Mobile/tablet: native swipe                                      */}
+      {/* Desktop: arrow navigation remains available                      */}
       {/* ================================================================ */}
 
       <div
@@ -340,13 +329,19 @@ export default function TeachersCarousel({
           flex
           snap-x
           snap-mandatory
-          gap-4
+          gap-3
           overflow-x-auto
           scroll-smooth
-          px-1
+          overscroll-x-contain
+          px-0
           pb-3
+          touch-pan-x
           [scrollbar-width:none]
           [&::-webkit-scrollbar]:hidden
+
+          sm:gap-4
+
+          lg:px-1
         "
       >
         {/* ============================================================ */}
@@ -396,17 +391,18 @@ export default function TeachersCarousel({
                 group
                 flex
                 min-h-[410px]
-                min-w-[88%]
+                min-w-[calc(100%-12px)]
                 snap-start
                 flex-col
                 overflow-hidden
-                rounded-[26px]
+                rounded-[24px]
                 border
                 border-[#304A39]/8
                 bg-white
                 shadow-[0_8px_30px_rgba(48,74,57,0.06)]
 
                 sm:min-w-[72%]
+                sm:rounded-[26px]
 
                 md:min-w-[calc((100%-16px)/2)]
 
@@ -414,10 +410,22 @@ export default function TeachersCarousel({
               "
             >
               {/* Main teacher content */}
-              <div className="flex flex-1 flex-col p-6">
+
+              <div className="flex flex-1 flex-col p-5 sm:p-6">
                 {/* Portrait + identity */}
-                <div className="flex items-start gap-5">
-                  <div className="relative h-[118px] w-[118px] shrink-0">
+
+                <div className="flex items-start gap-4 sm:gap-5">
+                  <div
+                    className="
+                      relative
+                      h-[100px]
+                      w-[100px]
+                      shrink-0
+
+                      sm:h-[118px]
+                      sm:w-[118px]
+                    "
+                  >
                     <div className="relative h-full w-full overflow-hidden rounded-full bg-[#EDE3D2]">
                       {teacher.avatar_url ? (
                         <Image
@@ -457,29 +465,55 @@ export default function TeachersCarousel({
                         inline-flex
                         rounded-full
                         bg-[#E5EBDD]
-                        px-3
+                        px-2.5
                         py-1.5
-                        text-[10px]
+                        text-[9px]
                         font-semibold
                         uppercase
-                        tracking-[0.12em]
+                        tracking-[0.1em]
                         text-[#52685A]
+
+                        sm:px-3
+                        sm:text-[10px]
+                        sm:tracking-[0.12em]
                       "
                     >
                       {presentation.role}
                     </span>
 
-                    <h3 className="mt-3 font-serif text-[31px] leading-none text-[#304A39]">
+                    <h3
+                      className="
+                        mt-3
+                        font-serif
+                        text-[29px]
+                        leading-none
+                        text-[#304A39]
+
+                        sm:text-[31px]
+                      "
+                    >
                       {firstName}
                     </h3>
 
-                    <p className="mt-2 font-serif text-[16px] italic leading-[1.25] text-[#718A73]">
+                    <p
+                      className="
+                        mt-2
+                        font-serif
+                        text-[15px]
+                        italic
+                        leading-[1.25]
+                        text-[#718A73]
+
+                        sm:text-[16px]
+                      "
+                    >
                       “{presentation.quote}”
                     </p>
                   </div>
                 </div>
 
                 {/* Audience */}
+
                 <div className="mt-5 flex flex-wrap gap-2">
                   {teacher.learner_groups.map(
                     (audience) => (
@@ -488,11 +522,14 @@ export default function TeachersCarousel({
                         className="
                           rounded-full
                           bg-[#F3EDDD]
-                          px-4
+                          px-3.5
                           py-1.5
-                          text-[11px]
+                          text-[10.5px]
                           font-medium
                           text-[#304A39]
+
+                          sm:px-4
+                          sm:text-[11px]
                         "
                       >
                         {audience}
@@ -502,10 +539,12 @@ export default function TeachersCarousel({
                 </div>
 
                 {/* Divider */}
+
                 <div className="my-5 h-px bg-[#DCE4D7]" />
 
                 {/* Specialties */}
-                <div className="grid grid-cols-3 gap-3">
+
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {presentation.specialties.map(
                     (
                       specialty,
@@ -521,7 +560,7 @@ export default function TeachersCarousel({
                             .specialties
                             .length -
                             1
-                            ? "border-r border-[#DCE4D7] pr-3"
+                            ? "border-r border-[#DCE4D7] pr-2 sm:pr-3"
                             : ""
                         }
                       >
@@ -547,13 +586,31 @@ export default function TeachersCarousel({
                               : "◇"}
                         </div>
 
-                        <p className="text-[11.5px] font-semibold leading-[1.2] text-[#304A39]">
+                        <p
+                          className="
+                            text-[10.5px]
+                            font-semibold
+                            leading-[1.2]
+                            text-[#304A39]
+
+                            sm:text-[11.5px]
+                          "
+                        >
                           {
                             specialty.title
                           }
                         </p>
 
-                        <p className="mt-1 text-[9.5px] leading-[1.35] text-[#758477]">
+                        <p
+                          className="
+                            mt-1
+                            text-[9px]
+                            leading-[1.35]
+                            text-[#758477]
+
+                            sm:text-[9.5px]
+                          "
+                        >
                           {
                             specialty.description
                           }
@@ -588,20 +645,25 @@ export default function TeachersCarousel({
                       relative
                       z-10
                       flex
-                      min-h-[52px]
+                      min-h-[50px]
                       w-full
                       items-center
                       justify-between
                       rounded-[19px]
                       bg-[#304A39]
-                      px-6
-                      text-[14px]
+                      px-5
+                      text-[13px]
                       font-semibold
                       text-[#FFFDF8]
                       transition-transform
                       duration-200
+
                       hover:-translate-y-[2px]
                       active:translate-y-[3px]
+
+                      sm:min-h-[52px]
+                      sm:px-6
+                      sm:text-[14px]
                     "
                   >
                     <span>
@@ -641,16 +703,18 @@ export default function TeachersCarousel({
             className="
               flex
               min-h-[410px]
-              min-w-[88%]
+              min-w-[calc(100%-12px)]
               snap-start
               flex-col
-              rounded-[26px]
+              rounded-[24px]
               border
               border-[#718A73]/15
               bg-[#F8F5EC]
-              p-6
+              p-5
 
               sm:min-w-[72%]
+              sm:rounded-[26px]
+              sm:p-6
 
               md:min-w-[calc((100%-16px)/2)]
 
@@ -659,17 +723,21 @@ export default function TeachersCarousel({
             aria-hidden="true"
           >
             {/* Placeholder identity */}
-            <div className="flex items-start gap-5">
+
+            <div className="flex items-start gap-4 sm:gap-5">
               <div
                 className="
                   flex
-                  h-[118px]
-                  w-[118px]
+                  h-[100px]
+                  w-[100px]
                   shrink-0
                   items-center
                   justify-center
                   rounded-full
                   bg-[#EDE9DF]
+
+                  sm:h-[118px]
+                  sm:w-[118px]
                 "
               >
                 <div className="relative h-[62px] w-[62px]">
@@ -691,6 +759,7 @@ export default function TeachersCarousel({
             </div>
 
             {/* Placeholder tags */}
+
             <div className="mt-6 flex gap-2">
               <div className="h-[27px] w-[62px] rounded-full bg-[#E7E3DA]" />
 
@@ -702,6 +771,7 @@ export default function TeachersCarousel({
             <div className="my-5 h-px bg-[#E1DED6]" />
 
             {/* Placeholder specialties */}
+
             <div className="grid grid-cols-3 gap-3">
               {[0, 1, 2].map(
                 (item) => (
@@ -724,7 +794,8 @@ export default function TeachersCarousel({
       </div>
 
       {/* ================================================================ */}
-      {/* RIGHT NAVIGATION                                                 */}
+      {/* DESKTOP RIGHT NAVIGATION                                        */}
+      {/* Hidden completely below lg                                      */}
       {/* ================================================================ */}
 
       {totalSlots > 1 && (
@@ -732,17 +803,18 @@ export default function TeachersCarousel({
           className="
             pointer-events-none
             absolute
-            right-[-34px]
+            right-[-68px]
             top-1/2
             z-30
+            hidden
             -translate-y-1/2
-            sm:right-[-48px]
-            lg:right-[-68px]
+            lg:block
             xl:right-[-78px]
           "
         >
           <div className="relative">
             {/* Sage lower layer */}
+
             <div
               className={`
                 absolute
@@ -763,6 +835,7 @@ export default function TeachersCarousel({
             />
 
             {/* Main white button */}
+
             <button
               type="button"
               onClick={() =>
@@ -776,8 +849,8 @@ export default function TeachersCarousel({
                 relative
                 z-10
                 flex
-                h-[50px]
-                w-[50px]
+                h-[58px]
+                w-[58px]
                 items-center
                 justify-center
                 rounded-full
@@ -787,10 +860,6 @@ export default function TeachersCarousel({
                 shadow-[0_5px_16px_rgba(48,74,57,0.08)]
                 transition-all
                 duration-200
-                sm:h-[54px]
-                sm:w-[54px]
-                lg:h-[58px]
-                lg:w-[58px]
 
                 ${
                   canScrollRight
@@ -816,13 +885,12 @@ export default function TeachersCarousel({
                   block
                   -translate-y-[1px]
                   font-serif
-                  text-[25px]
+                  text-[27px]
                   font-normal
                   leading-none
                   text-[#304A39]
                   transition-transform
                   duration-200
-                  sm:text-[27px]
 
                   ${
                     canScrollRight
@@ -840,11 +908,21 @@ export default function TeachersCarousel({
       )}
 
       {/* ================================================================ */}
-      {/* MOBILE SWIPE HINT                                                */}
+      {/* MOBILE / TABLET SWIPE HINT                                      */}
       {/* ================================================================ */}
 
       {totalSlots > 1 && (
-        <p className="mt-2 text-center font-serif text-[13px] italic text-[#718A73] lg:hidden">
+        <p
+          className="
+            mt-2
+            text-center
+            font-serif
+            text-[13px]
+            italic
+            text-[#718A73]
+            lg:hidden
+          "
+        >
           Swipe to meet more teachers.
         </p>
       )}

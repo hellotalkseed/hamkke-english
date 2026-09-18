@@ -13,18 +13,21 @@ export default function LearnerStages({
       id="learner-stages"
       className="relative overflow-hidden bg-[#FFFDF8] py-10 sm:py-11 lg:py-10"
     >
-      <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-16">
-        {/* Heading */}
+      <div className="mx-auto max-w-[1440px] px-5 sm:px-10 lg:px-16">
+        {/* =====================================================
+            HEADING
+            ===================================================== */}
+
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#718A73] sm:text-xs">
             For Every Stage
           </p>
 
-          <h2 className="mt-3 font-serif text-[40px] leading-[0.98] tracking-[-0.035em] text-[#304A39] sm:text-5xl lg:whitespace-nowrap lg:text-[52px]">
+          <h2 className="mt-3 font-serif text-[36px] leading-[1] tracking-[-0.035em] text-[#304A39] sm:text-5xl lg:whitespace-nowrap lg:text-[52px]">
             The conversation changes as you grow.
           </h2>
 
-          <p className="mt-4 max-w-[900px] text-[15px] leading-6 text-[#758477] sm:text-base">
+          <p className="mt-4 max-w-[900px] text-[14px] leading-[1.65] text-[#758477] sm:text-base">
             A child finding the words for a story, a teenager learning to
             explain an opinion, and an adult trying to say exactly what they
             mean. The goal may change, but we meet every learner where the
@@ -32,10 +35,15 @@ export default function LearnerStages({
           </p>
         </div>
 
-        {/* Desktop staircase */}
+        {/* =====================================================
+            DESKTOP STAIRCASE
+            UNCHANGED
+            ===================================================== */}
+
         <div className="relative mt-7 hidden lg:block">
           <div className="relative flex min-h-[350px] items-end">
             {/* Climbing mascot */}
+
             <div
               className="
                 absolute
@@ -59,8 +67,10 @@ export default function LearnerStages({
             </div>
 
             {/* Stairs */}
+
             <div className="relative ml-[7%] flex items-end">
               {/* Growth arrow */}
+
               <div
                 className="
                   pointer-events-none
@@ -96,49 +106,50 @@ export default function LearnerStages({
                   </defs>
 
                   <path
-  d="
-    M 105 265
-    L 135 265
+                    d="
+                      M 105 265
+                      L 135 265
 
-    C 150 265, 160 260, 170 250
-    L 205 215
-    C 215 205, 225 200, 240 200
+                      C 150 265, 160 260, 170 250
+                      L 205 215
+                      C 215 205, 225 200, 240 200
 
-    L 430 200
+                      L 430 200
 
-    C 445 200, 455 195, 465 185
-    L 495 155
-    C 505 145, 515 140, 530 140
+                      C 445 200, 455 195, 465 185
+                      L 495 155
+                      C 505 145, 515 140, 530 140
 
-    L 720 140
+                      L 720 140
 
-    C 735 140, 745 135, 755 125
-    L 785 95
-    C 795 85, 805 80, 820 80
+                      C 735 140, 745 135, 755 125
+                      L 785 95
+                      C 795 85, 805 80, 820 80
 
-    L 1010 80
+                      L 1010 80
 
-    C 1025 80, 1035 75, 1045 65
-    L 1075 35
-    C 1085 25, 1095 20, 1110 20
+                      C 1025 80, 1035 75, 1045 65
+                      L 1075 35
+                      C 1085 25, 1095 20, 1110 20
 
-    L 1210 20
+                      L 1210 20
 
-    C 1222 20, 1232 17, 1242 10
-    L 1300 -35
-  "
-  fill="none"
-  stroke="#718A73"
-  strokeWidth="2.5"
-  strokeLinecap="round"
-  strokeLinejoin="round"
-  markerEnd="url(#learner-growth-arrow)"
-  vectorEffect="non-scaling-stroke"
-/>
+                      C 1222 20, 1232 17, 1242 10
+                      L 1300 -35
+                    "
+                    fill="none"
+                    stroke="#718A73"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    markerEnd="url(#learner-growth-arrow)"
+                    vectorEffect="non-scaling-stroke"
+                  />
                 </svg>
               </div>
 
               {/* Start */}
+
               <div
                 className="
                   flex
@@ -158,6 +169,7 @@ export default function LearnerStages({
               </div>
 
               {/* Kids */}
+
               <div
                 className="
                   flex
@@ -188,6 +200,7 @@ export default function LearnerStages({
               </div>
 
               {/* Teens */}
+
               <div
                 className="
                   flex
@@ -218,6 +231,7 @@ export default function LearnerStages({
               </div>
 
               {/* Adults */}
+
               <div
                 className="
                   flex
@@ -248,6 +262,7 @@ export default function LearnerStages({
               </div>
 
               {/* Further */}
+
               <div
                 className="
                   flex
@@ -271,92 +286,267 @@ export default function LearnerStages({
           </div>
         </div>
 
-        {/* Mobile / tablet */}
-        <div className="mt-8 lg:hidden">
-          {/* Climbing mascot */}
-          <div className="mb-[-8px] ml-2">
-            <div
-              className="
-                relative
-                h-[170px]
-                w-[165px]
-                sm:h-[200px]
-                sm:w-[195px]
-              "
-              aria-hidden="true"
-            >
-              <Image
-                src="/mascot/hamkke-learner-stages-climbing.png"
-                alt=""
-                fill
-                sizes="195px"
-                className="object-contain object-bottom"
-              />
+        {/* =====================================================
+            MOBILE / TABLET JOURNEY
+            Separate layout — no mascot
+            ===================================================== */}
+
+        <div className="mt-7 lg:hidden">
+          {/* Starting point */}
+
+          <div
+            className="
+              rounded-[18px]
+              bg-[#E5EBDD]
+              px-5
+              py-4
+              sm:px-6
+              sm:py-5
+            "
+          >
+            <div className="flex items-center gap-3">
+              <span
+                className="
+                  flex
+                  h-7
+                  w-7
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#FFFDF8]
+                  text-[11px]
+                  font-semibold
+                  text-[#718A73]
+                "
+              >
+                01
+              </span>
+
+              <p className="font-serif text-[17px] italic leading-none text-[#718A73]">
+                Start where you are.
+              </p>
             </div>
           </div>
 
-          {/* Start */}
-          <div className="rounded-tl-[20px] bg-[#E5EBDD] px-6 py-5">
-            <p className="font-serif text-[17px] italic leading-[1.15] text-[#718A73]">
-              Start where you are.
-            </p>
-          </div>
+          {/* Progress line + stages */}
 
-          {/* Kids */}
-          <div className="ml-[4%] bg-[#DCE4D7] p-6 sm:ml-[6%] sm:p-8">
-            <h3 className="font-serif text-3xl text-[#304A39]">
-              Kids
-            </h3>
+          <div className="relative mt-3 pl-5 sm:pl-7">
+            {/* Vertical growth line */}
 
-            <p className="mt-2 font-serif text-xl leading-tight text-[#304A39] sm:whitespace-nowrap">
-              Turn answers into conversations.
-            </p>
+            <div
+              className="
+                absolute
+                bottom-6
+                left-[13px]
+                top-0
+                w-px
+                bg-[#A8BCA5]
+                sm:left-[17px]
+              "
+              aria-hidden="true"
+            />
 
-            <p className="mt-5 max-w-[520px] text-sm leading-6 text-[#52685A]">
-              Build confidence speaking through stories, questions, everyday
-              topics, and plenty of chances to express their own ideas.
-            </p>
-          </div>
+            {/* Kids */}
 
-          {/* Teens */}
-          <div className="ml-[8%] bg-[#EDE3D2] p-6 sm:ml-[12%] sm:p-8">
-            <h3 className="font-serif text-3xl text-[#B17F5D]">
-              Teens
-            </h3>
+            <div className="relative pb-3 pl-5 sm:pl-7">
+              <span
+                className="
+                  absolute
+                  -left-[12px]
+                  top-7
+                  z-10
+                  h-[9px]
+                  w-[9px]
+                  rounded-full
+                  border-2
+                  border-[#718A73]
+                  bg-[#FFFDF8]
+                  sm:-left-[14px]
+                "
+                aria-hidden="true"
+              />
 
-            <p className="mt-2 max-w-[520px] font-serif text-xl leading-tight text-[#304A39]">
-              Have more to say, and learn how to say it.
-            </p>
+              <div
+                className="
+                  rounded-[20px]
+                  bg-[#DCE4D7]
+                  px-5
+                  py-6
+                  sm:px-7
+                  sm:py-7
+                "
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="font-serif text-[30px] leading-none text-[#304A39]">
+                    Kids
+                  </h3>
 
-            <p className="mt-5 max-w-[520px] text-sm leading-6 text-[#52685A]">
-              Move beyond short answers by developing opinions, explaining
-              reasons, asking questions, and expressing increasingly complex
-              ideas in English.
-            </p>
-          </div>
+                  <span className="pt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#718A73]">
+                    02
+                  </span>
+                </div>
 
-          {/* Adults */}
-          <div className="ml-[12%] bg-[#F3E5BE] p-6 sm:ml-[18%] sm:p-8">
-            <h3 className="font-serif text-3xl text-[#B7903D]">
-              Adults
-            </h3>
+                <p className="mt-3 font-serif text-[20px] leading-[1.15] text-[#304A39]">
+                  Turn answers into conversations.
+                </p>
 
-            <p className="mt-2 max-w-[520px] font-serif text-xl leading-tight text-[#304A39]">
-              Make English sound more like you.
-            </p>
+                <p className="mt-4 text-[13.5px] leading-[1.65] text-[#52685A] sm:text-sm">
+                  Build confidence speaking through stories, questions,
+                  everyday topics, and plenty of chances to express their own
+                  ideas.
+                </p>
+              </div>
+            </div>
 
-            <p className="mt-5 max-w-[520px] text-sm leading-6 text-[#52685A]">
-              Use English for the conversations that matter to you, while
-              refining the vocabulary, structure, and expression you need along
-              the way.
-            </p>
-          </div>
+            {/* Teens */}
 
-          {/* Further */}
-          <div className="ml-[16%] rounded-br-[20px] bg-[#F1EADF] px-6 py-5 sm:ml-[24%]">
-            <p className="font-serif text-[17px] italic leading-[1.15] text-[#718A73]">
-              Further together.
-            </p>
+            <div className="relative pb-3 pl-5 sm:pl-7">
+              <span
+                className="
+                  absolute
+                  -left-[12px]
+                  top-7
+                  z-10
+                  h-[9px]
+                  w-[9px]
+                  rounded-full
+                  border-2
+                  border-[#B17F5D]
+                  bg-[#FFFDF8]
+                  sm:-left-[14px]
+                "
+                aria-hidden="true"
+              />
+
+              <div
+                className="
+                  rounded-[20px]
+                  bg-[#EDE3D2]
+                  px-5
+                  py-6
+                  sm:px-7
+                  sm:py-7
+                "
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="font-serif text-[30px] leading-none text-[#B17F5D]">
+                    Teens
+                  </h3>
+
+                  <span className="pt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A77A5C]">
+                    03
+                  </span>
+                </div>
+
+                <p className="mt-3 font-serif text-[20px] leading-[1.15] text-[#304A39]">
+                  Have more to say, and learn how to say it.
+                </p>
+
+                <p className="mt-4 text-[13.5px] leading-[1.65] text-[#52685A] sm:text-sm">
+                  Move beyond short answers by developing opinions, explaining
+                  reasons, asking questions, and expressing increasingly
+                  complex ideas in English.
+                </p>
+              </div>
+            </div>
+
+            {/* Adults */}
+
+            <div className="relative pb-3 pl-5 sm:pl-7">
+              <span
+                className="
+                  absolute
+                  -left-[12px]
+                  top-7
+                  z-10
+                  h-[9px]
+                  w-[9px]
+                  rounded-full
+                  border-2
+                  border-[#B7903D]
+                  bg-[#FFFDF8]
+                  sm:-left-[14px]
+                "
+                aria-hidden="true"
+              />
+
+              <div
+                className="
+                  rounded-[20px]
+                  bg-[#F3E5BE]
+                  px-5
+                  py-6
+                  sm:px-7
+                  sm:py-7
+                "
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="font-serif text-[30px] leading-none text-[#B7903D]">
+                    Adults
+                  </h3>
+
+                  <span className="pt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A7863C]">
+                    04
+                  </span>
+                </div>
+
+                <p className="mt-3 font-serif text-[20px] leading-[1.15] text-[#304A39]">
+                  Make English sound more like you.
+                </p>
+
+                <p className="mt-4 text-[13.5px] leading-[1.65] text-[#52685A] sm:text-sm">
+                  Use English for the conversations that matter to you, while
+                  refining the vocabulary, structure, and expression you need
+                  along the way.
+                </p>
+              </div>
+            </div>
+
+            {/* Further */}
+
+            <div className="relative pl-5 sm:pl-7">
+              <span
+                className="
+                  absolute
+                  -left-[14px]
+                  top-5
+                  z-10
+                  flex
+                  h-[13px]
+                  w-[13px]
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#718A73]
+                  sm:-left-[16px]
+                "
+                aria-hidden="true"
+              >
+                <span className="h-[5px] w-[5px] rounded-full bg-[#FFFDF8]" />
+              </span>
+
+              <div
+                className="
+                  rounded-[18px]
+                  bg-[#F1EADF]
+                  px-5
+                  py-4
+                  sm:px-6
+                  sm:py-5
+                "
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <p className="font-serif text-[17px] italic leading-none text-[#718A73]">
+                    Further together.
+                  </p>
+
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A998C]">
+                    Keep growing
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
