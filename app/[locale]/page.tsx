@@ -4,14 +4,9 @@ import Hero from "../../components/Hero";
 import FindYourLesson from "../../components/FindYourLesson";
 import HamkkeApproach from "../../components/HamkkeApproach";
 import LearnerStages from "../../components/LearnerStages";
-import StudentProblem from "../../components/StudentProblem";
-import LessonExperience from "../../components/LessonExperience";
-import LessonDetails from "../../components/LessonDetails";
-import Audience from "../../components/Audience";
-import Reflections from "../../components/Reflections";
-import WhatYouWontFindHere from "../../components/WhatYouWontFindHere";
-import MeetYourCoach from "@/components/MeetYourCoach";
-import CTA from "../../components/CTA";
+import Teachers from "../../components/Teachers";
+import LearnerStories from "../../components/LearnerStories";
+import GetStarted from "../../components/GetStarted";
 import Footer from "../../components/Footer";
 import TeacherInviteHandler from "@/components/admin/TeacherInviteHandler";
 
@@ -34,9 +29,7 @@ export default async function Home({
 
   return (
     <>
-      <TeacherInviteHandler
-        locale={locale}
-      />
+      <TeacherInviteHandler locale={locale} />
 
       <Hero locale={locale} />
 
@@ -46,27 +39,11 @@ export default async function Home({
 
       <LearnerStages locale={locale} />
 
-      <StudentProblem
-        locale={locale}
-      />
+      <Teachers locale={locale} />
 
-      <LessonExperience
-        locale={locale}
-      />
+      <LearnerStories locale={locale} />
 
-      <LessonDetails locale={locale} />
-
-      <Audience locale={locale} />
-
-      <Reflections locale={locale} />
-
-      <WhatYouWontFindHere
-        locale={locale}
-      />
-
-      <MeetYourCoach />
-
-      <CTA />
+      <GetStarted locale={locale} />
 
       <Footer />
     </>

@@ -111,10 +111,10 @@ export default function HamkkeApproach({
               />
 
               {/* Step markers */}
-<circle cx="8" cy="34" r="5.5" fill="#718A73" />
-<circle cx="330" cy="23" r="5.5" fill="#B99368" />
-<circle cx="660" cy="52" r="5.5" fill="#B79A4B" />
-<circle cx="990" cy="18" r="5.5" fill="#718A73" />
+              <circle cx="8" cy="34" r="5.5" fill="#718A73" />
+              <circle cx="330" cy="23" r="5.5" fill="#B99368" />
+              <circle cx="660" cy="52" r="5.5" fill="#B79A4B" />
+              <circle cx="990" cy="18" r="5.5" fill="#718A73" />
             </svg>
 
             {/* Continuation text */}
@@ -264,53 +264,64 @@ export default function HamkkeApproach({
         </div>
 
         {/* Approach link */}
-<div className="mt-7 flex justify-center">
-  <a
-    href={`/${locale}/how-it-works`}
-    className="
-      group
-      inline-flex
-      items-center
-      gap-4
-      rounded-full
-      bg-[#718A73]
-      py-2
-      pl-6
-      pr-2
-      text-sm
-      font-medium
-      text-white
-      shadow-[0_8px_24px_rgba(48,74,57,0.10)]
-      transition-all
-      duration-300
-      hover:-translate-y-0.5
-      hover:bg-[#304A39]
-      hover:shadow-[0_12px_30px_rgba(48,74,57,0.16)]
-    "
-  >
-    <span>Explore the Hamkke Approach</span>
+        <div className="mt-7 flex justify-center">
+          <div className="relative">
+            {/* Warm oat bottom layer */}
+            <div
+              className="
+                absolute
+                inset-0
+                translate-y-[8px]
+                rounded-[22px]
+                bg-[#D8C9AA]
+              "
+              aria-hidden="true"
+            />
 
-    <span
-      aria-hidden="true"
-      className="
-        flex
-        h-9
-        w-9
-        items-center
-        justify-center
-        rounded-full
-        bg-white/15
-        text-base
-        transition-all
-        duration-300
-        group-hover:translate-x-0.5
-        group-hover:bg-white/20
-      "
-    >
-      →
-    </span>
-  </a>
-</div>
+            {/* Main button */}
+            <a
+              href={`/${locale}/how-it-works`}
+              className="
+                group
+                relative
+                z-10
+                flex
+                min-h-[56px]
+                min-w-[310px]
+                items-center
+                justify-between
+                gap-8
+                rounded-[22px]
+                bg-[#E9DFC9]
+                px-7
+                text-[14px]
+                font-semibold
+                text-[#304A39]
+                transition-transform
+                duration-200
+                hover:-translate-y-[2px]
+                active:translate-y-[4px]
+                sm:min-w-[340px]
+              "
+            >
+              <span>Explore the Hamkke Approach</span>
+
+              <span
+                className="
+                  text-[21px]
+                  font-normal
+                  leading-none
+                  transition-transform
+                  duration-200
+                  group-hover:translate-x-1
+                "
+                aria-hidden="true"
+              >
+                →
+              </span>
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   );
