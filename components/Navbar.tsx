@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -48,10 +52,44 @@ const languages = [
   },
 ];
 
+/* =====================================================
+   HOMEPAGE SECTION BACKGROUNDS
+   ===================================================== */
+
+const homepageSections = [
+  {
+    id: "lessons",
+    background: "#FFFDF8",
+  },
+  {
+    id: "approach",
+    background: "#F3EDDD",
+  },
+  {
+    id: "learner-stages",
+    background: "#FFFDF8",
+  },
+  {
+    id: "teachers",
+    background: "#EEF2EA",
+  },
+  {
+    id: "learner-stories",
+    background: "#F3EDDD",
+  },
+  {
+    id: "get-started",
+    background: "#FFFDF8",
+  },
+];
+
 export default function Navbar() {
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
+
+  const headerRef =
+    useRef<HTMLElement | null>(null);
 
   /* =====================================================
      CURRENT LOCALE
@@ -81,26 +119,360 @@ export default function Navbar() {
     setIsMobileLanguageOpen,
   ] = useState(false);
 
+  const [
+    homepageNavbarBackground,
+    setHomepageNavbarBackground,
+  ] = useState("#F3EDDD");
+
+  const [
+    pageNavbarBackground,
+    setPageNavbarBackground,
+  ] = useState("#FFFDF8");
+
+  /* =====================================================
+     ACTIVE PAGES
+     ===================================================== */
+
+  const isHomePage =
+    pathname === `/${locale}`;
+
+  const isLessonsPage =
+    pathname === `/${locale}/lessons` ||
+    pathname.startsWith(
+      `/${locale}/lessons/`
+    );
+
+  const isTeachersDirectory =
+    pathname === `/${locale}/teachers`;
+
+  const isTeacherProfile =
+    pathname.startsWith(
+      `/${locale}/teachers/`
+    );
+
+  const isTeachersPage =
+    isTeachersDirectory ||
+    isTeacherProfile;
+
+  const isApproachPage =
+    pathname === `/${locale}/how-it-works` ||
+    pathname.startsWith(
+      `/${locale}/how-it-works/`
+    );
+
+  const isPolicyPage =
+    pathname === `/${locale}/policy` ||
+    pathname.startsWith(
+      `/${locale}/policy/`
+    );
+
+  const usesAutomaticSectionBackground =
+    isLessonsPage ||
+    isApproachPage ||
+    isPolicyPage;
+
+  /* =====================================================
+     HOMEPAGE BACKGROUND DETECTION
+     ===================================================== */
+
+  useEffect(() => {
+    if (!isHomePage) {
+      return;
+    }
+
+    let animationFrameId:
+      | number
+      | null = null;
+
+    const updateBackground = () => {
+      const navbarHeight =
+        headerRef.current?.offsetHeight ?? 0;
+
+      const detectionPoint =
+        navbarHeight + 1;
+
+      let nextBackground =
+        "#F3EDDD";
+
+      for (const section of homepageSections) {
+        const element =
+          document.getElementById(
+            section.id
+          );
+
+        if (!element) {
+          continue;
+        }
+
+        const rect =
+          element.getBoundingClientRect();
+
+        if (rect.top <= detectionPoint) {
+          nextBackground =
+            section.background;
+        }
+      }
+
+      setHomepageNavbarBackground(
+        (currentBackground) =>
+          currentBackground ===
+          nextBackground
+            ? currentBackground
+            : nextBackground
+      );
+    };
+
+    const scheduleUpdate = () => {
+      if (animationFrameId !== null) {
+        return;
+      }
+
+      animationFrameId =
+        window.requestAnimationFrame(
+          () => {
+            updateBackground();
+            animationFrameId = null;
+          }
+        );
+    };
+
+    updateBackground();
+
+    window.addEventListener(
+      "scroll",
+      scheduleUpdate,
+      {
+        passive: true,
+      }
+    );
+
+    window.addEventListener(
+      "resize",
+      scheduleUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "scroll",
+        scheduleUpdate
+      );
+
+      window.removeEventListener(
+        "resize",
+        scheduleUpdate
+      );
+
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(
+          animationFrameId
+        );
+      }
+    };
+  }, [isHomePage]);
+
+  /* =====================================================
+     AUTOMATIC PAGE SECTION BACKGROUND DETECTION
+
+     Used by:
+     - Lessons
+     - Approach
+     - Policy
+
+     Reads the actual rendered section background.
+     ===================================================== */
+
+  useEffect(() => {
+    if (!usesAutomaticSectionBackground) {
+      return;
+    }
+
+    let animationFrameId:
+      | number
+      | null = null;
+
+    const updateBackground = () => {
+      const header =
+        headerRef.current;
+
+      if (!header) {
+        return;
+      }
+
+      const navbarHeight =
+        header.offsetHeight;
+
+      /*
+       * Inspect the content immediately below
+       * the sticky navbar.
+       */
+      const x =
+        Math.min(
+          window.innerWidth / 2,
+          window.innerWidth - 1
+        );
+
+      const y =
+        Math.min(
+          navbarHeight + 2,
+          window.innerHeight - 1
+        );
+
+      const elementUnderNavbar =
+        document.elementFromPoint(x, y);
+
+      if (!elementUnderNavbar) {
+        return;
+      }
+
+      /*
+       * Find the section containing that content.
+       */
+      const section =
+        elementUnderNavbar.closest(
+          "section"
+        );
+
+      if (!section) {
+        return;
+      }
+
+      /*
+       * Read the actual rendered background.
+       */
+      const computedStyle =
+        window.getComputedStyle(section);
+
+      const backgroundColor =
+        computedStyle.backgroundColor;
+
+      /*
+       * Ignore transparent sections.
+       */
+      if (
+        !backgroundColor ||
+        backgroundColor ===
+          "rgba(0, 0, 0, 0)" ||
+        backgroundColor ===
+          "transparent"
+      ) {
+        return;
+      }
+
+      setPageNavbarBackground(
+        (currentBackground) =>
+          currentBackground ===
+          backgroundColor
+            ? currentBackground
+            : backgroundColor
+      );
+    };
+
+    const scheduleUpdate = () => {
+      if (animationFrameId !== null) {
+        return;
+      }
+
+      animationFrameId =
+        window.requestAnimationFrame(
+          () => {
+            updateBackground();
+            animationFrameId = null;
+          }
+        );
+    };
+
+    /*
+     * Lessons, Approach, and Policy all
+     * begin with the Soft Ivory hero.
+     */
+    setPageNavbarBackground(
+      "#FFFDF8"
+    );
+
+    updateBackground();
+
+    window.addEventListener(
+      "scroll",
+      scheduleUpdate,
+      {
+        passive: true,
+      }
+    );
+
+    window.addEventListener(
+      "resize",
+      scheduleUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "scroll",
+        scheduleUpdate
+      );
+
+      window.removeEventListener(
+        "resize",
+        scheduleUpdate
+      );
+
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(
+          animationFrameId
+        );
+      }
+    };
+  }, [
+    usesAutomaticSectionBackground,
+    pathname,
+  ]);
+
+  /* =====================================================
+     NAVBAR BACKGROUND
+     ===================================================== */
+
+  const routeNavbarBackground =
+    isTeacherProfile
+      ? "#FFFDF8"
+      : isTeachersDirectory
+        ? "#EEF2EA"
+        : "#F3EDDD";
+
+  const navbarBackground =
+    isHomePage
+      ? homepageNavbarBackground
+      : usesAutomaticSectionBackground
+        ? pageNavbarBackground
+        : routeNavbarBackground;
+
   /* =====================================================
      NAVIGATION
      ===================================================== */
 
   const navLinks = [
     {
-      href: `/${locale}#lessons`,
-      label: t.nav.lessons,
-    },
-    {
-      href: `/${locale}#teachers`,
-      label: t.nav.teachers,
+      href: `/${locale}`,
+      label: "Home",
+      active: isHomePage,
     },
     {
       href: `/${locale}/how-it-works`,
       label: t.nav.approach,
+      active: isApproachPage,
+    },
+    {
+      href: `/${locale}/lessons`,
+      label: t.nav.lessons,
+      active: isLessonsPage,
+    },
+    {
+      href: `/${locale}/teachers`,
+      label: t.nav.teachers,
+      active: isTeachersPage,
     },
     {
       href: `/${locale}/policy`,
       label: t.nav.policy,
+      active: isPolicyPage,
     },
   ];
 
@@ -141,10 +513,17 @@ export default function Navbar() {
 
   return (
     <header
+      ref={headerRef}
+      style={{
+        backgroundColor:
+          navbarBackground,
+      }}
       className="
-        relative
+        sticky
+        top-0
         z-50
-        bg-[#F3EDDD]
+        transition-colors
+        duration-300
       "
     >
       <div
@@ -238,9 +617,6 @@ export default function Navbar() {
 
         {/* =====================================================
             DESKTOP PRIMARY NAVIGATION
-
-            Positioned independently from the logo so the
-            navigation occupies the visual center of the header.
             ===================================================== */}
 
         <nav
@@ -250,39 +626,51 @@ export default function Navbar() {
             hidden
             -translate-x-1/2
             items-center
-            gap-7
-
+            gap-6
             md:flex
-
-            lg:gap-9
-            xl:gap-10
+            lg:gap-8
+            xl:gap-9
           "
         >
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="
+              aria-current={
+                link.active
+                  ? "page"
+                  : undefined
+              }
+              className={`
                 relative
                 whitespace-nowrap
                 text-[15px]
-                font-medium
-                text-[#46564B]
+                font-semibold
                 transition-colors
                 duration-300
-                hover:text-[#718A73]
 
                 after:absolute
                 after:-bottom-1.5
                 after:left-0
                 after:h-px
-                after:w-0
                 after:bg-[#718A73]
                 after:transition-all
                 after:duration-300
 
-                hover:after:w-full
-              "
+                ${
+                  link.active
+                    ? `
+                      text-[#718A73]
+                      after:w-full
+                    `
+                    : `
+                      text-[#46564B]
+                      after:w-0
+                      hover:text-[#718A73]
+                      hover:after:w-full
+                    `
+                }
+              `}
             >
               {link.label}
             </Link>
@@ -291,7 +679,6 @@ export default function Navbar() {
 
         {/* =====================================================
             DESKTOP UTILITIES
-            LANGUAGE + LOGIN
             ===================================================== */}
 
         <div
@@ -303,20 +690,21 @@ export default function Navbar() {
             md:flex
           "
         >
-          {/* ===================================================
-              LANGUAGE
-              =================================================== */}
+          {/* LANGUAGE */}
 
           <div className="relative">
             <button
               type="button"
               onClick={() =>
                 setIsLanguageOpen(
-                  (previous) => !previous
+                  (previous) =>
+                    !previous
                 )
               }
               aria-haspopup="true"
-              aria-expanded={isLanguageOpen}
+              aria-expanded={
+                isLanguageOpen
+              }
               className="
                 flex
                 items-center
@@ -340,6 +728,7 @@ export default function Navbar() {
                 className={`
                   transition-transform
                   duration-200
+
                   ${
                     isLanguageOpen
                       ? "rotate-180"
@@ -369,7 +758,9 @@ export default function Navbar() {
                 {languages.map(
                   (language) => (
                     <button
-                      key={language.locale}
+                      key={
+                        language.locale
+                      }
                       type="button"
                       onClick={() =>
                         changeLanguage(
@@ -386,6 +777,7 @@ export default function Navbar() {
                         text-sm
                         transition-colors
                         duration-200
+
                         ${
                           language.locale ===
                           locale
@@ -402,9 +794,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* ===================================================
-              LOGIN + PROFILE ICON
-              =================================================== */}
+          {/* LOGIN */}
 
           <Link
             href={`/${locale}#login`}
@@ -463,12 +853,18 @@ export default function Navbar() {
           type="button"
           onClick={() => {
             setIsMobileMenuOpen(
-              (previous) => !previous
+              (previous) =>
+                !previous
             );
-            setIsMobileLanguageOpen(false);
+
+            setIsMobileLanguageOpen(
+              false
+            );
           }}
           aria-label="Toggle navigation"
-          aria-expanded={isMobileMenuOpen}
+          aria-expanded={
+            isMobileMenuOpen
+          }
           className="
             ml-auto
             flex
@@ -510,6 +906,7 @@ export default function Navbar() {
           duration-300
           ease-in-out
           md:hidden
+
           ${
             isMobileMenuOpen
               ? "max-h-[620px]"
@@ -518,47 +915,59 @@ export default function Navbar() {
         `}
       >
         <nav
+          style={{
+            backgroundColor:
+              navbarBackground,
+          }}
           className="
-            bg-[#F3EDDD]
             px-6
             pb-6
             pt-2
+            transition-colors
+            duration-300
           "
         >
           <div className="flex flex-col">
-            {/* =================================================
-                MOBILE NAVIGATION LINKS
-                ================================================= */}
+            {/* NAVIGATION LINKS */}
 
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={
+                  link.active
+                    ? "page"
+                    : undefined
+                }
                 onClick={() => {
-                  setIsMobileMenuOpen(false);
+                  setIsMobileMenuOpen(
+                    false
+                  );
                   setIsMobileLanguageOpen(
                     false
                   );
                 }}
-                className="
+                className={`
                   border-b
                   border-[#E7DDD1]
                   py-4
                   text-lg
-                  font-medium
-                  text-[#46564B]
+                  font-semibold
                   transition-colors
                   duration-300
-                  hover:text-[#718A73]
-                "
+
+                  ${
+                    link.active
+                      ? "text-[#718A73]"
+                      : "text-[#46564B] hover:text-[#718A73]"
+                  }
+                `}
               >
                 {link.label}
               </Link>
             ))}
 
-            {/* =================================================
-                MOBILE LANGUAGE
-                ================================================= */}
+            {/* MOBILE LANGUAGE */}
 
             <div
               className="
@@ -602,6 +1011,7 @@ export default function Navbar() {
                   className={`
                     transition-transform
                     duration-200
+
                     ${
                       isMobileLanguageOpen
                         ? "rotate-180"
@@ -616,6 +1026,7 @@ export default function Navbar() {
                   overflow-hidden
                   transition-all
                   duration-300
+
                   ${
                     isMobileLanguageOpen
                       ? "max-h-56 pb-3"
@@ -650,6 +1061,7 @@ export default function Navbar() {
                           text-base
                           transition-colors
                           duration-200
+
                           ${
                             language.locale ===
                             locale
@@ -666,14 +1078,14 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* =================================================
-                MOBILE LOGIN
-                ================================================= */}
+            {/* MOBILE LOGIN */}
 
             <Link
               href={`/${locale}#login`}
               onClick={() => {
-                setIsMobileMenuOpen(false);
+                setIsMobileMenuOpen(
+                  false
+                );
                 setIsMobileLanguageOpen(
                   false
                 );

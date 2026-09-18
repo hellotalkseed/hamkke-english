@@ -9,15 +9,69 @@ import {
   Zap,
 } from "lucide-react";
 
+import Navbar from "../../../components/Navbar";
 import PolicyAccordion from "../../../components/PolicyAccordion";
 import { getMessages } from "../../../lib/getMessages";
-import { isValidLocale } from "../../../lib/i18n";
+import {
+  isValidLocale,
+  type Locale,
+} from "../../../lib/i18n";
 
 interface PolicyPageProps {
   params: Promise<{
     locale: string;
   }>;
 }
+
+const tuitionPolicy: Record<
+  Locale,
+  {
+    title: string;
+    intro: string;
+    rule: string;
+    notice: string;
+  }
+> = {
+  en: {
+    title: "Tuition & Pricing",
+    intro:
+      "Tuition is set according to the selected lesson duration, term length, and displayed currency.",
+    rule:
+      "Tuition is reviewed annually and may be adjusted to reflect inflation and changes in operating costs.",
+    notice:
+      "Any tuition changes will be communicated in advance.",
+  },
+
+  ko: {
+    title: "수업료 및 가격",
+    intro:
+      "수업료는 선택한 수업 시간, 수강 횟수 및 표시 통화에 따라 책정됩니다.",
+    rule:
+      "수업료는 매년 검토되며 물가 상승 및 운영 비용의 변동을 반영하여 조정될 수 있습니다.",
+    notice:
+      "수업료가 변경되는 경우 사전에 안내드립니다.",
+  },
+
+  zh: {
+    title: "学费与价格",
+    intro:
+      "学费根据所选的课程时长、课程周期以及页面显示的货币进行定价。",
+    rule:
+      "学费每年进行审核，并可能根据通货膨胀和运营成本的变化进行调整。",
+    notice:
+      "如学费发生调整，我们会提前通知。",
+  },
+
+  ja: {
+    title: "授業料・料金",
+    intro:
+      "授業料は、選択したレッスン時間、受講回数、表示通貨に基づいて設定されます。",
+    rule:
+      "授業料は毎年見直され、物価上昇や運営費の変動を反映して調整される場合があります。",
+    notice:
+      "授業料を変更する場合は、事前にお知らせします。",
+  },
+};
 
 export default async function PolicyPage({
   params,
@@ -29,6 +83,7 @@ export default async function PolicyPage({
   }
 
   const t = getMessages(locale);
+  const tuition = tuitionPolicy[locale];
 
   const sections = [
     {
@@ -37,7 +92,7 @@ export default async function PolicyPage({
       title: t.policy.cancellation.title,
       icon: (
         <CalendarDays
-          size={22}
+          size={21}
           strokeWidth={1.5}
         />
       ),
@@ -59,7 +114,7 @@ export default async function PolicyPage({
                   justify-center
                   rounded-full
                   bg-[#E2EBDD]
-                  text-[#6F8F72]
+                  text-[#718A73]
                 "
               >
                 <Clock3
@@ -73,10 +128,10 @@ export default async function PolicyPage({
                   className="
                     font-sans
                     text-[11px]
-                    font-medium
+                    font-semibold
                     uppercase
                     tracking-[0.14em]
-                    text-[#6F8F72]
+                    text-[#718A73]
                   "
                 >
                   {t.policy.cancellation.notice.title}
@@ -100,7 +155,7 @@ export default async function PolicyPage({
                   justify-center
                   rounded-full
                   bg-[#E2EBDD]
-                  text-[#6F8F72]
+                  text-[#718A73]
                 "
               >
                 <Clock3
@@ -114,10 +169,10 @@ export default async function PolicyPage({
                   className="
                     font-sans
                     text-[11px]
-                    font-medium
+                    font-semibold
                     uppercase
                     tracking-[0.14em]
-                    text-[#6F8F72]
+                    text-[#718A73]
                   "
                 >
                   {t.policy.cancellation.lateNotice.title}
@@ -141,7 +196,7 @@ export default async function PolicyPage({
                   justify-center
                   rounded-full
                   bg-[#E2EBDD]
-                  text-[#6F8F72]
+                  text-[#718A73]
                 "
               >
                 <CircleAlert
@@ -155,10 +210,10 @@ export default async function PolicyPage({
                   className="
                     font-sans
                     text-[11px]
-                    font-medium
+                    font-semibold
                     uppercase
                     tracking-[0.14em]
-                    text-[#6F8F72]
+                    text-[#718A73]
                   "
                 >
                   {t.policy.cancellation.noShow.title}
@@ -174,10 +229,10 @@ export default async function PolicyPage({
           <p
             className="
               border-l-2
-              border-[#6F8F72]
+              border-[#718A73]
               pl-5
               italic
-              text-[#6F8F72]
+              text-[#607568]
             "
           >
             {t.policy.cancellation.note}
@@ -192,7 +247,7 @@ export default async function PolicyPage({
       title: t.policy.unexpected.title,
       icon: (
         <Zap
-          size={22}
+          size={21}
           strokeWidth={1.5}
         />
       ),
@@ -206,7 +261,7 @@ export default async function PolicyPage({
               flex
               gap-4
               rounded-2xl
-              bg-[#F0F4ED]
+              bg-[#EEF2EA]
               p-5
             "
           >
@@ -219,8 +274,8 @@ export default async function PolicyPage({
                 items-center
                 justify-center
                 rounded-full
-                bg-[#E2EBDD]
-                text-[#6F8F72]
+                bg-[#DCE4D7]
+                text-[#718A73]
               "
             >
               <Zap
@@ -236,7 +291,9 @@ export default async function PolicyPage({
             {t.policy.unexpected.action}
           </p>
 
-          <p>{t.policy.unexpected.resolution}</p>
+          <p>
+            {t.policy.unexpected.resolution}
+          </p>
 
           <p>{t.policy.unexpected.teacher}</p>
         </div>
@@ -249,7 +306,7 @@ export default async function PolicyPage({
       title: t.policy.lateArrivals.title,
       icon: (
         <Clock3
-          size={22}
+          size={21}
           strokeWidth={1.5}
         />
       ),
@@ -263,7 +320,7 @@ export default async function PolicyPage({
               flex
               gap-4
               rounded-2xl
-              bg-[#F0F4ED]
+              bg-[#EEF2EA]
               p-5
             "
           >
@@ -276,8 +333,8 @@ export default async function PolicyPage({
                 items-center
                 justify-center
                 rounded-full
-                bg-[#E2EBDD]
-                text-[#6F8F72]
+                bg-[#DCE4D7]
+                text-[#718A73]
               "
             >
               <Clock3
@@ -303,7 +360,7 @@ export default async function PolicyPage({
                 justify-center
                 rounded-full
                 bg-[#E2EBDD]
-                text-[#6F8F72]
+                text-[#718A73]
               "
             >
               <CircleAlert
@@ -312,10 +369,14 @@ export default async function PolicyPage({
               />
             </div>
 
-            <p>{t.policy.lateArrivals.example}</p>
+            <p>
+              {t.policy.lateArrivals.example}
+            </p>
           </div>
 
-          <p>{t.policy.lateArrivals.noContact}</p>
+          <p>
+            {t.policy.lateArrivals.noContact}
+          </p>
         </div>
       ),
     },
@@ -326,7 +387,7 @@ export default async function PolicyPage({
       title: t.policy.teacherCancellations.title,
       icon: (
         <HeartHandshake
-          size={22}
+          size={21}
           strokeWidth={1.5}
         />
       ),
@@ -342,7 +403,7 @@ export default async function PolicyPage({
               flex
               gap-4
               rounded-2xl
-              bg-[#F0F4ED]
+              bg-[#EEF2EA]
               p-5
             "
           >
@@ -355,8 +416,8 @@ export default async function PolicyPage({
                 items-center
                 justify-center
                 rounded-full
-                bg-[#E2EBDD]
-                text-[#6F8F72]
+                bg-[#DCE4D7]
+                text-[#718A73]
               "
             >
               <HeartHandshake
@@ -383,7 +444,7 @@ export default async function PolicyPage({
       title: t.policy.repeatedCancellations.title,
       icon: (
         <RefreshCw
-          size={22}
+          size={21}
           strokeWidth={1.5}
         />
       ),
@@ -399,7 +460,7 @@ export default async function PolicyPage({
               flex
               gap-4
               rounded-2xl
-              bg-[#F0F4ED]
+              bg-[#EEF2EA]
               p-5
             "
           >
@@ -412,8 +473,8 @@ export default async function PolicyPage({
                 items-center
                 justify-center
                 rounded-full
-                bg-[#E2EBDD]
-                text-[#6F8F72]
+                bg-[#DCE4D7]
+                text-[#718A73]
               "
             >
               <RefreshCw
@@ -434,10 +495,10 @@ export default async function PolicyPage({
           <p
             className="
               border-l-2
-              border-[#6F8F72]
+              border-[#718A73]
               pl-5
               italic
-              text-[#6F8F72]
+              text-[#607568]
             "
           >
             {t.policy.repeatedCancellations.note}
@@ -447,12 +508,72 @@ export default async function PolicyPage({
     },
 
     {
-      id: "refunds",
+      id: "tuition",
       number: "06",
+      title: tuition.title,
+      icon: (
+        <WalletCards
+          size={21}
+          strokeWidth={1.5}
+        />
+      ),
+
+      content: (
+        <div className="space-y-7">
+          <p>{tuition.intro}</p>
+
+          <div
+            className="
+              flex
+              gap-4
+              rounded-2xl
+              bg-[#EEF2EA]
+              p-5
+            "
+          >
+            <div
+              className="
+                flex
+                h-9
+                w-9
+                shrink-0
+                items-center
+                justify-center
+                rounded-full
+                bg-[#DCE4D7]
+                text-[#718A73]
+              "
+            >
+              <WalletCards
+                size={17}
+                strokeWidth={1.6}
+              />
+            </div>
+
+            <p>{tuition.rule}</p>
+          </div>
+
+          <p
+            className="
+              border-l-2
+              border-[#718A73]
+              pl-5
+              text-[#607568]
+            "
+          >
+            {tuition.notice}
+          </p>
+        </div>
+      ),
+    },
+
+    {
+      id: "refunds",
+      number: "07",
       title: t.policy.refunds.title,
       icon: (
         <WalletCards
-          size={22}
+          size={21}
           strokeWidth={1.5}
         />
       ),
@@ -466,7 +587,7 @@ export default async function PolicyPage({
               flex
               gap-4
               rounded-2xl
-              bg-[#F0F4ED]
+              bg-[#EEF2EA]
               p-5
             "
           >
@@ -479,8 +600,8 @@ export default async function PolicyPage({
                 items-center
                 justify-center
                 rounded-full
-                bg-[#E2EBDD]
-                text-[#6F8F72]
+                bg-[#DCE4D7]
+                text-[#718A73]
               "
             >
               <WalletCards
@@ -489,26 +610,20 @@ export default async function PolicyPage({
               />
             </div>
 
-            <p>
-              {t.policy.refunds.rule}
-            </p>
+            <p>{t.policy.refunds.rule}</p>
           </div>
 
-          <p>
-            {t.policy.refunds.transfer}
-          </p>
+          <p>{t.policy.refunds.transfer}</p>
 
-          <p>
-            {t.policy.refunds.exception}
-          </p>
+          <p>{t.policy.refunds.exception}</p>
 
           <p
             className="
               border-l-2
-              border-[#6F8F72]
+              border-[#718A73]
               pl-5
               italic
-              text-[#6F8F72]
+              text-[#607568]
             "
           >
             {t.policy.refunds.note}
@@ -519,355 +634,561 @@ export default async function PolicyPage({
   ];
 
   return (
-    <main
-      className="
-        min-h-screen
-        bg-[#FAF8F5]
-        text-[#292929]
-      "
-    >
-      {/* =====================================================
-          HEADER
-          ===================================================== */}
+    <>
+      <Navbar />
 
-      <header
+      <main
         className="
-          w-full
-          px-6
-          pt-7
-
-          sm:px-8
-          sm:pt-8
-
-          lg:px-10
-
-          xl:px-12
+          min-h-screen
+          bg-[#FFFDF8]
+          text-[#293A30]
         "
       >
-        <div
+        {/* =====================================================
+            HERO
+            ===================================================== */}
+
+        <section
           className="
-            relative
-            flex
-            w-full
-            items-center
-            justify-between
+            bg-[#FFFDF8]
+            px-6
+            pb-12
+            pt-12
+
+            sm:px-10
+            sm:pb-14
+            sm:pt-14
+
+            lg:px-16
+            lg:pb-16
+            lg:pt-16
           "
         >
-          {/* HAMKKE */}
-
-          <a
-            href={`/${locale}`}
-            className="
-              shrink-0
-              font-sans
-              text-[15px]
-              text-[#5F655F]
-              transition-colors
-              duration-200
-              hover:text-[#6F8F72]
-
-              sm:text-[16px]
-            "
-          >
-            ← Hamkke
-          </a>
-
-          {/* DESKTOP BRAND */}
-
           <div
             className="
-              absolute
-              left-1/2
-              -translate-x-1/2
-              whitespace-nowrap
-
-              hidden
-
-              font-sans
-              text-[15px]
-              font-medium
-              text-[#6F8F72]
-
-              sm:block
-              sm:text-[16px]
+              mx-auto
+              w-full
+              max-w-[1080px]
             "
           >
-            Hamkke │ 함께
+            <p
+              className="
+                font-sans
+                text-[11px]
+                font-semibold
+                uppercase
+                tracking-[0.18em]
+                text-[#718A73]
+
+                sm:text-[12px]
+              "
+            >
+              Hamkke Policy
+            </p>
+
+            <h1
+              className="
+                mt-3
+                font-serif
+                text-[42px]
+                font-normal
+                leading-[1.05]
+                tracking-[-0.03em]
+                text-[#293A30]
+
+                sm:text-[50px]
+
+                lg:text-[56px]
+              "
+            >
+              {t.policy.title}
+            </h1>
+
+            <p
+              className="
+                mt-5
+                max-w-[680px]
+                font-sans
+                text-[16px]
+                leading-7
+                text-[#607066]
+
+                sm:text-[17px]
+                sm:leading-8
+              "
+            >
+              {t.policy.intro}
+            </p>
           </div>
+        </section>
 
-          {/* LANGUAGE */}
+        {/* =====================================================
+            QUICK GUIDE
+            ===================================================== */}
 
+        <section
+          className="
+            bg-[#F3EDDD]
+            px-6
+            py-10
+
+            sm:px-10
+            sm:py-12
+
+            lg:px-16
+          "
+        >
           <div
             className="
-              flex
-              shrink-0
-              items-center
-              gap-3
-
-              font-sans
-              text-[14px]
-              text-[#5F655F]
-
-              sm:gap-4
-              sm:text-[15px]
+              mx-auto
+              w-full
+              max-w-[1080px]
             "
           >
-            <a
-              href="/en/policy"
-              className={
-                locale === "en"
-                  ? "font-medium text-[#6F8F72]"
-                  : "transition-colors hover:text-[#6F8F72]"
-              }
-            >
-              EN
-            </a>
+            <p
+              className="
+                font-sans
+                text-[11px]
+                font-semibold
+                uppercase
+                tracking-[0.18em]
+                text-[#718A73]
 
-            <a
-              href="/ko/policy"
-              className={
-                locale === "ko"
-                  ? "font-medium text-[#6F8F72]"
-                  : "transition-colors hover:text-[#6F8F72]"
-              }
+                sm:text-[12px]
+              "
             >
-              한국어
-            </a>
+              Quick guide
+            </p>
 
-            <a
-              href="/zh/policy"
-              className={
-                locale === "zh"
-                  ? "font-medium text-[#6F8F72]"
-                  : "transition-colors hover:text-[#6F8F72]"
-              }
+            <div
+              className="
+                mt-5
+                overflow-hidden
+                rounded-[16px]
+                border
+                border-[#D8CDB9]
+                bg-[#FFFDF8]
+
+                sm:grid
+                sm:grid-cols-3
+              "
             >
-              中文
-            </a>
+              {/* 2+ HOURS */}
+
+              <div
+                className="
+                  flex
+                  items-start
+                  gap-4
+                  border-b
+                  border-[#E0D7C8]
+                  px-5
+                  py-5
+
+                  sm:block
+                  sm:border-b-0
+                  sm:border-r
+                  sm:px-6
+                  sm:py-6
+                "
+              >
+                <div
+                  className="
+                    flex
+                    h-9
+                    w-9
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#EEF2EA]
+                    text-[#718A73]
+                  "
+                  aria-hidden="true"
+                >
+                  <Clock3
+                    size={17}
+                    strokeWidth={1.6}
+                  />
+                </div>
+
+                <div className="sm:mt-4">
+                  <p
+                    className="
+                      font-sans
+                      text-[12px]
+                      font-semibold
+                      uppercase
+                      tracking-[0.12em]
+                      text-[#718A73]
+                    "
+                  >
+                    2+ hours before class
+                  </p>
+
+                  <p
+                    className="
+                      mt-1.5
+                      font-sans
+                      text-[15px]
+                      leading-6
+                      text-[#46564B]
+
+                      sm:mt-2
+                    "
+                  >
+                    Reschedule or receive lesson credit.
+                  </p>
+                </div>
+              </div>
+
+              {/* UNDER 2 HOURS */}
+
+              <div
+                className="
+                  flex
+                  items-start
+                  gap-4
+                  border-b
+                  border-[#E0D7C8]
+                  px-5
+                  py-5
+
+                  sm:block
+                  sm:border-b-0
+                  sm:border-r
+                  sm:px-6
+                  sm:py-6
+                "
+              >
+                <div
+                  className="
+                    flex
+                    h-9
+                    w-9
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#EEF2EA]
+                    text-[#718A73]
+                  "
+                  aria-hidden="true"
+                >
+                  <Clock3
+                    size={17}
+                    strokeWidth={1.6}
+                  />
+                </div>
+
+                <div className="sm:mt-4">
+                  <p
+                    className="
+                      font-sans
+                      text-[12px]
+                      font-semibold
+                      uppercase
+                      tracking-[0.12em]
+                      text-[#718A73]
+                    "
+                  >
+                    Less than 2 hours
+                  </p>
+
+                  <p
+                    className="
+                      mt-1.5
+                      font-sans
+                      text-[15px]
+                      leading-6
+                      text-[#46564B]
+
+                      sm:mt-2
+                    "
+                  >
+                    The lesson is counted as completed.
+                  </p>
+                </div>
+              </div>
+
+              {/* NO-SHOW */}
+
+              <div
+                className="
+                  flex
+                  items-start
+                  gap-4
+                  px-5
+                  py-5
+
+                  sm:block
+                  sm:px-6
+                  sm:py-6
+                "
+              >
+                <div
+                  className="
+                    flex
+                    h-9
+                    w-9
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#EEF2EA]
+                    text-[#718A73]
+                  "
+                  aria-hidden="true"
+                >
+                  <CircleAlert
+                    size={17}
+                    strokeWidth={1.6}
+                  />
+                </div>
+
+                <div className="sm:mt-4">
+                  <p
+                    className="
+                      font-sans
+                      text-[12px]
+                      font-semibold
+                      uppercase
+                      tracking-[0.12em]
+                      text-[#718A73]
+                    "
+                  >
+                    No-show
+                  </p>
+
+                  <p
+                    className="
+                      mt-1.5
+                      font-sans
+                      text-[15px]
+                      leading-6
+                      text-[#46564B]
+
+                      sm:mt-2
+                    "
+                  >
+                    The lesson is counted as completed.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p
+              className="
+                mt-4
+                font-sans
+                text-[13px]
+                leading-6
+                text-[#758477]
+              "
+            >
+              Please see the detailed policy below for exceptions
+              and unexpected circumstances.
+            </p>
           </div>
-        </div>
-      </header>
+        </section>
 
-      {/* =====================================================
-          INTRO
-          ===================================================== */}
+        {/* =====================================================
+            POLICY DETAILS
+            ===================================================== */}
 
-      <section
-        className="
-          mx-auto
-          w-full
-          max-w-[1040px]
-          px-6
-          pb-12
-          pt-10
-
-          sm:px-8
-          sm:pb-14
-          sm:pt-20
-
-          lg:px-10
-          lg:pb-16
-          lg:pt-24
-        "
-      >
-        {/* MOBILE BRAND EYEBROW */}
-
-        <div
+        <section
           className="
-            mb-0
-            text-center
+            bg-[#FFFDF8]
+            px-6
+            py-14
 
-            font-sans
-            text-[14px]
-            font-medium
-            tracking-[0.02em]
-            text-[#6F8F72]
+            sm:px-10
+            sm:py-16
 
-            sm:hidden
+            lg:px-16
+            lg:py-20
           "
         >
-          Hamkke │ 함께
-        </div>
-
-        {/* PAGE TITLE */}
-
-        <h1
-          className="
-            text-center
-
-            font-serif
-            text-[52px]
-            font-normal
-            leading-[1.05]
-            tracking-[-0.035em]
-
-            text-[#292929]
-
-            sm:text-[62px]
-
-            lg:text-[70px]
-          "
-        >
-          {t.policy.title}
-        </h1>
-
-        {/* INTRO */}
-
-        <p
-          className="
-            mx-auto
-            mt-8
-            max-w-[850px]
-
-            text-center
-
-            font-serif
-            text-[21px]
-            font-normal
-            leading-8
-
-            text-[#4A4A4A]
-
-            sm:text-[23px]
-            sm:leading-9
-
-            lg:text-[25px]
-            lg:leading-10
-          "
-        >
-          {t.policy.intro}
-        </p>
-      </section>
-
-      {/* =====================================================
-          ACCORDION + FINAL NOTE
-          ===================================================== */}
-
-      <section
-        className="
-          mx-auto
-          w-full
-          max-w-[1040px]
-          px-6
-          pb-20
-
-          sm:px-8
-
-          lg:px-10
-          lg:pb-24
-        "
-      >
-        <PolicyAccordion sections={sections} />
-
-        {/* ===================================================
-            FINAL NOTE
-            =================================================== */}
-
-        <div
-          className="
-            mt-20
-            w-full
-
-            sm:mt-24
-
-            lg:mt-28
-          "
-        >
-          {/* ICON + HEADING */}
-
           <div
             className="
-              flex
-              items-center
-              gap-5
+              mx-auto
+              w-full
+              max-w-[1080px]
+            "
+          >
+            <div className="mb-7 sm:mb-9">
+              <p
+                className="
+                  font-sans
+                  text-[11px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.18em]
+                  text-[#718A73]
 
-              sm:gap-6
+                  sm:text-[12px]
+                "
+              >
+                Policy details
+              </p>
+
+              <p
+                className="
+                  mt-2
+                  max-w-[620px]
+                  font-sans
+                  text-[15px]
+                  leading-7
+                  text-[#607066]
+
+                  sm:text-[16px]
+                "
+              >
+                Select a section to read the full guidelines.
+              </p>
+            </div>
+
+            <PolicyAccordion
+              sections={sections}
+            />
+          </div>
+        </section>
+
+        {/* =====================================================
+            CLOSING NOTE
+            ===================================================== */}
+
+        <section
+          className="
+            bg-[#EEF2EA]
+            px-6
+            py-12
+
+            sm:px-10
+            sm:py-14
+
+            lg:px-16
+            lg:py-16
+          "
+        >
+          <div
+            className="
+              mx-auto
+              w-full
+              max-w-[1080px]
             "
           >
             <div
               className="
-                flex
-                h-12
-                w-12
-                shrink-0
-                items-center
-                justify-center
-                rounded-full
-                bg-[#E2EBDD]
-                text-[#6F8F72]
+                rounded-[20px]
+                border
+                border-[#D4DED0]
+                bg-[#FFFDF8]
+                px-6
+                py-7
 
-                sm:h-14
-                sm:w-14
+                sm:px-8
+                sm:py-8
+
+                lg:flex
+                lg:items-start
+                lg:gap-8
+                lg:px-10
+                lg:py-9
               "
-              aria-hidden="true"
             >
-              <HeartHandshake
-                size={21}
-                strokeWidth={1.5}
-              />
+              <div
+                className="
+                  flex
+                  h-11
+                  w-11
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#DCE4D7]
+                  text-[#718A73]
+                "
+                aria-hidden="true"
+              >
+                <HeartHandshake
+                  size={20}
+                  strokeWidth={1.5}
+                />
+              </div>
+
+              <div
+                className="
+                  mt-5
+                  max-w-[760px]
+
+                  lg:mt-0
+                "
+              >
+                <p
+                  className="
+                    font-sans
+                    text-[11px]
+                    font-semibold
+                    uppercase
+                    tracking-[0.16em]
+                    text-[#718A73]
+                  "
+                >
+                  A note from Hamkke
+                </p>
+
+                <h2
+                  className="
+                    mt-2
+                    font-serif
+                    text-[28px]
+                    font-normal
+                    leading-tight
+                    tracking-[-0.02em]
+                    text-[#293A30]
+
+                    sm:text-[32px]
+                  "
+                >
+                  {t.policy.closing.title}
+                </h2>
+
+                <div
+                  className="
+                    mt-4
+                    space-y-3
+                    font-sans
+                    text-[15px]
+                    leading-7
+                    text-[#607066]
+
+                    sm:text-[16px]
+                  "
+                >
+                  <p>
+                    {t.policy.closing.text}
+                  </p>
+
+                  <p>
+                    {t.policy.closing.textTwo}
+                  </p>
+
+                  <p
+                    className="
+                      pt-1
+                      font-medium
+                      text-[#718A73]
+                    "
+                  >
+                    {t.policy.closing.thankYou}
+                  </p>
+                </div>
+              </div>
             </div>
-
-            <h2
-              className="
-                font-serif
-                text-[38px]
-                font-normal
-                leading-tight
-                tracking-[-0.02em]
-
-                text-[#292929]
-
-                sm:text-[44px]
-
-                lg:text-[50px]
-              "
-            >
-              {t.policy.closing.title}
-            </h2>
           </div>
-
-          {/* BODY TEXT */}
-
-          <div
-            className="
-              mt-8
-              w-full
-
-              font-serif
-              text-[21px]
-              font-normal
-              leading-8
-
-              text-[#4A4A4A]
-
-              sm:mt-9
-              sm:text-[23px]
-              sm:leading-9
-
-              lg:text-[25px]
-              lg:leading-10
-            "
-          >
-            <p>
-              {t.policy.closing.text}
-            </p>
-
-            <p className="mt-5">
-              {t.policy.closing.textTwo}
-            </p>
-
-            <p
-              className="
-                mt-8
-                italic
-                text-[#6F8F72]
-              "
-            >
-              {t.policy.closing.thankYou}
-            </p>
-          </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </>
   );
 }

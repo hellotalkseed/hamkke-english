@@ -10,9 +10,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-type TeachingPoint = {
+type Qualification = {
   title: string;
-  description: string;
+  institution: string;
+  year: string;
 };
 
 type TeacherReflection = {
@@ -50,14 +51,14 @@ type AvailabilityResponse = {
 
 type TeacherProfileTabsProps = {
   about: string[];
-  teaching: TeachingPoint[];
+  qualifications: Qualification[];
   reflections: TeacherReflection[];
   teacherSlug: string;
 };
 
 type Tab =
   | "about"
-  | "teaching"
+  | "qualifications"
   | "learner-stories"
   | "availability";
 
@@ -426,6 +427,24 @@ function getWeekStart(
   );
 }
 
+function hasSlotPassed(
+  dateKey: string,
+  time: string,
+  timezone: string
+) {
+  const slotInstant =
+    zonedDateTimeToUtc(
+      dateKey,
+      time,
+      timezone
+    );
+
+  return (
+    slotInstant.getTime() <=
+    Date.now()
+  );
+}
+
 function detectInitialTimezone() {
   if (
     typeof window ===
@@ -453,12 +472,15 @@ function detectInitialTimezone() {
 
 export default function TeacherProfileTabs({
   about,
-  teaching,
+  qualifications,
   reflections,
   teacherSlug,
 }: TeacherProfileTabsProps) {
   const safeReflections =
     reflections ?? [];
+
+  const safeQualifications =
+    qualifications ?? [];
 
   const [activeTab, setActiveTab] =
     useState<Tab>("about");
@@ -495,10 +517,6 @@ export default function TeacherProfileTabs({
     null
   );
 
-  /*
-   * This remains the source PHT week
-   * requested from the API.
-   */
   const [
     requestedWeek,
     setRequestedWeek,
@@ -518,10 +536,6 @@ export default function TeacherProfileTabs({
     setTimezoneReady,
   ] = useState(false);
 
-  /*
-   * Detect the visitor's timezone only
-   * after hydration.
-   */
   useEffect(() => {
     setSelectedTimezone(
       detectInitialTimezone()
@@ -671,15 +685,6 @@ export default function TeacherProfileTabs({
       selectedTimezone,
     ]);
 
-  /*
-   * The displayed week is based on the source
-   * week's Sunday converted into the selected
-   * timezone.
-   *
-   * For Hamkke's current target markets this
-   * preserves a natural Sunday-Saturday calendar
-   * while still allowing slots to cross dates.
-   */
   const displayWeekStart =
     useMemo(() => {
       if (
@@ -729,11 +734,6 @@ export default function TeacherProfileTabs({
         )
       : [];
 
-  /*
-   * Only show rows that contain an available
-   * or regularly occupied lesson during the
-   * visible local week.
-   */
   const visibleWeekSlots =
     useMemo(() => {
       if (
@@ -783,6 +783,12 @@ export default function TeacherProfileTabs({
         selectedTimezone
     ) ||
     TIMEZONE_OPTIONS[0];
+
+  const goToToday = () => {
+    setRequestedWeek(
+      null
+    );
+  };
 
   const goToPreviousWeek =
     () => {
@@ -849,20 +855,20 @@ export default function TeacherProfileTabs({
             type="button"
             onClick={() =>
               setActiveTab(
-                "teaching"
+                "qualifications"
               )
             }
             className={`relative shrink-0 pb-3 text-sm transition ${
               activeTab ===
-              "teaching"
+              "qualifications"
                 ? "font-semibold text-[#304A39]"
                 : "text-[#758477] hover:text-[#304A39]"
             }`}
           >
-            Teaching
+            Qualifications
 
             {activeTab ===
-              "teaching" && (
+              "qualifications" && (
               <span className="absolute inset-x-0 bottom-[-1px] h-[2px] rounded-full bg-[#718A73]" />
             )}
           </button>
@@ -935,50 +941,67 @@ export default function TeacherProfileTabs({
         </div>
       )}
 
-      {/* Teaching */}
+      {/* Qualifications */}
       {activeTab ===
-        "teaching" && (
+        "qualifications" && (
         <div className="pt-8">
           <h2 className="font-serif text-[29px] tracking-[-0.02em] text-[#304A39]">
-            How I teach
+            Qualifications & experience
           </h2>
 
-          <div className="mt-6 max-w-[680px] space-y-6">
-            {teaching.map(
-              (
-                point,
-                index
-              ) => (
-                <div
-                  key={`${point.title}-${index}`}
-                  className="grid grid-cols-[32px_minmax(0,1fr)] gap-3"
-                >
-                  <span className="pt-[3px] font-serif text-[15px] italic text-[#718A73]">
-                    {String(
-                      index + 1
-                    ).padStart(
-                      2,
-                      "0"
+          <p className="mt-2 max-w-[620px] text-[13px] leading-6 text-[#758477]">
+            Training, education, and
+            experience that support my
+            work as an English teacher.
+          </p>
+
+          {safeQualifications.length >
+          0 ? (
+            <div className="mt-6 max-w-[680px] divide-y divide-[#304A39]/10 border-y border-[#304A39]/10">
+              {safeQualifications.map(
+                (
+                  qualification,
+                  index
+                ) => (
+                  <div
+                    key={`${qualification.title}-${index}`}
+                    className="grid gap-2 py-5 sm:grid-cols-[minmax(0,1fr)_64px] sm:gap-6"
+                  >
+                    <div>
+                      <h3 className="font-serif text-[20px] leading-[1.3] text-[#304A39]">
+                        {
+                          qualification.title
+                        }
+                      </h3>
+
+                      {qualification.institution && (
+                        <p className="mt-1.5 text-[13px] leading-5 text-[#758477]">
+                          {
+                            qualification.institution
+                          }
+                        </p>
+                      )}
+                    </div>
+
+                    {qualification.year && (
+                      <p className="text-[12px] font-semibold text-[#718A73] sm:pt-1 sm:text-right">
+                        {
+                          qualification.year
+                        }
+                      </p>
                     )}
-                  </span>
-
-                  <div>
-                    <h3 className="font-serif text-[21px] leading-tight text-[#304A39]">
-                      {
-                        point.title
-                      }
-                    </h3>
-
-                    <p className="mt-2 text-[15px] leading-7 text-[#536157]">
-                      {
-                        point.description
-                      }
-                    </p>
                   </div>
-                </div>
-              )
-            )}
-          </div>
+                )
+              )}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-[22px] border border-[#304A39]/10 bg-white px-5 py-8">
+              <p className="text-[14px] leading-6 text-[#758477]">
+                Qualifications are
+                being prepared.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -1182,6 +1205,16 @@ export default function TeacherProfileTabs({
                 <button
                   type="button"
                   onClick={
+                    goToToday
+                  }
+                  className="h-9 rounded-full border border-[#304A39]/15 px-4 text-[11px] font-semibold text-[#536157] transition hover:border-[#718A73]/45 hover:bg-[#EEF2EA]"
+                >
+                  Today
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
                     goToNextWeek
                   }
                   aria-label="Next week"
@@ -1243,7 +1276,6 @@ export default function TeacherProfileTabs({
                   </div>
 
                   <div className="flex flex-wrap items-end gap-4">
-                    {/* Timezone */}
                     <label className="block">
                       <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#758477]">
                         Your timezone
@@ -1290,7 +1322,6 @@ export default function TeacherProfileTabs({
                       </select>
                     </label>
 
-                    {/* Legend */}
                     <div className="flex flex-wrap items-center gap-4 pb-2 text-[11px] text-[#758477]">
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-[#DCE4D7]" />
@@ -1366,9 +1397,23 @@ export default function TeacherProfileTabs({
                                     time
                                   );
 
-                                const status =
+                                const rawStatus =
                                   slot?.status ||
                                   "unavailable";
+
+                                const isPast =
+                                  hasSlotPassed(
+                                    date,
+                                    time,
+                                    selectedTimezone
+                                  );
+
+                                const status =
+                                  rawStatus ===
+                                    "available" &&
+                                  isPast
+                                    ? "unavailable"
+                                    : rawStatus;
 
                                 return (
                                   <div

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { Locale } from "../lib/i18n";
 import TeachersCarousel, {
   type PublicTeacher,
@@ -100,14 +102,7 @@ export default async function Teachers({
         </div>
       </div>
 
-      {/*
-       * Carousel
-       *
-       * Intentionally wider than the normal section container.
-       * This lets the navigation controls sit close to the
-       * left and right edges of the section, matching the
-       * approved visual.
-       */}
+      {/* Carousel */}
       <div
         className="
           relative
@@ -128,27 +123,46 @@ export default async function Teachers({
         />
       </div>
 
-      {/* Quiet growth note */}
-      {teachers.length < 3 && (
-        <div
-          className="
-            mt-4
-            hidden
-            items-center
-            justify-center
-            gap-3
-            lg:flex
-          "
-        >
-          <span className="h-px w-8 bg-[#718A73]/40" />
+      {/* View all teachers */}
+      <div className="mt-7 flex justify-center pb-[5px]">
+        <div className="relative">
+          {/* Offset bottom layer */}
+          <div
+            className="
+              absolute
+              inset-x-0
+              top-[5px]
+              h-full
+              rounded-[10px]
+              bg-[#718A73]
+            "
+          />
 
-          <p className="font-serif text-[15px] italic text-[#718A73]">
-            More conversations are coming.
-          </p>
-
-          <span className="h-px w-8 bg-[#718A73]/40" />
+          {/* Button face */}
+          <Link
+            href={`/${locale}/teachers`}
+            className="
+              relative
+              inline-flex
+              min-h-[46px]
+              items-center
+              justify-center
+              rounded-[10px]
+              bg-[#DCE4D7]
+              px-7
+              text-[14px]
+              font-semibold
+              text-[#304A39]
+              transition
+              duration-200
+              hover:-translate-y-[1px]
+              hover:bg-[#D5DFD1]
+            "
+          >
+            View All Teachers →
+          </Link>
         </div>
-      )}
+      </div>
     </section>
   );
 }

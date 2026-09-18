@@ -19,6 +19,14 @@ interface FindYourLessonProps {
   locale: Locale;
 }
 
+type LessonDuration =
+  | 25
+  | 30
+  | 35
+  | 40
+  | 45
+  | 50;
+
 const platforms = [
   {
     name: "Zoom",
@@ -42,57 +50,260 @@ const platforms = [
   },
 ];
 
-const durationOptions = [
-  { minutes: 25, tuition: 120000 },
-  { minutes: 30, tuition: 144000 },
-  { minutes: 35, tuition: 168000 },
-  { minutes: 40, tuition: 192000 },
-  { minutes: 45, tuition: 216000 },
-  { minutes: 50, tuition: 240000 },
+const durationOptions: {
+  minutes: LessonDuration;
+}[] = [
+  { minutes: 25 },
+  { minutes: 30 },
+  { minutes: 35 },
+  { minutes: 40 },
+  { minutes: 45 },
+  { minutes: 50 },
 ];
+
+const pricing = {
+  en: {
+    currency: "USD",
+    symbol: "$",
+    locale: "en-US",
+    tuitionPer20: {
+      25: 88,
+      30: 105,
+      35: 123,
+      40: 140,
+      45: 158,
+      50: 176,
+    },
+  },
+
+  ko: {
+    currency: "KRW",
+    symbol: "₩",
+    locale: "ko-KR",
+    tuitionPer20: {
+      25: 120000,
+      30: 144000,
+      35: 168000,
+      40: 192000,
+      45: 216000,
+      50: 240000,
+    },
+  },
+
+  zh: {
+    currency: "CNY",
+    symbol: "¥",
+    locale: "zh-CN",
+    tuitionPer20: {
+      25: 580,
+      30: 696,
+      35: 812,
+      40: 928,
+      45: 1044,
+      50: 1160,
+    },
+  },
+
+  ja: {
+    currency: "JPY",
+    symbol: "¥",
+    locale: "ja-JP",
+    tuitionPer20: {
+      25: 13500,
+      30: 16200,
+      35: 18900,
+      40: 21600,
+      45: 24300,
+      50: 27000,
+    },
+  },
+} satisfies Record<
+  Locale,
+  {
+    currency: string;
+    symbol: string;
+    locale: string;
+    tuitionPer20: Record<
+      LessonDuration,
+      number
+    >;
+  }
+>;
+
+const tuitionReviewNotes: Record<
+  Locale,
+  string
+> = {
+  en: "Tuition is reviewed annually and may be adjusted based on inflation and operating costs.",
+
+  ko: "수업료는 매년 검토되며 물가 상승 및 운영 비용에 따라 조정될 수 있습니다.",
+
+  zh: "学费每年进行审核，并可能根据通货膨胀和运营成本进行调整。",
+
+  ja: "授業料は毎年見直され、物価上昇や運営費の変動に応じて調整される場合があります。",
+};
+
+const termLabels: Record<
+  Locale,
+  {
+    term: string;
+    lessons: (count: number) => string;
+    flexibleTerm: string;
+    standardTerm: string;
+    perTerm: (count: number) => string;
+    choose10: string;
+    choose20: string;
+  }
+> = {
+  en: {
+    term: "Term",
+    lessons: (count) =>
+      `${count} lessons`,
+    flexibleTerm: "10 or 20 lessons",
+    standardTerm: "20-lesson term",
+    perTerm: (count) =>
+      `per ${count}-lesson term`,
+    choose10: "Choose 10 lessons",
+    choose20: "Choose 20 lessons",
+  },
+
+  ko: {
+    term: "수강 단위",
+    lessons: (count) =>
+      `${count}회 수업`,
+    flexibleTerm: "10회 또는 20회",
+    standardTerm: "20회 수업",
+    perTerm: (count) =>
+      `${count}회 수업 기준`,
+    choose10: "10회 수업 선택",
+    choose20: "20회 수업 선택",
+  },
+
+  zh: {
+    term: "课程周期",
+    lessons: (count) =>
+      `${count}节课`,
+    flexibleTerm: "10节或20节课",
+    standardTerm: "20节课",
+    perTerm: (count) =>
+      `每${count}节课`,
+    choose10: "选择10节课",
+    choose20: "选择20节课",
+  },
+
+  ja: {
+    term: "受講回数",
+    lessons: (count) =>
+      `${count}レッスン`,
+    flexibleTerm:
+      "10または20レッスン",
+    standardTerm: "20レッスン",
+    perTerm: (count) =>
+      `${count}レッスンあたり`,
+    choose10: "10レッスンを選択",
+    choose20: "20レッスンを選択",
+  },
+};
 
 export default function FindYourLesson({
   locale,
 }: FindYourLessonProps) {
-  const [selectedDuration, setSelectedDuration] =
-    useState(25);
+  const [
+    selectedDuration,
+    setSelectedDuration,
+  ] = useState<LessonDuration>(25);
+
+  const [
+    selectedLessons,
+    setSelectedLessons,
+  ] = useState<10 | 20>(20);
 
   const messages = getMessages(locale);
   const content = messages.findYourLesson;
 
-  const selectedIndex = durationOptions.findIndex(
-    (option) =>
-      option.minutes === selectedDuration
-  );
+  const currentPricing = pricing[locale];
+  const currentTermLabels =
+    termLabels[locale];
+
+  const selectedIndex =
+    durationOptions.findIndex(
+      (option) =>
+        option.minutes ===
+        selectedDuration
+    );
 
   const selectedOption =
     durationOptions[selectedIndex] ??
     durationOptions[0];
 
-  const canDecrease = selectedIndex > 0;
-  const canIncrease =
-    selectedIndex < durationOptions.length - 1;
+  const canDecreaseDuration =
+    selectedIndex > 0;
+
+  const canIncreaseDuration =
+    selectedIndex <
+    durationOptions.length - 1;
+
+  const allowsTenLessonTerm =
+    selectedOption.minutes >= 40;
 
   const decreaseDuration = () => {
-    if (!canDecrease) return;
+    if (!canDecreaseDuration) return;
 
-    setSelectedDuration(
-      durationOptions[selectedIndex - 1].minutes
-    );
+    const nextDuration =
+      durationOptions[selectedIndex - 1]
+        .minutes;
+
+    setSelectedDuration(nextDuration);
+
+    if (nextDuration < 40) {
+      setSelectedLessons(20);
+    }
   };
 
   const increaseDuration = () => {
-    if (!canIncrease) return;
+    if (!canIncreaseDuration) return;
 
     setSelectedDuration(
-      durationOptions[selectedIndex + 1].minutes
+      durationOptions[selectedIndex + 1]
+        .minutes
     );
   };
 
+  const decreaseLessons = () => {
+    if (!allowsTenLessonTerm) return;
+    if (selectedLessons !== 20) return;
+
+    setSelectedLessons(10);
+  };
+
+  const increaseLessons = () => {
+    if (!allowsTenLessonTerm) return;
+    if (selectedLessons !== 10) return;
+
+    setSelectedLessons(20);
+  };
+
+  const tuitionPer20 =
+    currentPricing.tuitionPer20[
+      selectedOption.minutes
+    ];
+
+  const tuition =
+    selectedLessons === 10
+      ? tuitionPer20 / 2
+      : tuitionPer20;
+
+  const formattedAmount =
+    tuition.toLocaleString(
+      currentPricing.locale,
+      {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }
+    );
+
   const formattedTuition =
-    `₩${selectedOption.tuition.toLocaleString(
-      "en-US"
-    )}`;
+    `${currentPricing.symbol}${formattedAmount}`;
 
   return (
     <section
@@ -120,6 +331,7 @@ export default function FindYourLesson({
     >
       <div className="mx-auto w-full max-w-[1500px]">
         {/* INTRO */}
+
         <div className="max-w-[900px] lg:ml-[2%]">
           <p
             className="
@@ -169,6 +381,7 @@ export default function FindYourLesson({
         </div>
 
         {/* LESSON DISPLAY */}
+
         <div
           className="
             mt-6
@@ -183,6 +396,7 @@ export default function FindYourLesson({
           "
         >
           {/* MASCOT */}
+
           <div
             className="
               relative
@@ -210,6 +424,7 @@ export default function FindYourLesson({
           </div>
 
           {/* LESSON CARD */}
+
           <div
             className="
               relative
@@ -238,6 +453,7 @@ export default function FindYourLesson({
               "
             >
               {/* LEFT SIDE */}
+
               <div>
                 <div
                   className="
@@ -298,6 +514,7 @@ export default function FindYourLesson({
                 </p>
 
                 {/* PLATFORMS */}
+
                 <div
                   className="
                     mt-5
@@ -372,6 +589,7 @@ export default function FindYourLesson({
                 </div>
 
                 {/* LESSON FORMAT */}
+
                 <div
                   className="
                     mt-5
@@ -503,6 +721,7 @@ export default function FindYourLesson({
               </div>
 
               {/* RIGHT SIDE */}
+
               <div
                 className="
                   border-t
@@ -516,6 +735,7 @@ export default function FindYourLesson({
                 "
               >
                 {/* DURATION */}
+
                 <div
                   className="
                     flex
@@ -569,8 +789,7 @@ export default function FindYourLesson({
                         gap-3
                       "
                     >
-                      {/* MINUS APPEARS ONLY ABOVE 25 MIN */}
-                      {canDecrease && (
+                      {canDecreaseDuration && (
                         <button
                           type="button"
                           onClick={
@@ -637,8 +856,7 @@ export default function FindYourLesson({
                         </p>
                       </div>
 
-                      {/* PLUS APPEARS ONLY BELOW 50 MIN */}
-                      {canIncrease && (
+                      {canIncreaseDuration && (
                         <button
                           type="button"
                           onClick={
@@ -679,7 +897,8 @@ export default function FindYourLesson({
                   </div>
                 </div>
 
-                {/* PACKAGE */}
+                {/* TERM */}
+
                 <div
                   className="
                     flex
@@ -709,7 +928,7 @@ export default function FindYourLesson({
                     />
                   </div>
 
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p
                       className="
                         mb-2
@@ -722,34 +941,136 @@ export default function FindYourLesson({
                         sm:text-[11px]
                       "
                     >
-                      {content.lessonsLabel}
+                      {currentTermLabels.term}
                     </p>
 
-                    <p
+                    <div
                       className="
-                        text-[29px]
-                        font-medium
-                        leading-none
-                        text-[#293A30]
-                        [font-family:var(--font-cormorant)]
-
-                        sm:text-[34px]
+                        flex
+                        min-h-[44px]
+                        items-center
+                        gap-3
                       "
                     >
-                      {content.lessons}
-                    </p>
+                      {allowsTenLessonTerm &&
+                        selectedLessons ===
+                          20 && (
+                          <button
+                            type="button"
+                            onClick={
+                              decreaseLessons
+                            }
+                            aria-label={
+                              currentTermLabels.choose10
+                            }
+                            className="
+                              flex
+                              h-10
+                              w-10
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-full
+                              border
+                              border-[#304A39]/15
+                              bg-[#FFFDF8]
+                              text-[#304A39]
+                              shadow-[0_3px_8px_rgba(48,74,57,0.06)]
+                              transition-all
+                              duration-200
 
-                    <p className="mt-1 text-[12px] text-[#758477]">
-                      {content.perPackage}
-                    </p>
+                              hover:border-[#718A73]/40
+                              hover:bg-[#F2EEE5]
+
+                              active:scale-95
+                            "
+                          >
+                            <Minus
+                              size={18}
+                              strokeWidth={1.8}
+                            />
+                          </button>
+                        )}
+
+                      <div className="min-w-[120px] text-center">
+                        <p
+                          className="
+                            text-[29px]
+                            font-medium
+                            leading-none
+                            text-[#293A30]
+                            [font-family:var(--font-cormorant)]
+
+                            sm:text-[34px]
+                          "
+                        >
+                          {currentTermLabels.lessons(
+                            selectedLessons
+                          )}
+                        </p>
+
+                        <p
+                          className="
+                            mt-1
+                            text-[12px]
+                            text-[#758477]
+                          "
+                        >
+                          {allowsTenLessonTerm
+                            ? currentTermLabels.flexibleTerm
+                            : currentTermLabels.standardTerm}
+                        </p>
+                      </div>
+
+                      {allowsTenLessonTerm &&
+                        selectedLessons ===
+                          10 && (
+                          <button
+                            type="button"
+                            onClick={
+                              increaseLessons
+                            }
+                            aria-label={
+                              currentTermLabels.choose20
+                            }
+                            className="
+                              flex
+                              h-10
+                              w-10
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-full
+                              border
+                              border-[#304A39]/15
+                              bg-[#FFFDF8]
+                              text-[#304A39]
+                              shadow-[0_3px_8px_rgba(48,74,57,0.06)]
+                              transition-all
+                              duration-200
+
+                              hover:border-[#718A73]/40
+                              hover:bg-[#F2EEE5]
+
+                              active:scale-95
+                            "
+                          >
+                            <Plus
+                              size={18}
+                              strokeWidth={1.8}
+                            />
+                          </button>
+                        )}
+                    </div>
                   </div>
                 </div>
 
                 {/* TUITION */}
+
                 <div
                   className="
                     flex
-                    items-center
+                    items-start
                     gap-4
                     py-5
                   "
@@ -770,10 +1091,10 @@ export default function FindYourLesson({
                       [font-family:var(--font-cormorant)]
                     "
                   >
-                    ₩
+                    {currentPricing.symbol}
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <p
                       className="
                         mb-2
@@ -789,28 +1110,76 @@ export default function FindYourLesson({
                       {content.tuitionLabel}
                     </p>
 
-                    <p
+                    <div
                       className="
-                        text-[38px]
-                        font-medium
-                        leading-none
-                        tracking-[-0.025em]
-                        text-[#293A30]
-                        [font-family:var(--font-cormorant)]
-
-                        sm:text-[44px]
+                        flex
+                        flex-wrap
+                        items-end
+                        gap-x-2
+                        gap-y-1
                       "
                     >
-                      {formattedTuition}
+                      <p
+                        className="
+                          text-[38px]
+                          font-medium
+                          leading-none
+                          tracking-[-0.025em]
+                          text-[#293A30]
+                          [font-family:var(--font-cormorant)]
+
+                          sm:text-[44px]
+                        "
+                      >
+                        {formattedTuition}
+                      </p>
+
+                      <span
+                        className="
+                          pb-1
+                          text-[11px]
+                          font-semibold
+                          uppercase
+                          tracking-[0.12em]
+                          text-[#718A73]
+                        "
+                      >
+                        {currentPricing.currency}
+                      </span>
+                    </div>
+
+                    <p
+                      className="
+                        mt-1
+                        text-[12px]
+                        text-[#758477]
+                      "
+                    >
+                      {currentTermLabels.perTerm(
+                        selectedLessons
+                      )}
                     </p>
 
-                    <p className="mt-1 text-[12px] text-[#758477]">
-                      {content.perPackage}
+                    <p
+                      className="
+                        mt-3
+                        max-w-[390px]
+                        text-[11px]
+                        leading-[1.5]
+                        text-[#8A948C]
+                      "
+                    >
+                      {
+                        tuitionReviewNotes[
+                          locale
+                        ]
+                      }
                     </p>
                   </div>
                 </div>
 
                 {/* CTA */}
+
                 <button
                   type="button"
                   className="
