@@ -100,12 +100,11 @@ export default function Footer() {
               <p
                 className="
                   mt-2.5
+                  max-w-[390px]
 
                   text-[12px]
                   leading-5
                   text-white/45
-
-                  lg:whitespace-nowrap
                 "
               >
                 {content.description}
