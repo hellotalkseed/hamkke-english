@@ -4,32 +4,16 @@ const zh = {
   ...en,
 
   nav: {
-    ...en.nav,
+  ...en.nav,
 
-    home: "首页",
-    approach: "Hamkke 教学方式",
-    lessons: "课程",
-    teachers: "老师",
-    policy: "课程政策",
-    about: "关于 Hamkke",
-    login: "登录",
-
-    experience: "课程体验",
-    goals: "学习目标",
-    stories: "学员故事",
-    startConversation: "开始交流",
-  },
-
-  info: {
-    ...en.info,
-
-    title: "课程信息",
-    pricing: "课程费用",
-    howItWorks: "课程流程",
-    platform: "上课平台",
-    policy: "课程政策",
-    faq: "常见问题",
-  },
+  home: "首页",
+  approach: "Hamkke 教学方式",
+  lessons: "课程",
+  teachers: "老师",
+  policy: "课程政策",
+  about: "关于 Hamkke",
+  login: "登录",
+},
 
   policy: {
     ...en.policy,
@@ -204,351 +188,6 @@ const zh = {
 
       thankYou:
         "谢谢你珍惜我们为每一次交流专门预留的时间。",
-    },
-  },
-
-  pricing: {
-    ...en.pricing,
-
-    title: "课程费用",
-
-    intro:
-      "简单清晰的一对一英语课程费用说明，让你在开始之前就了解课程安排。",
-
-    privateLessons: {
-      title: "一对一在线英语课程",
-      package: "20 节课 · 每节 25 分钟",
-
-      description:
-        "通过真实的交流、思考、尝试和犯错，慢慢习惯用英语表达自己的一对一课程。",
-    },
-
-    waysToLearn: {
-      title: "两种学习方向",
-
-      subtitle: "先从你的目标开始。",
-
-      description:
-        "有些学习者希望在日常交流中更自然地使用英语，也有人需要为面试、工作或其他具体场景做准备。Hamkke 可以根据不同的目标调整课程。",
-
-      general: {
-        title: "综合英语",
-
-        subtitle: "为了日常交流。",
-
-        description:
-          "通过与你真正有关的话题，培养更自然地表达自己以及持续交流的能力和信心。",
-
-        points: [
-          "日常会话",
-          "更自然的表达",
-          "词汇与实用表达",
-          "表达自己的想法",
-          "建立开口说英语的信心",
-          "在真实语境中学习语法",
-        ],
-      },
-
-      specialized: {
-        title: "目标型英语",
-
-        subtitle: "为了更具体的目标。",
-
-        description:
-          "根据特定场景、目标或沟通需求来安排课程内容。",
-
-        points: [
-          "求职面试",
-          "商务英语",
-          "演讲与表达",
-          "旅行英语",
-          "学术讨论",
-          "其他具体的英语沟通目标",
-        ],
-      },
-    },
-
-    lessonFlow: {
-      title: "一节课会怎么进行？",
-
-      intro: "我们不只是学习英语。",
-
-      introHighlight: "我们会真正使用它。",
-
-      steps: {
-        conversation: {
-          number: "01",
-          title: "交流",
-          text:
-            "围绕与你有关的话题，用英语进行真实的交流。",
-        },
-
-        feedback: {
-          number: "02",
-          title: "反馈",
-          text:
-            "从语法、词汇、发音和表达中，选择当前对交流最有帮助的部分进行反馈。",
-        },
-
-        refinement: {
-          number: "03",
-          title: "优化表达",
-          text:
-            "一起找到更清楚、更自然的方式来表达你真正想说的内容。",
-        },
-
-        practice: {
-          number: "04",
-          title: "再次使用",
-          text:
-            "在交流中再次使用刚刚学到的英语，让它逐渐成为你真正会使用的语言。",
-        },
-      },
-    },
-
-    practical: {
-      title: "课程基本信息",
-
-      intro: "从一开始就保持简单清楚。",
-
-      details: {
-        lessonLength: {
-          label: "单节课时长",
-          value: "25 分钟",
-        },
-
-        package: {
-          label: "课时数量",
-          value: "20 节一对一课程",
-        },
-
-        format: {
-          label: "课程形式",
-          value: "在线 · 一对一",
-        },
-
-        tuition: {
-          label: "课程费用",
-        },
-      },
-
-      policy: "课程政策",
-    },
-  },
-
-  platform: {
-    ...en.platform,
-
-    title: "使用你熟悉的平台上课",
-
-    intro:
-      "选择你最方便使用的平台。无论我们在哪里见面，课程的核心方式都不会改变。",
-
-    available: {
-      title: "可使用的平台",
-
-      subtitle: "在你觉得方便的地方见面。",
-
-      description:
-        "Hamkke 的课程可以通过多种常用的在线平台进行，你可以选择自己最熟悉、最方便的方式。",
-    },
-
-    note:
-      "不需要特别的设备。稳定的网络、可以清楚收音的麦克风，以及一个能够安心交流的环境就足够了。",
-
-    beforeLesson: {
-      title: "上课前",
-
-      subtitle: "只需要做一点简单的准备。",
-
-      description:
-        "不需要复杂的设备，也不需要特别布置学习空间。准备好基本的工具，把更多时间留给真正的英语交流。",
-
-      items: [
-        {
-          number: "01",
-          title: "设备",
-          text:
-            "可以连接所选上课平台的电脑、平板电脑或手机。",
-        },
-
-        {
-          number: "02",
-          title: "网络",
-          text:
-            "能够支持顺畅交流的稳定网络连接。",
-        },
-
-        {
-          number: "03",
-          title: "麦克风",
-          text:
-            "能够让彼此清楚听到声音的耳机或麦克风。",
-        },
-
-        {
-          number: "04",
-          title: "安静的环境",
-          text:
-            "尽量选择一个不会经常被打扰、可以安心交流的地方。",
-        },
-      ],
-    },
-
-    closing: {
-      text:
-        "平台只是我们见面的地方。真正重要的是，我们在那里进行的交流。",
-    },
-  },
-
-  faq: {
-    ...en.faq,
-
-    title: "常见问题",
-
-    intro:
-      "这里整理了一些学习者在开始第一节课前经常会问的问题。",
-
-    questions: [
-      {
-        question:
-          "如果我说英语时很紧张，或者没有信心，也可以上课吗？",
-
-        answer:
-          "当然可以。你不需要从一开始就说得很完美。你的老师会通过提问、给你思考时间以及适当的提示，让你慢慢习惯用英语表达自己。",
-      },
-
-      {
-        question:
-          "上课的时候可以随时提问吗？",
-
-        answer:
-          "当然可以。如果有不理解的地方、想知道另一种表达方式，或者想进一步了解某个内容，都可以随时提问。",
-      },
-
-      {
-        question:
-          "需要另外购买教材或课本吗？",
-
-        answer:
-          "通常不需要。一般课程不要求另外购买教材。你的老师会根据课程内容和你的学习目标准备需要的资料。",
-      },
-
-      {
-        question:
-          "上课前需要提前准备什么吗？",
-
-        answer:
-          "大多数情况下不需要特别准备。你可以直接来上课，我们从交流开始。如果某节课需要提前准备，你的老师会事先告诉你。",
-      },
-
-      {
-        question:
-          "我可以带自己想学习的材料或话题来上课吗？",
-
-        answer:
-          "可以。如果你有想讨论的话题、文章、视频、演讲材料或其他内容，都可以带到课堂上，我们可以把它们用于真实的交流和练习。",
-      },
-
-      {
-        question: "课程费用怎么支付？",
-
-        answer:
-          "确认课程安排时，我们会同时说明可使用的付款方式。如果对付款流程有任何疑问，可以直接联系我们。",
-      },
-
-      {
-        question: "课程费用可以退款吗？",
-
-        answer:
-          "退款和课程转让会按照 Hamkke 的课程政策处理。详细内容请查看课程政策页面。",
-      },
-
-      {
-        question:
-          "下一期课程什么时候付款？",
-
-        answer:
-          "在当前课程期结束前，我们会确认是否继续下一期课程，并提供相应的付款信息。",
-      },
-
-      {
-        question:
-          "如果需要取消、缺席或调整课程时间怎么办？",
-
-        answer:
-          "有关取消、缺席和改期的具体规则，请查看 Hamkke 的课程政策。",
-      },
-    ],
-
-    closing:
-      "如果还有其他想了解的问题，欢迎随时联系。",
-  },
-
-  howItWorks: {
-    ...en.howItWorks,
-
-    title: "如何开始课程",
-
-    intro:
-      "从第一次联系到正式开始上课，整个过程都会尽量保持简单清楚。",
-
-    steps: {
-      inquire: {
-        number: "01",
-        title: "联系 Hamkke",
-        text:
-          "简单告诉我们你目前学习英语的情况、希望提升的地方，以及你想通过课程实现什么目标。",
-      },
-
-      assessment: {
-        number: "02",
-        title: "免费评估",
-        text:
-          "通过简短的交流了解你目前的英语水平、表达习惯，以及可能需要哪些方面的支持。",
-      },
-
-      decide: {
-        number: "03",
-        title: "一起确认",
-        text:
-          "我们会聊聊你需要什么样的课程，也一起看看 Hamkke 是否适合你。不需要当场决定是否报名。",
-      },
-
-      details: {
-        number: "04",
-        title: "确认课程安排",
-        text:
-          "如果决定一起开始学习，我们会确认课程形式、时间安排、费用和付款方式等信息。",
-      },
-
-      contract: {
-        number: "05",
-        title: "确认协议",
-        text:
-          "确认课程内容后，我们会完成课程协议并确定上课时间。",
-      },
-
-      payment: {
-        number: "06",
-        title: "付款",
-        text:
-          "课程开始前完成付款。确认付款后，就可以准备正式开始课程。",
-      },
-
-      begin: {
-        number: "07",
-        title: "开始上课",
-        text:
-          "从这里开始真正的交流。你会在实际使用英语的过程中朝自己的目标前进，并逐渐建立表达的信心。",
-      },
-    },
-
-    closing: {
-      title: "不需要复杂的流程。",
-
-      text:
-        "我们只是从了解你现在在哪里、想走到哪里，以及 Hamkke 是否适合陪你完成这段学习过程开始。",
     },
   },
 
@@ -938,14 +577,14 @@ const zh = {
   },
 
   audience: {
-    eyebrow: "课程适合谁？",
+    eyebrow: "适合哪些学习者",
 
     title:
       "找到适合你的学习方式。",
 
     description: {
       text:
-        "同样以对话为中心的学习方式，也会根据不同的年龄和目标进行调整。聊什么，以及老师如何提供支持，都会根据学习者的需要而变化。",
+        "同样以对话为中心的学习方式，也会根据不同的年龄和目标进行调整。聊什么、怎么聊，以及老师如何提供支持，都会随着学习者的需要而变化。",
 
       highlight:
         "根据不同的年龄和目标进行调整",
@@ -953,27 +592,27 @@ const zh = {
 
     groups: {
       kids: {
-        label: "儿童",
+        label: "Kids",
 
         title:
-          "让正在学习的英语，有更多真正用出来的机会。",
+          "有更多机会真正用上正在学习的英语。",
 
         description:
-          "适合正在学习英语，但需要更多机会在对话中回答问题、进行解释，并表达自己想法的孩子。",
+          "适合正在学习英语，但还需要更多机会在对话中回答问题、进行说明，并表达自己想法的孩子。",
 
         goals: [
           "口语练习",
-          "在对话中学习词汇",
+          "对话中的词汇",
           "更完整的回答",
           "口语自信",
         ],
       },
 
       teens: {
-        label: "青少年",
+        label: "Teens",
 
         title:
-          "不只停留在简短回答。",
+          "不再只停留在简短回答。",
 
         description:
           "适合希望表达自己的观点、解释想法，并更自在地用英语进行较长对话的青少年。",
@@ -987,13 +626,13 @@ const zh = {
       },
 
       adults: {
-        label: "成人",
+        label: "Adults",
 
         title:
-          "在对你重要的场合，真正用上英语。",
+          "在对你重要的场合真正用上英语。",
 
         description:
-          "适合希望在日常生活、工作、旅行，或对自己重要的交流中，更自在地使用英语沟通的成人。",
+          "适合希望在日常生活、工作、旅行，或对自己重要的交流场景中，更自在地使用英语沟通的成年人。",
 
         goals: [
           "日常英语",
@@ -1714,45 +1353,33 @@ const zh = {
   },
 
   footer: {
-    ...en.footer,
+  ...en.footer,
 
-    brand: "Hamkke │ 함께",
-    tagline: "From Small Talk to Big Ideas.",
+  brand: "Hamkke │ 함께",
+  tagline: "From Small Talk to Big Ideas.",
 
-    description:
-      "以交流为中心的英语课程，帮助学习者真正使用更多自己已经会的英语。",
+  description:
+    "以交流为中心的英语课程，帮助学习者真正使用更多自己已经会的英语。",
 
-    groups: {
-      learn: "学习",
-      hamkke: "Hamkke",
-      connect: "联系",
-    },
-
-    links: {
-      lessons: "课程",
-      approach: "Hamkke 教学方式",
-      teachers: "老师",
-      about: "关于 Hamkke",
-      policy: "课程政策",
-      startConversation: "开始交流",
-      instagram: "Instagram",
-    },
-
-    copyright:
-      "© 2026 Hamkke │ 함께. All rights reserved.",
-
-    lessons: "课程",
-    lessonsGroup: "学习",
-    howItWorks: "课程流程",
-    pricing: "课程费用",
-    platform: "上课平台",
-    hamkkeGroup: "Hamkke",
-    about: "关于 Hamkke",
-    faq: "常见问题",
-    policy: "课程政策",
-    connectGroup: "联系",
-    startConversation: "开始交流",
+  groups: {
+    learn: "学习",
+    hamkke: "Hamkke",
+    connect: "联系",
   },
+
+  links: {
+    lessons: "课程",
+    approach: "Hamkke 教学方式",
+    teachers: "老师",
+    about: "关于 Hamkke",
+    policy: "课程政策",
+    startConversation: "开始交流",
+    instagram: "Instagram",
+  },
+
+  copyright:
+    "© 2026 Hamkke │ 함께. All rights reserved.",
+},
 
   inquiry: {
     ...en.inquiry,
@@ -1884,9 +1511,3 @@ const zh = {
 };
 
 export default zh;
-
-
-
-
-
-

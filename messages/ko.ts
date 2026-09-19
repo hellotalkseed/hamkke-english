@@ -4,32 +4,16 @@ const ko = {
   ...en,
 
   nav: {
-    ...en.nav,
+  ...en.nav,
 
-    home: "홈",
-    approach: "Hamkke 방식",
-    lessons: "수업",
-    teachers: "선생님",
-    policy: "수업 정책",
-    about: "Hamkke 소개",
-    login: "로그인",
-
-    experience: "수업 경험",
-    goals: "목표",
-    stories: "이야기",
-    startConversation: "대화 시작하기",
-  },
-
-  info: {
-    ...en.info,
-
-    title: "안내",
-    pricing: "수업료",
-    howItWorks: "수업 진행 방식",
-    platform: "수업 플랫폼",
-    policy: "수업 정책",
-    faq: "자주 묻는 질문",
-  },
+  home: "홈",
+  approach: "Hamkke 방식",
+  lessons: "수업",
+  teachers: "선생님",
+  policy: "수업 정책",
+  about: "Hamkke 소개",
+  login: "로그인",
+},
 
   policy: {
     ...en.policy,
@@ -206,351 +190,6 @@ const ko = {
 
       thankYou:
         "매 수업을 위해 함께 정해 둔 시간을 소중히 지켜 주셔서 감사합니다.",
-    },
-  },
-
-  pricing: {
-    ...en.pricing,
-
-    title: "수업료",
-
-    intro:
-      "한 사람에게 집중하는 영어 수업을 위한 간단하고 명확한 수업료 안내입니다.",
-
-    privateLessons: {
-      title: "1:1 개인 영어 수업",
-      package: "20회 · 회당 25분",
-
-      description:
-        "편안하게 말하고, 생각하고, 실수하면서 영어로 표현하는 데 조금씩 익숙해질 수 있는 개인 수업입니다.",
-    },
-
-    waysToLearn: {
-      title: "두 가지 수업 방향",
-
-      subtitle: "먼저 목표를 봅니다.",
-
-      description:
-        "일상에서 영어로 더 편안하게 말하고 싶은 분도 있고, 면접이나 업무처럼 특정 상황을 준비하고 싶은 분도 있습니다. Hamkke에서는 두 가지 모두 가능합니다.",
-
-      general: {
-        title: "일반 영어",
-
-        subtitle: "일상적인 대화를 위해.",
-
-        description:
-          "나에게 중요한 이야기를 영어로 조금 더 자연스럽게 표현할 수 있도록 말하기 자신감을 키웁니다.",
-
-        points: [
-          "일상 대화",
-          "더 자연스럽게 말하기",
-          "어휘와 표현",
-          "생각 표현하기",
-          "말하기 자신감",
-          "실제 대화 속 문법",
-        ],
-      },
-
-      specialized: {
-        title: "목적별 영어",
-
-        subtitle: "구체적인 목표를 위해.",
-
-        description:
-          "특정 상황이나 목표, 의사소통 과제에 맞춰 수업을 구성합니다.",
-
-        points: [
-          "취업 면접",
-          "업무 영어",
-          "프레젠테이션",
-          "여행 영어",
-          "학술적 토론",
-          "그 밖의 구체적인 의사소통 목표",
-        ],
-      },
-    },
-
-    lessonFlow: {
-      title: "수업에서는 무엇을 하나요?",
-
-      intro: "영어를 공부하는 데서 끝나지 않습니다.",
-
-      introHighlight: "직접 사용합니다.",
-
-      steps: {
-        conversation: {
-          number: "01",
-          title: "대화",
-          text:
-            "나와 관련 있는 주제로 실제 이야기를 나눕니다.",
-        },
-
-        feedback: {
-          number: "02",
-          title: "피드백",
-          text:
-            "문법, 어휘, 발음, 표현에서 도움이 될 부분을 함께 살펴봅니다.",
-        },
-
-        refinement: {
-          number: "03",
-          title: "다듬기",
-          text:
-            "내가 말하고 싶은 내용을 더 분명하고 자연스럽게 표현하는 방법을 찾아봅니다.",
-        },
-
-        practice: {
-          number: "04",
-          title: "다시 사용하기",
-          text:
-            "배운 표현이 내 것이 될 수 있도록 다시 대화 속에서 사용해 봅니다.",
-        },
-      },
-    },
-
-    practical: {
-      title: "수업 기본 정보",
-
-      intro: "처음부터 간단하고 명확하게.",
-
-      details: {
-        lessonLength: {
-          label: "수업 시간",
-          value: "25분",
-        },
-
-        package: {
-          label: "수강 횟수",
-          value: "1:1 수업 20회",
-        },
-
-        format: {
-          label: "수업 방식",
-          value: "온라인 · 1:1",
-        },
-
-        tuition: {
-          label: "수업료",
-        },
-      },
-
-      policy: "수업 정책",
-    },
-  },
-
-  platform: {
-    ...en.platform,
-
-    title: "편한 플랫폼에서 만나요",
-
-    intro:
-      "가장 편하게 사용할 수 있는 플랫폼을 선택해 주세요. 어디에서 만나든 수업의 방향은 같습니다.",
-
-    available: {
-      title: "사용 가능한 플랫폼",
-
-      subtitle: "편한 곳에서 만나요.",
-
-      description:
-        "Hamkke 수업은 여러 익숙한 온라인 플랫폼에서 진행할 수 있어, 본인에게 가장 편한 방법을 선택할 수 있습니다.",
-    },
-
-    note:
-      "완벽한 장비는 필요하지 않습니다. 안정적인 인터넷 연결과 마이크, 그리고 편하게 말할 수 있는 조용한 공간이 있다면 충분합니다.",
-
-    beforeLesson: {
-      title: "수업 전에",
-
-      subtitle: "몇 가지만 준비하면 충분합니다.",
-
-      description:
-        "복잡한 장비나 특별한 공부 공간은 필요하지 않습니다. 실제로 영어를 말하는 데 시간을 쓸 수 있도록 기본적인 것만 준비해 주세요.",
-
-      items: [
-        {
-          number: "01",
-          title: "기기",
-          text:
-            "선택한 플랫폼에 접속할 수 있는 컴퓨터, 태블릿 또는 스마트폰.",
-        },
-
-        {
-          number: "02",
-          title: "인터넷",
-          text:
-            "대화를 원활하게 이어갈 수 있는 안정적인 인터넷 연결.",
-        },
-
-        {
-          number: "03",
-          title: "마이크",
-          text:
-            "서로의 목소리를 또렷하게 들을 수 있는 이어폰 또는 마이크.",
-        },
-
-        {
-          number: "04",
-          title: "조용한 공간",
-          text:
-            "방해를 많이 받지 않고 편하게 말할 수 있는 공간.",
-        },
-      ],
-    },
-
-    closing: {
-      text:
-        "플랫폼은 우리가 만나는 장소일 뿐입니다. 더 중요한 것은 그곳에서 나누는 대화입니다.",
-    },
-  },
-
-  faq: {
-    ...en.faq,
-
-    title: "자주 묻는 질문",
-
-    intro:
-      "첫 수업 전에 궁금할 수 있는 내용을 정리했습니다.",
-
-    questions: [
-      {
-        question:
-          "영어로 말하는 것이 긴장되거나 자신이 없으면 어떡하나요?",
-
-        answer:
-          "괜찮습니다. 처음부터 완벽하게 말할 필요는 없습니다. 대화를 이어갈 수 있도록 질문을 드리고, 생각할 시간을 충분히 드리며, 조금씩 더 편하게 표현할 수 있도록 도와드립니다.",
-      },
-
-      {
-        question:
-          "수업 중에 질문해도 되나요?",
-
-        answer:
-          "물론입니다. 이해되지 않는 부분이 있거나, 다른 방식으로 표현하고 싶거나, 더 알고 싶은 것이 있다면 언제든 질문해 주세요.",
-      },
-
-      {
-        question:
-          "교재나 책을 따로 구매해야 하나요?",
-
-        answer:
-          "아니요. 일반 수업을 위해 별도의 교재나 자료를 구매할 필요는 없습니다. 수업과 학습 목표에 맞춰 필요한 자료를 준비합니다.",
-      },
-
-      {
-        question:
-          "수업 전에 따로 준비해야 할 것이 있나요?",
-
-        answer:
-          "대부분은 없습니다. 편하게 수업에 들어와 대화를 시작하면 됩니다. 미리 준비할 내용이 있는 경우에는 사전에 안내드립니다.",
-      },
-
-      {
-        question:
-          "제가 원하는 자료나 주제를 사용해도 되나요?",
-
-        answer:
-          "네. 함께 이야기하고 싶은 주제, 기사, 영상, 프레젠테이션 또는 다른 자료가 있다면 가져와 주세요. 실제 대화와 연습에 활용할 수 있습니다.",
-      },
-
-      {
-        question: "결제는 어떻게 하나요?",
-
-        answer:
-          "수업 일정을 정할 때 결제 방법을 함께 안내드립니다. 결제 과정이 어렵거나 궁금한 점이 있다면 편하게 문의해 주세요.",
-      },
-
-      {
-        question: "수업료는 환불할 수 있나요?",
-
-        answer:
-          "환불과 수업 양도는 Hamkke 수업 정책에 따라 처리됩니다. 자세한 내용은 수업 정책을 확인해 주세요.",
-      },
-
-      {
-        question:
-          "다음 term의 수업료는 언제 결제하나요?",
-
-        answer:
-          "현재 term이 끝나기 전에 다음 term의 결제를 안내드립니다.",
-      },
-
-      {
-        question:
-          "수업을 취소하거나 빠져야 하면 어떻게 하나요?",
-
-        answer:
-          "수업 취소, 결석, 일정 변경에 관한 자세한 기준은 수업 정책에서 확인할 수 있습니다.",
-      },
-    ],
-
-    closing:
-      "아직 궁금한 점이 있다면 언제든 문의해 주세요.",
-  },
-
-  howItWorks: {
-    ...en.howItWorks,
-
-    title: "수업 시작 과정",
-
-    intro:
-      "첫 문의부터 첫 수업까지 간단하게 진행됩니다.",
-
-    steps: {
-      inquire: {
-        number: "01",
-        title: "문의하기",
-        text:
-          "현재 영어 학습 상황과 개선하고 싶은 부분, 수업을 통해 이루고 싶은 목표를 간단히 알려 주세요.",
-      },
-
-      assessment: {
-        number: "02",
-        title: "무료 레벨 확인",
-        text:
-          "현재 영어 수준과 말하기 습관, 필요한 학습 지원을 이해하기 위해 짧은 assessment를 진행합니다.",
-      },
-
-      decide: {
-        number: "03",
-        title: "함께 확인하기",
-        text:
-          "어떤 수업이 필요한지 이야기하고 Hamkke 수업이 잘 맞을지 함께 확인합니다. 바로 등록해야 한다는 부담은 없습니다.",
-      },
-
-      details: {
-        number: "04",
-        title: "수업 정보 확인",
-        text:
-          "함께 수업하기로 결정하면 수업 방식, 일정, 수업료, 결제 방법 등 필요한 내용을 안내드립니다.",
-      },
-
-      contract: {
-        number: "05",
-        title: "계약",
-        text:
-          "모든 내용을 확인한 뒤 수업 계약과 일정을 확정합니다.",
-      },
-
-      payment: {
-        number: "06",
-        title: "결제",
-        text:
-          "수업 시작 전에 결제를 진행합니다. 결제가 확인되면 수업 준비가 완료됩니다.",
-      },
-
-      begin: {
-        number: "07",
-        title: "수업 시작",
-        text:
-          "이제 대화를 시작합니다. 영어를 직접 사용하면서 목표를 향해 나아가고, 실제 대화를 통해 조금씩 자신감을 키웁니다.",
-      },
-    },
-
-    closing: {
-      title: "복잡한 과정은 없습니다.",
-
-      text:
-        "현재 어디에 있는지, 어디까지 가고 싶은지, 그리고 Hamkke가 그 과정에 잘 맞는지 함께 이야기하는 것부터 시작합니다.",
     },
   },
 
@@ -938,14 +577,14 @@ const ko = {
   },
 
   audience: {
-    eyebrow: "누구를 위한 수업인가요?",
+    eyebrow: "이런 분께 추천해요",
 
     title:
-      "나에게 맞는 지점을 찾아보세요.",
+      "나에게 맞는 수업을 찾아보세요.",
 
     description: {
       text:
-        "같은 대화 중심의 접근 방식도 학습자의 나이와 목표에 따라 달라집니다. 무엇을 이야기하는지, 그리고 선생님이 어떻게 도와주는지도 학습자에 맞게 조정됩니다.",
+        "같은 대화 중심의 접근 방식도 학습자의 나이와 목표에 따라 달라집니다. 어떤 이야기를 나누는지, 그리고 선생님이 어떻게 도와주는지도 학습자에 맞게 달라집니다.",
 
       highlight:
         "학습자의 나이와 목표에 따라 달라집니다",
@@ -956,10 +595,10 @@ const ko = {
         label: "Kids",
 
         title:
-          "배우고 있는 영어를 직접 사용할 기회를 더 많이.",
+          "배우고 있는 영어를 직접 사용해 볼 기회를 더 많이.",
 
         description:
-          "영어를 배우고 있지만, 대화 속에서 대답하고, 설명하고, 자신의 생각을 표현할 기회가 더 필요한 아이들을 위한 수업입니다.",
+          "영어를 배우고 있지만, 대화 속에서 직접 대답하고 설명하며 자신의 생각을 표현할 기회가 더 필요한 아이들을 위한 수업입니다.",
 
         goals: [
           "말하기 연습",
@@ -973,10 +612,10 @@ const ko = {
         label: "Teens",
 
         title:
-          "짧은 대답에서 한 걸음 더.",
+          "짧은 대답에서 한 걸음 더 나아가요.",
 
         description:
-          "자신의 의견을 표현하고, 생각을 설명하며, 영어로 더 긴 대화를 편안하게 이어가고 싶은 청소년을 위한 수업입니다.",
+          "자신의 의견을 표현하고, 생각을 설명하며, 영어로 조금 더 긴 대화를 편안하게 이어가고 싶은 청소년을 위한 수업입니다.",
 
         goals: [
           "대화",
@@ -990,15 +629,15 @@ const ko = {
         label: "Adults",
 
         title:
-          "나에게 중요한 상황에서 영어를 사용하세요.",
+          "나에게 중요한 순간에 영어를 사용할 수 있도록.",
 
         description:
-          "일상생활, 직장, 여행, 또는 개인적으로 중요한 대화에서 영어로 더 편안하게 소통하고 싶은 성인을 위한 수업입니다.",
+          "일상생활, 직장, 여행 또는 자신에게 중요한 대화에서 영어로 더 편안하게 소통하고 싶은 성인을 위한 수업입니다.",
 
         goals: [
           "일상 영어",
           "업무",
-          "면접",
+          "인터뷰",
           "여행",
           "자유 대화",
         ],
@@ -1713,45 +1352,33 @@ const ko = {
   },
 
   footer: {
-    ...en.footer,
+  ...en.footer,
 
-    brand: "Hamkke │ 함께",
-    tagline: "From Small Talk to Big Ideas.",
+  brand: "Hamkke │ 함께",
+  tagline: "From Small Talk to Big Ideas.",
 
-    description:
-      "이미 알고 있는 영어를 실제 대화에서 더 많이 사용할 수 있도록 돕는 대화 중심 영어 수업입니다.",
+  description:
+    "이미 알고 있는 영어를 실제 대화에서 더 많이 사용할 수 있도록 돕는 대화 중심 영어 수업입니다.",
 
-    groups: {
-      learn: "수업",
-      hamkke: "Hamkke",
-      connect: "연결",
-    },
-
-    links: {
-      lessons: "수업",
-      approach: "Hamkke 방식",
-      teachers: "선생님",
-      about: "Hamkke 소개",
-      policy: "수업 정책",
-      startConversation: "대화 시작하기",
-      instagram: "Instagram",
-    },
-
-    copyright:
-      "© 2026 Hamkke │ 함께. All rights reserved.",
-
-    lessons: "수업",
-    lessonsGroup: "수업",
-    howItWorks: "수업 진행 방식",
-    pricing: "수업료",
-    platform: "플랫폼",
-    hamkkeGroup: "Hamkke",
-    about: "Hamkke 소개",
-    faq: "자주 묻는 질문",
-    policy: "수업 정책",
-    connectGroup: "연결",
-    startConversation: "대화 시작하기",
+  groups: {
+    learn: "수업",
+    hamkke: "Hamkke",
+    connect: "연결",
   },
+
+  links: {
+    lessons: "수업",
+    approach: "Hamkke 방식",
+    teachers: "선생님",
+    about: "Hamkke 소개",
+    policy: "수업 정책",
+    startConversation: "대화 시작하기",
+    instagram: "Instagram",
+  },
+
+  copyright:
+    "© 2026 Hamkke │ 함께. All rights reserved.",
+},
 
   inquiry: {
     ...en.inquiry,
