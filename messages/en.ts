@@ -64,7 +64,7 @@ const en = {
       title: "Cancellation & Rescheduling",
 
       intro:
-        "Plans can change, and I understand that. If you need to cancel or reschedule, please let me know at least 2 hours before your scheduled lesson.",
+        "Plans can change, and we understand that. If you need to cancel or reschedule, please let your teacher know at least 2 hours before your scheduled lesson.",
 
       notice: {
         title: "With 2+ hours' notice",
@@ -83,7 +83,7 @@ const en = {
       },
 
       note:
-        "If something unexpected comes up, please let me know as soon as you can. I'll do my best to accommodate you when possible.",
+        "If something unexpected comes up, please let your teacher know as soon as you can. Hamkke will do its best to find a reasonable solution when possible.",
     },
 
     unexpected: {
@@ -95,20 +95,20 @@ const en = {
         "Power outages, internet or connection problems, emergencies, and other unexpected circumstances may occasionally make it difficult to attend a lesson.",
 
       action:
-        "If something like this happens, please let me know as soon as possible.",
+        "If something like this happens, please let your teacher know as soon as possible.",
 
       resolution:
-        "I'll do my best to find a reasonable solution, such as rescheduling the lesson or providing credit.",
+        "Hamkke will work with you to find a reasonable solution, such as rescheduling the lesson or providing credit.",
 
       teacher:
-        "This also applies if an unexpected issue on my side prevents us from having the lesson as planned.",
+        "This also applies if an unexpected issue on your teacher's side prevents the lesson from going ahead as planned.",
     },
 
     lateArrivals: {
       title: "Late Arrivals",
 
       intro:
-        "If you're running late, just let me know when you can.",
+        "If you're running late, just let your teacher know when you can.",
 
       rule:
         "Your lesson will still end at its originally scheduled time.",
@@ -117,17 +117,17 @@ const en = {
         "For example, if your lesson is scheduled from 8:00–8:25 PM and you join at 8:10 PM, the lesson will run from 8:10–8:25 PM.",
 
       noContact:
-        "If you don't join within 10 minutes and haven't contacted me, the lesson will be considered a no-show and counted as completed.",
+        "If you don't join within 10 minutes and haven't contacted your teacher, the lesson will be considered a no-show and counted as completed.",
     },
 
     teacherCancellations: {
       title: "Teacher Cancellations",
 
       intro:
-        "Sometimes I may need to cancel a lesson too.",
+        "Sometimes your teacher may need to cancel a lesson too.",
 
       text:
-        "If I ever need to cancel a lesson, I'll let you know as soon as possible.",
+        "If your teacher needs to cancel a lesson, they'll let you know as soon as possible.",
 
       resolution:
         "You will receive either a replacement lesson or full credit for the missed session.",
@@ -139,10 +139,10 @@ const en = {
       intro: "Life doesn't always go according to plan.",
 
       rule:
-        "There is no fixed limit on cancellations. I understand that unexpected things happen.",
+        "There is no fixed limit on cancellations. We understand that unexpected things happen.",
 
       text:
-        "However, if frequent cancellations or rescheduling begin to affect lesson availability, I may reach out to discuss your regular schedule and find an arrangement that works better for both of us.",
+        "However, if frequent cancellations or rescheduling begin to affect lesson availability, Hamkke may reach out to discuss your regular schedule and find an arrangement that works better for everyone.",
 
       note:
         "The goal isn't to make things difficult. It's simply to make sure that reserved lesson times remain useful and fair for everyone.",
@@ -177,7 +177,7 @@ const en = {
         "In exceptional circumstances, a refund may be considered at Hamkke's discretion.",
 
       note:
-        "If something unexpected comes up, please talk to me first. I'll always try to find a fair and reasonable way forward.",
+        "If something unexpected comes up, please reach out to Hamkke first. We'll work with you to find a fair and reasonable way forward.",
     },
 
     closing: {
@@ -274,7 +274,7 @@ const en = {
           number: "02",
           title: "Feedback",
           text:
-            "I'll help you notice grammar, vocabulary, pronunciation, and expressions.",
+            "Your teacher will help you notice grammar, vocabulary, pronunciation, and expressions.",
         },
 
         refinement: {
@@ -398,7 +398,7 @@ const en = {
           "What if I'm nervous or not confident in English?",
 
         answer:
-          "That's completely okay. You don't need to speak perfectly to begin. I'll guide the conversation, give you time to think, and help you express yourself more comfortably as we go.",
+          "That's completely okay. You don't need to speak perfectly to begin. Your teacher will guide the conversation, give you time to think, and help you express yourself more comfortably as you go.",
       },
 
       {
@@ -414,7 +414,7 @@ const en = {
           "Do I need to buy books or materials?",
 
         answer:
-          "No. You don't need to purchase a textbook or other materials for regular lessons. I'll prepare what we need based on the lesson and your goals.",
+          "No. You don't need to purchase a textbook or other materials for regular lessons. Your teacher will prepare what you need based on the lesson and your goals.",
       },
 
       {
@@ -422,7 +422,7 @@ const en = {
           "Do I need to prepare anything before class?",
 
         answer:
-          "Usually, no. You can simply come to class and start talking. If there's something specific I'd like you to prepare beforehand, I'll let you know.",
+          "Usually, no. You can simply come to class and start talking. If there's something specific your teacher would like you to prepare beforehand, they'll let you know.",
       },
 
       {
@@ -437,7 +437,7 @@ const en = {
         question: "How do I pay?",
 
         answer:
-          "Payment details will be provided when we arrange your lessons. If you're unsure about the payment process, just ask and I'll guide you through it.",
+          "Payment details will be provided when we arrange your lessons. If you're unsure about the payment process, just ask and we'll guide you through it.",
       },
 
       {
@@ -452,7 +452,7 @@ const en = {
           "When do I need to pay for the next term?",
 
         answer:
-          "Payment for the next package is arranged before your current package ends. I'll let you know when it's time to renew.",
+          "Payment for the next package is arranged before your current package ends. Hamkke will let you know when it's time to renew.",
       },
 
       {
@@ -479,21 +479,21 @@ const en = {
         number: "01",
         title: "Inquire",
         text:
-          "Tell me a little about yourself, what you'd like to improve, and what you're hoping to get from your lessons.",
+          "Tell us a little about yourself, what you'd like to improve, and what you're hoping to get from your lessons.",
       },
 
       assessment: {
         number: "02",
         title: "Schedule an Assessment",
         text:
-          "We'll arrange a short assessment so I can understand your current English level, speaking habits, and learning needs.",
+          "We'll arrange a short assessment so we can better understand your current English level, speaking habits, and learning needs.",
       },
 
       decide: {
         number: "03",
         title: "Decide Together",
         text:
-          "We'll talk about what you need and whether my lessons are a good fit for you. There's no pressure to continue.",
+          "We'll talk about what you need and whether Hamkke is a good fit for you. There's no pressure to continue.",
       },
 
       details: {
@@ -1572,13 +1572,13 @@ const en = {
       goDeeper: {
         title: "We go deeper.",
         description:
-          "I'll ask questions that help you explain, clarify, and expand your thoughts.",
+          "Your teacher asks questions that help you explain, clarify, and expand your thoughts.",
       },
 
       refine: {
         title: "We refine.",
         description:
-          "I'll help you notice vocabulary, pronunciation, grammar, and expressions that can make your English more natural.",
+          "Your teacher helps you notice vocabulary, pronunciation, grammar, and expressions that can make your English more natural.",
       },
 
       tryAgain: {
@@ -1818,7 +1818,7 @@ const en = {
     title: "Start with a conversation.",
 
     description:
-      "Tell me a little about where you are with English and what you'd like to be able to do. We'll take it from there.",
+      "Tell us a little about where you are with English and what you'd like to be able to do. We'll take it from there.",
 
     button: "Start a Conversation",
   },
@@ -1870,7 +1870,7 @@ const en = {
 
     headings: {
       experience:
-        "See how I approach English.",
+        "See how Hamkke approaches English.",
 
       goals:
         "Let’s talk about what you want to achieve.",
@@ -1883,14 +1883,14 @@ const en = {
     },
 
     intro:
-      "Tell me a little about you and what you’d like to work on.",
+      "Tell us a little about you and what you’d like to work on.",
 
     reassurance: {
       personalReply:
         "Personal reply within 24 hours",
 
       informationSafe:
-        "Your information is safe with me",
+        "Your information is safe with us",
     },
 
     fields: {
@@ -1910,7 +1910,7 @@ const en = {
         "What would you like to work on, and why?",
 
       message:
-        "Anything else you’d like me to know? (Optional)",
+        "Anything else you’d like us to know? (Optional)",
     },
 
     options: {
@@ -1964,13 +1964,13 @@ const en = {
     sending: "Sending...",
 
     privacy:
-      "I respect your privacy and will never share your information.",
+      "We respect your privacy and will never share your information.",
 
     success: {
       title: "Thank you.",
 
       message:
-        "I’ve received your message and I’ll personally get back to you within 24 hours. I look forward to learning more about you and helping you on your English journey.",
+        "We’ve received your message and we’ll get back to you within 24 hours. We look forward to learning more about you and your English goals.",
 
       closing: "See you soon.",
     },
