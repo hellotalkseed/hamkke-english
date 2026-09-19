@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { Locale } from "../lib/i18n";
+import { getMessages } from "../lib/getMessages";
 import { getPublicTeachers } from "../lib/getPublicTeachers";
 
 import TeachersCarousel from "./TeachersCarousel";
@@ -12,7 +13,12 @@ type TeachersProps = {
 export default async function Teachers({
   locale,
 }: TeachersProps) {
-  const teachers = await getPublicTeachers();
+  const teachers =
+    await getPublicTeachers();
+
+  const messages = getMessages(locale);
+  const content =
+    messages.teachers.section;
 
   return (
     <section
@@ -29,7 +35,8 @@ export default async function Teachers({
     >
       {/* =====================================================
           HEADING
-          Mobile settings are separate from desktop
+
+          Mobile settings remain separate from desktop.
           ===================================================== */}
 
       <div
@@ -55,15 +62,17 @@ export default async function Teachers({
               sm:tracking-[0.28em]
             "
           >
-            Meet Our Teachers
+            {content.eyebrow}
           </p>
 
           <div
             className="
               mx-auto
               mt-3
+
               h-px
               w-10
+
               bg-[#718A73]/50
 
               sm:w-12
@@ -75,6 +84,7 @@ export default async function Teachers({
               mx-auto
               mt-4
               max-w-[340px]
+
               font-serif
               text-[34px]
               leading-[1.02]
@@ -88,21 +98,17 @@ export default async function Teachers({
               lg:text-[50px]
             "
           >
-            The people behind the conversations.
+            {content.title}
           </h2>
         </div>
       </div>
 
       {/* =====================================================
           CAROUSEL
-          
-          Mobile:
-          - substantially less side padding
-          - gives teacher card more screen width
-          - keeps room for carousel controls
 
-          Desktop:
-          - original spacing preserved
+          Teacher data remains sourced from the database.
+          Teacher presentation/localization is handled
+          separately inside TeachersCarousel.
           ===================================================== */}
 
       <div
@@ -110,6 +116,7 @@ export default async function Teachers({
           relative
           mx-auto
           mt-7
+
           w-full
           max-w-[1740px]
 
@@ -145,35 +152,43 @@ export default async function Teachers({
         "
       >
         <div className="relative">
-          {/* Offset bottom layer */}
+          {/* OFFSET BOTTOM LAYER */}
 
           <div
             className="
               absolute
               inset-x-0
               top-[5px]
+
               h-full
+
               rounded-[10px]
               bg-[#718A73]
             "
+            aria-hidden="true"
           />
 
-          {/* Button face */}
+          {/* BUTTON FACE */}
 
           <Link
             href={`/${locale}/teachers`}
             className="
               relative
+
               inline-flex
               min-h-[44px]
               items-center
               justify-center
+
               rounded-[10px]
               bg-[#DCE4D7]
+
               px-6
+
               text-[13px]
               font-semibold
               text-[#304A39]
+
               transition
               duration-200
 
@@ -185,7 +200,14 @@ export default async function Teachers({
               sm:text-[14px]
             "
           >
-            View All Teachers →
+            {content.viewAll}
+
+            <span
+              className="ml-1"
+              aria-hidden="true"
+            >
+              →
+            </span>
           </Link>
         </div>
       </div>

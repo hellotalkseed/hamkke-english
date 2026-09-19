@@ -19,19 +19,12 @@ import {
   X,
 } from "lucide-react";
 
+import { getMessages } from "../lib/getMessages";
 import type { Locale } from "../lib/i18n";
 
-import en from "@/messages/en";
-import ko from "@/messages/ko";
-import zh from "@/messages/zh";
-import ja from "@/messages/ja";
-
-const translations = {
-  en,
-  ko,
-  zh,
-  ja,
-};
+/* =====================================================
+   LANGUAGE OPTIONS
+   ===================================================== */
 
 const languages = [
   {
@@ -102,17 +95,21 @@ export default function Navbar() {
       ? params.locale
       : "en";
 
-  const t = translations[locale];
+  const t = getMessages(locale);
 
   /* =====================================================
      STATE
      ===================================================== */
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] =
-    useState(false);
+  const [
+    isMobileMenuOpen,
+    setIsMobileMenuOpen,
+  ] = useState(false);
 
-  const [isLanguageOpen, setIsLanguageOpen] =
-    useState(false);
+  const [
+    isLanguageOpen,
+    setIsLanguageOpen,
+  ] = useState(false);
 
   const [
     isMobileLanguageOpen,
@@ -161,7 +158,8 @@ export default function Navbar() {
     isTeacherProfile;
 
   const isApproachPage =
-    pathname === `/${locale}/how-it-works` ||
+    pathname ===
+      `/${locale}/how-it-works` ||
     pathname.startsWith(
       `/${locale}/how-it-works/`
     );
@@ -172,10 +170,17 @@ export default function Navbar() {
       `/${locale}/policy/`
     );
 
+  const isAboutPage =
+    pathname === `/${locale}/about` ||
+    pathname.startsWith(
+      `/${locale}/about/`
+    );
+
   const usesAutomaticSectionBackground =
     isLessonsPage ||
     isApproachPage ||
-    isPolicyPage;
+    isPolicyPage ||
+    isAboutPage;
 
   /* =====================================================
      SPECIAL HOME DESTINATION
@@ -200,7 +205,8 @@ export default function Navbar() {
 
     const updateBackground = () => {
       const navbarHeight =
-        headerRef.current?.offsetHeight ?? 0;
+        headerRef.current?.offsetHeight ??
+        0;
 
       const detectionPoint =
         navbarHeight + 1;
@@ -276,7 +282,9 @@ export default function Navbar() {
         scheduleUpdate
       );
 
-      if (animationFrameId !== null) {
+      if (
+        animationFrameId !== null
+      ) {
         window.cancelAnimationFrame(
           animationFrameId
         );
@@ -289,7 +297,9 @@ export default function Navbar() {
      ===================================================== */
 
   useEffect(() => {
-    if (!usesAutomaticSectionBackground) {
+    if (
+      !usesAutomaticSectionBackground
+    ) {
       return;
     }
 
@@ -308,17 +318,15 @@ export default function Navbar() {
       const navbarHeight =
         header.offsetHeight;
 
-      const x =
-        Math.min(
-          window.innerWidth / 2,
-          window.innerWidth - 1
-        );
+      const x = Math.min(
+        window.innerWidth / 2,
+        window.innerWidth - 1
+      );
 
-      const y =
-        Math.min(
-          navbarHeight + 2,
-          window.innerHeight - 1
-        );
+      const y = Math.min(
+        navbarHeight + 2,
+        window.innerHeight - 1
+      );
 
       const elementUnderNavbar =
         document.elementFromPoint(x, y);
@@ -376,7 +384,9 @@ export default function Navbar() {
     };
 
     setPageNavbarBackground(
-      "#FFFDF8"
+      isAboutPage
+        ? "#F3EDDD"
+        : "#FFFDF8"
     );
 
     updateBackground();
@@ -405,7 +415,9 @@ export default function Navbar() {
         scheduleUpdate
       );
 
-      if (animationFrameId !== null) {
+      if (
+        animationFrameId !== null
+      ) {
         window.cancelAnimationFrame(
           animationFrameId
         );
@@ -414,6 +426,7 @@ export default function Navbar() {
   }, [
     usesAutomaticSectionBackground,
     pathname,
+    isAboutPage,
   ]);
 
   /* =====================================================
@@ -441,7 +454,7 @@ export default function Navbar() {
   const navLinks = [
     {
       href: homeHref,
-      label: "Home",
+      label: t.nav.home,
       active: isHomePage,
     },
     {
@@ -1202,7 +1215,9 @@ export default function Navbar() {
                 aria-hidden="true"
               />
 
-              <span>{t.nav.login}</span>
+              <span>
+                {t.nav.login}
+              </span>
             </Link>
           </div>
         </nav>

@@ -3,16 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Navbar from "../../../components/Navbar";
+import { getMessages } from "../../../lib/getMessages";
 import { getPublicTeachers } from "../../../lib/getPublicTeachers";
 import {
   isValidLocale,
   type Locale,
 } from "../../../lib/i18n";
-
-type TeacherSpecialty = {
-  title: string;
-  description: string;
-};
 
 type PageProps = {
   params: Promise<{
@@ -20,34 +16,172 @@ type PageProps = {
   }>;
 };
 
-const teacherPresentation: Record<
-  string,
-  {
-    role: string;
-    quote: string;
-    specialties: TeacherSpecialty[];
-  }
-> = {
-  jesica: {
-    role: "Hamkke Teacher",
-    quote:
-      "Helping you say more of what you actually want to say.",
-    specialties: [
-      {
-        title: "Conversation",
-        description: "Real communication",
-      },
-      {
-        title: "Interview Prep",
-        description: "OPIC, airline, and more",
-      },
-      {
-        title: "Patient & Supportive",
-        description: "Learn at your own pace",
-      },
-    ],
-  },
+type SpecialtyItem = {
+  title: string;
+  description: string;
 };
+
+function renderHighlightedText(
+  text: string,
+  highlight: string
+) {
+  const index = text.indexOf(highlight);
+
+  if (index === -1) {
+    return text;
+  }
+
+  const before = text.slice(0, index);
+  const after = text.slice(
+    index + highlight.length
+  );
+
+  return (
+    <>
+      {before}
+      <strong className="font-semibold text-[#304A39]">
+        {highlight}
+      </strong>
+      {after}
+    </>
+  );
+}
+
+function interpolate(
+  template: string,
+  values: Record<string, string>
+) {
+  return template.replace(
+    /\{(\w+)\}/g,
+    (_, key: string) => values[key] ?? `{${key}}`
+  );
+}
+
+function getDescriptionHighlight(
+  description: unknown
+) {
+  if (
+    !description ||
+    typeof description !== "object"
+  ) {
+    return "";
+  }
+
+  const value = description as {
+    highlight?: unknown;
+    highlights?: unknown;
+  };
+
+  if (typeof value.highlight === "string") {
+    return value.highlight;
+  }
+
+  if (
+    Array.isArray(value.highlights) &&
+    typeof value.highlights[0] === "string"
+  ) {
+    return value.highlights[0];
+  }
+
+  return "";
+}
+
+function getSpecialties(
+  specialties: unknown
+): SpecialtyItem[] {
+  if (Array.isArray(specialties)) {
+    return specialties.map((specialty) => {
+      const item = specialty as {
+        title?: unknown;
+        description?: unknown;
+        detail?: unknown;
+      };
+
+      return {
+        title:
+          typeof item.title === "string"
+            ? item.title
+            : "",
+        description:
+          typeof item.description === "string"
+            ? item.description
+            : typeof item.detail === "string"
+              ? item.detail
+              : "",
+      };
+    });
+  }
+
+  if (
+    specialties &&
+    typeof specialties === "object"
+  ) {
+    return Object.values(
+      specialties
+    ).map((specialty) => {
+      const item = specialty as {
+        title?: unknown;
+        description?: unknown;
+        detail?: unknown;
+      };
+
+      return {
+        title:
+          typeof item.title === "string"
+            ? item.title
+            : "",
+        description:
+          typeof item.description === "string"
+            ? item.description
+            : typeof item.detail === "string"
+              ? item.detail
+              : "",
+      };
+    });
+  }
+
+  return [];
+}
+
+function getEmptyState(
+  empty: unknown
+): {
+  title: string;
+  description: string;
+} {
+  if (
+    empty &&
+    typeof empty === "object"
+  ) {
+    const value = empty as {
+      title?: unknown;
+      description?: unknown;
+    };
+
+    return {
+      title:
+        typeof value.title === "string"
+          ? value.title
+          : "",
+      description:
+        typeof value.description === "string"
+          ? value.description
+          : "",
+    };
+  }
+
+  if (typeof empty === "string") {
+    return {
+      title: empty,
+      description: "",
+    };
+  }
+
+  return {
+    title: "",
+    description: "",
+  };
+}
 
 export default async function TeachersPage({
   params,
@@ -60,6 +194,53 @@ export default async function TeachersPage({
 
   const locale = localeParam as Locale;
   const teachers = await getPublicTeachers();
+
+  const messages = getMessages(locale);
+  const content = messages.teachers;
+
+  const descriptionHighlight =
+    getDescriptionHighlight(
+      content.directory.description
+    );
+
+  const emptyState = getEmptyState(
+    content.directory.empty
+  );
+
+  function getLearnerGroupLabel(
+    audience: string
+  ) {
+    const normalized = audience
+      .trim()
+      .toLowerCase();
+
+    if (
+      normalized === "kid" ||
+      normalized === "kids" ||
+      normalized === "child" ||
+      normalized === "children"
+    ) {
+      return content.learnerGroups.kids;
+    }
+
+    if (
+      normalized === "teen" ||
+      normalized === "teens" ||
+      normalized === "teenager" ||
+      normalized === "teenagers"
+    ) {
+      return content.learnerGroups.teens;
+    }
+
+    if (
+      normalized === "adult" ||
+      normalized === "adults"
+    ) {
+      return content.learnerGroups.adults;
+    }
+
+    return audience;
+  }
 
   return (
     <>
@@ -122,7 +303,7 @@ export default async function TeachersPage({
                   sm:text-xs
                 "
               >
-                Meet Our Teachers
+                {content.section.eyebrow}
               </p>
 
               <h1
@@ -139,7 +320,7 @@ export default async function TeachersPage({
                   xl:text-[52px]
                 "
               >
-                The people behind the conversations.
+                {content.section.title}
               </h1>
 
               <p
@@ -154,11 +335,10 @@ export default async function TeachersPage({
                   lg:mx-0
                 "
               >
-                Find someone you&apos;d feel{" "}
-                <strong className="font-semibold text-[#304A39]">
-                  comfortable
-                </strong>{" "}
-                talking with.
+                {renderHighlightedText(
+                  content.directory.description.text,
+                  descriptionHighlight
+                )}
               </p>
             </div>
 
@@ -193,7 +373,7 @@ export default async function TeachersPage({
               >
                 <Image
                   src="/mascot/hamkke-teachers.png"
-                  alt="Hamkke teacher mascot"
+                  alt={content.directory.mascotAlt}
                   fill
                   priority
                   sizes="
@@ -238,32 +418,14 @@ export default async function TeachersPage({
               >
                 {teachers.map((teacher) => {
                   const presentation =
-                    teacherPresentation[
-                      teacher.slug
-                    ] || {
-                      role:
-                        teacher.card_label ||
-                        "Hamkke Teacher",
-                      quote:
-                        "Helping learners use English through meaningful conversation.",
-                      specialties: [
-                        {
-                          title: "Conversation",
-                          description:
-                            "Real communication",
-                        },
-                        {
-                          title: "Personalized",
-                          description:
-                            "Lessons that fit you",
-                        },
-                        {
-                          title: "Supportive",
-                          description:
-                            "Learn at your own pace",
-                        },
-                      ],
-                    };
+                    teacher.slug === "jesica"
+                      ? content.presentations.jesica
+                      : content.presentations.default;
+
+                  const specialties =
+                    getSpecialties(
+                      presentation.specialties
+                    );
 
                   const firstName =
                     teacher.name
@@ -321,9 +483,7 @@ export default async function TeachersPage({
                             >
                               {teacher.avatar_url ? (
                                 <Image
-                                  src={
-                                    teacher.avatar_url
-                                  }
+                                  src={teacher.avatar_url}
                                   alt={`${teacher.name}, ${presentation.role}`}
                                   fill
                                   sizes="118px"
@@ -398,8 +558,8 @@ export default async function TeachersPage({
 
                         {/* Learner groups */}
 
-                        {teacher.learner_groups
-                          .length > 0 && (
+                        {teacher.learner_groups.length >
+                          0 && (
                           <div className="mt-5 flex flex-wrap gap-2">
                             {teacher.learner_groups.map(
                               (audience) => (
@@ -415,7 +575,9 @@ export default async function TeachersPage({
                                     text-[#304A39]
                                   "
                                 >
-                                  {audience}
+                                  {getLearnerGroupLabel(
+                                    audience
+                                  )}
                                 </span>
                               )
                             )}
@@ -429,21 +591,16 @@ export default async function TeachersPage({
                         {/* Specialties */}
 
                         <div className="grid grid-cols-3 gap-3">
-                          {presentation.specialties.map(
+                          {specialties.map(
                             (
-                              specialty,
-                              index
+                              specialty: SpecialtyItem,
+                              index: number
                             ) => (
                               <div
-                                key={
-                                  specialty.title
-                                }
+                                key={`${specialty.title}-${index}`}
                                 className={
                                   index !==
-                                  presentation
-                                    .specialties
-                                    .length -
-                                    1
+                                  specialties.length - 1
                                     ? "border-r border-[#DCE4D7] pr-3"
                                     : ""
                                 }
@@ -489,9 +646,7 @@ export default async function TeachersPage({
                                     text-[#758477]
                                   "
                                 >
-                                  {
-                                    specialty.description
-                                  }
+                                  {specialty.description}
                                 </p>
                               </div>
                             )
@@ -540,7 +695,12 @@ export default async function TeachersPage({
                             "
                           >
                             <span>
-                              Meet {firstName}
+                              {interpolate(
+                                content.ui.meetTeacher,
+                                {
+                                  name: firstName,
+                                }
+                              )}
                             </span>
 
                             <span
@@ -582,21 +742,21 @@ export default async function TeachersPage({
                     text-[#304A39]
                   "
                 >
-                  Teacher profiles are being
-                  prepared.
+                  {emptyState.title}
                 </p>
 
-                <p
-                  className="
-                    mt-3
-                    text-[14px]
-                    leading-7
-                    text-[#758477]
-                  "
-                >
-                  Please check back soon to meet
-                  the Hamkke teachers.
-                </p>
+                {emptyState.description && (
+                  <p
+                    className="
+                      mt-3
+                      text-[14px]
+                      leading-7
+                      text-[#758477]
+                    "
+                  >
+                    {emptyState.description}
+                  </p>
+                )}
               </div>
             )}
           </div>

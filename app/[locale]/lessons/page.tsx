@@ -11,20 +11,26 @@ import {
   Plus,
   Video,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useState,
+} from "react";
 
 import Navbar from "../../../components/Navbar";
+import { getMessages } from "../../../lib/getMessages";
 import type { Locale } from "../../../lib/i18n";
 import { isValidLocale } from "../../../lib/i18n";
 
-const durationOptions = [
-  { minutes: 25, tuitionPer20: 120000 },
-  { minutes: 30, tuitionPer20: 144000 },
-  { minutes: 35, tuitionPer20: 168000 },
-  { minutes: 40, tuitionPer20: 192000 },
-  { minutes: 45, tuitionPer20: 216000 },
-  { minutes: 50, tuitionPer20: 240000 },
-];
+import {
+  allowsTenLessonTerm,
+  formatLessonTuition,
+  getLessonTuition,
+  lessonDurationOptions,
+  lessonPricing,
+  type LessonCount,
+  type LessonDuration,
+} from "../../../lib/lessonConfig";
 
 const platforms = [
   {
@@ -49,78 +55,96 @@ const platforms = [
   },
 ];
 
-const audiences = [
-  {
-    label: "Kids",
-    title: "More chances to use the English they are learning.",
-    description:
-      "For children who are learning English but need more opportunities to answer, explain, and express themselves in conversation.",
-    goals: [
-      "Speaking practice",
-      "Vocabulary in conversation",
-      "Longer answers",
-      "Speaking confidence",
-    ],
-  },
-  {
-    label: "Teens",
-    title: "Move beyond short answers.",
-    description:
-      "For teens who want to express opinions, explain their ideas, and become more comfortable having longer conversations in English.",
-    goals: [
-      "Conversation",
-      "Opinions & ideas",
-      "School English",
-      "Speaking confidence",
-    ],
-  },
-  {
-    label: "Adults",
-    title: "Use English for the situations that matter to you.",
-    description:
-      "For adults who want to communicate more comfortably in everyday life, at work, while traveling, or in conversations that are personally important.",
-    goals: [
-      "Everyday English",
-      "Work",
-      "Interviews",
-      "Travel",
-      "Free conversation",
-    ],
-  },
-];
+function interpolate(
+  text: string,
+  values: Record<string, string | number>
+) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) =>
+      result.replaceAll(
+        `{${key}}`,
+        String(value)
+      ),
+    text
+  );
+}
 
-export default function LessonsPage() {
-  const params = useParams<{ locale: string }>();
-  const locale = params.locale;
+function renderHighlightedText(
+  text: string,
+  highlights: readonly string[]
+): ReactNode {
+  if (highlights.length === 0) {
+    return text;
+  }
 
-  const [selectedDuration, setSelectedDuration] =
-    useState(25);
-
-  const [selectedLessons, setSelectedLessons] =
-    useState<10 | 20>(20);
-
-  const selectedIndex = durationOptions.findIndex(
-    (option) =>
-      option.minutes === selectedDuration
+  const orderedHighlights = [...highlights].sort(
+    (a, b) => b.length - a.length
   );
 
-  const selectedOption =
-    durationOptions[selectedIndex] ??
-    durationOptions[0];
+  const parts: ReactNode[] = [];
+  let remaining = text;
+  let key = 0;
 
-  const canDecreaseDuration = selectedIndex > 0;
+  while (remaining.length > 0) {
+    let earliestIndex = -1;
+    let matchedHighlight = "";
 
-  const canIncreaseDuration =
-    selectedIndex < durationOptions.length - 1;
+    for (const highlight of orderedHighlights) {
+      const index =
+        remaining.indexOf(highlight);
 
-  const allowsTenLessonTerm =
-    selectedOption.minutes >= 40;
-
-  useEffect(() => {
-    if (!allowsTenLessonTerm && selectedLessons === 10) {
-      setSelectedLessons(20);
+      if (
+        index !== -1 &&
+        (earliestIndex === -1 ||
+          index < earliestIndex)
+      ) {
+        earliestIndex = index;
+        matchedHighlight = highlight;
+      }
     }
-  }, [allowsTenLessonTerm, selectedLessons]);
+
+    if (
+      earliestIndex === -1 ||
+      !matchedHighlight
+    ) {
+      parts.push(remaining);
+      break;
+    }
+
+    if (earliestIndex > 0) {
+      parts.push(
+        remaining.slice(
+          0,
+          earliestIndex
+        )
+      );
+    }
+
+    parts.push(
+      <strong
+        key={`highlight-${key}`}
+        className="font-semibold text-[#304A39]"
+      >
+        {matchedHighlight}
+      </strong>
+    );
+
+    key += 1;
+
+    remaining = remaining.slice(
+      earliestIndex +
+        matchedHighlight.length
+    );
+  }
+
+  return parts;
+}
+
+export default function LessonsPage() {
+  const params =
+    useParams<{ locale: string }>();
+
+  const locale = params.locale;
 
   if (!isValidLocale(locale)) {
     return null;
@@ -128,29 +152,103 @@ export default function LessonsPage() {
 
   const typedLocale: Locale = locale;
 
+  const messages =
+    getMessages(typedLocale);
+
+  const content =
+    messages.lessonsPage;
+
+  const audiences = [
+    content.audience.groups.kids,
+    content.audience.groups.teens,
+    content.audience.groups.adults,
+  ];
+
+  const [
+    selectedDuration,
+    setSelectedDuration,
+  ] = useState<LessonDuration>(25);
+
+  const [
+    selectedLessons,
+    setSelectedLessons,
+  ] = useState<LessonCount>(20);
+
+  const selectedIndex =
+    lessonDurationOptions.findIndex(
+      (option) =>
+        option.minutes ===
+        selectedDuration
+    );
+
+  const selectedOption =
+    lessonDurationOptions[
+      selectedIndex
+    ] ?? lessonDurationOptions[0];
+
+  const canDecreaseDuration =
+    selectedIndex > 0;
+
+  const canIncreaseDuration =
+    selectedIndex <
+    lessonDurationOptions.length - 1;
+
+  const canUseTenLessonTerm =
+    allowsTenLessonTerm(
+      selectedOption.minutes
+    );
+
+  useEffect(() => {
+    if (
+      !canUseTenLessonTerm &&
+      selectedLessons === 10
+    ) {
+      setSelectedLessons(20);
+    }
+  }, [
+    canUseTenLessonTerm,
+    selectedLessons,
+  ]);
+
   const decreaseDuration = () => {
-    if (!canDecreaseDuration) return;
+    if (!canDecreaseDuration) {
+      return;
+    }
 
     const nextDuration =
-      durationOptions[selectedIndex - 1].minutes;
+      lessonDurationOptions[
+        selectedIndex - 1
+      ].minutes;
 
-    setSelectedDuration(nextDuration);
+    setSelectedDuration(
+      nextDuration
+    );
 
-    if (nextDuration < 40) {
+    if (
+      !allowsTenLessonTerm(
+        nextDuration
+      )
+    ) {
       setSelectedLessons(20);
     }
   };
 
   const increaseDuration = () => {
-    if (!canIncreaseDuration) return;
+    if (!canIncreaseDuration) {
+      return;
+    }
 
     setSelectedDuration(
-      durationOptions[selectedIndex + 1].minutes
+      lessonDurationOptions[
+        selectedIndex + 1
+      ].minutes
     );
   };
 
   const decreaseLessons = () => {
-    if (!allowsTenLessonTerm) return;
+    if (!canUseTenLessonTerm) {
+      return;
+    }
 
     if (selectedLessons === 20) {
       setSelectedLessons(10);
@@ -158,20 +256,30 @@ export default function LessonsPage() {
   };
 
   const increaseLessons = () => {
-    if (!allowsTenLessonTerm) return;
+    if (!canUseTenLessonTerm) {
+      return;
+    }
 
     if (selectedLessons === 10) {
       setSelectedLessons(20);
     }
   };
 
+  const currentPricing =
+    lessonPricing[typedLocale];
+
   const tuition =
-    selectedLessons === 10
-      ? selectedOption.tuitionPer20 / 2
-      : selectedOption.tuitionPer20;
+    getLessonTuition(
+      typedLocale,
+      selectedOption.minutes,
+      selectedLessons
+    );
 
   const formattedTuition =
-    `₩${tuition.toLocaleString("en-US")}`;
+    formatLessonTuition(
+      typedLocale,
+      tuition
+    );
 
   return (
     <>
@@ -191,6 +299,7 @@ export default function LessonsPage() {
         <section
           className="
             bg-[#FFFDF8]
+
             px-6
             pb-12
             pt-12
@@ -222,13 +331,14 @@ export default function LessonsPage() {
                 sm:text-[12px]
               "
             >
-              Lessons
+              {content.hero.eyebrow}
             </p>
 
             <h1
               className="
                 mt-3
                 max-w-[760px]
+
                 font-serif
                 text-[44px]
                 font-normal
@@ -241,14 +351,14 @@ export default function LessonsPage() {
                 lg:text-[58px]
               "
             >
-              English lessons for different learners,
-              goals, and stages.
+              {content.hero.title}
             </h1>
 
             <p
               className="
                 mt-5
                 max-w-[650px]
+
                 text-[16px]
                 leading-7
                 text-[#607066]
@@ -257,9 +367,12 @@ export default function LessonsPage() {
                 sm:leading-8
               "
             >
-              One-on-one online lessons shaped around
-              who you are, what you want to express,
-              and where you want to use your English.
+              {renderHighlightedText(
+                content.hero.description
+                  .text,
+                content.hero.description
+                  .highlights
+              )}
             </p>
           </div>
         </section>
@@ -271,6 +384,7 @@ export default function LessonsPage() {
         <section
           className="
             bg-[#EEF2EA]
+
             px-6
             py-14
 
@@ -309,12 +423,16 @@ export default function LessonsPage() {
                     sm:text-[12px]
                   "
                 >
-                  Who lessons are for
+                  {
+                    content.audience
+                      .eyebrow
+                  }
                 </p>
 
                 <h2
                   className="
                     mt-3
+
                     font-serif
                     text-[34px]
                     font-normal
@@ -325,13 +443,14 @@ export default function LessonsPage() {
                     sm:text-[40px]
                   "
                 >
-                  Find where you fit.
+                  {content.audience.title}
                 </h2>
               </div>
 
               <p
                 className="
                   max-w-[650px]
+
                   text-[15px]
                   leading-7
                   text-[#607066]
@@ -339,10 +458,15 @@ export default function LessonsPage() {
                   sm:text-[16px]
                 "
               >
-                The same conversation-centered approach
-                adapts to different ages and goals.
-                What we talk about and how your teacher
-                supports you changes with the learner.
+                {renderHighlightedText(
+                  content.audience
+                    .description.text,
+                  [
+                    content.audience
+                      .description
+                      .highlight,
+                  ]
+                )}
               </p>
             </div>
 
@@ -353,99 +477,113 @@ export default function LessonsPage() {
                 border-[#C7D2C4]
               "
             >
-              {audiences.map((audience) => (
-                <div
-                  key={audience.label}
-                  className="
-                    grid
-                    gap-5
-                    border-b
-                    border-[#C7D2C4]
-                    py-8
-
-                    sm:py-9
-
-                    lg:grid-cols-[160px_minmax(0,1fr)_310px]
-                    lg:items-start
-                    lg:gap-10
-                  "
-                >
-                  <div>
-                    <p
-                      className="
-                        font-serif
-                        text-[30px]
-                        font-medium
-                        leading-none
-                        text-[#304A39]
-
-                        sm:text-[34px]
-                      "
-                    >
-                      {audience.label}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3
-                      className="
-                        max-w-[470px]
-                        text-[18px]
-                        font-semibold
-                        leading-7
-                        text-[#293A30]
-
-                        sm:text-[19px]
-                      "
-                    >
-                      {audience.title}
-                    </h3>
-
-                    <p
-                      className="
-                        mt-2
-                        max-w-[540px]
-                        text-[14px]
-                        leading-7
-                        text-[#607066]
-
-                        sm:text-[15px]
-                      "
-                    >
-                      {audience.description}
-                    </p>
-                  </div>
-
+              {audiences.map(
+                (audience) => (
                   <div
+                    key={audience.label}
                     className="
-                      flex
-                      flex-wrap
-                      gap-2
+                      grid
+                      gap-5
+
+                      border-b
+                      border-[#C7D2C4]
+
+                      py-8
+
+                      sm:py-9
+
+                      lg:grid-cols-[160px_minmax(0,1fr)_310px]
+                      lg:items-start
+                      lg:gap-10
                     "
                   >
-                    {audience.goals.map((goal) => (
-                      <span
-                        key={goal}
+                    <div>
+                      <p
                         className="
-                          rounded-full
-                          border
-                          border-[#C7D2C4]
-                          bg-[#FFFDF8]
-                          px-3.5
-                          py-2
-                          text-[12px]
+                          font-serif
+                          text-[30px]
                           font-medium
-                          text-[#526459]
+                          leading-none
+                          text-[#304A39]
 
-                          sm:text-[13px]
+                          sm:text-[34px]
                         "
                       >
-                        {goal}
-                      </span>
-                    ))}
+                        {audience.label}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h3
+                        className="
+                          max-w-[470px]
+
+                          text-[18px]
+                          font-semibold
+                          leading-7
+                          text-[#293A30]
+
+                          sm:text-[19px]
+                        "
+                      >
+                        {audience.title}
+                      </h3>
+
+                      <p
+                        className="
+                          mt-2
+                          max-w-[540px]
+
+                          text-[14px]
+                          leading-7
+                          text-[#607066]
+
+                          sm:text-[15px]
+                        "
+                      >
+                        {
+                          audience.description
+                        }
+                      </p>
+                    </div>
+
+                    <div
+                      className="
+                        flex
+                        flex-wrap
+                        gap-2
+                      "
+                    >
+                      {audience.goals.map(
+                        (goal) => (
+                          <span
+                            key={goal}
+                            className="
+                              rounded-full
+
+                              border
+                              border-[#C7D2C4]
+
+                              bg-[#FFFDF8]
+
+                              px-3.5
+                              py-2
+
+                              text-[12px]
+                              font-medium
+                              text-[#526459]
+
+                              sm:text-[13px]
+                            "
+                          >
+                            {goal}
+                          </span>
+                        )
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </div>
         </section>
@@ -457,6 +595,7 @@ export default function LessonsPage() {
         <section
           className="
             bg-[#FFFDF8]
+
             px-6
             py-14
 
@@ -491,12 +630,13 @@ export default function LessonsPage() {
                   sm:text-[12px]
                 "
               >
-                Lesson details
+                {content.details.eyebrow}
               </p>
 
               <h2
                 className="
                   mt-3
+
                   font-serif
                   text-[34px]
                   font-normal
@@ -507,32 +647,41 @@ export default function LessonsPage() {
                   sm:text-[40px]
                 "
               >
-                Choose your lesson time.
+                {content.details.title}
               </h2>
 
               <p
                 className="
                   mt-3
+
                   text-[15px]
                   leading-7
                   text-[#607066]
                 "
               >
-                Choose the lesson duration and term
-                length that work best for you.
+                {
+                  content.details
+                    .description
+                }
               </p>
             </div>
 
-            {/* LESSON CARD */}
+            {/* =================================================
+                LESSON CARD
+                ================================================= */}
 
             <div
               className="
                 rounded-[26px]
+
                 border
                 border-[#304A39]/10
+
                 bg-[#FAF8F2]
+
                 px-6
                 py-7
+
                 shadow-[0_20px_55px_rgba(48,74,57,0.06)]
 
                 sm:px-8
@@ -550,7 +699,9 @@ export default function LessonsPage() {
                   lg:gap-10
                 "
               >
-                {/* LEFT */}
+                {/* =============================================
+                    LEFT
+                    ============================================= */}
 
                 <div>
                   <div
@@ -558,10 +709,13 @@ export default function LessonsPage() {
                       inline-flex
                       items-center
                       gap-2
+
                       rounded-full
                       bg-[#E9EEE5]
+
                       px-4
                       py-2
+
                       text-[11px]
                       font-semibold
                       uppercase
@@ -578,12 +732,13 @@ export default function LessonsPage() {
                       "
                     />
 
-                    1:1 Online
+                    {content.details.online}
                   </div>
 
                   <h3
                     className="
                       mt-4
+
                       font-serif
                       text-[36px]
                       font-medium
@@ -594,26 +749,31 @@ export default function LessonsPage() {
                       sm:text-[42px]
                     "
                   >
-                    Conversation Lesson
+                    {content.details.lesson}
                   </h3>
 
                   <p
                     className="
                       mt-2
+
                       text-[15px]
                       text-[#68736B]
                     "
                   >
-                    Kids · Teens · Adults
+                    {content.details.learners}
                   </p>
 
-                  {/* PLATFORMS */}
+                  {/* ===========================================
+                      PLATFORMS
+                      =========================================== */}
 
                   <div
                     className="
                       mt-6
+
                       border-t
                       border-[#304A39]/10
+
                       pt-5
                     "
                   >
@@ -626,12 +786,16 @@ export default function LessonsPage() {
                         text-[#718A73]
                       "
                     >
-                      Platforms
+                      {
+                        content.details
+                          .platforms
+                      }
                     </p>
 
                     <div
                       className="
                         mt-3
+
                         grid
                         grid-cols-2
                         gap-x-5
@@ -640,53 +804,66 @@ export default function LessonsPage() {
                         sm:grid-cols-3
                       "
                     >
-                      {platforms.map((platform) => (
-                        <div
-                          key={platform.name}
-                          className="
-                            flex
-                            min-w-0
-                            items-center
-                            gap-2
-                          "
-                        >
-                          <Image
-                            src={platform.icon}
-                            alt=""
-                            width={25}
-                            height={25}
+                      {platforms.map(
+                        (platform) => (
+                          <div
+                            key={
+                              platform.name
+                            }
                             className="
-                              h-[25px]
-                              w-[25px]
-                              shrink-0
-                              object-contain
-                            "
-                          />
-
-                          <span
-                            className="
-                              whitespace-nowrap
-                              text-[12px]
-                              font-medium
-                              text-[#4D5E53]
-
-                              sm:text-[13px]
+                              flex
+                              min-w-0
+                              items-center
+                              gap-2
                             "
                           >
-                            {platform.name}
-                          </span>
-                        </div>
-                      ))}
+                            <Image
+                              src={
+                                platform.icon
+                              }
+                              alt=""
+                              width={25}
+                              height={25}
+                              className="
+                                h-[25px]
+                                w-[25px]
+                                shrink-0
+                                object-contain
+                              "
+                            />
+
+                            <span
+                              className="
+                                whitespace-nowrap
+
+                                text-[12px]
+                                font-medium
+                                text-[#4D5E53]
+
+                                sm:text-[13px]
+                              "
+                            >
+                              {
+                                platform.name
+                              }
+                            </span>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
 
-                  {/* FORMAT */}
+                  {/* ===========================================
+                      FORMAT
+                      =========================================== */}
 
                   <div
                     className="
                       mt-5
+
                       border-t
                       border-[#304A39]/10
+
                       pt-5
                     "
                   >
@@ -699,12 +876,13 @@ export default function LessonsPage() {
                         text-[#718A73]
                       "
                     >
-                      Lesson format
+                      {content.details.format}
                     </p>
 
                     <div
                       className="
                         mt-3
+
                         grid
                         gap-3
 
@@ -716,8 +894,10 @@ export default function LessonsPage() {
                           flex
                           items-center
                           gap-3
+
                           rounded-[15px]
                           bg-[#F2EEE5]
+
                           px-4
                           py-3
                         "
@@ -730,8 +910,10 @@ export default function LessonsPage() {
                             shrink-0
                             items-center
                             justify-center
+
                             rounded-full
                             bg-[#FFFDF8]
+
                             text-[#607568]
                           "
                         >
@@ -749,17 +931,25 @@ export default function LessonsPage() {
                               text-[#304A39]
                             "
                           >
-                            Audio
+                            {
+                              content.details
+                                .audio.title
+                            }
                           </p>
 
                           <p
                             className="
                               mt-0.5
+
                               text-[11px]
                               text-[#758477]
                             "
                           >
-                            Camera off
+                            {
+                              content.details
+                                .audio
+                                .description
+                            }
                           </p>
                         </div>
                       </div>
@@ -769,8 +959,10 @@ export default function LessonsPage() {
                           flex
                           items-center
                           gap-3
+
                           rounded-[15px]
                           bg-[#F2EEE5]
+
                           px-4
                           py-3
                         "
@@ -783,8 +975,10 @@ export default function LessonsPage() {
                             shrink-0
                             items-center
                             justify-center
+
                             rounded-full
                             bg-[#FFFDF8]
+
                             text-[#607568]
                           "
                         >
@@ -802,17 +996,25 @@ export default function LessonsPage() {
                               text-[#304A39]
                             "
                           >
-                            Video
+                            {
+                              content.details
+                                .video.title
+                            }
                           </p>
 
                           <p
                             className="
                               mt-0.5
+
                               text-[11px]
                               text-[#758477]
                             "
                           >
-                            Camera optional
+                            {
+                              content.details
+                                .video
+                                .description
+                            }
                           </p>
                         </div>
                       </div>
@@ -820,12 +1022,15 @@ export default function LessonsPage() {
                   </div>
                 </div>
 
-                {/* RIGHT */}
+                {/* =============================================
+                    RIGHT
+                    ============================================= */}
 
                 <div
                   className="
                     border-t
                     border-[#304A39]/10
+
                     pt-7
 
                     lg:border-l
@@ -834,12 +1039,15 @@ export default function LessonsPage() {
                     lg:pt-0
                   "
                 >
-                  {/* DURATION */}
+                  {/* ===========================================
+                      DURATION
+                      =========================================== */}
 
                   <div
                     className="
                       border-b
                       border-[#304A39]/10
+
                       pb-5
                     "
                   >
@@ -854,12 +1062,16 @@ export default function LessonsPage() {
                         sm:text-[11px]
                       "
                     >
-                      Duration
+                      {
+                        content.details
+                          .duration.label
+                      }
                     </p>
 
                     <div
                       className="
                         mt-3
+
                         flex
                         min-h-[48px]
                         items-center
@@ -869,8 +1081,14 @@ export default function LessonsPage() {
                       {canDecreaseDuration && (
                         <button
                           type="button"
-                          onClick={decreaseDuration}
-                          aria-label="Decrease lesson duration"
+                          onClick={
+                            decreaseDuration
+                          }
+                          aria-label={
+                            content.details
+                              .duration
+                              .decrease
+                          }
                           className="
                             flex
                             h-10
@@ -878,11 +1096,16 @@ export default function LessonsPage() {
                             shrink-0
                             items-center
                             justify-center
+
                             rounded-full
+
                             border
                             border-[#304A39]/15
+
                             bg-[#FFFDF8]
+
                             text-[#304A39]
+
                             transition-colors
 
                             hover:bg-[#F2EEE5]
@@ -912,25 +1135,44 @@ export default function LessonsPage() {
                             sm:text-[40px]
                           "
                         >
-                          {selectedOption.minutes} min
+                          {interpolate(
+                            content.details
+                              .duration
+                              .minutes,
+                            {
+                              count:
+                                selectedOption.minutes,
+                            }
+                          )}
                         </p>
 
                         <p
                           className="
                             mt-1
+
                             text-[12px]
                             text-[#758477]
                           "
                         >
-                          per lesson
+                          {
+                            content.details
+                              .duration
+                              .perLesson
+                          }
                         </p>
                       </div>
 
                       {canIncreaseDuration && (
                         <button
                           type="button"
-                          onClick={increaseDuration}
-                          aria-label="Increase lesson duration"
+                          onClick={
+                            increaseDuration
+                          }
+                          aria-label={
+                            content.details
+                              .duration
+                              .increase
+                          }
                           className="
                             flex
                             h-10
@@ -938,11 +1180,16 @@ export default function LessonsPage() {
                             shrink-0
                             items-center
                             justify-center
+
                             rounded-full
+
                             border
                             border-[#304A39]/15
+
                             bg-[#FFFDF8]
+
                             text-[#304A39]
+
                             transition-colors
 
                             hover:bg-[#F2EEE5]
@@ -957,15 +1204,19 @@ export default function LessonsPage() {
                     </div>
                   </div>
 
-                  {/* TERM */}
+                  {/* ===========================================
+                      TERM
+                      =========================================== */}
 
                   <div
                     className="
                       flex
                       items-center
                       gap-4
+
                       border-b
                       border-[#304A39]/10
+
                       py-5
                     "
                   >
@@ -977,8 +1228,10 @@ export default function LessonsPage() {
                         shrink-0
                         items-center
                         justify-center
+
                         rounded-full
                         bg-[#F2EEE5]
+
                         text-[#607568]
                       "
                     >
@@ -1000,24 +1253,35 @@ export default function LessonsPage() {
                           sm:text-[11px]
                         "
                       >
-                        Term
+                        {
+                          content.details
+                            .term.label
+                        }
                       </p>
 
                       <div
                         className="
                           mt-2
+
                           flex
                           min-h-[40px]
                           items-center
                           gap-3
                         "
                       >
-                        {allowsTenLessonTerm &&
-                          selectedLessons === 20 && (
+                        {canUseTenLessonTerm &&
+                          selectedLessons ===
+                            20 && (
                             <button
                               type="button"
-                              onClick={decreaseLessons}
-                              aria-label="Choose 10 lessons"
+                              onClick={
+                                decreaseLessons
+                              }
+                              aria-label={
+                                content.details
+                                  .term
+                                  .choose10
+                              }
                               className="
                                 flex
                                 h-9
@@ -1025,11 +1289,16 @@ export default function LessonsPage() {
                                 shrink-0
                                 items-center
                                 justify-center
+
                                 rounded-full
+
                                 border
                                 border-[#304A39]/15
+
                                 bg-[#FFFDF8]
+
                                 text-[#304A39]
+
                                 transition-colors
 
                                 hover:bg-[#F2EEE5]
@@ -1037,7 +1306,9 @@ export default function LessonsPage() {
                             >
                               <Minus
                                 size={17}
-                                strokeWidth={1.8}
+                                strokeWidth={
+                                  1.8
+                                }
                               />
                             </button>
                           )}
@@ -1045,6 +1316,7 @@ export default function LessonsPage() {
                         <p
                           className="
                             min-w-[112px]
+
                             font-serif
                             text-[30px]
                             font-medium
@@ -1052,15 +1324,29 @@ export default function LessonsPage() {
                             text-[#293A30]
                           "
                         >
-                          {selectedLessons} lessons
+                          {interpolate(
+                            content.details
+                              .term.lessons,
+                            {
+                              count:
+                                selectedLessons,
+                            }
+                          )}
                         </p>
 
-                        {allowsTenLessonTerm &&
-                          selectedLessons === 10 && (
+                        {canUseTenLessonTerm &&
+                          selectedLessons ===
+                            10 && (
                             <button
                               type="button"
-                              onClick={increaseLessons}
-                              aria-label="Choose 20 lessons"
+                              onClick={
+                                increaseLessons
+                              }
+                              aria-label={
+                                content.details
+                                  .term
+                                  .choose20
+                              }
                               className="
                                 flex
                                 h-9
@@ -1068,11 +1354,16 @@ export default function LessonsPage() {
                                 shrink-0
                                 items-center
                                 justify-center
+
                                 rounded-full
+
                                 border
                                 border-[#304A39]/15
+
                                 bg-[#FFFDF8]
+
                                 text-[#304A39]
+
                                 transition-colors
 
                                 hover:bg-[#F2EEE5]
@@ -1080,48 +1371,42 @@ export default function LessonsPage() {
                             >
                               <Plus
                                 size={17}
-                                strokeWidth={1.8}
+                                strokeWidth={
+                                  1.8
+                                }
                               />
                             </button>
                           )}
                       </div>
 
-                      {!allowsTenLessonTerm && (
-                        <p
-                          className="
-                            mt-1
-                            text-[11px]
-                            leading-5
-                            text-[#758477]
-                          "
-                        >
-                          20-lesson term for 25–35 minute
-                          lessons
-                        </p>
-                      )}
+                      <p
+                        className="
+                          mt-1
 
-                      {allowsTenLessonTerm && (
-                        <p
-                          className="
-                            mt-1
-                            text-[11px]
-                            leading-5
-                            text-[#758477]
-                          "
-                        >
-                          10 or 20 lessons per term
-                        </p>
-                      )}
+                          text-[11px]
+                          leading-5
+                          text-[#758477]
+                        "
+                      >
+                        {canUseTenLessonTerm
+                          ? content.details
+                              .term.flexible
+                          : content.details
+                              .term.standard}
+                      </p>
                     </div>
                   </div>
 
-                  {/* TUITION */}
+                  {/* ===========================================
+                      TUITION
+                      =========================================== */}
 
                   <div
                     className="
                       flex
-                      items-center
+                      items-start
                       gap-4
+
                       py-5
                     "
                   >
@@ -1133,18 +1418,22 @@ export default function LessonsPage() {
                         shrink-0
                         items-center
                         justify-center
+
                         rounded-full
                         bg-[#F2EEE5]
+
                         font-serif
                         text-[23px]
                         font-medium
                         text-[#607568]
                       "
                     >
-                      ₩
+                      {
+                        currentPricing.symbol
+                      }
                     </div>
 
-                    <div>
+                    <div className="min-w-0">
                       <p
                         className="
                           text-[10px]
@@ -1156,56 +1445,121 @@ export default function LessonsPage() {
                           sm:text-[11px]
                         "
                       >
-                        Tuition
+                        {
+                          content.details
+                            .tuition.label
+                        }
                       </p>
 
-                      <p
+                      <div
                         className="
                           mt-1
-                          font-serif
-                          text-[38px]
-                          font-medium
-                          leading-none
-                          tracking-[-0.025em]
-                          text-[#293A30]
 
-                          sm:text-[42px]
+                          flex
+                          flex-wrap
+                          items-end
+                          gap-x-2
+                          gap-y-1
                         "
                       >
-                        {formattedTuition}
-                      </p>
+                        <p
+                          className="
+                            font-serif
+                            text-[38px]
+                            font-medium
+                            leading-none
+                            tracking-[-0.025em]
+                            text-[#293A30]
+
+                            sm:text-[42px]
+                          "
+                        >
+                          {formattedTuition}
+                        </p>
+
+                        <span
+                          className="
+                            pb-1
+
+                            text-[11px]
+                            font-semibold
+                            uppercase
+                            tracking-[0.12em]
+                            text-[#718A73]
+                          "
+                        >
+                          {
+                            currentPricing.currency
+                          }
+                        </span>
+                      </div>
 
                       <p
                         className="
                           mt-1
+
                           text-[12px]
                           text-[#758477]
                         "
                       >
-                        per {selectedLessons}-lesson term
+                        {interpolate(
+                          content.details
+                            .tuition.perTerm,
+                          {
+                            count:
+                              selectedLessons,
+                          }
+                        )}
+                      </p>
+
+                      <p
+                        className="
+                          mt-2
+                          max-w-[330px]
+
+                          text-[10px]
+                          leading-[1.55]
+                          text-[#8A958D]
+
+                          sm:text-[11px]
+                        "
+                      >
+                        {
+                          content.details
+                            .tuition.review
+                        }
                       </p>
                     </div>
                   </div>
 
-                  {/* CTA */}
+                  {/* ===========================================
+                      CTA
+                      =========================================== */}
 
                   <button
                     type="button"
                     className="
                       group
+
                       mt-1
+
                       flex
                       w-full
                       items-center
                       justify-between
+
                       rounded-[16px]
                       bg-[#365844]
+
                       px-5
                       py-4
+
                       text-[14px]
                       font-semibold
                       text-[#FFFDF8]
+
                       shadow-[0_6px_0_#718A73]
+
                       transition-all
                       duration-200
 
@@ -1217,7 +1571,12 @@ export default function LessonsPage() {
                       sm:px-6
                     "
                   >
-                    <span>Choose This Lesson</span>
+                    <span>
+                      {
+                        content.details
+                          .chooseLesson
+                      }
+                    </span>
 
                     <ArrowRight
                       size={20}
@@ -1225,6 +1584,7 @@ export default function LessonsPage() {
                       className="
                         transition-transform
                         duration-200
+
                         group-hover:translate-x-1
                       "
                     />
@@ -1242,6 +1602,7 @@ export default function LessonsPage() {
         <section
           className="
             bg-[#F3EDDD]
+
             px-6
             py-12
 
@@ -1255,6 +1616,7 @@ export default function LessonsPage() {
           <div
             className="
               mx-auto
+
               flex
               w-full
               max-w-[1180px]
@@ -1278,13 +1640,17 @@ export default function LessonsPage() {
                   sm:text-[12px]
                 "
               >
-                Teachers
+                {
+                  content.nextStep
+                    .eyebrow
+                }
               </p>
 
               <h2
                 className="
                   mt-3
                   max-w-[600px]
+
                   font-serif
                   text-[34px]
                   font-normal
@@ -1295,8 +1661,7 @@ export default function LessonsPage() {
                   sm:text-[40px]
                 "
               >
-                Find someone you&apos;d feel comfortable
-                talking with.
+                {content.nextStep.title}
               </h2>
             </div>
 
@@ -1313,7 +1678,9 @@ export default function LessonsPage() {
                   absolute
                   inset-x-0
                   bottom-0
+
                   h-[calc(100%-6px)]
+
                   rounded-[10px]
                   bg-[#718A73]
                 "
@@ -1325,17 +1692,22 @@ export default function LessonsPage() {
                 className="
                   group
                   relative
+
                   flex
                   min-h-[46px]
                   items-center
                   gap-3
+
                   rounded-[10px]
                   bg-[#DCE4D7]
+
                   px-6
                   py-3
+
                   text-[14px]
                   font-semibold
                   text-[#304A39]
+
                   transition-transform
                   duration-200
 
@@ -1344,7 +1716,12 @@ export default function LessonsPage() {
                   active:translate-y-[4px]
                 "
               >
-                <span>Meet Our Teachers</span>
+                <span>
+                  {
+                    content.nextStep
+                      .button
+                  }
+                </span>
 
                 <ArrowRight
                   size={18}
@@ -1352,6 +1729,7 @@ export default function LessonsPage() {
                   className="
                     transition-transform
                     duration-200
+
                     group-hover:translate-x-1
                   "
                 />

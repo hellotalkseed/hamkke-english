@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import Navbar from "../../../components/Navbar";
+import { getMessages } from "../../../lib/getMessages";
 import { isValidLocale } from "../../../lib/i18n";
 
 interface HowItWorksPageProps {
@@ -18,63 +19,43 @@ interface HowItWorksPageProps {
   }>;
 }
 
-const approachSteps = [
-  {
-    number: "01",
-    title: "We Talk",
-    description:
-      "Start with something you actually want to say. It might come from your day, a question, a lesson topic, or an idea you want to explore.",
-    short: "You bring the thought. We begin there.",
-    icon: MessageCircle,
-  },
-  {
-    number: "02",
-    title: "We Go Deeper",
-    description:
-      "Your teacher asks follow-up questions that help you explain, connect, compare, and develop your idea instead of stopping at a short answer.",
-    short: "One answer becomes a real conversation.",
-    icon: MessagesSquare,
-  },
-  {
-    number: "03",
-    title: "We Refine",
-    description:
-      "As useful English naturally comes up, your teacher helps you make it clearer, more natural, or more precise without interrupting every mistake.",
-    short: "We improve the English you need in that moment.",
-    icon: Sparkles,
-  },
-  {
-    number: "04",
-    title: "You Try Again",
-    description:
-      "You get another chance to use what you just learned so the correction becomes something you can use in your own communication.",
-    short: "You use it again in the conversation.",
-    icon: RefreshCw,
-  },
-];
+function renderHighlightedText(
+  text: string,
+  highlights: readonly string[]
+) {
+  if (highlights.length === 0) {
+    return text;
+  }
 
-const teacherRoles = [
-  {
-    number: "01",
-    title: "Listen",
-    text: "Notice what you are trying to express, not only whether every sentence is perfect.",
-  },
-  {
-    number: "02",
-    title: "Ask",
-    text: "Use meaningful follow-up questions to help you develop your thoughts and keep speaking.",
-  },
-  {
-    number: "03",
-    title: "Refine",
-    text: "Introduce clearer or more natural English when it becomes useful to the conversation.",
-  },
-  {
-    number: "04",
-    title: "Give it back",
-    text: "Give you space to try the language yourself instead of doing the speaking for you.",
-  },
-];
+  const pattern = new RegExp(
+    `(${highlights
+      .map((phrase) =>
+        phrase.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          "\\$&"
+        )
+      )
+      .join("|")})`,
+    "g"
+  );
+
+  return text
+    .split(pattern)
+    .map((part, index) => {
+      if (highlights.includes(part)) {
+        return (
+          <strong
+            key={`${part}-${index}`}
+            className="font-semibold text-[#304A39]"
+          >
+            {part}
+          </strong>
+        );
+      }
+
+      return part;
+    });
+}
 
 export default async function HowItWorksPage({
   params,
@@ -84,6 +65,35 @@ export default async function HowItWorksPage({
   if (!isValidLocale(locale)) {
     notFound();
   }
+
+  const messages = getMessages(locale);
+  const content = messages.approachPage;
+
+  const approachSteps = [
+    {
+      ...content.framework.steps.talk,
+      icon: MessageCircle,
+    },
+    {
+      ...content.framework.steps.goDeeper,
+      icon: MessagesSquare,
+    },
+    {
+      ...content.framework.steps.refine,
+      icon: Sparkles,
+    },
+    {
+      ...content.framework.steps.tryAgain,
+      icon: RefreshCw,
+    },
+  ];
+
+  const teacherRoles = [
+    content.teacherRole.roles.listen,
+    content.teacherRole.roles.ask,
+    content.teacherRole.roles.refine,
+    content.teacherRole.roles.giveBack,
+  ];
 
   return (
     <>
@@ -130,7 +140,7 @@ export default async function HowItWorksPage({
                   sm:text-[12px]
                 "
               >
-                The Hamkke Approach
+                {content.hero.eyebrow}
               </p>
 
               <h1
@@ -148,7 +158,7 @@ export default async function HowItWorksPage({
                   lg:text-[58px]
                 "
               >
-                Conversation is where the learning happens.
+                {content.hero.title}
               </h1>
 
               <p
@@ -163,10 +173,10 @@ export default async function HowItWorksPage({
                   sm:leading-8
                 "
               >
-                The Hamkke Approach is a conversation-centered
-                teaching framework that helps learners move from
-                knowing English to using it meaningfully and
-                independently.
+                {renderHighlightedText(
+                  content.hero.description.text,
+                  content.hero.description.highlights
+                )}
               </p>
             </div>
 
@@ -244,7 +254,7 @@ export default async function HowItWorksPage({
                   sm:text-[12px]
                 "
               >
-                Why conversation?
+                {content.whyConversation.eyebrow}
               </p>
 
               <h2
@@ -261,7 +271,7 @@ export default async function HowItWorksPage({
                   sm:text-[40px]
                 "
               >
-                Knowing English is different from using it.
+                {content.whyConversation.title}
               </h2>
             </div>
 
@@ -285,9 +295,13 @@ export default async function HowItWorksPage({
                   text-[#526158]
                 "
               >
-                You may know the vocabulary, understand the
-                grammar, and recognize the right answer on a page,
-                but still pause when it is your turn to speak.
+                {renderHighlightedText(
+                  content.whyConversation.firstParagraph.text,
+                  [
+                    content.whyConversation.firstParagraph
+                      .highlight,
+                  ]
+                )}
               </p>
 
               <div
@@ -305,10 +319,11 @@ export default async function HowItWorksPage({
                   text-[#758477]
                 "
               >
-                Hamkke works on that gap. Instead of waiting until
-                your English feels complete, you use what you
-                already know, discover what you need while talking,
-                and build from there.
+                {renderHighlightedText(
+                  content.whyConversation.secondParagraph.text,
+                  content.whyConversation.secondParagraph
+                    .highlights
+                )}
               </p>
             </div>
           </div>
@@ -346,7 +361,7 @@ export default async function HowItWorksPage({
                   sm:text-[12px]
                 "
               >
-                How it works
+                {content.framework.eyebrow}
               </p>
 
               <h2
@@ -362,7 +377,7 @@ export default async function HowItWorksPage({
                   sm:text-[40px]
                 "
               >
-                A simple cycle that keeps you speaking.
+                {content.framework.title}
               </h2>
 
               <p
@@ -374,9 +389,7 @@ export default async function HowItWorksPage({
                   text-[#607066]
                 "
               >
-                The four parts work together throughout the lesson.
-                They are not timed activities or a script your
-                teacher has to follow.
+                {content.framework.description}
               </p>
             </div>
 
@@ -392,111 +405,115 @@ export default async function HowItWorksPage({
                 bg-[#FAF8F2]
               "
             >
-              {approachSteps.map((step, index) => {
-                const Icon = step.icon;
+              {approachSteps.map(
+                (step, index) => {
+                  const Icon = step.icon;
 
-                return (
-                  <div
-                    key={step.number}
-                    className={`
-                      grid
-                      gap-5
-                      px-6
-                      py-7
-
-                      sm:grid-cols-[60px_minmax(0,1fr)]
-                      sm:gap-6
-                      sm:px-8
-
-                      lg:grid-cols-[60px_210px_minmax(0,1fr)_250px]
-                      lg:items-center
-                      lg:gap-7
-                      lg:px-9
-
-                      ${
-                        index !== approachSteps.length - 1
-                          ? "border-b border-[#304A39]/10"
-                          : ""
-                      }
-                    `}
-                  >
+                  return (
                     <div
-                      className="
-                        flex
-                        h-11
-                        w-11
-                        items-center
-                        justify-center
-                        rounded-full
-                        bg-[#E7ECE2]
-                        text-[#607568]
-                      "
-                    >
-                      <Icon
-                        size={20}
-                        strokeWidth={1.6}
-                      />
-                    </div>
+                      key={step.number}
+                      className={`
+                        grid
+                        gap-5
+                        px-6
+                        py-7
 
-                    <div>
+                        sm:grid-cols-[60px_minmax(0,1fr)]
+                        sm:gap-6
+                        sm:px-8
+
+                        lg:grid-cols-[60px_210px_minmax(0,1fr)_250px]
+                        lg:items-center
+                        lg:gap-7
+                        lg:px-9
+
+                        ${
+                          index !==
+                          approachSteps.length -
+                            1
+                            ? "border-b border-[#304A39]/10"
+                            : ""
+                        }
+                      `}
+                    >
+                      <div
+                        className="
+                          flex
+                          h-11
+                          w-11
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-[#E7ECE2]
+                          text-[#607568]
+                        "
+                      >
+                        <Icon
+                          size={20}
+                          strokeWidth={1.6}
+                        />
+                      </div>
+
+                      <div>
+                        <p
+                          className="
+                            text-[10px]
+                            font-semibold
+                            uppercase
+                            tracking-[0.18em]
+                            text-[#9AA89C]
+                          "
+                        >
+                          {step.number}
+                        </p>
+
+                        <h3
+                          className="
+                            mt-1
+                            font-serif
+                            text-[27px]
+                            font-medium
+                            leading-none
+                            text-[#304A39]
+                          "
+                        >
+                          {step.title}
+                        </h3>
+                      </div>
+
                       <p
                         className="
-                          text-[10px]
-                          font-semibold
-                          uppercase
-                          tracking-[0.18em]
-                          text-[#9AA89C]
+                          text-[14px]
+                          leading-7
+                          text-[#66736A]
                         "
                       >
-                        {step.number}
+                        {step.description}
                       </p>
 
-                      <h3
+                      <div
                         className="
-                          mt-1
-                          font-serif
-                          text-[27px]
-                          font-medium
-                          leading-none
-                          text-[#304A39]
+                          rounded-[14px]
+                          bg-[#EEF2EA]
+                          px-4
+                          py-3
                         "
                       >
-                        {step.title}
-                      </h3>
+                        <p
+                          className="
+                            text-[13px]
+                            font-medium
+                            leading-6
+                            text-[#526459]
+                          "
+                        >
+                          {step.short}
+                        </p>
+                      </div>
                     </div>
-
-                    <p
-                      className="
-                        text-[14px]
-                        leading-7
-                        text-[#66736A]
-                      "
-                    >
-                      {step.description}
-                    </p>
-
-                    <div
-                      className="
-                        rounded-[14px]
-                        bg-[#EEF2EA]
-                        px-4
-                        py-3
-                      "
-                    >
-                      <p
-                        className="
-                          text-[13px]
-                          font-medium
-                          leading-6
-                          text-[#526459]
-                        "
-                      >
-                        {step.short}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                }
+              )}
             </div>
 
             {/* CYCLE NOTE */}
@@ -546,7 +563,7 @@ export default async function HowItWorksPage({
                     text-[#304A39]
                   "
                 >
-                  It&apos;s a cycle, not a script.
+                  {content.framework.cycle.title}
                 </h3>
 
                 <p
@@ -558,11 +575,10 @@ export default async function HowItWorksPage({
                     text-[#66736A]
                   "
                 >
-                  A conversation can move through these steps
-                  several times. Your teacher may spend longer on
-                  one idea or return to conversation immediately
-                  after a useful correction. The framework stays
-                  consistent while the conversation stays flexible.
+                  {
+                    content.framework.cycle
+                      .description
+                  }
                 </p>
               </div>
             </div>
@@ -610,7 +626,7 @@ export default async function HowItWorksPage({
                     sm:text-[12px]
                   "
                 >
-                  Your teacher&apos;s role
+                  {content.teacherRole.eyebrow}
                 </p>
 
                 <h2
@@ -627,7 +643,7 @@ export default async function HowItWorksPage({
                     sm:text-[40px]
                   "
                 >
-                  Guidance without taking over.
+                  {content.teacherRole.title}
                 </h2>
 
                 <p
@@ -639,9 +655,15 @@ export default async function HowItWorksPage({
                     text-[#607066]
                   "
                 >
-                  Your teacher helps the conversation move while
-                  giving you enough space to think, respond, and
-                  try the English yourself.
+                  {renderHighlightedText(
+                    content.teacherRole
+                      .description.text,
+                    [
+                      content.teacherRole
+                        .description
+                        .highlight,
+                    ]
+                  )}
                 </p>
               </div>
 
@@ -654,59 +676,63 @@ export default async function HowItWorksPage({
                   bg-[#FFFDF8]
                 "
               >
-                {teacherRoles.map((role, index) => (
-                  <div
-                    key={role.title}
-                    className={`
-                      grid
-                      gap-2
-                      px-6
-                      py-5
+                {teacherRoles.map(
+                  (role, index) => (
+                    <div
+                      key={role.number}
+                      className={`
+                        grid
+                        gap-2
+                        px-6
+                        py-5
 
-                      sm:grid-cols-[50px_130px_minmax(0,1fr)]
-                      sm:items-start
-                      sm:gap-5
-                      sm:px-7
+                        sm:grid-cols-[50px_130px_minmax(0,1fr)]
+                        sm:items-start
+                        sm:gap-5
+                        sm:px-7
 
-                      ${
-                        index !== teacherRoles.length - 1
-                          ? "border-b border-[#304A39]/10"
-                          : ""
-                      }
-                    `}
-                  >
-                    <span
-                      className="
-                        text-[11px]
-                        font-semibold
-                        tracking-[0.14em]
-                        text-[#9AA89C]
-                      "
+                        ${
+                          index !==
+                          teacherRoles.length -
+                            1
+                            ? "border-b border-[#304A39]/10"
+                            : ""
+                        }
+                      `}
                     >
-                      {role.number}
-                    </span>
+                      <span
+                        className="
+                          text-[11px]
+                          font-semibold
+                          tracking-[0.14em]
+                          text-[#9AA89C]
+                        "
+                      >
+                        {role.number}
+                      </span>
 
-                    <h3
-                      className="
-                        text-[15px]
-                        font-semibold
-                        text-[#304A39]
-                      "
-                    >
-                      {role.title}
-                    </h3>
+                      <h3
+                        className="
+                          text-[15px]
+                          font-semibold
+                          text-[#304A39]
+                        "
+                      >
+                        {role.title}
+                      </h3>
 
-                    <p
-                      className="
-                        text-[14px]
-                        leading-6
-                        text-[#66736A]
-                      "
-                    >
-                      {role.text}
-                    </p>
-                  </div>
-                ))}
+                      <p
+                        className="
+                          text-[14px]
+                          leading-6
+                          text-[#66736A]
+                        "
+                      >
+                        {role.description}
+                      </p>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           </div>
@@ -750,7 +776,7 @@ export default async function HowItWorksPage({
                   sm:text-[12px]
                 "
               >
-                From Small Talk to Big Ideas
+                {content.nextStep.eyebrow}
               </p>
 
               <h2
@@ -767,7 +793,7 @@ export default async function HowItWorksPage({
                   sm:text-[40px]
                 "
               >
-                Start with the English you already know.
+                {content.nextStep.title}
               </h2>
 
               <p
@@ -779,8 +805,7 @@ export default async function HowItWorksPage({
                   text-[#607066]
                 "
               >
-                Find the lesson setup that works for you and start
-                using your English in conversation.
+                {content.nextStep.description}
               </p>
             </div>
 
@@ -828,7 +853,9 @@ export default async function HowItWorksPage({
                   active:translate-y-[4px]
                 "
               >
-                <span>Find Your Lesson</span>
+                <span>
+                  {content.nextStep.button}
+                </span>
 
                 <ArrowRight
                   size={18}

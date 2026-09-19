@@ -5,18 +5,39 @@ import {
   useRef,
   useState,
 } from "react";
+import { useParams } from "next/navigation";
+
+import { getMessages } from "@/lib/getMessages";
+import {
+  isValidLocale,
+  type Locale,
+} from "@/lib/i18n";
 
 type TeacherAudioPlayerProps = {
   src: string;
   firstName: string;
 };
 
+function interpolate(
+  template: string,
+  values: Record<string, string>
+) {
+  return template.replace(
+    /\{(\w+)\}/g,
+    (_, key: string) =>
+      values[key] ?? `{${key}}`
+  );
+}
+
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) {
     return "0:00";
   }
 
-  const minutes = Math.floor(seconds / 60);
+  const minutes = Math.floor(
+    seconds / 60
+  );
+
   const remainingSeconds = Math.floor(
     seconds % 60
   );
@@ -30,6 +51,24 @@ export default function TeacherAudioPlayer({
   src,
   firstName,
 }: TeacherAudioPlayerProps) {
+  const params = useParams<{
+    locale?: string;
+  }>();
+
+  const localeParam =
+    typeof params?.locale === "string"
+      ? params.locale
+      : "en";
+
+  const locale: Locale =
+    isValidLocale(localeParam)
+      ? localeParam
+      : "en";
+
+  const messages = getMessages(locale);
+  const content =
+    messages.teacherProfilePage.audio;
+
   const audioRef =
     useRef<HTMLAudioElement | null>(null);
 
@@ -41,6 +80,27 @@ export default function TeacherAudioPlayer({
 
   const [currentTime, setCurrentTime] =
     useState(0);
+
+  const greeting = interpolate(
+    content.greeting,
+    {
+      name: firstName,
+    }
+  );
+
+  const playLabel = interpolate(
+    content.play,
+    {
+      name: firstName,
+    }
+  );
+
+  const pauseLabel = interpolate(
+    content.pause,
+    {
+      name: firstName,
+    }
+  );
 
   /* =====================================================
      AUDIO EVENTS
@@ -63,14 +123,19 @@ export default function TeacherAudioPlayer({
     };
 
     const updateCurrentTime = () => {
-      if (Number.isFinite(audio.currentTime)) {
-        setCurrentTime(audio.currentTime);
+      if (
+        Number.isFinite(
+          audio.currentTime
+        )
+      ) {
+        setCurrentTime(
+          audio.currentTime
+        );
       }
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
-
       audio.currentTime = 0;
       setCurrentTime(0);
     };
@@ -190,7 +255,9 @@ export default function TeacherAudioPlayer({
      SEEK
      ===================================================== */
 
-  const seekTo = (nextTime: number) => {
+  const seekTo = (
+    nextTime: number
+  ) => {
     const audio = audioRef.current;
 
     if (
@@ -201,13 +268,17 @@ export default function TeacherAudioPlayer({
     }
 
     const actualDuration =
-      Number.isFinite(audio.duration) &&
+      Number.isFinite(
+        audio.duration
+      ) &&
       audio.duration > 0
         ? audio.duration
         : duration;
 
     if (
-      !Number.isFinite(actualDuration) ||
+      !Number.isFinite(
+        actualDuration
+      ) ||
       actualDuration <= 0
     ) {
       return;
@@ -219,14 +290,19 @@ export default function TeacherAudioPlayer({
     );
 
     audio.currentTime = safeTime;
-    setCurrentTime(safeTime);
+
+    setCurrentTime(
+      safeTime
+    );
   };
 
   const handleSeek = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     seekTo(
-      Number(event.currentTarget.value)
+      Number(
+        event.currentTarget.value
+      )
     );
   };
 
@@ -234,7 +310,9 @@ export default function TeacherAudioPlayer({
     event: React.FormEvent<HTMLInputElement>
   ) => {
     seekTo(
-      Number(event.currentTarget.value)
+      Number(
+        event.currentTarget.value
+      )
     );
   };
 
@@ -243,14 +321,18 @@ export default function TeacherAudioPlayer({
      ===================================================== */
 
   const safeDuration =
-    Number.isFinite(duration) && duration > 0
+    Number.isFinite(duration) &&
+    duration > 0
       ? duration
       : 0;
 
   const safeCurrentTime =
     safeDuration > 0
       ? Math.min(
-          Math.max(currentTime, 0),
+          Math.max(
+            currentTime,
+            0
+          ),
           safeDuration
         )
       : 0;
@@ -270,11 +352,13 @@ export default function TeacherAudioPlayer({
 
         <button
           type="button"
-          onClick={togglePlayback}
+          onClick={
+            togglePlayback
+          }
           aria-label={
             isPlaying
-              ? `Pause ${firstName}'s audio introduction`
-              : `Play ${firstName}'s audio introduction`
+              ? pauseLabel
+              : playLabel
           }
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#304A39] text-white transition hover:bg-[#243B2E]"
         >
@@ -308,7 +392,7 @@ export default function TeacherAudioPlayer({
 
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold leading-5 text-[#304A39]">
-            A short hello from {firstName}
+            {greeting}
           </p>
 
           <div className="mt-2 flex items-center gap-2">
@@ -321,14 +405,28 @@ export default function TeacherAudioPlayer({
               min={0}
               max={safeDuration}
               step={0.1}
-              value={safeCurrentTime}
-              disabled={safeDuration <= 0}
-              onInput={handleSeekInput}
-              onChange={handleSeek}
-              aria-label="Audio progress"
+              value={
+                safeCurrentTime
+              }
+              disabled={
+                safeDuration <= 0
+              }
+              onInput={
+                handleSeekInput
+              }
+              onChange={
+                handleSeek
+              }
+              aria-label={
+                content.progress
+              }
               aria-valuemin={0}
-              aria-valuemax={safeDuration}
-              aria-valuenow={safeCurrentTime}
+              aria-valuemax={
+                safeDuration
+              }
+              aria-valuenow={
+                safeCurrentTime
+              }
               className="
                 h-1
                 min-w-0
@@ -345,9 +443,13 @@ export default function TeacherAudioPlayer({
                 ============================================= */}
 
             <span className="shrink-0 text-[10px] tabular-nums text-[#758477]">
-              {formatTime(safeCurrentTime)}
+              {formatTime(
+                safeCurrentTime
+              )}
               {" / "}
-              {formatTime(safeDuration)}
+              {formatTime(
+                safeDuration
+              )}
             </span>
           </div>
         </div>

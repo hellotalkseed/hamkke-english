@@ -9,11 +9,74 @@ interface HeroContentProps {
   locale: Locale;
 }
 
+/* =====================================================
+   SELECTIVE TEXT EMPHASIS
+   ===================================================== */
+
+const heroHighlights: Record<
+  Locale,
+  {
+    first: string;
+    second: string;
+  }
+> = {
+  en: {
+    first: "actually use it",
+    second: "say more of what you mean",
+  },
+
+  ko: {
+    first: "실제로 사용할 수 있을 때",
+    second: "정말 하고 싶은 말을 더 많이 표현",
+  },
+
+  zh: {
+    first: "真正能够使用英语",
+    second: "表达更多你真正想说的话",
+  },
+
+  ja: {
+    first: "実際に使えるようになると",
+    second: "本当に伝えたいことをもっと表現",
+  },
+};
+
+function highlightPhrase(
+  text: string,
+  phrase: string
+) {
+  const index = text.indexOf(phrase);
+
+  if (index === -1) {
+    return text;
+  }
+
+  const before = text.slice(0, index);
+  const after = text.slice(
+    index + phrase.length
+  );
+
+  return (
+    <>
+      {before}
+
+      <strong className="font-semibold text-[#304A39]">
+        {phrase}
+      </strong>
+
+      {after}
+    </>
+  );
+}
+
 export default function HeroContent({
   locale,
 }: HeroContentProps) {
   const messages = getMessages(locale);
   const content = messages.hero;
+
+  const highlights =
+    heroHighlights[locale];
 
   const featureLabelClass = `
     text-[12px]
@@ -24,7 +87,8 @@ export default function HeroContent({
     lg:text-[13px]
   `;
 
-  const iconClass = "h-7 w-7 text-[#536F61]";
+  const iconClass =
+    "h-7 w-7 text-[#536F61]";
 
   return (
     <FadeUp>
@@ -224,7 +288,10 @@ export default function HeroContent({
                 lg:text-[25px]
               "
             >
-              {content.descriptionFirst}
+              {highlightPhrase(
+                content.descriptionFirst,
+                highlights.first
+              )}
             </p>
 
             <p
@@ -238,7 +305,10 @@ export default function HeroContent({
                 lg:text-[22px]
               "
             >
-              {content.descriptionSecond}
+              {highlightPhrase(
+                content.descriptionSecond,
+                highlights.second
+              )}
             </p>
           </div>
         </FadeUp>
@@ -287,7 +357,9 @@ export default function HeroContent({
                 active:before:top-[3px]
               "
             >
-              <span>{content.assessment}</span>
+              <span>
+                {content.assessment}
+              </span>
 
               <span
                 className="
@@ -382,7 +454,10 @@ export default function HeroContent({
               </svg>
 
               <span className={featureLabelClass}>
-                {content.features.conversation}
+                {
+                  content.features
+                    .conversation
+                }
               </span>
             </div>
 
@@ -588,7 +663,10 @@ export default function HeroContent({
               </svg>
 
               <span className={featureLabelClass}>
-                {content.features.personalized}
+                {
+                  content.features
+                    .personalized
+                }
               </span>
             </div>
           </div>

@@ -5,7 +5,11 @@ import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import TeacherAudioPlayer from "@/components/TeacherAudioPlayer";
 import TeacherProfileTabs from "@/components/TeacherProfileTabs";
-import { isValidLocale } from "@/lib/i18n";
+import { getMessages } from "@/lib/getMessages";
+import {
+  isValidLocale,
+  type Locale,
+} from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const TEACHER_AVATAR_BUCKET = "teacher-avatars";
@@ -35,14 +39,29 @@ type TeacherProfilePageProps = {
   }>;
 };
 
+function interpolate(
+  template: string,
+  values: Record<string, string>
+) {
+  return template.replace(
+    /\{(\w+)\}/g,
+    (_, key: string) => values[key] ?? `{${key}}`
+  );
+}
+
 export default async function TeacherProfilePage({
   params,
 }: TeacherProfilePageProps) {
-  const { locale, slug } = await params;
+  const { locale: localeParam, slug } = await params;
 
-  if (!isValidLocale(locale)) {
+  if (!isValidLocale(localeParam)) {
     notFound();
   }
+
+  const locale = localeParam as Locale;
+
+  const messages = getMessages(locale);
+  const content = messages.teacherProfilePage;
 
   const admin = createAdminClient();
 
@@ -177,6 +196,27 @@ export default async function TeacherProfilePage({
           .filter(Boolean)
       : [];
 
+  const avatarAlt = interpolate(
+    content.teacher.avatarAlt,
+    {
+      name: fullName,
+    }
+  );
+
+  const audioGreeting = interpolate(
+    content.audio.greeting,
+    {
+      name: firstName,
+    }
+  );
+
+  const getStartedTitle = interpolate(
+    content.getStarted.title,
+    {
+      name: firstName,
+    }
+  );
+
   return (
     <>
       {/* ================================================================
@@ -205,7 +245,7 @@ export default async function TeacherProfilePage({
               ============================================================ */}
 
           <nav
-            aria-label="Breadcrumb"
+            aria-label={content.breadcrumb.label}
             className="
               flex
               items-center
@@ -223,7 +263,7 @@ export default async function TeacherProfilePage({
                 hover:text-[#304A39]
               "
             >
-              Home
+              {content.breadcrumb.home}
             </Link>
 
             <span
@@ -241,7 +281,7 @@ export default async function TeacherProfilePage({
                 hover:text-[#304A39]
               "
             >
-              Teachers
+              {content.breadcrumb.teachers}
             </Link>
 
             <span
@@ -306,7 +346,7 @@ export default async function TeacherProfilePage({
                   {avatarUrl ? (
                     <Image
                       src={avatarUrl}
-                      alt={`${fullName}, Hamkke teacher`}
+                      alt={avatarAlt}
                       fill
                       priority
                       sizes="
@@ -360,7 +400,7 @@ export default async function TeacherProfilePage({
                         text-[#304A39]
                       "
                     >
-                      A short hello from {firstName}
+                      {audioGreeting}
                     </p>
 
                     <p
@@ -371,7 +411,7 @@ export default async function TeacherProfilePage({
                         text-[#758477]
                       "
                     >
-                      Audio introduction coming soon
+                      {content.audio.comingSoon}
                     </p>
                   </div>
                 )}
@@ -395,7 +435,7 @@ export default async function TeacherProfilePage({
                     text-[#718A73]
                   "
                 >
-                  Hamkke Teacher
+                  {content.teacher.label}
                 </p>
 
                 <h1
@@ -472,7 +512,7 @@ export default async function TeacherProfilePage({
                     text-[#718A73]
                   "
                 >
-                  Start Here
+                  {content.getStarted.eyebrow}
                 </p>
 
                 <h2
@@ -485,9 +525,7 @@ export default async function TeacherProfilePage({
                     text-[#304A39]
                   "
                 >
-                  Start a conversation
-                  <br />
-                  with {firstName}
+                  {getStartedTitle}
                 </h2>
 
                 <p
@@ -498,8 +536,7 @@ export default async function TeacherProfilePage({
                     text-[#5F6E62]
                   "
                 >
-                  Book a free assessment and let&apos;s
-                  see how I can support your goals.
+                  {content.getStarted.description}
                 </p>
 
                 <div className="my-5 h-px bg-[#304A39]/10" />
@@ -511,12 +548,19 @@ export default async function TeacherProfilePage({
                     text-[#435447]
                   "
                 >
-                  <p>1:1 online class</p>
-
-                  <p>25–50 minutes</p>
+                  <p>
+                    {content.getStarted.details.format}
+                  </p>
 
                   <p>
-                    No pressure, just a friendly chat
+                    {content.getStarted.details.duration}
+                  </p>
+
+                  <p>
+                    {
+                      content.getStarted.details
+                        .atmosphere
+                    }
                   </p>
                 </div>
 
@@ -554,7 +598,7 @@ export default async function TeacherProfilePage({
                     "
                   >
                     <span>
-                      Book a Free Assessment
+                      {content.getStarted.button}
                     </span>
 
                     <span

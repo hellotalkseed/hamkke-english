@@ -1,33 +1,106 @@
 import Image from "next/image";
 import Link from "next/link";
+
 import type { Locale } from "../lib/i18n";
+import { getMessages } from "../lib/getMessages";
 
 type GetStartedProps = {
   locale: Locale;
 };
 
-export default function GetStarted({ locale }: GetStartedProps) {
+export default function GetStarted({
+  locale,
+}: GetStartedProps) {
+  const messages = getMessages(locale);
+  const content = messages.getStarted;
+
+  const steps = [
+    content.steps.introduction,
+    content.steps.conversation,
+    content.steps.lessons,
+  ];
+
   return (
     <section
       id="get-started"
-      className="relative overflow-hidden bg-[#FFFDF8] py-10 sm:py-14 lg:py-12"
+      className="
+        relative
+        overflow-hidden
+        bg-[#FFFDF8]
+
+        py-10
+        sm:py-14
+        lg:py-12
+      "
     >
-      <div className="mx-auto max-w-[1440px] px-5 sm:px-10 lg:px-16">
+      <div
+        className="
+          mx-auto
+          max-w-[1440px]
+
+          px-5
+          sm:px-10
+          lg:px-16
+        "
+      >
         {/* =====================================================
             OPENING
             ===================================================== */}
 
         <div className="max-w-[1280px]">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[#718A73] sm:text-xs sm:tracking-[0.28em]">
-            Ready When You Are
+          <p
+            className="
+              text-[10px]
+              font-semibold
+              uppercase
+              tracking-[0.26em]
+              text-[#718A73]
+
+              sm:text-xs
+              sm:tracking-[0.28em]
+            "
+          >
+            {content.eyebrow}
           </p>
 
-          <h2 className="mt-3 font-serif text-[35px] leading-[1.02] tracking-[-0.035em] text-[#304A39] sm:text-5xl sm:leading-[0.98] lg:whitespace-nowrap lg:text-[46px] xl:text-[50px]">
-            Every meaningful conversation starts somewhere.
+          <h2
+            className="
+              mt-3
+
+              font-serif
+              text-[35px]
+              leading-[1.02]
+              tracking-[-0.035em]
+              text-[#304A39]
+
+              sm:text-5xl
+              sm:leading-[0.98]
+
+              lg:whitespace-nowrap
+              lg:text-[46px]
+
+              xl:text-[50px]
+            "
+          >
+            {content.title}
           </h2>
 
-          <p className="mt-2 font-serif text-[24px] italic leading-tight text-[#718A73] sm:text-[31px] lg:text-[32px]">
-            Perhaps yours starts here.
+          <p
+            className="
+              mt-2
+
+              font-serif
+              text-[24px]
+              italic
+              leading-tight
+              text-[#718A73]
+
+              sm:text-[31px]
+
+              lg:text-[32px]
+            "
+          >
+            {content.subtitle}
           </p>
         </div>
 
@@ -41,71 +114,59 @@ export default function GetStarted({ locale }: GetStartedProps) {
               =================================================== */}
 
           <div className="relative hidden lg:grid lg:grid-cols-3 lg:gap-16">
-            {/* Step 01 */}
+            {steps.map((step) => (
+              <div key={step.number}>
+                <div className="flex items-center gap-4">
+                  <span
+                    className="
+                      flex
+                      h-8
+                      w-8
+                      shrink-0
+                      items-center
+                      justify-center
 
-            <div>
-              <div className="flex items-center gap-4">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E5EBDD] font-serif text-[14px] italic text-[#718A73]">
-                  01
-                </span>
+                      rounded-full
+                      bg-[#E5EBDD]
 
-                <span className="h-px flex-1 bg-[#DCE4D7]" />
+                      font-serif
+                      text-[14px]
+                      italic
+                      text-[#718A73]
+                    "
+                  >
+                    {step.number}
+                  </span>
+
+                  <span className="h-px flex-1 bg-[#DCE4D7]" />
+                </div>
+
+                <div className="mt-4">
+                  <h3
+                    className="
+                      font-serif
+                      text-[23px]
+                      leading-tight
+                      text-[#304A39]
+                    "
+                  >
+                    {step.title}
+                  </h3>
+
+                  <p
+                    className="
+                      mt-2
+
+                      text-[13px]
+                      leading-5
+                      text-[#758477]
+                    "
+                  >
+                    {step.description}
+                  </p>
+                </div>
               </div>
-
-              <div className="mt-4">
-                <h3 className="font-serif text-[23px] leading-tight text-[#304A39]">
-                  Tell us about yourself.
-                </h3>
-
-                <p className="mt-2 text-[13px] leading-5 text-[#758477]">
-                  Your goals, your English, your needs.
-                </p>
-              </div>
-            </div>
-
-            {/* Step 02 */}
-
-            <div>
-              <div className="flex items-center gap-4">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E5EBDD] font-serif text-[14px] italic text-[#718A73]">
-                  02
-                </span>
-
-                <span className="h-px flex-1 bg-[#DCE4D7]" />
-              </div>
-
-              <div className="mt-4">
-                <h3 className="font-serif text-[23px] leading-tight text-[#304A39]">
-                  Have a conversation.
-                </h3>
-
-                <p className="mt-2 text-[13px] leading-5 text-[#758477]">
-                  Meet your teacher and talk naturally.
-                </p>
-              </div>
-            </div>
-
-            {/* Step 03 */}
-
-            <div>
-              <div className="flex items-center gap-4">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E5EBDD] font-serif text-[14px] italic text-[#718A73]">
-                  03
-                </span>
-
-                <span className="h-px flex-1 bg-[#DCE4D7]" />
-              </div>
-
-              <div className="mt-4">
-                <h3 className="font-serif text-[23px] leading-tight text-[#304A39]">
-                  Start your lessons.
-                </h3>
-
-                <p className="mt-2 text-[13px] leading-5 text-[#758477]">
-                  Choose your schedule and begin.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* ===================================================
@@ -113,59 +174,79 @@ export default function GetStarted({ locale }: GetStartedProps) {
               =================================================== */}
 
           <div className="space-y-6 sm:space-y-7 lg:hidden">
-            {/* Step 01 */}
+            {steps.map((step, index) => {
+              const isLast =
+                index === steps.length - 1;
 
-            <div className="relative border-l border-[#DCE4D7] pl-6">
-              <span className="absolute -left-[17px] top-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#E5EBDD] font-serif text-[14px] italic text-[#718A73]">
-                01
-              </span>
+              return (
+                <div
+                  key={step.number}
+                  className={
+                    isLast
+                      ? "relative pl-6"
+                      : "relative border-l border-[#DCE4D7] pl-6"
+                  }
+                >
+                  <span
+                    className={`
+                      absolute
+                      top-0
 
-              <div className="pl-3">
-                <h3 className="font-serif text-[21px] leading-tight text-[#304A39] sm:text-[22px]">
-                  Tell us about yourself.
-                </h3>
+                      flex
+                      h-8
+                      w-8
+                      items-center
+                      justify-center
 
-                <p className="mt-1.5 text-[13px] leading-5 text-[#758477] sm:mt-2">
-                  Your goals, your English, your needs.
-                </p>
-              </div>
-            </div>
+                      rounded-full
+                      bg-[#E5EBDD]
 
-            {/* Step 02 */}
+                      font-serif
+                      text-[14px]
+                      italic
+                      text-[#718A73]
 
-            <div className="relative border-l border-[#DCE4D7] pl-6">
-              <span className="absolute -left-[17px] top-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#E5EBDD] font-serif text-[14px] italic text-[#718A73]">
-                02
-              </span>
+                      ${
+                        isLast
+                          ? "-left-[16px]"
+                          : "-left-[17px]"
+                      }
+                    `}
+                  >
+                    {step.number}
+                  </span>
 
-              <div className="pl-3">
-                <h3 className="font-serif text-[21px] leading-tight text-[#304A39] sm:text-[22px]">
-                  Have a conversation.
-                </h3>
+                  <div className="pl-3">
+                    <h3
+                      className="
+                        font-serif
+                        text-[21px]
+                        leading-tight
+                        text-[#304A39]
 
-                <p className="mt-1.5 text-[13px] leading-5 text-[#758477] sm:mt-2">
-                  Meet your teacher and talk naturally.
-                </p>
-              </div>
-            </div>
+                        sm:text-[22px]
+                      "
+                    >
+                      {step.title}
+                    </h3>
 
-            {/* Step 03 */}
+                    <p
+                      className="
+                        mt-1.5
 
-            <div className="relative pl-6">
-              <span className="absolute -left-[16px] top-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#E5EBDD] font-serif text-[14px] italic text-[#718A73]">
-                03
-              </span>
+                        text-[13px]
+                        leading-5
+                        text-[#758477]
 
-              <div className="pl-3">
-                <h3 className="font-serif text-[21px] leading-tight text-[#304A39] sm:text-[22px]">
-                  Start your lessons.
-                </h3>
-
-                <p className="mt-1.5 text-[13px] leading-5 text-[#758477] sm:mt-2">
-                  Choose your schedule and begin.
-                </p>
-              </div>
-            </div>
+                        sm:mt-2
+                      "
+                    >
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -173,24 +254,60 @@ export default function GetStarted({ locale }: GetStartedProps) {
             FINAL INVITATION
             ===================================================== */}
 
-        <div className="relative mt-9 border-t border-[#DCE4D7] pt-5 sm:mt-10 lg:mt-11 lg:min-h-[175px]">
+        <div
+          className="
+            relative
+            mt-9
+
+            border-t
+            border-[#DCE4D7]
+
+            pt-5
+
+            sm:mt-10
+
+            lg:mt-11
+            lg:min-h-[175px]
+          "
+        >
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="font-serif text-[21px] italic leading-tight text-[#718A73] sm:text-[23px]">
-                Let&apos;s take the first step together.
+              <p
+                className="
+                  font-serif
+                  text-[21px]
+                  italic
+                  leading-tight
+                  text-[#718A73]
+
+                  sm:text-[23px]
+                "
+              >
+                {content.invitation}
               </p>
             </div>
 
             {/* =================================================
                 DESKTOP MASCOT + CTA
-                UNCHANGED
                 ================================================= */}
 
             <div className="hidden h-[155px] items-end lg:flex">
-              {/* Mascot */}
+              {/* MASCOT */}
 
               <div
-                className="relative z-20 -mr-[42px] h-[380px] w-[390px] shrink-0 translate-x-[110px] -translate-y-[20px]"
+                className="
+                  relative
+                  z-20
+
+                  -mr-[42px]
+
+                  h-[380px]
+                  w-[390px]
+                  shrink-0
+
+                  translate-x-[110px]
+                  -translate-y-[20px]
+                "
                 aria-hidden="true"
               >
                 <Image
@@ -202,17 +319,25 @@ export default function GetStarted({ locale }: GetStartedProps) {
                 />
               </div>
 
-              {/* Layered CTA */}
+              {/* LAYERED CTA */}
 
               <div className="relative z-10 mb-[24px]">
-                {/* Sage bottom layer */}
+                {/* SAGE BOTTOM LAYER */}
 
                 <div
-                  className="absolute inset-0 translate-y-[11px] rounded-[24px] bg-[#718A73]"
+                  className="
+                    absolute
+                    inset-0
+
+                    translate-y-[11px]
+
+                    rounded-[24px]
+                    bg-[#718A73]
+                  "
                   aria-hidden="true"
                 />
 
-                {/* Main button */}
+                {/* MAIN BUTTON */}
 
                 <Link
                   href={`/${locale}/inquiry`}
@@ -220,28 +345,46 @@ export default function GetStarted({ locale }: GetStartedProps) {
                     group
                     relative
                     z-10
+
                     flex
                     min-h-[64px]
                     min-w-[320px]
                     items-center
                     justify-between
                     gap-8
+
                     rounded-[24px]
                     bg-[#304A39]
+
                     px-9
+
                     text-[15px]
                     font-semibold
                     text-[#FFFDF8]
+
                     transition-transform
                     duration-200
+
                     hover:-translate-y-[2px]
+
                     active:translate-y-[5px]
                   "
                 >
-                  <span>Book a Free Assessment</span>
+                  <span>
+                    {content.assessment}
+                  </span>
 
                   <span
-                    className="text-[22px] font-normal leading-none transition-transform duration-200 group-hover:translate-x-1"
+                    className="
+                      text-[22px]
+                      font-normal
+                      leading-none
+
+                      transition-transform
+                      duration-200
+
+                      group-hover:translate-x-1
+                    "
                     aria-hidden="true"
                   >
                     →
@@ -252,13 +395,14 @@ export default function GetStarted({ locale }: GetStartedProps) {
 
             {/* =================================================
                 MOBILE / TABLET MASCOT + CTA
-                Mascot moved upward ~30%
                 ================================================= */}
 
             <div
               className="
                 relative
+
                 mt-4
+
                 h-[245px]
                 w-full
 
@@ -268,15 +412,17 @@ export default function GetStarted({ locale }: GetStartedProps) {
                 lg:hidden
               "
             >
-              {/* Mascot */}
+              {/* MASCOT */}
 
               <div
                 className="
                   pointer-events-none
                   absolute
+
                   bottom-[37px]
                   left-[-46px]
                   z-20
+
                   h-[285px]
                   w-[290px]
 
@@ -296,27 +442,31 @@ export default function GetStarted({ locale }: GetStartedProps) {
                 />
               </div>
 
-              {/* Layered CTA */}
+              {/* LAYERED CTA */}
 
               <div
                 className="
                   absolute
+
                   bottom-[24px]
                   right-0
                   z-10
+
                   w-[70%]
 
                   sm:bottom-[30px]
                   sm:w-[66%]
                 "
               >
-                {/* Sage bottom layer */}
+                {/* SAGE BOTTOM LAYER */}
 
                 <div
                   className="
                     absolute
                     inset-0
+
                     translate-y-[9px]
+
                     rounded-[21px]
                     bg-[#718A73]
 
@@ -326,7 +476,7 @@ export default function GetStarted({ locale }: GetStartedProps) {
                   aria-hidden="true"
                 />
 
-                {/* Main button */}
+                {/* MAIN BUTTON */}
 
                 <Link
                   href={`/${locale}/inquiry`}
@@ -334,22 +484,28 @@ export default function GetStarted({ locale }: GetStartedProps) {
                     group
                     relative
                     z-10
+
                     flex
                     min-h-[62px]
                     w-full
                     items-center
                     justify-between
                     gap-3
+
                     rounded-[21px]
                     bg-[#304A39]
+
                     pl-[54px]
                     pr-5
+
                     text-[12px]
                     font-semibold
                     leading-[1.2]
                     text-[#FFFDF8]
+
                     transition-transform
                     duration-200
+
                     active:translate-y-[4px]
 
                     sm:min-h-[64px]
@@ -359,11 +515,14 @@ export default function GetStarted({ locale }: GetStartedProps) {
                     sm:text-[14px]
                   "
                 >
-                  <span>Book a Free Assessment</span>
+                  <span>
+                    {content.assessment}
+                  </span>
 
                   <span
                     className="
                       shrink-0
+
                       text-[20px]
                       font-normal
                       leading-none

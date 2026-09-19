@@ -15,17 +15,23 @@ import { useState } from "react";
 import type { Locale } from "../lib/i18n";
 import { getMessages } from "../lib/getMessages";
 
+import {
+  allowsTenLessonTerm,
+  formatLessonTuition,
+  getLessonTuition,
+  lessonDurationOptions,
+  lessonPricing,
+  type LessonCount,
+  type LessonDuration,
+} from "../lib/lessonConfig";
+
 interface FindYourLessonProps {
   locale: Locale;
 }
 
-type LessonDuration =
-  | 25
-  | 30
-  | 35
-  | 40
-  | 45
-  | 50;
+/* =====================================================
+   PLATFORMS
+   ===================================================== */
 
 const platforms = [
   {
@@ -50,160 +56,61 @@ const platforms = [
   },
 ];
 
-const durationOptions: {
-  minutes: LessonDuration;
-}[] = [
-  { minutes: 25 },
-  { minutes: 30 },
-  { minutes: 35 },
-  { minutes: 40 },
-  { minutes: 45 },
-  { minutes: 50 },
-];
+/* =====================================================
+   SELECTIVE TEXT EMPHASIS
+   ===================================================== */
 
-const pricing = {
-  en: {
-    currency: "USD",
-    symbol: "$",
-    locale: "en-US",
-    tuitionPer20: {
-      25: 88,
-      30: 105,
-      35: 123,
-      40: 140,
-      45: 158,
-      50: 176,
-    },
-  },
-
-  ko: {
-    currency: "KRW",
-    symbol: "₩",
-    locale: "ko-KR",
-    tuitionPer20: {
-      25: 120000,
-      30: 144000,
-      35: 168000,
-      40: 192000,
-      45: 216000,
-      50: 240000,
-    },
-  },
-
-  zh: {
-    currency: "CNY",
-    symbol: "¥",
-    locale: "zh-CN",
-    tuitionPer20: {
-      25: 580,
-      30: 696,
-      35: 812,
-      40: 928,
-      45: 1044,
-      50: 1160,
-    },
-  },
-
-  ja: {
-    currency: "JPY",
-    symbol: "¥",
-    locale: "ja-JP",
-    tuitionPer20: {
-      25: 13500,
-      30: 16200,
-      35: 18900,
-      40: 21600,
-      45: 24300,
-      50: 27000,
-    },
-  },
-} satisfies Record<
-  Locale,
-  {
-    currency: string;
-    symbol: string;
-    locale: string;
-    tuitionPer20: Record<
-      LessonDuration,
-      number
-    >;
-  }
->;
-
-const tuitionReviewNotes: Record<
+const descriptionHighlights: Record<
   Locale,
   string
 > = {
-  en: "Tuition is reviewed annually and may be adjusted based on inflation and operating costs.",
-
-  ko: "수업료는 매년 검토되며 물가 상승 및 운영 비용에 따라 조정될 수 있습니다.",
-
-  zh: "学费每年进行审核，并可能根据通货膨胀和运营成本进行调整。",
-
-  ja: "授業料は毎年見直され、物価上昇や運営費の変動に応じて調整される場合があります。",
+  en: "lesson format, term, and tuition",
+  ko: "수업 방식, 수강 단위, 수업료",
+  zh: "课程形式、课时数量和课程费用",
+  ja: "レッスン形式、受講回数、料金",
 };
 
-const termLabels: Record<
-  Locale,
-  {
-    term: string;
-    lessons: (count: number) => string;
-    flexibleTerm: string;
-    standardTerm: string;
-    perTerm: (count: number) => string;
-    choose10: string;
-    choose20: string;
+function highlightPhrase(
+  text: string,
+  phrase: string
+) {
+  const index = text.indexOf(phrase);
+
+  if (index === -1) {
+    return text;
   }
-> = {
-  en: {
-    term: "Term",
-    lessons: (count) =>
-      `${count} lessons`,
-    flexibleTerm: "10 or 20 lessons",
-    standardTerm: "20-lesson term",
-    perTerm: (count) =>
-      `per ${count}-lesson term`,
-    choose10: "Choose 10 lessons",
-    choose20: "Choose 20 lessons",
-  },
 
-  ko: {
-    term: "수강 단위",
-    lessons: (count) =>
-      `${count}회 수업`,
-    flexibleTerm: "10회 또는 20회",
-    standardTerm: "20회 수업",
-    perTerm: (count) =>
-      `${count}회 수업 기준`,
-    choose10: "10회 수업 선택",
-    choose20: "20회 수업 선택",
-  },
+  const before = text.slice(0, index);
+  const after = text.slice(
+    index + phrase.length
+  );
 
-  zh: {
-    term: "课程周期",
-    lessons: (count) =>
-      `${count}节课`,
-    flexibleTerm: "10节或20节课",
-    standardTerm: "20节课",
-    perTerm: (count) =>
-      `每${count}节课`,
-    choose10: "选择10节课",
-    choose20: "选择20节课",
-  },
+  return (
+    <>
+      {before}
 
-  ja: {
-    term: "受講回数",
-    lessons: (count) =>
-      `${count}レッスン`,
-    flexibleTerm:
-      "10または20レッスン",
-    standardTerm: "20レッスン",
-    perTerm: (count) =>
-      `${count}レッスンあたり`,
-    choose10: "10レッスンを選択",
-    choose20: "20レッスンを選択",
-  },
-};
+      <strong className="font-semibold text-[#304A39]">
+        {phrase}
+      </strong>
+
+      {after}
+    </>
+  );
+}
+
+/* =====================================================
+   MESSAGE INTERPOLATION
+   ===================================================== */
+
+function interpolateCount(
+  template: string,
+  count: LessonCount
+) {
+  return template.replace(
+    "{count}",
+    String(count)
+  );
+}
 
 export default function FindYourLesson({
   locale,
@@ -216,94 +123,143 @@ export default function FindYourLesson({
   const [
     selectedLessons,
     setSelectedLessons,
-  ] = useState<10 | 20>(20);
+  ] = useState<LessonCount>(20);
 
   const messages = getMessages(locale);
   const content = messages.findYourLesson;
 
-  const currentPricing = pricing[locale];
-  const currentTermLabels =
-    termLabels[locale];
+  const currentPricing =
+    lessonPricing[locale];
+
+  /* =====================================================
+     SELECTED DURATION
+     ===================================================== */
 
   const selectedIndex =
-    durationOptions.findIndex(
+    lessonDurationOptions.findIndex(
       (option) =>
         option.minutes ===
         selectedDuration
     );
 
   const selectedOption =
-    durationOptions[selectedIndex] ??
-    durationOptions[0];
+    lessonDurationOptions[selectedIndex] ??
+    lessonDurationOptions[0];
 
   const canDecreaseDuration =
     selectedIndex > 0;
 
   const canIncreaseDuration =
     selectedIndex <
-    durationOptions.length - 1;
+    lessonDurationOptions.length - 1;
 
-  const allowsTenLessonTerm =
-    selectedOption.minutes >= 40;
+  const canUseTenLessonTerm =
+    allowsTenLessonTerm(
+      selectedOption.minutes
+    );
+
+  /* =====================================================
+     DURATION CONTROLS
+     ===================================================== */
 
   const decreaseDuration = () => {
-    if (!canDecreaseDuration) return;
+    if (!canDecreaseDuration) {
+      return;
+    }
 
     const nextDuration =
-      durationOptions[selectedIndex - 1]
-        .minutes;
+      lessonDurationOptions[
+        selectedIndex - 1
+      ].minutes;
 
     setSelectedDuration(nextDuration);
 
-    if (nextDuration < 40) {
+    if (
+      !allowsTenLessonTerm(
+        nextDuration
+      )
+    ) {
       setSelectedLessons(20);
     }
   };
 
   const increaseDuration = () => {
-    if (!canIncreaseDuration) return;
+    if (!canIncreaseDuration) {
+      return;
+    }
 
     setSelectedDuration(
-      durationOptions[selectedIndex + 1]
-        .minutes
+      lessonDurationOptions[
+        selectedIndex + 1
+      ].minutes
     );
   };
 
+  /* =====================================================
+     TERM CONTROLS
+     ===================================================== */
+
   const decreaseLessons = () => {
-    if (!allowsTenLessonTerm) return;
-    if (selectedLessons !== 20) return;
+    if (!canUseTenLessonTerm) {
+      return;
+    }
+
+    if (selectedLessons !== 20) {
+      return;
+    }
 
     setSelectedLessons(10);
   };
 
   const increaseLessons = () => {
-    if (!allowsTenLessonTerm) return;
-    if (selectedLessons !== 10) return;
+    if (!canUseTenLessonTerm) {
+      return;
+    }
+
+    if (selectedLessons !== 10) {
+      return;
+    }
 
     setSelectedLessons(20);
   };
 
-  const tuitionPer20 =
-    currentPricing.tuitionPer20[
-      selectedOption.minutes
-    ];
+  /* =====================================================
+     TUITION
+     ===================================================== */
 
   const tuition =
-    selectedLessons === 10
-      ? tuitionPer20 / 2
-      : tuitionPer20;
-
-  const formattedAmount =
-    tuition.toLocaleString(
-      currentPricing.locale,
-      {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }
+    getLessonTuition(
+      locale,
+      selectedOption.minutes,
+      selectedLessons
     );
 
   const formattedTuition =
-    `${currentPricing.symbol}${formattedAmount}`;
+    formatLessonTuition(
+      locale,
+      tuition
+    );
+
+  /* =====================================================
+     LOCALIZED TERM COPY
+     ===================================================== */
+
+  const lessonCountLabel =
+    interpolateCount(
+      content.term.lessons,
+      selectedLessons
+    );
+
+  const termSummary =
+    canUseTenLessonTerm
+      ? content.term.flexible
+      : content.term.standard;
+
+  const tuitionTermLabel =
+    interpolateCount(
+      content.term.perTerm,
+      selectedLessons
+    );
 
   return (
     <section
@@ -330,7 +286,9 @@ export default function FindYourLesson({
       "
     >
       <div className="mx-auto w-full max-w-[1500px]">
-        {/* INTRO */}
+        {/* =====================================================
+            INTRO
+            ===================================================== */}
 
         <div className="max-w-[900px] lg:ml-[2%]">
           <p
@@ -351,11 +309,13 @@ export default function FindYourLesson({
             className="
               mt-2
               max-w-[900px]
+
               text-[42px]
               font-medium
               leading-[0.95]
               tracking-[-0.035em]
               text-[#293A30]
+
               [font-family:var(--font-cormorant)]
 
               sm:text-[54px]
@@ -369,6 +329,7 @@ export default function FindYourLesson({
             className="
               mt-2
               max-w-[620px]
+
               text-[15px]
               leading-[1.55]
               text-[#68736B]
@@ -376,15 +337,21 @@ export default function FindYourLesson({
               sm:text-[16px]
             "
           >
-            {content.description}
+            {highlightPhrase(
+              content.description,
+              descriptionHighlights[locale]
+            )}
           </p>
         </div>
 
-        {/* LESSON DISPLAY */}
+        {/* =====================================================
+            LESSON DISPLAY
+            ===================================================== */}
 
         <div
           className="
             mt-6
+
             grid
             items-end
             gap-6
@@ -395,7 +362,9 @@ export default function FindYourLesson({
             xl:grid-cols-[0.27fr_1fr]
           "
         >
-          {/* MASCOT */}
+          {/* =====================================================
+              MASCOT
+              ===================================================== */}
 
           <div
             className="
@@ -419,21 +388,32 @@ export default function FindYourLesson({
               alt=""
               width={700}
               height={700}
-              className="h-auto w-full object-contain"
+              className="
+                h-auto
+                w-full
+                object-contain
+              "
             />
           </div>
 
-          {/* LESSON CARD */}
+          {/* =====================================================
+              LESSON CARD
+              ===================================================== */}
 
           <div
             className="
               relative
+
               rounded-[30px]
+
               border
               border-[#304A39]/10
+
               bg-[#FAF8F2]
+
               px-6
               py-7
+
               shadow-[0_24px_70px_rgba(48,74,57,0.07)]
 
               sm:px-9
@@ -452,7 +432,9 @@ export default function FindYourLesson({
                 lg:gap-11
               "
             >
-              {/* LEFT SIDE */}
+              {/* =====================================================
+                  LEFT SIDE
+                  ===================================================== */}
 
               <div>
                 <div
@@ -460,10 +442,13 @@ export default function FindYourLesson({
                     inline-flex
                     items-center
                     gap-2
+
                     rounded-full
                     bg-[#E9EEE5]
+
                     px-4
                     py-2
+
                     text-[11px]
                     font-semibold
                     uppercase
@@ -487,11 +472,13 @@ export default function FindYourLesson({
                 <h3
                   className="
                     mt-4
+
                     text-[38px]
                     font-medium
                     leading-[0.95]
                     tracking-[-0.025em]
                     text-[#293A30]
+
                     [font-family:var(--font-cormorant)]
 
                     sm:text-[44px]
@@ -504,6 +491,7 @@ export default function FindYourLesson({
                 <p
                   className="
                     mt-2
+
                     text-[16px]
                     text-[#68736B]
 
@@ -513,13 +501,17 @@ export default function FindYourLesson({
                   {content.learners}
                 </p>
 
-                {/* PLATFORMS */}
+                {/* =====================================================
+                    PLATFORMS
+                    ===================================================== */}
 
                 <div
                   className="
                     mt-5
+
                     border-t
                     border-[#304A39]/10
+
                     pt-5
                   "
                 >
@@ -538,6 +530,7 @@ export default function FindYourLesson({
                   <div
                     className="
                       mt-3
+
                       grid
                       grid-cols-2
                       gap-x-5
@@ -549,7 +542,9 @@ export default function FindYourLesson({
                     {platforms.map(
                       (platform) => (
                         <div
-                          key={platform.name}
+                          key={
+                            platform.name
+                          }
                           className="
                             flex
                             min-w-0
@@ -558,7 +553,9 @@ export default function FindYourLesson({
                           "
                         >
                           <Image
-                            src={platform.icon}
+                            src={
+                              platform.icon
+                            }
                             alt=""
                             width={25}
                             height={25}
@@ -573,6 +570,7 @@ export default function FindYourLesson({
                           <span
                             className="
                               whitespace-nowrap
+
                               text-[12px]
                               font-medium
                               text-[#4D5E53]
@@ -588,13 +586,17 @@ export default function FindYourLesson({
                   </div>
                 </div>
 
-                {/* LESSON FORMAT */}
+                {/* =====================================================
+                    LESSON FORMAT
+                    ===================================================== */}
 
                 <div
                   className="
                     mt-5
+
                     border-t
                     border-[#304A39]/10
+
                     pt-5
                   "
                 >
@@ -611,13 +613,17 @@ export default function FindYourLesson({
                   </p>
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
+                    {/* AUDIO */}
+
                     <div
                       className="
                         flex
                         items-center
                         gap-3
+
                         rounded-[16px]
                         bg-[#F2EEE5]
+
                         px-4
                         py-3
                       "
@@ -630,8 +636,10 @@ export default function FindYourLesson({
                           shrink-0
                           items-center
                           justify-center
+
                           rounded-full
                           bg-[#FFFDF8]
+
                           text-[#607568]
                         "
                       >
@@ -655,6 +663,7 @@ export default function FindYourLesson({
                         <p
                           className="
                             mt-0.5
+
                             text-[11px]
                             text-[#758477]
                           "
@@ -664,13 +673,17 @@ export default function FindYourLesson({
                       </div>
                     </div>
 
+                    {/* VIDEO */}
+
                     <div
                       className="
                         flex
                         items-center
                         gap-3
+
                         rounded-[16px]
                         bg-[#F2EEE5]
+
                         px-4
                         py-3
                       "
@@ -683,8 +696,10 @@ export default function FindYourLesson({
                           shrink-0
                           items-center
                           justify-center
+
                           rounded-full
                           bg-[#FFFDF8]
+
                           text-[#607568]
                         "
                       >
@@ -708,6 +723,7 @@ export default function FindYourLesson({
                         <p
                           className="
                             mt-0.5
+
                             text-[11px]
                             text-[#758477]
                           "
@@ -720,12 +736,15 @@ export default function FindYourLesson({
                 </div>
               </div>
 
-              {/* RIGHT SIDE */}
+              {/* =====================================================
+                  RIGHT SIDE
+                  ===================================================== */}
 
               <div
                 className="
                   border-t
                   border-[#304A39]/10
+
                   pt-7
 
                   lg:border-l
@@ -734,15 +753,19 @@ export default function FindYourLesson({
                   lg:pt-0
                 "
               >
-                {/* DURATION */}
+                {/* =====================================================
+                    DURATION
+                    ===================================================== */}
 
                 <div
                   className="
                     flex
                     items-center
                     gap-4
+
                     border-b
                     border-[#304A39]/10
+
                     pb-5
                   "
                 >
@@ -754,8 +777,10 @@ export default function FindYourLesson({
                       shrink-0
                       items-center
                       justify-center
+
                       rounded-full
                       bg-[#F2EEE5]
+
                       text-[#607568]
                     "
                   >
@@ -769,6 +794,7 @@ export default function FindYourLesson({
                     <p
                       className="
                         mb-2
+
                         text-[10px]
                         font-semibold
                         uppercase
@@ -805,12 +831,18 @@ export default function FindYourLesson({
                             shrink-0
                             items-center
                             justify-center
+
                             rounded-full
+
                             border
                             border-[#304A39]/15
+
                             bg-[#FFFDF8]
+
                             text-[#304A39]
+
                             shadow-[0_3px_8px_rgba(48,74,57,0.06)]
+
                             transition-all
                             duration-200
 
@@ -834,6 +866,7 @@ export default function FindYourLesson({
                             font-medium
                             leading-none
                             text-[#293A30]
+
                             [font-family:var(--font-cormorant)]
 
                             sm:text-[40px]
@@ -848,6 +881,7 @@ export default function FindYourLesson({
                         <p
                           className="
                             mt-1
+
                             text-[12px]
                             text-[#758477]
                           "
@@ -872,12 +906,18 @@ export default function FindYourLesson({
                             shrink-0
                             items-center
                             justify-center
+
                             rounded-full
+
                             border
                             border-[#304A39]/15
+
                             bg-[#FFFDF8]
+
                             text-[#304A39]
+
                             shadow-[0_3px_8px_rgba(48,74,57,0.06)]
+
                             transition-all
                             duration-200
 
@@ -897,15 +937,19 @@ export default function FindYourLesson({
                   </div>
                 </div>
 
-                {/* TERM */}
+                {/* =====================================================
+                    TERM
+                    ===================================================== */}
 
                 <div
                   className="
                     flex
                     items-center
                     gap-4
+
                     border-b
                     border-[#304A39]/10
+
                     py-5
                   "
                 >
@@ -917,8 +961,10 @@ export default function FindYourLesson({
                       shrink-0
                       items-center
                       justify-center
+
                       rounded-full
                       bg-[#F2EEE5]
+
                       text-[#607568]
                     "
                   >
@@ -932,6 +978,7 @@ export default function FindYourLesson({
                     <p
                       className="
                         mb-2
+
                         text-[10px]
                         font-semibold
                         uppercase
@@ -941,7 +988,7 @@ export default function FindYourLesson({
                         sm:text-[11px]
                       "
                     >
-                      {currentTermLabels.term}
+                      {content.term.label}
                     </p>
 
                     <div
@@ -952,7 +999,7 @@ export default function FindYourLesson({
                         gap-3
                       "
                     >
-                      {allowsTenLessonTerm &&
+                      {canUseTenLessonTerm &&
                         selectedLessons ===
                           20 && (
                           <button
@@ -961,7 +1008,7 @@ export default function FindYourLesson({
                               decreaseLessons
                             }
                             aria-label={
-                              currentTermLabels.choose10
+                              content.term.choose10
                             }
                             className="
                               flex
@@ -970,12 +1017,18 @@ export default function FindYourLesson({
                               shrink-0
                               items-center
                               justify-center
+
                               rounded-full
+
                               border
                               border-[#304A39]/15
+
                               bg-[#FFFDF8]
+
                               text-[#304A39]
+
                               shadow-[0_3px_8px_rgba(48,74,57,0.06)]
+
                               transition-all
                               duration-200
 
@@ -999,30 +1052,28 @@ export default function FindYourLesson({
                             font-medium
                             leading-none
                             text-[#293A30]
+
                             [font-family:var(--font-cormorant)]
 
                             sm:text-[34px]
                           "
                         >
-                          {currentTermLabels.lessons(
-                            selectedLessons
-                          )}
+                          {lessonCountLabel}
                         </p>
 
                         <p
                           className="
                             mt-1
+
                             text-[12px]
                             text-[#758477]
                           "
                         >
-                          {allowsTenLessonTerm
-                            ? currentTermLabels.flexibleTerm
-                            : currentTermLabels.standardTerm}
+                          {termSummary}
                         </p>
                       </div>
 
-                      {allowsTenLessonTerm &&
+                      {canUseTenLessonTerm &&
                         selectedLessons ===
                           10 && (
                           <button
@@ -1031,7 +1082,7 @@ export default function FindYourLesson({
                               increaseLessons
                             }
                             aria-label={
-                              currentTermLabels.choose20
+                              content.term.choose20
                             }
                             className="
                               flex
@@ -1040,12 +1091,18 @@ export default function FindYourLesson({
                               shrink-0
                               items-center
                               justify-center
+
                               rounded-full
+
                               border
                               border-[#304A39]/15
+
                               bg-[#FFFDF8]
+
                               text-[#304A39]
+
                               shadow-[0_3px_8px_rgba(48,74,57,0.06)]
+
                               transition-all
                               duration-200
 
@@ -1065,13 +1122,16 @@ export default function FindYourLesson({
                   </div>
                 </div>
 
-                {/* TUITION */}
+                {/* =====================================================
+                    TUITION
+                    ===================================================== */}
 
                 <div
                   className="
                     flex
                     items-start
                     gap-4
+
                     py-5
                   "
                 >
@@ -1083,11 +1143,14 @@ export default function FindYourLesson({
                       shrink-0
                       items-center
                       justify-center
+
                       rounded-full
                       bg-[#F2EEE5]
+
                       text-[24px]
                       font-medium
                       text-[#607568]
+
                       [font-family:var(--font-cormorant)]
                     "
                   >
@@ -1098,6 +1161,7 @@ export default function FindYourLesson({
                     <p
                       className="
                         mb-2
+
                         text-[10px]
                         font-semibold
                         uppercase
@@ -1126,6 +1190,7 @@ export default function FindYourLesson({
                           leading-none
                           tracking-[-0.025em]
                           text-[#293A30]
+
                           [font-family:var(--font-cormorant)]
 
                           sm:text-[44px]
@@ -1137,6 +1202,7 @@ export default function FindYourLesson({
                       <span
                         className="
                           pb-1
+
                           text-[11px]
                           font-semibold
                           uppercase
@@ -1144,60 +1210,67 @@ export default function FindYourLesson({
                           text-[#718A73]
                         "
                       >
-                        {currentPricing.currency}
+                        {
+                          currentPricing.currency
+                        }
                       </span>
                     </div>
 
                     <p
                       className="
                         mt-1
+
                         text-[12px]
                         text-[#758477]
                       "
                     >
-                      {currentTermLabels.perTerm(
-                        selectedLessons
-                      )}
+                      {tuitionTermLabel}
                     </p>
 
                     <p
                       className="
                         mt-3
                         max-w-[390px]
+
                         text-[11px]
                         leading-[1.5]
                         text-[#8A948C]
                       "
                     >
-                      {
-                        tuitionReviewNotes[
-                          locale
-                        ]
-                      }
+                      {content.tuitionReview}
                     </p>
                   </div>
                 </div>
 
-                {/* CTA */}
+                {/* =====================================================
+                    CTA
+                    ===================================================== */}
 
                 <button
                   type="button"
                   className="
                     group
+
                     mt-1
+
                     flex
                     w-full
                     items-center
                     justify-between
+
                     rounded-[18px]
                     bg-[#365844]
+
                     px-5
                     py-4
+
                     text-left
                     text-[14px]
                     font-semibold
                     text-[#FFFDF8]
+
                     shadow-[0_7px_0_#718A73]
+
                     transition-all
                     duration-200
 
@@ -1219,6 +1292,7 @@ export default function FindYourLesson({
                     strokeWidth={1.7}
                     className="
                       shrink-0
+
                       transition-transform
                       duration-200
 

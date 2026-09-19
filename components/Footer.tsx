@@ -18,102 +18,26 @@ export default function Footer() {
       ? params.locale
       : "en";
 
-  const t = getMessages(locale);
+  const messages = getMessages(locale);
+  const content = messages.footer;
 
-  const [isInquiryOpen, setIsInquiryOpen] = useState(false);
-
-  const footerCopy = {
-    en: {
-      description:
-        "Conversation-centered English lessons for kids, teens, and adults.",
-      learnGroup: "Learn",
-      lessons: "Lessons",
-      approach: "Approach",
-      hamkkeGroup: "Hamkke",
-      teachers: "Teachers",
-      about: "About",
-      policy: "Policy",
-      connectGroup: "Connect",
-      startConversation: "Start a Conversation",
-      instagram: "Instagram",
-    },
-
-    ko: {
-      description:
-        "어린이, 청소년, 성인을 위한 대화 중심 영어 수업.",
-      learnGroup: "배우기",
-      lessons: "수업",
-      approach: "Hamkke 방식",
-      hamkkeGroup: "Hamkke",
-      teachers: "선생님",
-      about: "소개",
-      policy: "정책",
-      connectGroup: "연결",
-      startConversation: "대화 시작하기",
-      instagram: "Instagram",
-    },
-
-    zh: {
-      description:
-        "为儿童、青少年和成人提供以对话为中心的英语课程。",
-      learnGroup: "学习",
-      lessons: "课程",
-      approach: "Hamkke 教学方式",
-      hamkkeGroup: "Hamkke",
-      teachers: "老师",
-      about: "关于我们",
-      policy: "政策",
-      connectGroup: "联系",
-      startConversation: "开始交流",
-      instagram: "Instagram",
-    },
-
-    ja: {
-      description:
-        "子ども・中高生・大人のための、会話を中心とした英語レッスン。",
-      learnGroup: "学ぶ",
-      lessons: "レッスン",
-      approach: "Hamkkeのアプローチ",
-      hamkkeGroup: "Hamkke",
-      teachers: "講師",
-      about: "Hamkkeについて",
-      policy: "ポリシー",
-      connectGroup: "つながる",
-      startConversation: "相談してみる",
-      instagram: "Instagram",
-    },
-  } satisfies Record<
-    Locale,
-    {
-      description: string;
-      learnGroup: string;
-      lessons: string;
-      approach: string;
-      hamkkeGroup: string;
-      teachers: string;
-      about: string;
-      policy: string;
-      connectGroup: string;
-      startConversation: string;
-      instagram: string;
-    }
-  >;
-
-  const copy = footerCopy[locale];
+  const [isInquiryOpen, setIsInquiryOpen] =
+    useState(false);
 
   return (
     <>
       <footer
         className="
           bg-[#2B2B2B]
+
           px-6
-          py-9
+          py-7
 
           sm:px-8
-          sm:py-10
+          sm:py-8
 
           lg:px-10
-          lg:py-11
+          lg:py-8
         "
       >
         <div className="mx-auto max-w-[1200px]">
@@ -124,12 +48,12 @@ export default function Footer() {
           <div
             className="
               grid
-              gap-8
+              gap-7
 
               md:grid-cols-[1.6fr_0.65fr_0.65fr_0.8fr]
-              md:gap-7
+              md:gap-6
 
-              lg:gap-10
+              lg:gap-8
             "
           >
             {/* ===================================================
@@ -142,29 +66,31 @@ export default function Footer() {
                   text-[28px]
                   leading-none
                   text-white
+
                   [font-family:var(--font-cormorant)]
 
                   sm:text-[30px]
                 "
               >
-                {t.footer.brand}
+                {content.brand}
               </h3>
 
               <p
                 className="
-                  mt-2
+                  mt-1.5
+
                   text-[10px]
                   uppercase
                   tracking-[0.17em]
                   text-white/45
                 "
               >
-                {t.footer.tagline}
+                {content.tagline}
               </p>
 
               <div
                 className="
-                  mt-4
+                  mt-3
                   h-px
                   w-8
                   bg-[#6F8F72]
@@ -173,7 +99,8 @@ export default function Footer() {
 
               <p
                 className="
-                  mt-3
+                  mt-2.5
+
                   text-[12px]
                   leading-5
                   text-white/45
@@ -181,7 +108,7 @@ export default function Footer() {
                   lg:whitespace-nowrap
                 "
               >
-                {copy.description}
+                {content.description}
               </p>
             </div>
 
@@ -199,16 +126,17 @@ export default function Footer() {
                   text-[#9DB49A]
                 "
               >
-                {copy.learnGroup}
+                {content.groups.learn}
               </p>
 
               <nav
                 className="
-                  mt-3
+                  mt-2.5
+
                   flex
                   flex-col
                   items-start
-                  gap-2.5
+                  gap-2
                 "
               >
                 <Link
@@ -216,12 +144,14 @@ export default function Footer() {
                   className="
                     text-[12px]
                     text-white/65
+
                     transition-colors
                     duration-200
+
                     hover:text-white
                   "
                 >
-                  {copy.lessons}
+                  {content.links.lessons}
                 </Link>
 
                 <Link
@@ -229,12 +159,14 @@ export default function Footer() {
                   className="
                     text-[12px]
                     text-white/65
+
                     transition-colors
                     duration-200
+
                     hover:text-white
                   "
                 >
-                  {copy.approach}
+                  {content.links.approach}
                 </Link>
               </nav>
             </div>
@@ -253,16 +185,17 @@ export default function Footer() {
                   text-[#9DB49A]
                 "
               >
-                {copy.hamkkeGroup}
+                {content.groups.hamkke}
               </p>
 
               <nav
                 className="
-                  mt-3
+                  mt-2.5
+
                   flex
                   flex-col
                   items-start
-                  gap-2.5
+                  gap-2
                 "
               >
                 <Link
@@ -270,25 +203,29 @@ export default function Footer() {
                   className="
                     text-[12px]
                     text-white/65
+
                     transition-colors
                     duration-200
+
                     hover:text-white
                   "
                 >
-                  {copy.teachers}
+                  {content.links.teachers}
                 </Link>
 
                 <Link
-                  href={`/${locale}#about`}
+                  href={`/${locale}/about`}
                   className="
                     text-[12px]
                     text-white/65
+
                     transition-colors
                     duration-200
+
                     hover:text-white
                   "
                 >
-                  {copy.about}
+                  {content.links.about}
                 </Link>
 
                 <Link
@@ -296,12 +233,14 @@ export default function Footer() {
                   className="
                     text-[12px]
                     text-white/65
+
                     transition-colors
                     duration-200
+
                     hover:text-white
                   "
                 >
-                  {copy.policy}
+                  {content.links.policy}
                 </Link>
               </nav>
             </div>
@@ -320,42 +259,53 @@ export default function Footer() {
                   text-[#9DB49A]
                 "
               >
-                {copy.connectGroup}
+                {content.groups.connect}
               </p>
 
               <div
                 className="
-                  mt-3
+                  mt-2.5
+
                   flex
                   flex-col
                   items-start
-                  gap-2.5
+                  gap-2
                 "
               >
-                {/* Start a Conversation — unchanged */}
-
                 <button
                   type="button"
-                  onClick={() => setIsInquiryOpen(true)}
+                  onClick={() =>
+                    setIsInquiryOpen(true)
+                  }
                   className="
                     group
+
                     inline-flex
                     items-center
                     gap-2
+
                     text-left
                     text-[12px]
                     text-white/65
+
                     transition-colors
                     duration-200
+
                     hover:text-white
                   "
                 >
-                  <span>{copy.startConversation}</span>
+                  <span>
+                    {
+                      content.links
+                        .startConversation
+                    }
+                  </span>
 
                   <span
                     className="
                       transition-transform
                       duration-200
+
                       group-hover:translate-x-1
                     "
                     aria-hidden="true"
@@ -364,49 +314,55 @@ export default function Footer() {
                   </span>
                 </button>
 
-                {/* Instagram */}
-
                 <a
                   href="https://www.instagram.com/hamkke.english/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="
                     group
+
                     inline-flex
                     items-center
                     gap-2
+
                     text-[12px]
                     text-white/65
+
                     transition-colors
                     duration-200
+
                     hover:text-white
                   "
                 >
-                  <span>{copy.instagram}</span>
+                  <span>
+                    {content.links.instagram}
+                  </span>
 
                   <svg
-  viewBox="0 0 12 12"
-  fill="none"
-  xmlns="http://www.w3.org/2000/svg"
-  className="
-    h-[10px]
-    w-[10px]
-    shrink-0
-    transition-transform
-    duration-200
-    group-hover:translate-x-[2px]
-    group-hover:-translate-y-[2px]
-  "
-  aria-hidden="true"
->
-  <path
-    d="M3 9L9 3M5 3H9V7"
-    stroke="currentColor"
-    strokeWidth="1.2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  />
-</svg>
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="
+                      h-[10px]
+                      w-[10px]
+                      shrink-0
+
+                      transition-transform
+                      duration-200
+
+                      group-hover:translate-x-[2px]
+                      group-hover:-translate-y-[2px]
+                    "
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 9L9 3M5 3H9V7"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </a>
               </div>
             </div>
@@ -418,10 +374,12 @@ export default function Footer() {
 
           <div
             className="
-              mt-8
+              mt-6
+
               border-t
               border-white/10
-              pt-4
+
+              pt-3.5
             "
           >
             <p
@@ -430,19 +388,17 @@ export default function Footer() {
                 text-white/30
               "
             >
-              {t.footer.copyright}
+              {content.copyright}
             </p>
           </div>
         </div>
       </footer>
 
-      {/* =====================================================
-          INQUIRY MODAL
-          ===================================================== */}
-
       <InquiryModal
         isOpen={isInquiryOpen}
-        onClose={() => setIsInquiryOpen(false)}
+        onClose={() =>
+          setIsInquiryOpen(false)
+        }
         source="start-a-conversation"
         locale={locale}
       />

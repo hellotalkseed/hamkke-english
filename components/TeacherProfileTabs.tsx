@@ -5,11 +5,18 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
   X,
 } from "lucide-react";
+
+import { getMessages } from "@/lib/getMessages";
+import {
+  isValidLocale,
+  type Locale,
+} from "@/lib/i18n";
 
 type Qualification = {
   title: string;
@@ -64,7 +71,12 @@ type Tab =
   | "availability";
 
 type TimezoneOption = {
-  label: string;
+  key:
+    | "philippines"
+    | "korea"
+    | "japan"
+    | "china"
+    | "vietnam";
   shortLabel: string;
   timezone: string;
 };
@@ -76,43 +88,53 @@ type ConvertedSlot = PublicSlot & {
 
 const INITIAL_STORIES = 6;
 
-const DAYS = [
-  "Sun",
-  "Mon",
-  "Tue",
-  "Wed",
-  "Thu",
-  "Fri",
-  "Sat",
-];
-
 const TIMEZONE_OPTIONS: TimezoneOption[] = [
   {
-    label: "Philippines",
+    key: "philippines",
     shortLabel: "PHT",
     timezone: "Asia/Manila",
   },
   {
-    label: "Korea",
+    key: "korea",
     shortLabel: "KST",
     timezone: "Asia/Seoul",
   },
   {
-    label: "Japan",
+    key: "japan",
     shortLabel: "JST",
     timezone: "Asia/Tokyo",
   },
   {
-    label: "China",
+    key: "china",
     shortLabel: "CST",
     timezone: "Asia/Shanghai",
   },
   {
-    label: "Vietnam",
+    key: "vietnam",
     shortLabel: "ICT",
     timezone: "Asia/Ho_Chi_Minh",
   },
 ];
+
+const INTL_LOCALES: Record<Locale, string> = {
+  en: "en-US",
+  ko: "ko-KR",
+  zh: "zh-CN",
+  ja: "ja-JP",
+};
+
+function interpolate(
+  template: string,
+  values: Record<string, string | number>
+) {
+  return template.replace(
+    /\{(\w+)\}/g,
+    (_, key: string) =>
+      values[key] !== undefined
+        ? String(values[key])
+        : `{${key}}`
+  );
+}
 
 function addDays(
   dateKey: string,
@@ -150,14 +172,15 @@ function getDayOfWeek(
 }
 
 function formatDate(
-  dateKey: string
+  dateKey: string,
+  locale: Locale
 ) {
   const [year, month, day] = dateKey
     .split("-")
     .map(Number);
 
   return new Intl.DateTimeFormat(
-    "en-US",
+    INTL_LOCALES[locale],
     {
       month: "short",
       day: "numeric",
@@ -176,7 +199,8 @@ function formatDate(
 
 function formatWeekRange(
   startDate: string,
-  endDate: string
+  endDate: string,
+  locale: Locale
 ) {
   const [
     startYear,
@@ -212,7 +236,7 @@ function formatWeekRange(
 
   const startLabel =
     new Intl.DateTimeFormat(
-      "en-US",
+      INTL_LOCALES[locale],
       {
         month: "short",
         day: "numeric",
@@ -222,7 +246,7 @@ function formatWeekRange(
 
   const endLabel =
     new Intl.DateTimeFormat(
-      "en-US",
+      INTL_LOCALES[locale],
       {
         month: "short",
         day: "numeric",
@@ -235,21 +259,31 @@ function formatWeekRange(
 }
 
 function formatTime(
-  value: string
+  value: string,
+  locale: Locale
 ) {
   const [hour, minute] = value
     .split(":")
     .map(Number);
 
-  const period =
-    hour >= 12 ? "PM" : "AM";
+  const date = new Date(
+    Date.UTC(
+      2000,
+      0,
+      1,
+      hour,
+      minute
+    )
+  );
 
-  const displayHour =
-    hour % 12 || 12;
-
-  return `${displayHour}:${String(
-    minute
-  ).padStart(2, "0")} ${period}`;
+  return new Intl.DateTimeFormat(
+    INTL_LOCALES[locale],
+    {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "UTC",
+    }
+  ).format(date);
 }
 
 /*
@@ -338,6 +372,11 @@ function convertSlotTimezone(
       sourceTimezone
     );
 
+  /*
+   * en-CA is intentionally retained here.
+   * This value is an internal YYYY-MM-DD key,
+   * not visitor-facing text.
+   */
   const parts =
     new Intl.DateTimeFormat(
       "en-CA",
@@ -390,6 +429,10 @@ function getDateKeyInTimezone(
   date: Date,
   timezone: string
 ) {
+  /*
+   * en-CA is intentionally retained here.
+   * This creates an internal YYYY-MM-DD key.
+   */
   const parts =
     new Intl.DateTimeFormat(
       "en-CA",
@@ -476,6 +519,23 @@ export default function TeacherProfileTabs({
   reflections,
   teacherSlug,
 }: TeacherProfileTabsProps) {
+  const params = useParams<{
+    locale?: string;
+  }>();
+
+  const localeParam =
+    typeof params?.locale === "string"
+      ? params.locale
+      : "en";
+
+  const locale: Locale =
+    isValidLocale(localeParam)
+      ? localeParam
+      : "en";
+
+  const messages = getMessages(locale);
+  const content = messages.teacherProfile;
+
   const safeReflections =
     reflections ?? [];
 
@@ -641,8 +701,7 @@ export default function TeacherProfileTabs({
 
         if (!response.ok) {
           throw new Error(
-            result.error ||
-              "Unable to load availability."
+            content.availability.error
           );
         }
 
@@ -651,12 +710,10 @@ export default function TeacherProfileTabs({
             result
           );
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           setAvailabilityError(
-            error instanceof Error
-              ? error.message
-              : "Unable to load availability."
+            content.availability.error
           );
         }
       } finally {
@@ -677,6 +734,7 @@ export default function TeacherProfileTabs({
     activeTab,
     requestedWeek,
     teacherSlug,
+    content.availability.error,
   ]);
 
   /*
@@ -805,6 +863,29 @@ export default function TeacherProfileTabs({
     ) ||
     TIMEZONE_OPTIONS[0];
 
+  const timezoneLabels = {
+    philippines:
+      content.availability.timezone.philippines,
+    korea:
+      content.availability.timezone.korea,
+    japan:
+      content.availability.timezone.japan,
+    china:
+      content.availability.timezone.china,
+    vietnam:
+      content.availability.timezone.vietnam,
+  };
+
+  const dayLabels = [
+    content.days.sun,
+    content.days.mon,
+    content.days.tue,
+    content.days.wed,
+    content.days.thu,
+    content.days.fri,
+    content.days.sat,
+  ];
+
   const goToToday = () => {
     setRequestedWeek(
       null
@@ -850,7 +931,10 @@ export default function TeacherProfileTabs({
 
   return (
     <>
-      {/* Tabs */}
+      {/* =====================================================
+          TABS
+          ===================================================== */}
+
       <div className="mt-8 overflow-x-auto border-b border-[#304A39]/15">
         <div className="flex min-w-max gap-7">
           <button
@@ -864,7 +948,7 @@ export default function TeacherProfileTabs({
                 : "text-[#758477] hover:text-[#304A39]"
             }`}
           >
-            About
+            {content.tabs.about}
 
             {activeTab ===
               "about" && (
@@ -886,7 +970,7 @@ export default function TeacherProfileTabs({
                 : "text-[#758477] hover:text-[#304A39]"
             }`}
           >
-            Qualifications
+            {content.tabs.qualifications}
 
             {activeTab ===
               "qualifications" && (
@@ -908,7 +992,7 @@ export default function TeacherProfileTabs({
                 : "text-[#758477] hover:text-[#304A39]"
             }`}
           >
-            Learner Stories
+            {content.tabs.learnerStories}
 
             {activeTab ===
               "learner-stories" && (
@@ -930,7 +1014,7 @@ export default function TeacherProfileTabs({
                 : "text-[#758477] hover:text-[#304A39]"
             }`}
           >
-            Availability
+            {content.tabs.availability}
 
             {activeTab ===
               "availability" && (
@@ -940,11 +1024,14 @@ export default function TeacherProfileTabs({
         </div>
       </div>
 
-      {/* About */}
+      {/* =====================================================
+          ABOUT
+          ===================================================== */}
+
       {activeTab === "about" && (
         <div className="pt-8">
           <h2 className="font-serif text-[29px] tracking-[-0.02em] text-[#304A39]">
-            A little about me
+            {content.about.title}
           </h2>
 
           <div className="mt-5 max-w-[680px] space-y-4 text-[15px] leading-7 text-[#536157]">
@@ -962,18 +1049,19 @@ export default function TeacherProfileTabs({
         </div>
       )}
 
-      {/* Qualifications */}
+      {/* =====================================================
+          QUALIFICATIONS
+          ===================================================== */}
+
       {activeTab ===
         "qualifications" && (
         <div className="pt-8">
           <h2 className="font-serif text-[29px] tracking-[-0.02em] text-[#304A39]">
-            Qualifications & experience
+            {content.qualifications.title}
           </h2>
 
           <p className="mt-2 max-w-[620px] text-[13px] leading-6 text-[#758477]">
-            Training, education, and
-            experience that support my
-            work as an English teacher.
+            {content.qualifications.description}
           </p>
 
           {safeQualifications.length >
@@ -1018,33 +1106,33 @@ export default function TeacherProfileTabs({
           ) : (
             <div className="mt-6 rounded-[22px] border border-[#304A39]/10 bg-white px-5 py-8">
               <p className="text-[14px] leading-6 text-[#758477]">
-                Qualifications are
-                being prepared.
+                {content.qualifications.empty}
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Learner Stories */}
+      {/* =====================================================
+          LEARNER STORIES
+          ===================================================== */}
+
       {activeTab ===
         "learner-stories" && (
         <div className="pt-8">
           <div className="flex items-end justify-between gap-4">
             <div>
               <h2 className="font-serif text-[29px] tracking-[-0.02em] text-[#304A39]">
-                From my learners
+                {content.stories.title}
               </h2>
 
               <p className="mt-2 text-[13px] text-[#758477]">
-                {
-                  safeReflections.length
-                }{" "}
+                {safeReflections.length}{" "}
                 {safeReflections.length ===
                 1
-                  ? "story"
-                  : "stories"}{" "}
-                shared
+                  ? content.stories.story
+                  : content.stories.stories}{" "}
+                {content.stories.shared}
               </p>
             </div>
           </div>
@@ -1056,103 +1144,109 @@ export default function TeacherProfileTabs({
                 {visibleReflections.map(
                   (reflection) => (
                     <article
-  key={reflection.id}
-  className="
-    flex
-    h-[260px]
-    flex-col
-    rounded-[22px]
-    border
-    border-[#718A73]/25
-    bg-[#F1F4ED]
-    p-5
-    shadow-[0_5px_18px_rgba(48,74,57,0.035)]
-    transition
-    hover:border-[#718A73]/45
-  "
->
-  {/* RATING */}
+                      key={reflection.id}
+                      className="
+                        flex
+                        h-[260px]
+                        flex-col
+                        rounded-[22px]
+                        border
+                        border-[#718A73]/25
+                        bg-[#F1F4ED]
+                        p-5
+                        shadow-[0_5px_18px_rgba(48,74,57,0.035)]
+                        transition
+                        hover:border-[#718A73]/45
+                      "
+                    >
+                      {/* RATING */}
 
-  <div
-    className="
-      shrink-0
-      text-[14px]
-      tracking-[0.1em]
-      text-[#C69A3B]
-    "
-    aria-label={`${reflection.rating} out of 5 stars`}
-  >
-    {"★".repeat(
-      Math.max(
-        0,
-        Math.min(
-          5,
-          reflection.rating
-        )
-      )
-    )}
-  </div>
+                      <div
+                        className="
+                          shrink-0
+                          text-[14px]
+                          tracking-[0.1em]
+                          text-[#C69A3B]
+                        "
+                        aria-label={interpolate(
+                          content.stories.rating,
+                          {
+                            rating:
+                              reflection.rating,
+                          }
+                        )}
+                      >
+                        {"★".repeat(
+                          Math.max(
+                            0,
+                            Math.min(
+                              5,
+                              reflection.rating
+                            )
+                          )
+                        )}
+                      </div>
 
-  {/* STORY PREVIEW */}
+                      {/* STORY PREVIEW */}
 
-  <div className="mt-4 min-h-0 flex-1 overflow-hidden">
-    <p
-      className="
-        line-clamp-4
-        text-[14px]
-        leading-6
-        text-[#536157]
-      "
-    >
-      “{reflection.reflection}”
-    </p>
-  </div>
+                      <div className="mt-4 min-h-0 flex-1 overflow-hidden">
+                        <p
+                          className="
+                            line-clamp-4
+                            text-[14px]
+                            leading-6
+                            text-[#536157]
+                          "
+                        >
+                          “{reflection.reflection}”
+                        </p>
+                      </div>
 
-  {/* READ MORE */}
+                      {/* READ MORE */}
 
-  <div className="shrink-0 pt-2">
-    <button
-      type="button"
-      onClick={() => {
-        setSelectedStory(
-          reflection
-        );
-      }}
-      className="
-        relative
-        z-10
-        text-[12px]
-        font-semibold
-        text-[#718A73]
-        transition
-        hover:text-[#304A39]
-      "
-    >
-      Read more
-    </button>
-  </div>
+                      <div className="shrink-0 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedStory(
+                              reflection
+                            );
+                          }}
+                          className="
+                            relative
+                            z-10
+                            text-[12px]
+                            font-semibold
+                            text-[#718A73]
+                            transition
+                            hover:text-[#304A39]
+                          "
+                        >
+                          {content.stories.readMore}
+                        </button>
+                      </div>
 
-  {/* LEARNER */}
+                      {/* LEARNER */}
 
-  <div className="shrink-0 pt-4">
-    <div className="h-px bg-[#304A39]/10" />
+                      <div className="shrink-0 pt-4">
+                        <div className="h-px bg-[#304A39]/10" />
 
-    <div className="mt-3">
-      <p className="text-[13px] font-semibold text-[#304A39]">
-        {reflection.name}
-      </p>
+                        <div className="mt-3">
+                          <p className="text-[13px] font-semibold text-[#304A39]">
+                            {reflection.name}
+                          </p>
 
-      <p className="mt-1 text-[11px] text-[#758477]">
-        {[
-          reflection.role,
-          reflection.country,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-    </div>
-  </div>
-</article>
+                          <p className="mt-1 text-[11px] text-[#758477]">
+                            {[
+                              reflection.role,
+                              reflection.country,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        </div>
+                      </div>
+                    </article>
                   )
                 )}
               </div>
@@ -1173,8 +1267,14 @@ export default function TeacherProfileTabs({
                     className="rounded-full border border-[#718A73]/35 px-5 py-2.5 text-[13px] font-semibold text-[#304A39] transition hover:bg-[#EEF2EA]"
                   >
                     {showAllStories
-                      ? "Show fewer"
-                      : `Show all ${safeReflections.length} stories`}
+                      ? content.stories.showFewer
+                      : interpolate(
+                          content.stories.showAll,
+                          {
+                            count:
+                              safeReflections.length,
+                          }
+                        )}
                   </button>
                 </div>
               )}
@@ -1182,30 +1282,28 @@ export default function TeacherProfileTabs({
           ) : (
             <div className="mt-6 rounded-[22px] border border-[#304A39]/10 bg-white px-5 py-8">
               <p className="text-[14px] leading-6 text-[#758477]">
-                No learner stories
-                have been shared
-                yet.
+                {content.stories.empty}
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Availability */}
+      {/* =====================================================
+          AVAILABILITY
+          ===================================================== */}
+
       {activeTab ===
         "availability" && (
         <div className="pt-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="font-serif text-[29px] tracking-[-0.02em] text-[#304A39]">
-                Weekly availability
+                {content.availability.title}
               </h2>
 
               <p className="mt-2 max-w-[560px] text-[13px] leading-6 text-[#758477]">
-                A simple view of
-                currently open and
-                regularly occupied
-                lesson times.
+                {content.availability.description}
               </p>
             </div>
 
@@ -1216,7 +1314,10 @@ export default function TeacherProfileTabs({
                   onClick={
                     goToPreviousWeek
                   }
-                  aria-label="Previous week"
+                  aria-label={
+                    content.availability
+                      .previousWeek
+                  }
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-[#304A39]/15 text-[#536157] transition hover:border-[#718A73]/45 hover:bg-[#EEF2EA]"
                 >
                   <ChevronLeft
@@ -1231,7 +1332,7 @@ export default function TeacherProfileTabs({
                   }
                   className="h-9 rounded-full border border-[#304A39]/15 px-4 text-[11px] font-semibold text-[#536157] transition hover:border-[#718A73]/45 hover:bg-[#EEF2EA]"
                 >
-                  Today
+                  {content.availability.today}
                 </button>
 
                 <button
@@ -1239,7 +1340,10 @@ export default function TeacherProfileTabs({
                   onClick={
                     goToNextWeek
                   }
-                  aria-label="Next week"
+                  aria-label={
+                    content.availability
+                      .nextWeek
+                  }
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-[#304A39]/15 text-[#536157] transition hover:border-[#718A73]/45 hover:bg-[#EEF2EA]"
                 >
                   <ChevronRight
@@ -1253,8 +1357,7 @@ export default function TeacherProfileTabs({
           {availabilityLoading && (
             <div className="mt-6 rounded-[22px] border border-[#304A39]/10 bg-[#FFFDF8] px-5 py-10 text-center">
               <p className="text-[13px] text-[#758477]">
-                Loading
-                availability...
+                {content.availability.loading}
               </p>
             </div>
           )}
@@ -1263,9 +1366,7 @@ export default function TeacherProfileTabs({
             availabilityError && (
               <div className="mt-6 rounded-[22px] border border-[#D6AAA4]/50 bg-[#FFF8F6] px-5 py-8">
                 <p className="text-[13px] leading-6 text-[#8A5C56]">
-                  {
-                    availabilityError
-                  }
+                  {availabilityError}
                 </p>
               </div>
             )}
@@ -1282,7 +1383,8 @@ export default function TeacherProfileTabs({
                     <p className="text-[15px] font-semibold text-[#304A39]">
                       {formatWeekRange(
                         displayWeekStart,
-                        displayWeekEnd
+                        displayWeekEnd,
+                        locale
                       )}
                     </p>
 
@@ -1300,7 +1402,10 @@ export default function TeacherProfileTabs({
                   <div className="flex flex-wrap items-end gap-4">
                     <label className="block">
                       <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#758477]">
-                        Your timezone
+                        {
+                          content.availability
+                            .timezone.label
+                        }
                       </span>
 
                       <select
@@ -1331,7 +1436,9 @@ export default function TeacherProfileTabs({
                               }
                             >
                               {
-                                option.label
+                                timezoneLabels[
+                                  option.key
+                                ]
                               }{" "}
                               (
                               {
@@ -1347,13 +1454,20 @@ export default function TeacherProfileTabs({
                     <div className="flex flex-wrap items-center gap-4 pb-2 text-[11px] text-[#758477]">
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-[#DCE4D7]" />
-                        Available
+
+                        {
+                          content.availability
+                            .status.available
+                        }
                       </div>
 
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-[#E8D8A9]" />
-                        Regular
-                        Student
+
+                        {
+                          content.availability
+                            .status.regularStudent
+                        }
                       </div>
                     </div>
                   </div>
@@ -1379,7 +1493,7 @@ export default function TeacherProfileTabs({
                             >
                               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#758477]">
                                 {
-                                  DAYS[
+                                  dayLabels[
                                     index
                                   ]
                                 }
@@ -1387,7 +1501,8 @@ export default function TeacherProfileTabs({
 
                               <p className="mt-1 text-[12px] font-medium text-[#304A39]">
                                 {formatDate(
-                                  date
+                                  date,
+                                  locale
                                 )}
                               </p>
                             </div>
@@ -1405,7 +1520,8 @@ export default function TeacherProfileTabs({
                           >
                             <div className="flex min-h-[48px] items-center px-3 text-[11px] font-medium text-[#758477]">
                               {formatTime(
-                                time
+                                time,
+                                locale
                               )}
                             </div>
 
@@ -1446,9 +1562,19 @@ export default function TeacherProfileTabs({
                                       "available" && (
                                       <div
                                         className="flex h-full min-h-[34px] w-full items-center justify-center rounded-[8px] bg-[#DCE4D7] px-1 text-center text-[10px] font-semibold text-[#304A39]"
-                                        title="Available"
+                                        title={
+                                          content
+                                            .availability
+                                            .status
+                                            .available
+                                        }
                                       >
-                                        Available
+                                        {
+                                          content
+                                            .availability
+                                            .status
+                                            .available
+                                        }
                                       </div>
                                     )}
 
@@ -1456,9 +1582,19 @@ export default function TeacherProfileTabs({
                                       "regular_student" && (
                                       <div
                                         className="flex h-full min-h-[34px] w-full items-center justify-center rounded-[8px] bg-[#F2E8C9] px-1 text-center text-[10px] font-medium text-[#75673F]"
-                                        title="Regular Student"
+                                        title={
+                                          content
+                                            .availability
+                                            .status
+                                            .regularStudent
+                                        }
                                       >
-                                        Regular
+                                        {
+                                          content
+                                            .availability
+                                            .status
+                                            .regularShort
+                                        }
                                       </div>
                                     )}
                                   </div>
@@ -1473,23 +1609,21 @@ export default function TeacherProfileTabs({
                 ) : (
                   <div className="mt-5 rounded-[22px] border border-[#304A39]/10 bg-[#FFFDF8] px-5 py-10 text-center">
                     <p className="text-[13px] text-[#758477]">
-                      No open lesson
-                      times are shown
-                      for this week.
+                      {content.availability.empty}
                     </p>
                   </div>
                 )}
 
                 <p className="mt-4 text-[11px] leading-5 text-[#8A958C]">
-                  Times are shown in{" "}
-                  {
-                    selectedTimezoneOption.label
-                  }{" "}
-                  time. Availability
-                  can change as
-                  lessons are assigned
-                  or schedules are
-                  updated.
+                  {interpolate(
+                    content.availability.note,
+                    {
+                      timezone:
+                        timezoneLabels[
+                          selectedTimezoneOption.key
+                        ],
+                    }
+                  )}
                 </p>
               </>
             )}
@@ -1528,7 +1662,13 @@ export default function TeacherProfileTabs({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={`Learner story from ${selectedStory.name}`}
+            aria-label={interpolate(
+              content.stories.modal.ariaLabel,
+              {
+                name:
+                  selectedStory.name,
+              }
+            )}
             className="
               relative
               max-h-[85vh]
@@ -1554,7 +1694,9 @@ export default function TeacherProfileTabs({
                   null
                 )
               }
-              aria-label="Close learner story"
+              aria-label={
+                content.stories.modal.close
+              }
               className="
                 absolute
                 right-5
@@ -1589,7 +1731,7 @@ export default function TeacherProfileTabs({
                 text-[#718A73]
               "
             >
-              Learner story
+              {content.stories.modal.label}
             </p>
 
             {/* RATING */}
@@ -1601,7 +1743,13 @@ export default function TeacherProfileTabs({
                 tracking-[0.1em]
                 text-[#C69A3B]
               "
-              aria-label={`${selectedStory.rating} out of 5 stars`}
+              aria-label={interpolate(
+                content.stories.rating,
+                {
+                  rating:
+                    selectedStory.rating,
+                }
+              )}
             >
               {"★".repeat(
                 Math.max(

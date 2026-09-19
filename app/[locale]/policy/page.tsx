@@ -23,73 +23,30 @@ interface PolicyPageProps {
   }>;
 }
 
-const tuitionPolicy: Record<
-  Locale,
-  {
-    title: string;
-    intro: string;
-    rule: string;
-    notice: string;
-  }
-> = {
-  en: {
-    title: "Tuition & Pricing",
-    intro:
-      "Tuition is set according to the selected lesson duration, term length, and displayed currency.",
-    rule:
-      "Tuition is reviewed annually and may be adjusted to reflect inflation and changes in operating costs.",
-    notice:
-      "Any tuition changes will be communicated in advance.",
-  },
-
-  ko: {
-    title: "수업료 및 가격",
-    intro:
-      "수업료는 선택한 수업 시간, 수강 횟수 및 표시 통화에 따라 책정됩니다.",
-    rule:
-      "수업료는 매년 검토되며 물가 상승 및 운영 비용의 변동을 반영하여 조정될 수 있습니다.",
-    notice:
-      "수업료가 변경되는 경우 사전에 안내드립니다.",
-  },
-
-  zh: {
-    title: "学费与价格",
-    intro:
-      "学费根据所选的课程时长、课程周期以及页面显示的货币进行定价。",
-    rule:
-      "学费每年进行审核，并可能根据通货膨胀和运营成本的变化进行调整。",
-    notice:
-      "如学费发生调整，我们会提前通知。",
-  },
-
-  ja: {
-    title: "授業料・料金",
-    intro:
-      "授業料は、選択したレッスン時間、受講回数、表示通貨に基づいて設定されます。",
-    rule:
-      "授業料は毎年見直され、物価上昇や運営費の変動を反映して調整される場合があります。",
-    notice:
-      "授業料を変更する場合は、事前にお知らせします。",
-  },
-};
-
 export default async function PolicyPage({
   params,
 }: PolicyPageProps) {
-  const { locale } = await params;
+  const { locale: localeParam } =
+    await params;
 
-  if (!isValidLocale(locale)) {
+  if (!isValidLocale(localeParam)) {
     notFound();
   }
 
-  const t = getMessages(locale);
-  const tuition = tuitionPolicy[locale];
+  const locale =
+    localeParam as Locale;
+
+  const messages =
+    getMessages(locale);
+
+  const policy =
+    messages.policy;
 
   const sections = [
     {
       id: "cancellation",
       number: "01",
-      title: t.policy.cancellation.title,
+      title: policy.cancellation.title,
       icon: (
         <CalendarDays
           size={21}
@@ -99,7 +56,9 @@ export default async function PolicyPage({
 
       content: (
         <div className="space-y-7">
-          <p>{t.policy.cancellation.intro}</p>
+          <p>
+            {policy.cancellation.intro}
+          </p>
 
           <div className="space-y-6">
             <div className="flex gap-4">
@@ -134,11 +93,17 @@ export default async function PolicyPage({
                     text-[#718A73]
                   "
                 >
-                  {t.policy.cancellation.notice.title}
+                  {
+                    policy.cancellation
+                      .notice.title
+                  }
                 </p>
 
                 <p className="mt-2">
-                  {t.policy.cancellation.notice.text}
+                  {
+                    policy.cancellation
+                      .notice.text
+                  }
                 </p>
               </div>
             </div>
@@ -175,11 +140,17 @@ export default async function PolicyPage({
                     text-[#718A73]
                   "
                 >
-                  {t.policy.cancellation.lateNotice.title}
+                  {
+                    policy.cancellation
+                      .lateNotice.title
+                  }
                 </p>
 
                 <p className="mt-2">
-                  {t.policy.cancellation.lateNotice.text}
+                  {
+                    policy.cancellation
+                      .lateNotice.text
+                  }
                 </p>
               </div>
             </div>
@@ -216,11 +187,17 @@ export default async function PolicyPage({
                     text-[#718A73]
                   "
                 >
-                  {t.policy.cancellation.noShow.title}
+                  {
+                    policy.cancellation
+                      .noShow.title
+                  }
                 </p>
 
                 <p className="mt-2">
-                  {t.policy.cancellation.noShow.text}
+                  {
+                    policy.cancellation
+                      .noShow.text
+                  }
                 </p>
               </div>
             </div>
@@ -235,7 +212,7 @@ export default async function PolicyPage({
               text-[#607568]
             "
           >
-            {t.policy.cancellation.note}
+            {policy.cancellation.note}
           </p>
         </div>
       ),
@@ -244,7 +221,7 @@ export default async function PolicyPage({
     {
       id: "unexpected",
       number: "02",
-      title: t.policy.unexpected.title,
+      title: policy.unexpected.title,
       icon: (
         <Zap
           size={21}
@@ -254,7 +231,9 @@ export default async function PolicyPage({
 
       content: (
         <div className="space-y-7">
-          <p>{t.policy.unexpected.intro}</p>
+          <p>
+            {policy.unexpected.intro}
+          </p>
 
           <div
             className="
@@ -284,18 +263,22 @@ export default async function PolicyPage({
               />
             </div>
 
-            <p>{t.policy.unexpected.text}</p>
+            <p>
+              {policy.unexpected.text}
+            </p>
           </div>
 
           <p className="italic">
-            {t.policy.unexpected.action}
+            {policy.unexpected.action}
           </p>
 
           <p>
-            {t.policy.unexpected.resolution}
+            {policy.unexpected.resolution}
           </p>
 
-          <p>{t.policy.unexpected.teacher}</p>
+          <p>
+            {policy.unexpected.teacher}
+          </p>
         </div>
       ),
     },
@@ -303,7 +286,8 @@ export default async function PolicyPage({
     {
       id: "late-arrivals",
       number: "03",
-      title: t.policy.lateArrivals.title,
+      title:
+        policy.lateArrivals.title,
       icon: (
         <Clock3
           size={21}
@@ -313,7 +297,9 @@ export default async function PolicyPage({
 
       content: (
         <div className="space-y-7">
-          <p>{t.policy.lateArrivals.intro}</p>
+          <p>
+            {policy.lateArrivals.intro}
+          </p>
 
           <div
             className="
@@ -344,7 +330,7 @@ export default async function PolicyPage({
             </div>
 
             <p className="italic">
-              {t.policy.lateArrivals.rule}
+              {policy.lateArrivals.rule}
             </p>
           </div>
 
@@ -370,12 +356,18 @@ export default async function PolicyPage({
             </div>
 
             <p>
-              {t.policy.lateArrivals.example}
+              {
+                policy.lateArrivals
+                  .example
+              }
             </p>
           </div>
 
           <p>
-            {t.policy.lateArrivals.noContact}
+            {
+              policy.lateArrivals
+                .noContact
+            }
           </p>
         </div>
       ),
@@ -384,7 +376,9 @@ export default async function PolicyPage({
     {
       id: "teacher-cancellations",
       number: "04",
-      title: t.policy.teacherCancellations.title,
+      title:
+        policy.teacherCancellations
+          .title,
       icon: (
         <HeartHandshake
           size={21}
@@ -395,7 +389,10 @@ export default async function PolicyPage({
       content: (
         <div className="space-y-7">
           <p>
-            {t.policy.teacherCancellations.intro}
+            {
+              policy.teacherCancellations
+                .intro
+            }
           </p>
 
           <div
@@ -427,12 +424,19 @@ export default async function PolicyPage({
             </div>
 
             <p>
-              {t.policy.teacherCancellations.text}
+              {
+                policy
+                  .teacherCancellations
+                  .text
+              }
             </p>
           </div>
 
           <p className="italic">
-            {t.policy.teacherCancellations.resolution}
+            {
+              policy.teacherCancellations
+                .resolution
+            }
           </p>
         </div>
       ),
@@ -441,7 +445,9 @@ export default async function PolicyPage({
     {
       id: "repeated-cancellations",
       number: "05",
-      title: t.policy.repeatedCancellations.title,
+      title:
+        policy.repeatedCancellations
+          .title,
       icon: (
         <RefreshCw
           size={21}
@@ -452,7 +458,10 @@ export default async function PolicyPage({
       content: (
         <div className="space-y-7">
           <p>
-            {t.policy.repeatedCancellations.intro}
+            {
+              policy.repeatedCancellations
+                .intro
+            }
           </p>
 
           <div
@@ -484,12 +493,19 @@ export default async function PolicyPage({
             </div>
 
             <p className="italic">
-              {t.policy.repeatedCancellations.rule}
+              {
+                policy
+                  .repeatedCancellations
+                  .rule
+              }
             </p>
           </div>
 
           <p>
-            {t.policy.repeatedCancellations.text}
+            {
+              policy.repeatedCancellations
+                .text
+            }
           </p>
 
           <p
@@ -501,7 +517,10 @@ export default async function PolicyPage({
               text-[#607568]
             "
           >
-            {t.policy.repeatedCancellations.note}
+            {
+              policy.repeatedCancellations
+                .note
+            }
           </p>
         </div>
       ),
@@ -510,7 +529,7 @@ export default async function PolicyPage({
     {
       id: "tuition",
       number: "06",
-      title: tuition.title,
+      title: policy.tuition.title,
       icon: (
         <WalletCards
           size={21}
@@ -520,7 +539,9 @@ export default async function PolicyPage({
 
       content: (
         <div className="space-y-7">
-          <p>{tuition.intro}</p>
+          <p>
+            {policy.tuition.intro}
+          </p>
 
           <div
             className="
@@ -550,7 +571,9 @@ export default async function PolicyPage({
               />
             </div>
 
-            <p>{tuition.rule}</p>
+            <p>
+              {policy.tuition.rule}
+            </p>
           </div>
 
           <p
@@ -561,7 +584,7 @@ export default async function PolicyPage({
               text-[#607568]
             "
           >
-            {tuition.notice}
+            {policy.tuition.notice}
           </p>
         </div>
       ),
@@ -570,7 +593,7 @@ export default async function PolicyPage({
     {
       id: "refunds",
       number: "07",
-      title: t.policy.refunds.title,
+      title: policy.refunds.title,
       icon: (
         <WalletCards
           size={21}
@@ -580,7 +603,9 @@ export default async function PolicyPage({
 
       content: (
         <div className="space-y-7">
-          <p>{t.policy.refunds.intro}</p>
+          <p>
+            {policy.refunds.intro}
+          </p>
 
           <div
             className="
@@ -610,12 +635,18 @@ export default async function PolicyPage({
               />
             </div>
 
-            <p>{t.policy.refunds.rule}</p>
+            <p>
+              {policy.refunds.rule}
+            </p>
           </div>
 
-          <p>{t.policy.refunds.transfer}</p>
+          <p>
+            {policy.refunds.transfer}
+          </p>
 
-          <p>{t.policy.refunds.exception}</p>
+          <p>
+            {policy.refunds.exception}
+          </p>
 
           <p
             className="
@@ -626,7 +657,7 @@ export default async function PolicyPage({
               text-[#607568]
             "
           >
-            {t.policy.refunds.note}
+            {policy.refunds.note}
           </p>
         </div>
       ),
@@ -683,7 +714,7 @@ export default async function PolicyPage({
                 sm:text-[12px]
               "
             >
-              Hamkke Policy
+              {policy.eyebrow}
             </p>
 
             <h1
@@ -701,7 +732,7 @@ export default async function PolicyPage({
                 lg:text-[56px]
               "
             >
-              {t.policy.title}
+              {policy.title}
             </h1>
 
             <p
@@ -717,7 +748,7 @@ export default async function PolicyPage({
                 sm:leading-8
               "
             >
-              {t.policy.intro}
+              {policy.intro}
             </p>
           </div>
         </section>
@@ -757,7 +788,7 @@ export default async function PolicyPage({
                 sm:text-[12px]
               "
             >
-              Quick guide
+              {policy.quickGuide.eyebrow}
             </p>
 
             <div
@@ -823,7 +854,10 @@ export default async function PolicyPage({
                       text-[#718A73]
                     "
                   >
-                    2+ hours before class
+                    {
+                      policy.quickGuide
+                        .notice.title
+                    }
                   </p>
 
                   <p
@@ -837,7 +871,10 @@ export default async function PolicyPage({
                       sm:mt-2
                     "
                   >
-                    Reschedule or receive lesson credit.
+                    {
+                      policy.quickGuide
+                        .notice.text
+                    }
                   </p>
                 </div>
               </div>
@@ -892,7 +929,10 @@ export default async function PolicyPage({
                       text-[#718A73]
                     "
                   >
-                    Less than 2 hours
+                    {
+                      policy.quickGuide
+                        .lateNotice.title
+                    }
                   </p>
 
                   <p
@@ -906,7 +946,10 @@ export default async function PolicyPage({
                       sm:mt-2
                     "
                   >
-                    The lesson is counted as completed.
+                    {
+                      policy.quickGuide
+                        .lateNotice.text
+                    }
                   </p>
                 </div>
               </div>
@@ -957,7 +1000,10 @@ export default async function PolicyPage({
                       text-[#718A73]
                     "
                   >
-                    No-show
+                    {
+                      policy.quickGuide
+                        .noShow.title
+                    }
                   </p>
 
                   <p
@@ -971,7 +1017,10 @@ export default async function PolicyPage({
                       sm:mt-2
                     "
                   >
-                    The lesson is counted as completed.
+                    {
+                      policy.quickGuide
+                        .noShow.text
+                    }
                   </p>
                 </div>
               </div>
@@ -986,8 +1035,7 @@ export default async function PolicyPage({
                 text-[#758477]
               "
             >
-              Please see the detailed policy below for exceptions
-              and unexpected circumstances.
+              {policy.quickGuide.note}
             </p>
           </div>
         </section>
@@ -1029,7 +1077,7 @@ export default async function PolicyPage({
                   sm:text-[12px]
                 "
               >
-                Policy details
+                {policy.details.eyebrow}
               </p>
 
               <p
@@ -1044,7 +1092,10 @@ export default async function PolicyPage({
                   sm:text-[16px]
                 "
               >
-                Select a section to read the full guidelines.
+                {
+                  policy.details
+                    .description
+                }
               </p>
             </div>
 
@@ -1135,7 +1186,10 @@ export default async function PolicyPage({
                     text-[#718A73]
                   "
                 >
-                  A note from Hamkke
+                  {
+                    policy.closing
+                      .eyebrow
+                  }
                 </p>
 
                 <h2
@@ -1151,7 +1205,7 @@ export default async function PolicyPage({
                     sm:text-[32px]
                   "
                 >
-                  {t.policy.closing.title}
+                  {policy.closing.title}
                 </h2>
 
                 <div
@@ -1167,11 +1221,11 @@ export default async function PolicyPage({
                   "
                 >
                   <p>
-                    {t.policy.closing.text}
+                    {policy.closing.text}
                   </p>
 
                   <p>
-                    {t.policy.closing.textTwo}
+                    {policy.closing.textTwo}
                   </p>
 
                   <p
@@ -1181,7 +1235,10 @@ export default async function PolicyPage({
                       text-[#718A73]
                     "
                   >
-                    {t.policy.closing.thankYou}
+                    {
+                      policy.closing
+                        .thankYou
+                    }
                   </p>
                 </div>
               </div>
