@@ -38,12 +38,37 @@ interface TeacherLesson {
   } | null;
 }
 
+interface TeacherAssessment {
+  id: string;
+  learner_type: "self" | "child";
+  learner_name: string;
+  preferred_name: string | null;
+  learner_age: number | null;
+  contact_name: string;
+  email: string;
+  english_level: string;
+  learning_goal: string;
+  notes: string | null;
+  assessment_format: "audio" | "video";
+  preferred_platform: string;
+  timezone: string;
+  assessment_date: string;
+  assessment_time: string;
+  philippine_date: string;
+  philippine_time: string;
+  scheduled_at_philippine: string;
+  duration: number;
+  status: "confirmed" | "completed" | "no_show";
+  teacher_observation: string | null;
+}
+
 interface TeacherLessonsResponse {
   teacher: {
     id: string;
     full_name: string | null;
   };
   lessons: TeacherLesson[];
+  assessments: TeacherAssessment[];
 }
 
 interface AvailabilityBlock {
@@ -264,6 +289,36 @@ function getLessonStartMinutes(
   );
 }
 
+function getAssessmentStartMinutes(
+  assessment: TeacherAssessment
+) {
+  return timeToMinutes(
+    assessment.philippine_time
+  );
+}
+
+function getAssessmentStatusClass(status: string) {
+  switch (status) {
+    case "completed":
+      return "border-[#8FB2C7] bg-[#C9DDE9] text-[#365D73] hover:border-[#7CA4BB] hover:bg-[#BDD4E1]";
+    case "no_show":
+      return "border-[#D6AAA4] bg-[#F3D9D5] text-[#8A5C56] hover:border-[#C8958E] hover:bg-[#EDCFCA]";
+    default:
+      return "border-[#A9C4D4] bg-[#DDEAF2] text-[#466B80] hover:border-[#95B5C8] hover:bg-[#D2E3ED]";
+  }
+}
+
+function getAssessmentStatusLabel(status: string) {
+  switch (status) {
+    case "completed":
+      return "Done";
+    case "no_show":
+      return "No-show";
+    default:
+      return "Confirmed";
+  }
+}
+
 function getLessonStatusClass(status: string) {
   switch (status) {
     case "completed":
@@ -402,6 +457,9 @@ export default function TeacherLessonsPage({
   const lessons =
     data?.lessons ?? [];
 
+  const assessments =
+    data?.assessments ?? [];
+
   const weekDays = useMemo(() => {
     const start =
       getStartOfWeek(currentWeek);
@@ -446,6 +504,27 @@ export default function TeacherLessonsPage({
       weekEnd,
     ]);
 
+  const visibleAssessments =
+    useMemo(() => {
+      const startKey =
+        dateKey(weekStart);
+
+      const endKey =
+        dateKey(weekEnd);
+
+      return assessments.filter(
+        (assessment) =>
+          assessment.philippine_date >=
+            startKey &&
+          assessment.philippine_date <=
+            endKey
+      );
+    }, [
+      assessments,
+      weekStart,
+      weekEnd,
+    ]);
+
   function goToPreviousWeek() {
     setCurrentWeek((current) =>
       addDays(current, -7)
@@ -472,6 +551,18 @@ export default function TeacherLessonsPage({
     return visibleLessons.filter(
       (lesson) =>
         lesson.philippine_date ===
+        key
+    );
+  }
+
+  function getAssessmentsForDay(
+    dayDate: Date
+  ) {
+    const key = dateKey(dayDate);
+
+    return visibleAssessments.filter(
+      (assessment) =>
+        assessment.philippine_date ===
         key
     );
   }
@@ -563,6 +654,46 @@ export default function TeacherLessonsPage({
     const height = Math.max(
       38,
       (lesson.duration /
+        INTERVAL_MINUTES) *
+        INTERVAL_HEIGHT
+    );
+
+    if (
+      startMinutes <
+        START_MINUTES ||
+      startMinutes >=
+        END_MINUTES
+    ) {
+      return null;
+    }
+
+    return {
+      top,
+      height,
+    };
+  }
+
+  function getAssessmentPosition(
+    assessment: TeacherAssessment
+  ) {
+    const startMinutes =
+      getAssessmentStartMinutes(
+        assessment
+      );
+
+    if (startMinutes === null) {
+      return null;
+    }
+
+    const top =
+      ((startMinutes -
+        START_MINUTES) /
+        INTERVAL_MINUTES) *
+      INTERVAL_HEIGHT;
+
+    const height = Math.max(
+      38,
+      (assessment.duration /
         INTERVAL_MINUTES) *
         INTERVAL_HEIGHT
     );
@@ -818,6 +949,7 @@ export default function TeacherLessonsPage({
         </div>
 
         {lessons.length === 0 &&
+        assessments.length === 0 &&
         availability.length === 0 ? (
           <div className="border-y border-[#dcd8d2] bg-[#fffefa] p-12 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#e9eee8] text-[#6f8f72]">
@@ -828,11 +960,11 @@ export default function TeacherLessonsPage({
             </div>
 
             <h2 className="text-lg font-medium text-[#30332f]">
-              No lessons assigned yet
+              No lessons or assessments yet
             </h2>
 
             <p className="mt-1.5 text-sm text-[#858780]">
-              Your assigned lessons will appear here.
+              Your assigned lessons and Free Assessments will appear here.
             </p>
           </div>
         ) : (
@@ -909,6 +1041,11 @@ export default function TeacherLessonsPage({
                   (day) => {
                     const dayLessons =
                       getLessonsForDay(
+                        day.date
+                      );
+
+                    const dayAssessments =
+                      getAssessmentsForDay(
                         day.date
                       );
 
@@ -1013,6 +1150,56 @@ export default function TeacherLessonsPage({
                             );
                           }
                         )}
+
+                        {dayAssessments.map(
+                          (assessment) => {
+                            const position =
+                              getAssessmentPosition(
+                                assessment
+                              );
+
+                            if (!position) {
+                              return null;
+                            }
+
+                            const learnerName =
+                              assessment.preferred_name ||
+                              assessment.learner_name ||
+                              "Learner";
+
+                            return (
+                              <Link
+                                key={`assessment-${assessment.id}`}
+                                href={`/${locale}/admin/teachers/assessments/${assessment.id}`}
+                                aria-label={`Open Free Assessment for ${learnerName}`}
+                                className={`group absolute left-1 right-1 z-30 overflow-hidden border px-2 py-1.5 transition-colors ${getAssessmentStatusClass(
+                                  assessment.status
+                                )}`}
+                                style={{
+                                  top:
+                                    position.top +
+                                    3,
+                                  height:
+                                    position.height -
+                                    6,
+                                }}
+                              >
+                                <p className="truncate text-[10px] font-bold uppercase tracking-[0.08em]">
+                                  Assessment · {learnerName}
+                                </p>
+
+                                <p className="mt-0.5 truncate text-[10px] leading-tight">
+                                  {assessment.duration} min. ·{" "}
+                                  <span className="font-semibold">
+                                    {getAssessmentStatusLabel(
+                                      assessment.status
+                                    )}
+                                  </span>
+                                </p>
+                              </Link>
+                            );
+                          }
+                        )}
                       </div>
                     );
                   }
@@ -1023,6 +1210,7 @@ export default function TeacherLessonsPage({
         )}
 
         {(lessons.length > 0 ||
+          assessments.length > 0 ||
           availability.length > 0) && (
           <div className="mt-4 border-t border-[#e2dfda] pt-4">
             <div className="flex flex-col gap-4 text-[11px] tracking-wide text-[#777a74] lg:flex-row lg:items-start lg:justify-between">
@@ -1037,6 +1225,20 @@ export default function TeacherLessonsPage({
 
                     <span className="text-[10px] text-[#a0a29c]">
                       #E4F0E3
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 border border-[#A9C4D4] bg-[#DDEAF2]" />
+
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-medium text-[#62675f]">
+                      Free Assessment
+                    </span>
+
+                    <span className="text-[10px] text-[#a0a29c]">
+                      30 min.
                     </span>
                   </div>
                 </div>

@@ -62,6 +62,13 @@ type SubstituteLessonRow = {
   substitute_teacher_id: string | null;
 };
 
+type AssessmentBookingRow = {
+  teacher_id: string;
+  assessment_date: string;
+  assessment_time: string;
+  status: string;
+};
+
 type PublicSlotStatus =
   | "available"
   | "regular_student"
@@ -77,7 +84,7 @@ type OccupiedPeriod = {
   date: string;
   startMinutes: number;
   endMinutes: number;
-  type: "regular" | "substitute";
+  type: "regular" | "substitute" | "assessment";
 };
 
 const SOURCE_TIMEZONE = "Asia/Manila";
@@ -544,6 +551,7 @@ export async function GET(
       additionalAvailabilityResult,
       assignmentsResult,
       substituteLessonsResult,
+      assessmentBookingsResult,
     ] = await Promise.all([
       admin
         .from(
@@ -608,6 +616,30 @@ export async function GET(
           "substitute_teacher_id",
           teacherId
         ),
+
+      admin
+        .from(
+          "assessment_bookings"
+        )
+        .select(
+          "teacher_id, assessment_date, assessment_time, status"
+        )
+        .eq(
+          "teacher_id",
+          teacherId
+        )
+        .eq(
+          "status",
+          "confirmed"
+        )
+        .gte(
+          "assessment_date",
+          sourceStartDate
+        )
+        .lte(
+          "assessment_date",
+          sourceEndDate
+        ),
     ]);
 
     if (
@@ -646,6 +678,15 @@ export async function GET(
       );
     }
 
+    if (
+      assessmentBookingsResult.error
+    ) {
+      throw new Error(
+        assessmentBookingsResult
+          .error.message
+      );
+    }
+
     const availability =
       (availabilityResult.data ||
         []) as AvailabilityBlock[];
@@ -661,6 +702,10 @@ export async function GET(
     const substituteLessons =
       (substituteLessonsResult.data ||
         []) as SubstituteLessonRow[];
+
+    const assessmentBookings =
+      (assessmentBookingsResult.data ||
+        []) as AssessmentBookingRow[];
 
     /*
      * -------------------------------------------------------
@@ -1310,16 +1355,57 @@ export async function GET(
 
     /*
      * -------------------------------------------------------
+     * Confirmed assessment occupied periods
+     * -------------------------------------------------------
+     *
+     * Free assessments use one 30-minute calendar slot.
+     * They are public-facing only as unavailable.
+     */
+
+    for (
+      const booking of
+      assessmentBookings
+    ) {
+      const startMinutes =
+        timeToMinutes(
+          booking.assessment_time
+        );
+
+      if (
+        Number.isNaN(
+          startMinutes
+        )
+      ) {
+        continue;
+      }
+
+      occupiedPeriods.push({
+        date:
+          booking.assessment_date,
+
+        startMinutes,
+
+        endMinutes:
+          startMinutes +
+          INTERVAL_MINUTES,
+
+        type: "assessment",
+      });
+    }
+
+    /*
+     * -------------------------------------------------------
      * Generate privacy-safe buffered source calendar
      * -------------------------------------------------------
      *
      * Priority:
      *
      * 1. Substitute lesson       -> unavailable
-     * 2. Regular student         -> regular_student
-     * 3. Additional availability -> available
-     * 4. Recurring availability  -> available
-     * 5. Everything else         -> unavailable
+     * 2. Confirmed assessment    -> unavailable
+     * 3. Regular student         -> regular_student
+     * 4. Additional availability -> available
+     * 5. Recurring availability  -> available
+     * 6. Everything else         -> unavailable
      */
 
     const timeSlots =
@@ -1352,15 +1438,17 @@ export async function GET(
               )
           );
 
-        const hasSubstitute =
+        const hasUnavailableBooking =
           overlappingPeriods.some(
             (period) =>
               period.type ===
-              "substitute"
+                "substitute" ||
+              period.type ===
+                "assessment"
           );
 
         if (
-          hasSubstitute
+          hasUnavailableBooking
         ) {
           slots.push({
             date,

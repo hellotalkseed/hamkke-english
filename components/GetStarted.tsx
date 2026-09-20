@@ -340,7 +340,7 @@ export default function GetStarted({
                 {/* MAIN BUTTON */}
 
                 <Link
-                  href={`/${locale}/inquiry`}
+                  href={`/${locale}/assessment`}
                   className="
                     group
                     relative
@@ -479,7 +479,7 @@ export default function GetStarted({
                 {/* MAIN BUTTON */}
 
                 <Link
-                  href={`/${locale}/inquiry`}
+                  href={`/${locale}/assessment`}
                   className="
                     group
                     relative

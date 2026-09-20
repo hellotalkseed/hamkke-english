@@ -7,6 +7,19 @@ interface NewStudentPageProps {
   params: Promise<{
     locale: string;
   }>;
+  searchParams: Promise<{
+    assessment?: string;
+  }>;
+}
+
+interface AssessmentPrefillRow {
+  id: string;
+  learner_name: string;
+  preferred_name: string | null;
+  email: string;
+  timezone: string;
+  status: string;
+  converted_student_id: string | null;
 }
 
 async function createStudent(formData: FormData) {
@@ -17,6 +30,10 @@ async function createStudent(formData: FormData) {
   const locale = String(
     formData.get("locale") ?? "en"
   );
+
+  const assessmentId = String(
+    formData.get("assessment_id") ?? ""
+  ).trim();
 
   const fullName = String(
     formData.get("full_name") ?? ""
@@ -50,6 +67,33 @@ async function createStudent(formData: FormData) {
     throw new Error("Full name is required.");
   }
 
+  if (assessmentId) {
+    const {
+      data: assessment,
+      error: assessmentError,
+    } = await supabase
+      .from("assessment_bookings")
+      .select("id, converted_student_id")
+      .eq("id", assessmentId)
+      .single();
+
+    if (assessmentError || !assessment) {
+      console.error(
+        "Unable to verify assessment conversion:",
+        assessmentError
+      );
+      throw new Error(
+        "Unable to verify the assessment booking."
+      );
+    }
+
+    if (assessment.converted_student_id) {
+      redirect(
+        `/${locale}/admin/students/${assessment.converted_student_id}`
+      );
+    }
+  }
+
   const { data, error } = await supabase
     .from("students")
     .insert({
@@ -69,13 +113,109 @@ async function createStudent(formData: FormData) {
     throw new Error("Unable to create student.");
   }
 
+  if (assessmentId) {
+    const { data: convertedAssessment, error: conversionError } =
+      await supabase
+        .from("assessment_bookings")
+        .update({
+          converted_student_id: data.id,
+          converted_at: new Date().toISOString(),
+        })
+        .eq("id", assessmentId)
+        .is("converted_student_id", null)
+        .select("id")
+        .maybeSingle();
+
+    if (conversionError || !convertedAssessment) {
+      console.error(
+        "Student was created but assessment conversion could not be recorded:",
+        conversionError
+      );
+
+      await supabase
+        .from("students")
+        .delete()
+        .eq("id", data.id);
+
+      throw new Error(
+        "Unable to complete assessment conversion."
+      );
+    }
+  }
+
   redirect(`/${locale}/admin/students/${data.id}`);
 }
 
 export default async function NewStudentPage({
   params,
+  searchParams,
 }: NewStudentPageProps) {
   const { locale } = await params;
+  const filters = await searchParams;
+  const assessmentId =
+    filters.assessment?.trim() ?? "";
+
+  const supabase = await createClient();
+
+  let assessment: AssessmentPrefillRow | null = null;
+
+  if (assessmentId) {
+    const {
+      data: assessmentData,
+      error: assessmentError,
+    } = await supabase
+      .from("assessment_bookings")
+      .select(`
+        id,
+        learner_name,
+        preferred_name,
+        email,
+        timezone,
+        status,
+        converted_student_id
+      `)
+      .eq("id", assessmentId)
+      .maybeSingle();
+
+    if (assessmentError) {
+      console.error(
+        "Error loading assessment for student conversion:",
+        assessmentError
+      );
+
+      throw new Error(
+        "Unable to load assessment details."
+      );
+    }
+
+    assessment =
+      (assessmentData as AssessmentPrefillRow | null) ??
+      null;
+
+    if (assessment?.converted_student_id) {
+      redirect(
+        `/${locale}/admin/students/${assessment.converted_student_id}`
+      );
+    }
+  }
+
+  const convertingAssessment = Boolean(assessment);
+
+  const countryByTimezone: Record<string, string> = {
+    "Asia/Manila": "Philippines",
+    "Asia/Seoul": "South Korea",
+    "Asia/Tokyo": "Japan",
+    "Asia/Shanghai": "China",
+    "Asia/Ho_Chi_Minh": "Vietnam",
+    "Asia/Kuala_Lumpur": "Malaysia",
+    "Asia/Jakarta": "Indonesia",
+    "Asia/Makassar": "Indonesia",
+    "Asia/Jayapura": "Indonesia",
+  };
+
+  const prefilledCountry = assessment
+    ? countryByTimezone[assessment.timezone] ?? ""
+    : "";
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
@@ -93,7 +233,11 @@ export default async function NewStudentPage({
       >
         <div className="relative flex w-full items-center justify-between">
           <Link
-            href={`/${locale}/admin/students`}
+            href={
+              convertingAssessment
+                ? `/${locale}/admin/assessments`
+                : `/${locale}/admin/students`
+            }
             className="
               shrink-0
               font-sans
@@ -105,7 +249,9 @@ export default async function NewStudentPage({
               sm:text-[16px]
             "
           >
-            ← Students
+            {convertingAssessment
+              ? "← Assessments"
+              : "← Students"}
           </Link>
 
           <div
@@ -193,7 +339,9 @@ export default async function NewStudentPage({
             lg:text-[70px]
           "
         >
-          New Student
+          {convertingAssessment
+            ? "Convert to Student"
+            : "New Student"}
         </h1>
 
         <p
@@ -212,8 +360,9 @@ export default async function NewStudentPage({
             lg:leading-10
           "
         >
-          Create a student record before setting up
-          their lesson enrollment.
+          {convertingAssessment
+            ? "Review the assessment details, complete any missing information, and create the student record."
+            : "Create a student record before setting up their lesson enrollment."}
         </p>
       </section>
 
@@ -238,6 +387,33 @@ export default async function NewStudentPage({
             name="locale"
             value={locale}
           />
+
+          {assessment && (
+            <input
+              type="hidden"
+              name="assessment_id"
+              value={assessment.id}
+            />
+          )}
+
+          {assessment && (
+            <div
+              className="
+                border-y
+                border-[#DCD8D2]
+                py-5
+                font-serif
+                text-[15px]
+                leading-7
+                text-[#66635D]
+              "
+            >
+              This student record is being created from a
+              completed Free Assessment. Assessment details
+              have been prefilled where available. You can
+              review or edit them before creating the student.
+            </div>
+          )}
 
           {/* BASIC INFORMATION */}
           <div>
@@ -303,6 +479,7 @@ export default async function NewStudentPage({
                   name="full_name"
                   type="text"
                   required
+                  defaultValue={assessment?.learner_name ?? ""}
                   placeholder="Student's full name"
                   className="
                     mt-3
@@ -344,6 +521,7 @@ export default async function NewStudentPage({
                   id="preferred_name"
                   name="preferred_name"
                   type="text"
+                  defaultValue={assessment?.preferred_name ?? ""}
                   placeholder="Name used during lessons"
                   className="
                     mt-3
@@ -385,6 +563,7 @@ export default async function NewStudentPage({
                   id="email"
                   name="email"
                   type="email"
+                  defaultValue={assessment?.email ?? ""}
                   placeholder="student@example.com"
                   className="
                     mt-3
@@ -477,6 +656,7 @@ export default async function NewStudentPage({
                   id="country"
                   name="country"
                   type="text"
+                  defaultValue={prefilledCountry}
                   placeholder="South Korea"
                   className="
                     mt-3
@@ -516,6 +696,7 @@ export default async function NewStudentPage({
                   id="timezone"
                   name="timezone"
                   type="text"
+                  defaultValue={assessment?.timezone ?? ""}
                   placeholder="Asia/Seoul"
                   className="
                     mt-3
@@ -689,7 +870,11 @@ export default async function NewStudentPage({
             "
           >
             <Link
-              href={`/${locale}/admin/students`}
+              href={
+                convertingAssessment
+                  ? `/${locale}/admin/assessments`
+                  : `/${locale}/admin/students`
+              }
               className="
                 text-center
                 font-sans
@@ -718,7 +903,9 @@ export default async function NewStudentPage({
                 hover:opacity-85
               "
             >
-              Create Student
+              {convertingAssessment
+                ? "Create Student"
+                : "Create Student"}
             </button>
           </div>
         </form>

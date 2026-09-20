@@ -126,6 +126,11 @@ export default function Navbar() {
     setPageNavbarBackground,
   ] = useState("#FFFDF8");
 
+  const [
+    assessmentNavbarBackground,
+    setAssessmentNavbarBackground,
+  ] = useState("#6F8F72");
+
   /* =====================================================
      ACTIVE PAGES
      ===================================================== */
@@ -138,6 +143,9 @@ export default function Navbar() {
     pathname.startsWith(
       `/${locale}/reflections/`
     );
+
+  const isAssessmentPage =
+    pathname === `/${locale}/assessment`;
 
   const isLessonsPage =
     pathname === `/${locale}/lessons` ||
@@ -429,6 +437,52 @@ export default function Navbar() {
     isAboutPage,
   ]);
 
+  /* Match the assessment hero, then the booking form. */
+  useEffect(() => {
+    if (!isAssessmentPage) return;
+
+    let animationFrameId: number | null = null;
+
+    const updateBackground = () => {
+      animationFrameId = null;
+      const hero = document.querySelector(
+        "main form > section"
+      );
+      const navbarHeight = headerRef.current?.offsetHeight ?? 0;
+      const isOverHero =
+        hero !== null &&
+        hero.getBoundingClientRect().bottom > navbarHeight + 2;
+
+      setAssessmentNavbarBackground(
+        isOverHero ? "#6F8F72" : "#F4F1EB"
+      );
+    };
+
+    const scheduleUpdate = () => {
+      if (animationFrameId === null) {
+        animationFrameId = window.requestAnimationFrame(updateBackground);
+      }
+    };
+
+    updateBackground();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+    const observer = new MutationObserver(scheduleUpdate);
+    const main = document.querySelector("main");
+    if (main) {
+      observer.observe(main, { childList: true, subtree: true });
+    }
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isAssessmentPage]);
+
   /* =====================================================
      NAVBAR BACKGROUND
      ===================================================== */
@@ -441,11 +495,16 @@ export default function Navbar() {
         : "#F3EDDD";
 
   const navbarBackground =
-    isHomePage
+    isAssessmentPage
+      ? assessmentNavbarBackground
+      : isHomePage
       ? homepageNavbarBackground
       : usesAutomaticSectionBackground
         ? pageNavbarBackground
         : routeNavbarBackground;
+
+  const isAssessmentSage =
+    isAssessmentPage && assessmentNavbarBackground === "#6F8F72";
 
   /* =====================================================
      NAVIGATION
@@ -517,6 +576,7 @@ export default function Navbar() {
   return (
     <header
       ref={headerRef}
+      data-assessment-sage={isAssessmentSage}
       style={{
         backgroundColor:
           navbarBackground,
@@ -529,6 +589,26 @@ export default function Navbar() {
         duration-300
       "
     >
+      <style>{`
+        header[data-assessment-sage="true"] .assessment-nav-text,
+        header[data-assessment-sage="true"] .assessment-nav-text span,
+        header[data-assessment-sage="true"] .assessment-nav-text svg {
+          color: #FFFDF8 !important;
+        }
+        header[data-assessment-sage="true"] .assessment-nav-brand img {
+          filter: brightness(0) invert(1);
+        }
+        header[data-assessment-sage="true"] .assessment-nav-text::after,
+        header[data-assessment-sage="true"] .assessment-nav-text span::after {
+          background-color: #FFFDF8;
+        }
+        header[data-assessment-sage="true"] .assessment-nav-text.border-b {
+          border-color: rgba(255, 253, 248, 0.3);
+        }
+        header[data-assessment-sage="true"] .assessment-nav-brand span.bg-\\[\\#A8BCA5\\] {
+          background-color: rgba(255, 253, 248, 0.65);
+        }
+      `}</style>
       <div
         className="
           relative
@@ -558,6 +638,9 @@ export default function Navbar() {
         <Link
           href={homeHref}
           className="
+            assessment-nav-text
+            assessment-nav-brand
+
             flex
             min-w-0
             shrink
@@ -647,6 +730,8 @@ export default function Navbar() {
         <Link
           href={homeHref}
           className="
+            assessment-nav-text
+            assessment-nav-brand
             -ml-3
             hidden
             shrink-0
@@ -744,6 +829,7 @@ export default function Navbar() {
                   : undefined
               }
               className={`
+                assessment-nav-text
                 relative
                 whitespace-nowrap
                 text-[15px]
@@ -806,6 +892,7 @@ export default function Navbar() {
                 isLanguageOpen
               }
               className="
+                assessment-nav-text
                 flex
                 items-center
                 gap-1.5
@@ -897,6 +984,7 @@ export default function Navbar() {
           <Link
             href={`/${locale}#login`}
             className="
+              assessment-nav-text
               group
               flex
               items-center
@@ -975,6 +1063,7 @@ export default function Navbar() {
                 isMobileLanguageOpen
               }
               className="
+                assessment-nav-text
                 flex
                 h-9
                 items-center
@@ -997,8 +1086,7 @@ export default function Navbar() {
               <ChevronDown
                 size={13}
                 strokeWidth={1.8}
-                className={`
-                  transition-transform
+                className={`                  transition-transform
                   duration-200
 
                   ${
@@ -1084,6 +1172,7 @@ export default function Navbar() {
               isMobileMenuOpen
             }
             className="
+              assessment-nav-text
               flex
               h-9
               w-9
@@ -1166,6 +1255,7 @@ export default function Navbar() {
                   );
                 }}
                 className={`
+                  assessment-nav-text
                   border-b
                   border-[#E7DDD1]
                   py-3.5
@@ -1197,6 +1287,7 @@ export default function Navbar() {
                 );
               }}
               className="
+                assessment-nav-text
                 flex
                 items-center
                 gap-2.5

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import FadeUp from "./animations/FadeUp";
 
 import type { Locale } from "../lib/i18n";
@@ -319,8 +320,8 @@ export default function HeroContent({
 
         <FadeUp delay={0.4}>
           <div className="mt-7 lg:mt-8">
-            <button
-              type="button"
+            <Link
+              href={`/${locale}/assessment`}
               className="
                 group
                 relative
@@ -374,7 +375,7 @@ export default function HeroContent({
               >
                 →
               </span>
-            </button>
+            </Link>
           </div>
         </FadeUp>
 
