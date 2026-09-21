@@ -70,7 +70,7 @@ export default async function SharePage({ params }: SharePageProps) {
   return (
     <main lang={locale} className="min-h-screen bg-[#FFFDF8] text-[#304A39]">
       <header className="w-full px-4 sm:px-8 lg:px-10 xl:px-12">
-        <div className="flex items-start justify-between gap-3 border-b border-[#DCE4D7] py-4 sm:items-center sm:gap-8 sm:py-5">
+        <div className="flex items-center justify-between gap-3 border-b border-[#DCE4D7] py-4 sm:items-center sm:gap-8 sm:py-5">
           <Link href={`/${locale}`} aria-label={t.home} className="block min-w-0 text-left transition-opacity hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#718A73]">
             <span className="flex items-center gap-0 text-[#293A30]">
               <Image src="/logo/hamkke-icon.svg" alt="" width={72} height={72} priority className="h-[30px] w-[30px] shrink-0 object-contain md:h-[36px] md:w-[36px]" />
@@ -79,7 +79,22 @@ export default async function SharePage({ params }: SharePageProps) {
               <span className="whitespace-nowrap text-[13px] font-medium leading-none text-[#718A73] md:text-[16px]">함께</span>
             </span>
           </Link>
-          <nav aria-label={t.language} className="ml-auto grid shrink-0 grid-cols-2 items-center gap-1 text-center sm:flex">
+          <details className="group relative ml-auto shrink-0 md:hidden">
+            <summary aria-label={t.language} className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full bg-[#E5EBDD] px-3 text-[12px] font-medium text-[#304A39] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#718A73] [&::-webkit-details-marker]:hidden">
+              {languages.find((language) => language.locale === locale)?.label}
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="transition-transform group-open:rotate-180">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </summary>
+            <nav aria-label={t.language} className="absolute right-0 top-full z-50 mt-2 min-w-[140px] overflow-hidden rounded-xl border border-[#DCE4D7] bg-[#FFFDF8] py-1 shadow-[0_12px_30px_rgba(41,58,48,0.10)]">
+              {languages.map((language) => (
+                <Link key={language.locale} href={`/${language.locale}/share`} hrefLang={language.locale} lang={language.locale} aria-label={language.name} aria-current={locale === language.locale ? "page" : undefined} className={`flex min-h-11 items-center px-4 text-[13px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#718A73] ${locale === language.locale ? "bg-[#E5EBDD] font-medium text-[#304A39]" : "text-[#758477] hover:bg-[#F3F4EB] hover:text-[#304A39]"}`}>
+                  {language.label}
+                </Link>
+              ))}
+            </nav>
+          </details>
+          <nav aria-label={t.language} className="ml-auto hidden shrink-0 items-center gap-1 text-center md:flex">
             {languages.map((language) => (
               <Link key={language.locale} href={`/${language.locale}/share`} hrefLang={language.locale} lang={language.locale} aria-label={language.name} aria-current={locale === language.locale ? "page" : undefined} className={`whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium leading-5 transition-colors sm:px-3 sm:py-2 sm:text-[12px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#718A73] ${locale === language.locale ? "bg-[#E5EBDD] text-[#304A39]" : "text-[#758477] hover:bg-[#F3F4EB] hover:text-[#304A39]"}`}>
                 {language.label}
@@ -89,7 +104,7 @@ export default async function SharePage({ params }: SharePageProps) {
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[1440px] gap-9 px-5 pt-8 sm:px-8 sm:pt-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-16 lg:px-10 lg:pt-10 xl:gap-24 xl:px-12">
+      <div className="mx-auto grid w-full max-w-[1440px] gap-9 px-5 pt-8 sm:px-8 sm:pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,13fr)] lg:items-start lg:gap-16 lg:px-10 lg:pt-10 xl:gap-24 xl:px-12">
         <section aria-labelledby="share-heading" className="min-w-0">
           <p className="text-xs font-semibold uppercase leading-6 tracking-[0.2em] text-[#718A73]">{t.eyebrow}</p>
           <h1 id="share-heading" className="mt-4 text-[38px] font-medium leading-[1.08] tracking-[-0.035em] [font-family:var(--font-cormorant)] sm:text-[46px] lg:text-[48px] xl:text-[54px]">
@@ -100,7 +115,7 @@ export default async function SharePage({ params }: SharePageProps) {
           <p className="mt-5 max-w-[420px] text-[15px] leading-8 text-[#758477]">{t.description}</p>
         </section>
 
-        <div className="min-w-0 lg:border-l lg:border-[#DCE4D7] lg:pl-10 xl:pl-14">
+        <div className="min-w-0">
           <ReflectionForm locale={locale} />
         </div>
       </div>

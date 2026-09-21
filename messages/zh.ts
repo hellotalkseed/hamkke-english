@@ -264,7 +264,7 @@ const zh = {
       choose20: "20 节",
     },
 
-    chooseLesson: "选择这项课程",
+    chooseLesson: "预约免费英语评估",
 
     decreaseDuration: "缩短单节课时长",
     increaseDuration: "延长单节课时长",
@@ -716,8 +716,7 @@ const zh = {
         "学费每年进行审核，并可能根据通货膨胀及运营成本的变化进行调整。",
     },
 
-    chooseLesson:
-      "选择这个课程",
+    chooseLesson: "预约免费英语评估",
   },
 
   nextStep: {

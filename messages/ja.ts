@@ -266,7 +266,7 @@ const ja = {
       choose20: "20回",
     },
 
-    chooseLesson: "このレッスンを選ぶ",
+    chooseLesson: "無料レベルチェックを予約する",
 
     decreaseDuration: "レッスン時間を短くする",
     increaseDuration: "レッスン時間を長くする",
@@ -718,8 +718,7 @@ const ja = {
         "レッスン料金は毎年見直され、物価上昇や運営コストの変化を反映して調整される場合があります。",
     },
 
-    chooseLesson:
-      "このレッスンを選ぶ",
+    chooseLesson: "無料レベルチェックを予約する",
   },
 
   nextStep: {

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowRight,
   Clock3,
@@ -1246,8 +1247,8 @@ export default function FindYourLesson({
                     CTA
                     ===================================================== */}
 
-                <button
-                  type="button"
+                <Link
+                  href={`/${locale}/assessment`}
                   className="
                     group
 
@@ -1257,6 +1258,7 @@ export default function FindYourLesson({
                     w-full
                     items-center
                     justify-between
+                    gap-4
 
                     rounded-[18px]
                     bg-[#365844]
@@ -1273,6 +1275,10 @@ export default function FindYourLesson({
 
                     transition-all
                     duration-200
+                    focus-visible:outline
+                    focus-visible:outline-2
+                    focus-visible:outline-offset-4
+                    focus-visible:outline-[#365844]
 
                     hover:-translate-y-[2px]
 
@@ -1284,7 +1290,7 @@ export default function FindYourLesson({
                   "
                 >
                   <span>
-                    {content.chooseLesson}
+                    {messages.hero.assessment}
                   </span>
 
                   <ArrowRight
@@ -1299,7 +1305,7 @@ export default function FindYourLesson({
                       group-hover:translate-x-1
                     "
                   />
-                </button>
+                </Link>
               </div>
             </div>
           </div>

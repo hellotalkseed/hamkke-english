@@ -92,12 +92,16 @@ export default function HeroContent({
     "h-7 w-7 text-[#536F61]";
 
   return (
+    <div className="w-full min-w-0 max-w-full">
     <FadeUp>
       <div
         className="
           flex
           w-full
           min-w-0
+          max-w-full
+          [container-type:inline-size]
+          lg:[container-type:normal]
           flex-col
           justify-center
 
@@ -146,16 +150,17 @@ export default function HeroContent({
               w-full
               max-w-[900px]
 
-              text-[54px]
+              text-[clamp(1.75rem,10cqw,3.375rem)]
               font-medium
-              leading-[0.84]
+              leading-[1]
+              lg:leading-[0.84]
               tracking-[-0.04em]
               text-[#293A30]
 
               [font-family:var(--font-cormorant)]
 
-              sm:text-[68px]
-              md:text-[80px]
+              sm:text-[clamp(2.5rem,9cqw,4.25rem)]
+              md:text-[clamp(3rem,9cqw,5rem)]
               lg:text-[92px]
               xl:text-[104px]
             "
@@ -171,8 +176,13 @@ export default function HeroContent({
             <span
               className="
                 mt-2
-                block
-                whitespace-nowrap
+                flex
+                flex-wrap
+                items-baseline
+                gap-x-2
+                gap-y-2
+                lg:block
+                lg:whitespace-nowrap
 
                 sm:mt-1
                 lg:mt-0
@@ -181,7 +191,7 @@ export default function HeroContent({
               <span
                 className="
                   relative
-                  -left-1
+                  left-0
                   inline-block
 
                   lg:-left-3
@@ -195,8 +205,12 @@ export default function HeroContent({
               <span
                 className="
                   relative
-                  ml-3
+                  ml-0
                   inline-block
+                  max-w-full
+                  [overflow-wrap:anywhere]
+                  lg:max-w-none
+                  lg:[overflow-wrap:normal]
 
                   translate-y-[6px]
                   -rotate-[1.5deg]
@@ -210,10 +224,10 @@ export default function HeroContent({
 
                   [font-family:var(--font-coiny)]
 
-                  sm:ml-4
+                  sm:ml-0
                   sm:text-[1.14em]
 
-                  md:ml-5
+                  md:ml-0
                   md:text-[1.18em]
 
                   lg:ml-7
@@ -235,10 +249,12 @@ export default function HeroContent({
                   className="
                     absolute
                     -bottom-3
-                    -left-[5%]
+                    left-0
+                    lg:-left-[5%]
 
                     h-[10px]
-                    w-[110%]
+                    w-full
+                    lg:w-[110%]
 
                     overflow-visible
 
@@ -270,7 +286,12 @@ export default function HeroContent({
           <div
             className="
               mt-10
+              w-full
+              min-w-0
               max-w-[700px]
+              whitespace-normal
+              [overflow-wrap:anywhere]
+              lg:[overflow-wrap:normal]
 
               text-[#56645B]
 
@@ -281,9 +302,10 @@ export default function HeroContent({
           >
             <p
               className="
-                text-[20px]
+                text-[18px]
                 font-medium
-                leading-[1.4]
+                leading-[1.55]
+                sm:leading-[1.4]
 
                 sm:text-[23px]
                 lg:text-[25px]
@@ -297,10 +319,12 @@ export default function HeroContent({
 
             <p
               className="
-                mt-1
+                mt-2
+                sm:mt-1
 
-                text-[18px]
-                leading-[1.45]
+                text-[17px]
+                leading-[1.55]
+                sm:leading-[1.45]
 
                 sm:text-[20px]
                 lg:text-[22px]
@@ -326,14 +350,17 @@ export default function HeroContent({
                 group
                 relative
                 inline-flex
+                max-w-full
                 items-center
                 justify-between
-                gap-8
+                gap-4
+                sm:gap-8
 
                 rounded-[22px]
                 bg-[#365844]
 
-                px-7
+                px-5
+                sm:px-7
                 py-4
 
                 text-[16px]
@@ -358,12 +385,13 @@ export default function HeroContent({
                 active:before:top-[3px]
               "
             >
-              <span>
+              <span className="min-w-0 whitespace-normal [overflow-wrap:anywhere]">
                 {content.assessment}
               </span>
 
               <span
                 className="
+                  shrink-0
                   text-[30px]
                   font-light
                   leading-none
@@ -674,5 +702,6 @@ export default function HeroContent({
         </FadeUp>
       </div>
     </FadeUp>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { isValidLocale, type Locale } from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const resend = new Resend(
@@ -37,6 +38,7 @@ type PreferredPlatform =
   (typeof VALID_PLATFORMS)[number];
 
 type AssessmentRequestBody = {
+  locale?: unknown;
   teacherSlug?: unknown;
 
   learnerType?: unknown;
@@ -83,6 +85,151 @@ type AvailabilityResponse = {
   slots?: AvailabilitySlot[];
   error?: string;
 };
+
+
+type ConfirmationCopy = {
+  subject: string;
+  title: string;
+  greeting: string;
+  intro: string;
+  childIntro: string;
+  assessment: string;
+  learner: string;
+  teacher: string;
+  duration: string;
+  minutes: string;
+  format: string;
+  platform: string;
+  audio: string;
+  video: string;
+  next: string;
+  closing: string;
+  sentTo: string;
+};
+
+const CONFIRMATION_COPY: Record<Locale, ConfirmationCopy> = {
+  "en": {
+    "subject": "Your Hamkke Free Assessment is confirmed",
+    "title": "Your Free Assessment is confirmed.",
+    "greeting": "Hi {name},",
+    "intro": "Thank you for booking a Free Assessment with Hamkke. We look forward to getting to know you and learning more about what you'd like to do with your English.",
+    "childIntro": "Thank you for booking a Free Assessment for your child with Hamkke. We look forward to getting to know your child and learning how we can support their English journey.",
+    "assessment": "Your Assessment",
+    "learner": "Learner",
+    "teacher": "Teacher",
+    "duration": "Duration",
+    "minutes": "{minutes} minutes",
+    "format": "Format",
+    "platform": "Platform",
+    "audio": "Audio · Camera off",
+    "video": "Video · Camera optional",
+    "next": "We'll send the meeting details and anything else you need before your assessment.",
+    "closing": "See you soon,",
+    "sentTo": "This confirmation was sent to {email}."
+  },
+  "ko": {
+    "subject": "Hamkke 무료 레벨 상담 예약이 확정되었어요",
+    "title": "무료 레벨 상담 예약이 확정되었어요.",
+    "greeting": "{name}님, 안녕하세요.",
+    "intro": "Hamkke 무료 레벨 상담을 예약해 주셔서 감사해요. 만나서 이야기를 나누며, 영어로 어떤 것들을 해보고 싶으신지 알아갈 시간이 기대돼요.",
+    "childIntro": "자녀의 Hamkke 무료 레벨 상담을 예약해 주셔서 감사해요. 자녀와 편안하게 이야기를 나누며, 영어를 배우는 과정에서 어떤 도움이 필요할지 함께 알아볼게요.",
+    "assessment": "레벨 상담 안내",
+    "learner": "학습자",
+    "teacher": "선생님",
+    "duration": "소요 시간",
+    "minutes": "{minutes}분",
+    "format": "진행 방식",
+    "platform": "사용 앱",
+    "audio": "음성 통화 · 카메라 끄기",
+    "video": "영상 통화 · 카메라 사용 자유",
+    "next": "상담 전에 접속 방법과 필요한 안내를 보내드릴게요.",
+    "closing": "곧 만나요.",
+    "sentTo": "이 예약 확인 메일은 {email} 주소로 발송되었어요."
+  },
+  "zh": {
+    "subject": "Hamkke 免费英语评估预约已确认",
+    "title": "你的免费英语评估预约已确认。",
+    "greeting": "{name}，你好！",
+    "intro": "感谢你预约 Hamkke 的免费英语评估。期待认识你，听听你希望用英语做些什么。",
+    "childIntro": "感谢你为孩子预约 Hamkke 的免费英语评估。期待认识孩子，一起了解我们能如何支持孩子的英语学习。",
+    "assessment": "评估详情",
+    "learner": "学员",
+    "teacher": "老师",
+    "duration": "时长",
+    "minutes": "{minutes}分钟",
+    "format": "交流方式",
+    "platform": "使用平台",
+    "audio": "语音 · 不开摄像头",
+    "video": "视频 · 摄像头可选",
+    "next": "我们会在评估前发送会议信息和相关准备事项。",
+    "closing": "期待与你见面！",
+    "sentTo": "此确认邮件已发送至 {email}。"
+  },
+  "ja": {
+    "subject": "Hamkke 無料レベルチェックのご予約が確定しました",
+    "title": "無料レベルチェックのご予約が確定しました。",
+    "greeting": "{name}様",
+    "intro": "Hamkkeの無料レベルチェックをご予約いただき、ありがとうございます。お話ししながら、英語でどんなことをしてみたいか伺えるのを楽しみにしています。",
+    "childIntro": "お子さまのHamkke無料レベルチェックをご予約いただき、ありがとうございます。お子さまとお話ししながら、英語の学びをどのようにサポートできるか、一緒に考えていきます。",
+    "assessment": "レベルチェックのご案内",
+    "learner": "受講者",
+    "teacher": "講師",
+    "duration": "所要時間",
+    "minutes": "{minutes}分",
+    "format": "参加形式",
+    "platform": "利用アプリ",
+    "audio": "音声 · カメラはオフ",
+    "video": "ビデオ · カメラの使用は任意",
+    "next": "レベルチェックの前に、接続方法や必要なご案内をお送りします。",
+    "closing": "お話しできるのを楽しみにしています。",
+    "sentTo": "この予約確認メールは {email} にお送りしました。"
+  }
+};
+
+const EMAIL_TIMEZONES: Record<Exclude<Locale, "en">, Record<string, string>> = {
+  "ko": {
+    "Asia/Manila": "필리핀 · 마닐라 (GMT+8)",
+    "Asia/Seoul": "대한민국 · 서울 (GMT+9)",
+    "Asia/Tokyo": "일본 · 도쿄 (GMT+9)",
+    "Asia/Shanghai": "중국 · 베이징 (GMT+8)",
+    "Asia/Ho_Chi_Minh": "베트남 · 호찌민 (GMT+7)",
+    "Asia/Kuala_Lumpur": "말레이시아 · 쿠알라룸푸르 (GMT+8)",
+    "Asia/Jakarta": "인도네시아 · 자카르타 (GMT+7)",
+    "Asia/Makassar": "인도네시아 · 마카사르 / 발리 (GMT+8)",
+    "Asia/Jayapura": "인도네시아 · 자야푸라 (GMT+9)"
+  },
+  "zh": {
+    "Asia/Manila": "菲律宾 · 马尼拉 (GMT+8)",
+    "Asia/Seoul": "韩国 · 首尔 (GMT+9)",
+    "Asia/Tokyo": "日本 · 东京 (GMT+9)",
+    "Asia/Shanghai": "中国 · 北京 (GMT+8)",
+    "Asia/Ho_Chi_Minh": "越南 · 胡志明市 (GMT+7)",
+    "Asia/Kuala_Lumpur": "马来西亚 · 吉隆坡 (GMT+8)",
+    "Asia/Jakarta": "印度尼西亚 · 雅加达 (GMT+7)",
+    "Asia/Makassar": "印度尼西亚 · 望加锡／巴厘岛 (GMT+8)",
+    "Asia/Jayapura": "印度尼西亚 · 查亚普拉 (GMT+9)"
+  },
+  "ja": {
+    "Asia/Manila": "フィリピン · マニラ (GMT+8)",
+    "Asia/Seoul": "韓国 · ソウル (GMT+9)",
+    "Asia/Tokyo": "日本 · 東京 (GMT+9)",
+    "Asia/Shanghai": "中国 · 北京 (GMT+8)",
+    "Asia/Ho_Chi_Minh": "ベトナム · ホーチミン (GMT+7)",
+    "Asia/Kuala_Lumpur": "マレーシア · クアラルンプール (GMT+8)",
+    "Asia/Jakarta": "インドネシア · ジャカルタ (GMT+7)",
+    "Asia/Makassar": "インドネシア · マカッサル／バリ (GMT+8)",
+    "Asia/Jayapura": "インドネシア · ジャヤプラ (GMT+9)"
+  }
+};
+
+function emailLocale(value: unknown): Locale {
+  const candidate = cleanString(value);
+  return isValidLocale(candidate) ? candidate : "en";
+}
+
+function fillEmailText(template: string, values: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (placeholder, key: string) => values[key] ?? placeholder);
+}
 
 function cleanString(
   value: unknown
@@ -255,7 +402,8 @@ function formatAssessmentFormat(
 }
 
 function getTimezoneDisplayName(
-  timezone: string
+  timezone: string,
+  locale: Locale = "en"
 ) {
   const labels: Record<string, string> = {
     "Asia/Manila": "Philippines — Manila (GMT+8)",
@@ -269,7 +417,7 @@ function getTimezoneDisplayName(
     "Asia/Jayapura": "Indonesia — Jayapura (GMT+9)",
   };
 
-  return labels[timezone] || timezone;
+  return (locale === "en" ? labels[timezone] : EMAIL_TIMEZONES[locale][timezone]) || timezone;
 }
 
 function getTimeZoneParts(
@@ -376,7 +524,8 @@ function zonedDateTimeToUtc(
 function getVisitorBookingDisplay(
   sourceDate: string,
   sourceTime: string,
-  visitorTimezone: string
+  visitorTimezone: string,
+  locale: Locale = "en"
 ) {
   const instant =
     zonedDateTimeToUtc(
@@ -388,7 +537,7 @@ function getVisitorBookingDisplay(
   return {
     dateLabel:
       new Intl.DateTimeFormat(
-        "en-US",
+        locale,
         {
           timeZone: visitorTimezone,
           month: "long",
@@ -399,7 +548,7 @@ function getVisitorBookingDisplay(
 
     timeLabel:
       new Intl.DateTimeFormat(
-        "en-US",
+        locale,
         {
           timeZone: visitorTimezone,
           hour: "numeric",
@@ -409,7 +558,8 @@ function getVisitorBookingDisplay(
 
     timezoneLabel:
       getTimezoneDisplayName(
-        visitorTimezone
+        visitorTimezone,
+        locale
       ),
   };
 }
@@ -504,6 +654,9 @@ export async function POST(
         }
       );
     }
+
+    const locale = emailLocale(body.locale);
+    const emailCopy = CONFIRMATION_COPY[locale];
 
     const teacherSlug =
       cleanString(
@@ -1303,7 +1456,8 @@ export async function POST(
       getVisitorBookingDisplay(
         assessmentDate,
         assessmentTime,
-        timezone
+        timezone,
+        locale
       );
 
     const safeVisitorDate =
@@ -1580,10 +1734,10 @@ export async function POST(
           "hamkke.english@gmail.com",
 
         subject:
-          "Your Hamkke Free Assessment is confirmed",
+          emailCopy.subject,
 
         html: `
-          <div style="margin:0;padding:0;background:#f4f1eb;font-family:Arial,Helvetica,sans-serif;color:#3d4740;">
+          <div lang="${locale}" style="margin:0;padding:0;background:#f4f1eb;font-family:Arial,Helvetica,sans-serif;color:#3d4740;">
             <div style="max-width:620px;margin:0 auto;padding:40px 20px;">
               <div style="overflow:hidden;border:1px solid #ded9d0;border-radius:24px;background:#ffffff;">
                 <div style="background:#6f8f72;padding:34px 34px 30px;text-align:center;">
@@ -1591,7 +1745,7 @@ export async function POST(
                     Hamkke │ 함께
                   </div>
                   <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;font-weight:400;color:#faf8f5;">
-                    Your Free Assessment is confirmed.
+                    ${escapeHtml(emailCopy.title)}
                   </h1>
                   <p style="margin:14px 0 0;font-size:14px;line-height:1.7;color:#eef1ec;">
                     From Small Talk to Big Ideas.
@@ -1600,16 +1754,16 @@ export async function POST(
 
                 <div style="padding:34px;">
                   <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4c554f;">
-                    Hi ${greetingName},
+                    ${fillEmailText(emailCopy.greeting, { name: greetingName })}
                   </p>
 
                   <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#626b65;">
-                    Thank you for booking a Free Assessment with Hamkke. We look forward to getting to know you and learning more about what you'd like to do with your English.
+                    ${escapeHtml(learnerType === "child" ? emailCopy.childIntro : emailCopy.intro)}
                   </p>
 
                   <div style="margin:0 0 28px;padding:24px;border:1px solid #e3dfd7;border-radius:18px;background:#faf8f5;">
                     <div style="margin-bottom:18px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#6f8f72;">
-                      Your Assessment
+                      ${escapeHtml(emailCopy.assessment)}
                     </div>
 
                     <div style="margin-bottom:6px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.3;color:#2d342f;">
@@ -1622,31 +1776,31 @@ export async function POST(
 
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
                       <tr>
-                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">Learner</td>
+                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">${escapeHtml(emailCopy.learner)}</td>
                         <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;font-weight:600;color:#3d4740;">
                           ${safePreferredName || safeLearnerName}
                         </td>
                       </tr>
                       <tr>
-                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">Teacher</td>
+                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">${escapeHtml(emailCopy.teacher)}</td>
                         <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;font-weight:600;color:#3d4740;">
                           ${safeTeacherName}
                         </td>
                       </tr>
                       <tr>
-                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">Duration</td>
+                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">${escapeHtml(emailCopy.duration)}</td>
                         <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;font-weight:600;color:#3d4740;">
-                          ${ASSESSMENT_DURATION_MINUTES} minutes
+                          ${fillEmailText(emailCopy.minutes, { minutes: String(ASSESSMENT_DURATION_MINUTES) })}
                         </td>
                       </tr>
                       <tr>
-                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">Format</td>
+                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">${escapeHtml(emailCopy.format)}</td>
                         <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;font-weight:600;color:#3d4740;">
-                          ${escapeHtml(formatLabel)}
+                          ${escapeHtml(emailCopy[assessmentFormat])}
                         </td>
                       </tr>
                       <tr>
-                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">Platform</td>
+                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">${escapeHtml(emailCopy.platform)}</td>
                         <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;font-weight:600;color:#3d4740;">
                           ${escapeHtml(platformLabel)}
                         </td>
@@ -1655,11 +1809,11 @@ export async function POST(
                   </div>
 
                   <p style="margin:0 0 22px;font-size:14px;line-height:1.7;color:#626b65;">
-                    We'll send the meeting details and anything else you need before your assessment.
+                    ${escapeHtml(emailCopy.next)}
                   </p>
 
                   <p style="margin:0;font-size:14px;line-height:1.7;color:#4c554f;">
-  See you soon,<br />
+  ${escapeHtml(emailCopy.closing)}<br />
   <strong>Hamkke │ 함께</strong><br />
   <span style="font-size:12px;font-style:italic;color:#8a8a83;">
     From Small Talk to Big Ideas.
@@ -1669,7 +1823,7 @@ export async function POST(
               </div>
 
               <p style="margin:18px 0 0;text-align:center;font-size:11px;line-height:1.6;color:#96958f;">
-                This confirmation was sent to ${safeEmail}.
+                ${fillEmailText(emailCopy.sentTo, { email: safeEmail })}
               </p>
             </div>
           </div>

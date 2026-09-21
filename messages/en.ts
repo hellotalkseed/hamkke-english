@@ -247,7 +247,7 @@ const en = {
       choose20: "Choose 20 lessons",
     },
 
-    chooseLesson: "Choose This Lesson",
+    chooseLesson: "Book a Free Assessment",
 
     decreaseDuration: "Shorten lesson duration",
     increaseDuration: "Extend lesson duration",
@@ -658,7 +658,7 @@ const en = {
           "Tuition is reviewed annually and may be adjusted to reflect inflation and changes in operating costs.",
       },
 
-      chooseLesson: "Choose This Lesson",
+      chooseLesson: "Book a Free Assessment",
     },
 
     nextStep: {

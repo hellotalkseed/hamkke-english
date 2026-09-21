@@ -231,8 +231,7 @@ const translations = {
     },
 
     name: "Name",
-    nameHelp:
-      "Use your real name, English name, nickname, or initials. This is how your name will appear on the website.",
+    nameHelp: "Shown publicly. A nickname or initials are fine.",
     namePlaceholder: "Enter your name",
 
     role: "I am a...",
@@ -288,8 +287,7 @@ const translations = {
     },
 
     name: "이름",
-    nameHelp:
-      "실명, 영어 이름, 별명 또는 이니셜을 사용해 주세요. 웹사이트에 표시될 이름입니다.",
+    nameHelp: "웹사이트에 표시될 이름입니다. 별명이나 이니셜도 괜찮아요.",
     namePlaceholder: "이름을 입력해 주세요",
 
     role: "저는...",
@@ -346,8 +344,7 @@ const translations = {
     },
 
     name: "姓名",
-    nameHelp:
-      "你可以填写真实姓名、英文名、昵称或姓名首字母。这是之后显示在网站上的名字。",
+    nameHelp: "此名字会公开显示，也可以用昵称或姓名首字母。",
     namePlaceholder: "请输入你的名字",
 
     role: "我是...",
@@ -402,8 +399,7 @@ const translations = {
     },
 
     name: "お名前",
-    nameHelp:
-      "本名、英語名、ニックネーム、またはイニシャルをご入力ください。こちらのお名前がウェブサイトに表示されます。",
+    nameHelp: "サイトに表示されるお名前です。ニックネームやイニシャルでも構いません。",
     namePlaceholder: "お名前を入力してください",
 
     role: "私は...",
@@ -632,7 +628,7 @@ export default function ReflectionForm({ locale }: ReflectionFormProps) {
           </div>
         </section>
 
-        <section className="grid gap-5 border-t border-[#DCE4D7] py-7">
+        <section className="grid gap-5 border-t border-[#DCE4D7] py-6">
           <h2 className="font-serif text-[24px] leading-tight tracking-[-0.02em] text-[#304A39]">{copy.aboutYou}</h2>
           <div className="min-w-0 space-y-5">
             <div className="grid min-w-0 gap-5 sm:grid-cols-2">
@@ -651,9 +647,9 @@ export default function ReflectionForm({ locale }: ReflectionFormProps) {
             </div>
             <fieldset>
               <legend className={labelClass}>{t.role} <span aria-hidden="true">*</span></legend>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="mt-1 flex flex-wrap items-center gap-x-7 gap-y-1">
                 {[{ value: "Student", label: t.student }, { value: "Parent / Guardian", label: t.parent }].map((option) => (
-                  <label key={option.value} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-4 text-[14px] leading-6 transition ${role === option.value ? "border-[#718A73] bg-[#E5EBDD] text-[#304A39]" : "border-[#D8D4CC] bg-[#FFFDF8] text-[#56645B] hover:border-[#718A73]"}`}>
+                  <label key={option.value} className={`inline-flex min-h-11 cursor-pointer items-center gap-2.5 text-[14px] leading-6 transition-colors ${role === option.value ? "font-medium text-[#304A39]" : "text-[#56645B] hover:text-[#304A39]"}`}>
                     <input type="radio" name="role" required value={option.value} checked={role === option.value} onChange={(event) => setRole(event.target.value)} className="h-4 w-4 shrink-0 accent-[#607D68]" />
                     {option.label}
                   </label>

@@ -266,7 +266,7 @@ const ko = {
       choose20: "20회 선택",
     },
 
-    chooseLesson: "이 수업 선택하기",
+    chooseLesson: "무료 레벨 상담 예약하기",
 
     decreaseDuration: "수업 시간 줄이기",
     increaseDuration: "수업 시간 늘리기",
@@ -716,8 +716,7 @@ const ko = {
         "수업료는 매년 검토되며, 물가 상승 및 운영 비용의 변화를 반영하여 조정될 수 있습니다.",
     },
 
-    chooseLesson:
-      "이 수업 선택하기",
+    chooseLesson: "무료 레벨 상담 예약하기",
   },
 
   nextStep: {
