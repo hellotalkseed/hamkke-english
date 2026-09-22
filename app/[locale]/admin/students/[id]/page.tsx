@@ -2040,28 +2040,43 @@ export default async function StudentPage({
 
         {/* CURRENT PAYMENT */}
         <section className="border-t border-[#DCD8D2] py-10">
-          <div className="flex items-center justify-between gap-6">
-            <SectionHeading
-              icon={
-                <CreditCard
-                  size={17}
-                  strokeWidth={1.5}
-                />
-              }
-              title="Payment"
-            />
+          <SectionHeading
+            icon={
+              <CreditCard
+                size={17}
+                strokeWidth={1.5}
+              />
+            }
+            title="Payment"
+          />
 
-            {currentPayment &&
-              paymentIsPending &&
-              currentEnrollment && (
-                <form
+          {!currentEnrollment ? (
+            <EmptyPaymentState
+              title="No payment yet"
+              description="Payment details will appear once an enrollment has been created."
+            />
+          ) : !currentPayment ? (
+            <EmptyPaymentState
+              title="No payment record"
+              description="This enrollment does not have a payment record yet."
+            />
+          ) : paymentIsPending ? (
+            <div className="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
+              <div className="rounded-2xl border border-[#DCD8D2] bg-white/40 p-6 sm:p-8">
+                <div className="mb-7">
+                  <p className="font-serif text-[24px]">
+                    Confirm Payment
+                  </p>
+                  <p className="mt-2 font-sans text-[12px] leading-5 text-[#8A8A84]">
+                    Enter the payment details after tuition has been received.
+                  </p>
+                </div>
+
+<form
                   id="confirm-payment-form"
                   method="POST"
                   action={`/api/admin/students/${student.id}/enrollments/${currentEnrollment.id}/payment`}
-                  className="
-                    w-full
-                    max-w-[430px]
-                  "
+                  className="w-full"
                 >
                   <input
                     type="hidden"
@@ -2069,7 +2084,86 @@ export default async function StudentPage({
                     value={locale}
                   />
 
-                  <div className="relative w-full">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="payment_amount_php"
+                        className="mb-2 block font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#777771]"
+                      >
+                        Actual Amount (PHP)
+                      </label>
+
+                      <input
+                        id="payment_amount_php"
+                        name="amount_php"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                        placeholder="0.00"
+                        className="w-full rounded-xl border border-[#DCD8D2] bg-white px-4 py-3 font-sans text-[13px] text-[#292929] outline-none transition-colors placeholder:text-[#AAA6A0] focus:border-[#6F8F72]"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="payment_date"
+                        className="mb-2 block font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#777771]"
+                      >
+                        Payment Date
+                      </label>
+
+                      <input
+                        id="payment_date"
+                        name="payment_date"
+                        type="date"
+                        required
+                        className="w-full rounded-xl border border-[#DCD8D2] bg-white px-4 py-3 font-sans text-[13px] text-[#292929] outline-none transition-colors focus:border-[#6F8F72]"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="payment_method"
+                        className="mb-2 block font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#777771]"
+                      >
+                        Payment Method
+                      </label>
+
+                      <select
+                        id="payment_method"
+                        name="payment_method"
+                        defaultValue="bank_transfer"
+                        required
+                        className="w-full rounded-xl border border-[#DCD8D2] bg-white px-4 py-3 font-sans text-[13px] text-[#292929] outline-none transition-colors focus:border-[#6F8F72]"
+                      >
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="paypal">PayPal</option>
+                        <option value="gcash">GCash</option>
+                        <option value="cash">Cash</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="payment_reference"
+                        className="mb-2 block font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#777771]"
+                      >
+                        Reference Number
+                      </label>
+
+                      <input
+                        id="payment_reference"
+                        name="payment_reference"
+                        type="text"
+                        placeholder="Optional"
+                        className="w-full rounded-xl border border-[#DCD8D2] bg-white px-4 py-3 font-sans text-[13px] text-[#292929] outline-none transition-colors placeholder:text-[#AAA6A0] focus:border-[#6F8F72]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="relative mt-4 w-full">
                     <input
                       id="accepted_by_minor"
                       name="accepted_by_minor"
@@ -2230,23 +2324,16 @@ export default async function StudentPage({
                     </button>
                   </div>
                 </form>
-              )}
-          </div>
 
-          {!currentEnrollment ? (
-            <EmptyPaymentState
-              title="No payment yet"
-              description="Payment details will appear once an enrollment has been created."
-            />
-          ) : !currentPayment ? (
-            <EmptyPaymentState
-              title="No payment record"
-              description="This enrollment does not have a payment record yet."
-            />
-          ) : (
-            <div
+                <div className="mt-7 border-t border-[#E2DED7] pt-6">
+                  <p className="font-sans text-[12px] leading-6 text-[#8A8A84]">
+                    Confirming payment will activate this enrollment and its contract and generate the lessons belonging to this enrollment.
+                  </p>
+                </div>
+              </div>
+
+<div
               className="
-                mt-8
                 rounded-2xl
                 border
                 border-[#DCD8D2]
@@ -2307,9 +2394,13 @@ export default async function StudentPage({
               >
                 <PaymentDetail
                   label="Payment Date"
-                  value={formatDate(
-                    currentPayment.payment_date
-                  )}
+                  value={
+                    paymentIsPending
+                      ? "Not confirmed"
+                      : formatDate(
+                          currentPayment.payment_date
+                        )
+                  }
                 />
 
                 <PaymentDetail
@@ -2377,7 +2468,111 @@ export default async function StudentPage({
                 </div>
               )}
 
-              {paymentIsPending && (
+              
+            </div>
+            </div>
+          ) : (
+<div
+              className="
+                rounded-2xl
+                border
+                border-[#DCD8D2]
+                bg-white/40
+                p-6
+                sm:p-8
+              "
+            >
+              <div
+                className="
+                  flex
+                  flex-col
+                  gap-6
+                  sm:flex-row
+                  sm:items-start
+                  sm:justify-between
+                "
+              >
+                <div>
+                  <p
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.14em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Payment
+                  </p>
+
+                  <p className="mt-2 font-serif text-[28px]">
+                    {formatCurrency(
+                      currentPayment.amount,
+                      currentPayment.currency
+                    )}
+                  </p>
+                </div>
+
+                <PaymentStatusBadge
+                  status={currentPayment.status}
+                />
+              </div>
+
+              <div
+                className="
+                  mt-8
+                  grid
+                  gap-x-8
+                  gap-y-7
+                  border-t
+                  border-[#E2DED7]
+                  pt-7
+                  sm:grid-cols-2
+                  lg:grid-cols-3
+                "
+              >
+                <PaymentDetail
+                  label="Payment Date"
+                  value={
+                    paymentIsPending
+                      ? "Not confirmed"
+                      : formatDate(
+                          currentPayment.payment_date
+                        )
+                  }
+                />
+
+                <PaymentDetail
+                  label="Payment Method"
+                  value={formatPaymentMethod(
+                    currentPayment.payment_method
+                  )}
+                />
+
+                <PaymentDetail
+                  label="Reference"
+                  value={
+                    currentPayment.reference ||
+                    "Not provided"
+                  }
+                />
+
+                {currentPayment.amount_php !==
+                  null &&
+                  currentPayment.amount_php !==
+                    undefined && (
+                    <PaymentDetail
+                      label="PHP Received"
+                      value={formatCurrency(
+                        currentPayment.amount_php,
+                        "PHP"
+                      )}
+                    />
+                  )}
+              </div>
+
+              {currentPayment.notes && (
                 <div
                   className="
                     mt-7
@@ -2386,58 +2581,34 @@ export default async function StudentPage({
                     pt-6
                   "
                 >
-                  <div className="max-w-[720px]">
-                    <p
-                      className="
-                        font-sans
-                        text-[11px]
-                        font-medium
-                        uppercase
-                        tracking-[0.12em]
-                        text-[#6F8F72]
-                      "
-                    >
-                      Digital Agreement
-                    </p>
+                  <p
+                    className="
+                      font-sans
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.12em]
+                      text-[#6F8F72]
+                    "
+                  >
+                    Notes
+                  </p>
 
-                    <p
-                      className="
-                        mt-2
-                        max-w-[620px]
-                        font-sans
-                        text-[12px]
-                        leading-[1.7]
-                        text-[#8A8A84]
-                      "
-                    >
-                      For an adult student, no additional
-                      agreement information is needed. If
-                      the student is a minor, indicate that
-                      a parent or guardian accepted the
-                      agreement on the student&apos;s behalf.
-                    </p>
-
-                    <p
-                      className="
-                        mt-5
-                        max-w-[620px]
-                        font-sans
-                        text-[12px]
-                        leading-[1.7]
-                        text-[#8A8A84]
-                      "
-                    >
-                      The payment details were submitted
-                      with this enrollment. Confirm the
-                      payment once payment has been
-                      received. Confirmation will activate
-                      this enrollment, activate the
-                      contract, and generate the lessons
-                      belonging to this enrollment.
-                    </p>
-                  </div>
+                  <p
+                    className="
+                      mt-2
+                      font-sans
+                      text-[13px]
+                      leading-6
+                      text-[#777771]
+                    "
+                  >
+                    {currentPayment.notes}
+                  </p>
                 </div>
               )}
+
+              
             </div>
           )}
         </section>

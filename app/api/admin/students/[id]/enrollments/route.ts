@@ -886,16 +886,6 @@ export async function POST(
       "amount_krw"
     );
 
-  /*
-   * Internal PHP amount received / expected.
-   */
-  const tuitionAmountPhp =
-    getNumber(
-      formData,
-      "tuition_amount_php",
-      "php_amount",
-      "amount_php"
-    );
 
   /* ======================================================================== */
   /* PAYMENT                                                                  */
@@ -1192,19 +1182,6 @@ export async function POST(
     );
   }
 
-  if (
-    !Number.isFinite(
-      tuitionAmountPhp
-    ) ||
-    tuitionAmountPhp <= 0
-  ) {
-    return new NextResponse(
-      "PHP amount is required.",
-      {
-        status: 400,
-      }
-    );
-  }
 
   /* ======================================================================== */
   /* SUPABASE                                                                 */
@@ -1776,8 +1753,9 @@ export async function POST(
           ? tuitionAmount
           : null,
 
+      // Actual PHP received is unknown until payment confirmation.
       amount_php:
-        tuitionAmountPhp,
+        null,
 
       /*
        * ALWAYS populated because payments.payment_date
@@ -2351,17 +2329,10 @@ export async function POST(
     );
   }
 
-  if (
-    Number(
-      paymentVerification.amount_php
-    ) !==
-    tuitionAmountPhp
-  ) {
+  if (paymentVerification.amount_php !== null) {
     return new NextResponse(
-      "Enrollment was created, but the PHP payment amount could not be verified.",
-      {
-        status: 500,
-      }
+      "Enrollment was created, but the pending payment already contains a PHP received amount.",
+      { status: 500 }
     );
   }
 

@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import {
   BookOpen,
   CalendarDays,
-  CreditCard,
   Users,
   X,
 } from "lucide-react";
@@ -66,7 +65,6 @@ interface RenewEnrollmentButtonProps {
   participantSchedules?: PrintableParticipantSchedule[];
 
   enrollmentType?: "individual" | "shared";
-  tuitionAmountPhp?: number | null;
   tuitionAmountKrw?: number | null;
 }
 
@@ -311,7 +309,6 @@ export default function RenewEnrollmentButton({
   participantIds,
   participantSchedules,
   enrollmentType: initialEnrollmentType,
-  tuitionAmountPhp,
   tuitionAmountKrw,
 }: RenewEnrollmentButtonProps) {
   const [open, setOpen] = useState(false);
@@ -456,22 +453,6 @@ export default function RenewEnrollmentButton({
       )
     );
 
-  const [tuitionPhpState, setTuitionPhpState] =
-    useState(
-      tuitionAmountPhp !== null &&
-        tuitionAmountPhp !== undefined
-        ? String(tuitionAmountPhp)
-        : ""
-    );
-
-  const [paymentDate, setPaymentDate] =
-    useState("");
-
-  const [paymentMethod, setPaymentMethod] =
-    useState("pending");
-
-  const [reference, setReference] =
-    useState("");
 
   const studentName =
     students.find(
@@ -593,15 +574,6 @@ export default function RenewEnrollmentButton({
             : "")
       )
     );
-    setTuitionPhpState(
-      tuitionAmountPhp !== null &&
-        tuitionAmountPhp !== undefined
-        ? String(tuitionAmountPhp)
-        : ""
-    );
-    setPaymentDate("");
-    setPaymentMethod("pending");
-    setReference("");
     setIsSubmitting(false);
   }
 
@@ -845,20 +817,6 @@ export default function RenewEnrollmentButton({
       return false;
     }
 
-    const phpAmount = Number(
-      tuitionPhpState
-    );
-
-    if (
-      !Number.isFinite(phpAmount) ||
-      phpAmount <= 0
-    ) {
-      alert(
-        "Please enter a valid PHP amount."
-      );
-
-      return false;
-    }
 
     if (enrollmentType === "individual") {
       const schedule =
@@ -1589,7 +1547,7 @@ export default function RenewEnrollmentButton({
                           </select>
                         </div>
 
-                        <div className="grid gap-6 sm:grid-cols-2">
+                        <div>
                           <TextField
                             label={`Agreed Tuition (${tuitionCurrencyState})`}
                             name="tuition_amount"
@@ -1605,20 +1563,6 @@ export default function RenewEnrollmentButton({
                             step={getCurrencyStep(
                               tuitionCurrencyState
                             )}
-                            required
-                          />
-
-                          <TextField
-                            label="Actual / Expected Amount (PHP)"
-                            name="tuition_amount_php"
-                            type="number"
-                            value={tuitionPhpState}
-                            onChange={
-                              setTuitionPhpState
-                            }
-                            placeholder="7000"
-                            min="0.01"
-                            step="0.01"
                             required
                           />
                         </div>
@@ -1709,147 +1653,6 @@ export default function RenewEnrollmentButton({
                   )}
                 </section>
 
-                {/* ====================================================== */}
-                {/* PAYMENT                                               */}
-                {/* ====================================================== */}
-
-                <section>
-                  <SectionHeading
-                    icon={
-                      <CreditCard
-                        size={16}
-                        strokeWidth={1.5}
-                      />
-                    }
-                    title="Payment Details"
-                  />
-
-                  <div
-                    className="
-                      rounded-2xl bg-[#F0F4ED]
-                      p-5 sm:p-6
-                    "
-                  >
-                    <p
-                      className="
-                        font-sans text-[12px]
-                        leading-5 text-[#6B6B66]
-                      "
-                    >
-                      A new payment record will be
-                      created for this renewal. It starts
-                      as Pending.
-                    </p>
-
-                    <div className="mt-6 space-y-6">
-                      <div>
-                        <label
-                          htmlFor="renewal_payment_date"
-                          className="
-                            block font-sans text-[10px]
-                            font-medium uppercase
-                            tracking-[0.14em]
-                            text-[#6F8F72]
-                          "
-                        >
-                          Payment Date
-                        </label>
-
-                        <input
-                          id="renewal_payment_date"
-                          name="payment_date"
-                          type="date"
-                          value={paymentDate}
-                          onChange={(event) =>
-                            setPaymentDate(
-                              event.target.value
-                            )
-                          }
-                          className="
-                            mt-2 w-full
-                            border-b border-[#CFCBC4]
-                            bg-transparent px-0 py-2.5
-                            font-serif text-[18px]
-                            text-[#292929]
-                            outline-none
-                            focus:border-[#6F8F72]
-                          "
-                        />
-
-                        <p
-                          className="
-                            mt-2 font-sans text-[11px]
-                            leading-5 text-[#777771]
-                          "
-                        >
-                          Leave blank if payment has
-                          not been received.
-                        </p>
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="renewal_payment_method"
-                          className="
-                            block font-sans text-[10px]
-                            font-medium uppercase
-                            tracking-[0.14em]
-                            text-[#6F8F72]
-                          "
-                        >
-                          Payment Method
-                        </label>
-
-                        <select
-                          id="renewal_payment_method"
-                          name="payment_method"
-                          value={paymentMethod}
-                          onChange={(event) =>
-                            setPaymentMethod(
-                              event.target.value
-                            )
-                          }
-                          className="
-                            mt-2 w-full
-                            border-b border-[#CFCBC4]
-                            bg-transparent px-0 py-2.5
-                            font-serif text-[18px]
-                            text-[#292929]
-                            outline-none
-                            focus:border-[#6F8F72]
-                          "
-                        >
-                          <option value="pending">
-                            Pending
-                          </option>
-                          <option value="Bank Transfer">
-                            Bank Transfer
-                          </option>
-                          <option value="PayPal">
-                            PayPal
-                          </option>
-                          <option value="GCash">
-                            GCash
-                          </option>
-                          <option value="Cash">
-                            Cash
-                          </option>
-                          <option value="Other">
-                            Other
-                          </option>
-                        </select>
-                      </div>
-
-                      <TextField
-                        label="Reference Number"
-                        name="reference"
-                        value={reference}
-                        onChange={setReference}
-                        placeholder="Optional"
-                      />
-                    </div>
-                  </div>
-                </section>
 
                 {/* ====================================================== */}
                 {/* WORKFLOW                                               */}
@@ -1888,18 +1691,12 @@ export default function RenewEnrollmentButton({
 
                     <WorkflowStep
                       number="03"
-                      title="New payment recorded"
-                      description="A separate pending payment stores the agreed tuition in the student's payment currency and the PHP amount for this renewal."
-                    />
-
-                    <WorkflowStep
-                      number="04"
                       title="Payment confirmed"
                       description="Confirming this payment activates this renewal without changing the previous enrollment."
                     />
 
                     <WorkflowStep
-                      number="05"
+                      number="04"
                       title="Lessons generated"
                       description="Lessons are generated for the new enrollment using the new start date and schedule."
                     />

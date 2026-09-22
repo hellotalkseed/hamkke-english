@@ -966,46 +966,26 @@ export default async function ContractPage({
   </p>
 
   <p>
-    Tuition may vary between students or enrollments
-    depending on the applicable rate, previous
-    arrangements, and the payment currency used for
-    the lesson package. The amount stated in this
-    agreement is the applicable tuition for this
-    enrollment.
+    Tuition is set according to the selected lesson
+    duration, term length, and displayed currency. The
+    amount stated in this agreement is the applicable
+    tuition for this enrollment.
   </p>
 
   <p>
     The tuition stated in this agreement is fixed for
-    the duration of this lesson package and will not
-    change due to subsequent changes in exchange rates,
-    inflation, or Hamkke&apos;s standard tuition.
+    the duration of this lesson package. Any later
+    tuition adjustment will apply only to a future
+    enrollment or renewal and will not affect lessons
+    already purchased under this agreement.
   </p>
 
   <p>
-    Hamkke&apos;s standard tuition is established in
-    Philippine Pesos (PHP) and may be reviewed
-    periodically to reflect general inflation and
-    changes in the cost of providing lessons. When
-    reviewing standard tuition, Hamkke may take into
-    consideration the Philippine Consumer Price Index
-    (CPI), which measures changes in the prices of
-    everyday goods and services.
-  </p>
-
-  <p>
-    Any change to the applicable tuition will apply
-    only to a future enrollment or renewal and will
-    not affect lessons already purchased under this
-    agreement. The applicable tuition for a future
-    package will be communicated to the student before
-    payment.
-  </p>
-
-  <p>
-    For tuition paid in a currency other than
-    Philippine Pesos, the payment amount for a future
-    enrollment or renewal may also reflect the
-    applicable exchange rate at that time.
+    Tuition is reviewed annually and may be adjusted to
+    reflect inflation and changes in operating costs.
+    Any tuition changes will be communicated in advance
+    before payment for the applicable future enrollment
+    or renewal.
   </p>
 
   {usesParentOrGuardianAcceptance ? (

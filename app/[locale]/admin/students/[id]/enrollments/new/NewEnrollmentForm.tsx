@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   BookOpen,
   CalendarDays,
-  CreditCard,
   Users,
 } from "lucide-react";
 
@@ -402,9 +401,6 @@ export default function NewEnrollmentForm({
       formData.get("tuition_amount")
     );
 
-    const tuitionAmountPhp = Number(
-      formData.get("tuition_amount_php")
-    );
 
     if (
       typeof currency !== "string" ||
@@ -432,18 +428,6 @@ export default function NewEnrollmentForm({
       return;
     }
 
-    if (
-      !Number.isFinite(tuitionAmountPhp) ||
-      tuitionAmountPhp <= 0
-    ) {
-      event.preventDefault();
-
-      alert(
-        "Please enter the actual or expected PHP amount."
-      );
-
-      return;
-    }
 
     /*
      * Individual enrollment validation.
@@ -1108,9 +1092,7 @@ export default function NewEnrollmentForm({
                   "
                 >
                   Record the tuition agreed with the
-                  student in their payment currency,
-                  together with the actual or expected
-                  PHP amount.
+                  student in their payment currency.
                 </p>
 
                 <div className="mt-5 space-y-6">
@@ -1162,7 +1144,7 @@ export default function NewEnrollmentForm({
                     </select>
                   </div>
 
-                  <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
                     <Field
                       label={`Agreed Tuition (${tuitionCurrency})`}
                       id="tuition_amount"
@@ -1189,17 +1171,6 @@ export default function NewEnrollmentForm({
                       }
                       required
                     />
-
-                    <Field
-                      label="Actual / Expected Amount (PHP)"
-                      id="tuition_amount_php"
-                      name="tuition_amount_php"
-                      type="number"
-                      placeholder="7000"
-                      min="0.01"
-                      step="0.01"
-                      required
-                    />
                   </div>
                 </div>
 
@@ -1209,172 +1180,11 @@ export default function NewEnrollmentForm({
                     leading-5 text-[#777771]
                   "
                 >
-                  The agreed tuition is the amount
-                  shown on the student's enrollment
-                  and contract. The PHP amount is kept
-                  separately for Hamkke's internal
-                  payment and accounting records.
+                  This is the agreed package tuition shown
+                  on the student's enrollment and contract.
+                  The actual PHP amount received is recorded
+                  later when payment is confirmed.
                 </p>
-              </div>
-
-              {/* ======================================================== */}
-              {/* PAYMENT                                                   */}
-              {/* ======================================================== */}
-
-              <div
-                className="
-                  rounded-2xl bg-[#F0F4ED]
-                  p-6 sm:p-8
-                "
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="
-                      flex h-9 w-9 items-center
-                      justify-center rounded-full
-                      bg-[#E2EBDD] text-[#6F8F72]
-                    "
-                  >
-                    <CreditCard
-                      size={16}
-                      strokeWidth={1.5}
-                    />
-                  </div>
-
-                  <p
-                    className="
-                      font-sans text-[11px]
-                      font-medium uppercase
-                      tracking-[0.14em]
-                      text-[#6F8F72]
-                    "
-                  >
-                    Payment Details
-                  </p>
-                </div>
-
-                <p
-                  className="
-                    mt-3 font-sans text-[13px]
-                    leading-6 text-[#6B6B66]
-                  "
-                >
-                  One payment record is created for
-                  this enrollment.
-                </p>
-
-                <div className="mt-7 space-y-7">
-                  <div>
-                    <label
-                      htmlFor="payment_date"
-                      className="
-                        block font-sans text-[11px]
-                        font-medium uppercase
-                        tracking-[0.14em]
-                        text-[#6F8F72]
-                      "
-                    >
-                      Payment Date
-                    </label>
-
-                    <input
-                      id="payment_date"
-                      name="payment_date"
-                      type="date"
-                      className="
-                        mt-3 w-full
-                        border-b border-[#CFCBC4]
-                        bg-transparent px-0 py-3
-                        font-serif text-[19px]
-                        text-[#292929]
-                        outline-none
-                        transition-colors
-                        focus:border-[#6F8F72]
-                      "
-                    />
-
-                    <p
-                      className="
-                        mt-3 font-sans text-[12px]
-                        leading-5 text-[#777771]
-                      "
-                    >
-                      Leave blank if payment has
-                      not been received yet.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="payment_method"
-                      className="
-                        block font-sans text-[11px]
-                        font-medium uppercase
-                        tracking-[0.14em]
-                        text-[#6F8F72]
-                      "
-                    >
-                      Payment Method
-                    </label>
-
-                    <select
-                      id="payment_method"
-                      name="payment_method"
-                      defaultValue="pending"
-                      className="
-                        mt-3 w-full
-                        border-b border-[#CFCBC4]
-                        bg-transparent px-0 py-3
-                        font-serif text-[19px]
-                        text-[#292929]
-                        outline-none
-                        focus:border-[#6F8F72]
-                      "
-                    >
-                      <option value="pending">
-                        Pending
-                      </option>
-
-                      <option value="Bank Transfer">
-                        Bank Transfer
-                      </option>
-
-                      <option value="PayPal">
-                        PayPal
-                      </option>
-
-                      <option value="GCash">
-                        GCash
-                      </option>
-
-                      <option value="Cash">
-                        Cash
-                      </option>
-
-                      <option value="Other">
-                        Other
-                      </option>
-                    </select>
-
-                    <p
-                      className="
-                        mt-3 font-sans text-[12px]
-                        leading-5 text-[#777771]
-                      "
-                    >
-                      Leave as Pending if payment has
-                      not been confirmed.
-                    </p>
-                  </div>
-
-                  <Field
-                    label="Reference Number"
-                    id="reference"
-                    name="reference"
-                    type="text"
-                    placeholder="Optional"
-                  />
-                </div>
               </div>
             </div>
           </section>
@@ -1593,12 +1403,6 @@ export default function NewEnrollmentForm({
                 number="03"
                 title="Contract created"
                 description="One contract belongs to this enrollment."
-              />
-
-              <WorkflowStep
-                number="04"
-                title="Payment recorded"
-                description="One payment record belongs to this enrollment and stores the package payment details."
               />
 
               <WorkflowStep
