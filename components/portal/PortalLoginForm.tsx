@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { recoveryMessages } from "@/lib/portal/recovery-messages";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -50,6 +52,7 @@ export default function PortalLoginForm({ locale, denied }: { locale: Locale; de
         <input id="portal-email" name="email" type="email" autoComplete="username" required maxLength={254} className={inputClass} /></div>
       <div><label htmlFor="portal-password" className="text-sm font-medium">{t.password}</label>
         <input id="portal-password" name="password" type="password" autoComplete="current-password" required className={inputClass} /></div>
+      <div className="text-right"><Link href={`/${locale}/forgot-password`} className="inline-block py-2 text-sm text-[#607568] underline">{recoveryMessages[locale].forgot}</Link></div>
       {error && <p role="alert" className="rounded-xl bg-[#F6EAE4] p-4 text-sm leading-6 text-[#874C3D]">{error}</p>}
       <button type="submit" disabled={loading} className="w-full rounded-full bg-[#31463A] px-6 py-3.5 font-semibold text-white hover:bg-[#465D4D] disabled:cursor-wait disabled:opacity-60">
         {loading ? t.signingIn : t.signIn}
