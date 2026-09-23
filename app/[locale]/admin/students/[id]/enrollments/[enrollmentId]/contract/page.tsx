@@ -558,8 +558,8 @@ export default async function ContractPage({
       {/* ADMIN NAVIGATION                                                    */}
       {/* ================================================================== */}
 
-      <div className="mx-auto w-full max-w-[794px] px-5 py-5 print:hidden">
-        <div className="flex items-center justify-between">
+      <div className="w-full py-5 print:hidden">
+        <div className="flex w-full items-center justify-between px-5 sm:px-8 lg:px-10">
 
           <Link
             href={`/${locale}/admin/students/${student.id}`}

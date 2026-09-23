@@ -24,7 +24,7 @@ const dashboardCopy = {
     noActiveHelp: "You can check your registered terms below.", lessons: "Explore lessons",
     total: "Lessons in this term", package: "Lesson package", reference: "Enrollment number",
     shared: "Shared term", individual: "Individual term", history: "Previous terms",
-    historyHelp: "View completed and cancelled terms.", pending: "Upcoming & pending terms",
+    historyHelp: "View completed and cancelled terms.", pending: "Upcoming & pending terms", enrollmentOverview: "Current enrollment", lessonUsage: "Lesson usage", termInformation: "Term information", paymentAgreement: "Payment & agreement", tuitionLabel: "Tuition", paymentStatusLabel: "Payment status", paymentDateLabel: "Payment date", paymentMethodLabel: "Payment method", agreementLabel: "Lesson Agreement", agreementNumberLabel: "Agreement no.", agreementDateLabel: "Agreement date", acceptedByLabel: "Accepted by", relationshipLabel: "Relationship", adminDetailsError: "Payment and agreement details could not be loaded.", activeStatus: "Active", viewAgreement: "View your Lesson Agreement", viewAgreementHelp: "Read the full agreement you accepted.", policyHelp: "View our lesson policies, cancellation terms, and other important information.",
   },
   ko: {
     scheduleNote: "변경된 수업 날짜와 시간은 예정된 수업에서 확인하세요.",
@@ -40,7 +40,7 @@ const dashboardCopy = {
     noActiveHelp: "아래에서 등록된 수강 내역을 확인할 수 있습니다.", lessons: "수업 알아보기",
     total: "전체 수업 횟수", package: "수강 과정", reference: "수강 등록 번호",
     shared: "공유 수강권", individual: "개인 수강권", history: "지난 수강 내역",
-    historyHelp: "완료되거나 취소된 수강 내역을 확인하세요.", pending: "예정 및 대기 중인 수강 내역",
+    historyHelp: "완료되거나 취소된 수강 내역을 확인하세요.", pending: "예정 및 대기 중인 수강 내역", enrollmentOverview: "현재 수강 등록", lessonUsage: "수업 이용 현황", termInformation: "수강 정보", paymentAgreement: "결제 및 수강 계약", tuitionLabel: "수강료", paymentStatusLabel: "결제 상태", paymentDateLabel: "결제일", paymentMethodLabel: "결제 방법", agreementLabel: "수강 계약", agreementNumberLabel: "계약 번호", agreementDateLabel: "계약일", acceptedByLabel: "동의자", relationshipLabel: "학생과의 관계", adminDetailsError: "결제 및 수강 계약 정보를 불러오지 못했습니다.", activeStatus: "수강 중", viewAgreement: "수강 계약서 보기", viewAgreementHelp: "동의한 수강 계약서 전문을 확인하세요.", policyHelp: "수업 규정, 취소 규정 및 기타 중요 안내를 확인하세요.",
   },
   zh: {
     scheduleNote: "请在即将开始的课程中查看调整后的日期和时间。",
@@ -56,7 +56,7 @@ const dashboardCopy = {
     noActiveHelp: "你可以在下方查看已登记的套餐。", lessons: "了解课程",
     total: "套餐总课时", package: "课程套餐", reference: "报名编号",
     shared: "共享套餐", individual: "个人套餐", history: "历史套餐",
-    historyHelp: "查看已完成和已取消的套餐。", pending: "即将开始及待处理的套餐",
+    historyHelp: "查看已完成和已取消的套餐。", pending: "即将开始及待处理的套餐", enrollmentOverview: "当前报名", lessonUsage: "课时使用情况", termInformation: "报名信息", paymentAgreement: "付款与课程协议", tuitionLabel: "学费", paymentStatusLabel: "付款状态", paymentDateLabel: "付款日期", paymentMethodLabel: "付款方式", agreementLabel: "课程协议", agreementNumberLabel: "协议编号", agreementDateLabel: "协议日期", acceptedByLabel: "同意人", relationshipLabel: "与学员关系", adminDetailsError: "无法加载付款和课程协议信息。", activeStatus: "进行中", viewAgreement: "查看课程协议", viewAgreementHelp: "查看您已同意的完整课程协议。", policyHelp: "查看课程规定、取消条款及其他重要信息。",
   },
   ja: {
     scheduleNote: "変更された日時は、今後のレッスンでご確認ください。",
@@ -72,7 +72,7 @@ const dashboardCopy = {
     noActiveHelp: "登録済みのコースは下から確認できます。", lessons: "レッスンを見る",
     total: "合計レッスン数", package: "受講コース", reference: "受講登録番号",
     shared: "共有パッケージ", individual: "個人パッケージ", history: "過去のコース",
-    historyHelp: "修了・キャンセルしたコースを確認できます。", pending: "開始予定・手続き中のコース",
+    historyHelp: "修了・キャンセルしたコースを確認できます。", pending: "開始予定・手続き中のコース", enrollmentOverview: "現在の受講登録", lessonUsage: "レッスン利用状況", termInformation: "受講情報", paymentAgreement: "お支払い・受講契約", tuitionLabel: "受講料", paymentStatusLabel: "支払い状況", paymentDateLabel: "支払日", paymentMethodLabel: "支払い方法", agreementLabel: "受講契約", agreementNumberLabel: "契約番号", agreementDateLabel: "契約日", acceptedByLabel: "同意者", relationshipLabel: "受講者との関係", adminDetailsError: "お支払い・受講契約情報を読み込めませんでした。", activeStatus: "受講中", viewAgreement: "受講契約書を見る", viewAgreementHelp: "同意した受講契約書の全文を確認できます。", policyHelp: "レッスン規定、キャンセル規定、その他の重要事項を確認できます。",
   },
 } as const;
 
@@ -150,6 +150,59 @@ function parseAttendanceDetails(value: unknown): PortalAttendanceData {
   };
 }
 
+
+type PortalEnrollmentAdminDetail = {
+  student_id: string;
+  enrollment_id: string;
+  payment_id: string | null;
+  tuition_amount: number | null;
+  tuition_currency: string | null;
+  payment_status: string | null;
+  payment_date: string | null;
+  payment_method: string | null;
+  contract_id: string | null;
+  contract_number: string | null;
+  contract_status: string | null;
+  agreement_date: string | null;
+  accepted_by_name: string | null;
+  accepted_by_relationship: string | null;
+};
+
+function parseEnrollmentAdminDetails(value: unknown): PortalEnrollmentAdminDetail[] {
+  if (!Array.isArray(value)) throw new Error("Invalid enrollment admin details");
+  return value.map((entry) => {
+    if (!entry || typeof entry !== "object") throw new Error("Invalid enrollment admin row");
+    const row = entry as Record<string, unknown>;
+    const required = (key: string) => {
+      if (typeof row[key] !== "string") throw new Error(`Invalid ${key}`);
+      return row[key] as string;
+    };
+    const nullable = (key: string) => row[key] === null || row[key] === undefined
+      ? null
+      : required(key);
+    const amount = row.tuition_amount;
+    if (amount !== null && amount !== undefined && (typeof amount !== "number" || !Number.isFinite(amount))) {
+      throw new Error("Invalid tuition_amount");
+    }
+    return {
+      student_id: required("student_id"),
+      enrollment_id: required("enrollment_id"),
+      payment_id: nullable("payment_id"),
+      tuition_amount: amount === null || amount === undefined ? null : Number(amount),
+      tuition_currency: nullable("tuition_currency"),
+      payment_status: nullable("payment_status"),
+      payment_date: nullable("payment_date"),
+      payment_method: nullable("payment_method"),
+      contract_id: nullable("contract_id"),
+      contract_number: nullable("contract_number"),
+      contract_status: nullable("contract_status"),
+      agreement_date: nullable("agreement_date"),
+      accepted_by_name: nullable("accepted_by_name"),
+      accepted_by_relationship: nullable("accepted_by_relationship"),
+    };
+  });
+}
+
 export default async function PortalPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ student?: string; view?: string }>;
@@ -215,6 +268,39 @@ export default async function PortalPage({ params, searchParams }: {
   const activeTerms = packages.filter((item) => item.enrollment_status === "active");
   const previousTerms = packages.filter((item) => item.enrollment_status === "completed" || item.enrollment_status === "cancelled");
   const pendingTerms = packages.filter((item) => item.enrollment_status !== "active" && item.enrollment_status !== "completed" && item.enrollment_status !== "cancelled");
+  let enrollmentAdminDetails: PortalEnrollmentAdminDetail[] = [];
+  let enrollmentAdminFailed = false;
+  if (view === "enrollment" && !failed && selectedId) {
+    const response = await supabase.rpc("get_portal_enrollment_admin_details");
+    if (response.error) enrollmentAdminFailed = true;
+    else {
+      try { enrollmentAdminDetails = parseEnrollmentAdminDetails(response.data); }
+      catch { enrollmentAdminFailed = true; }
+    }
+  }
+  const enrollmentAdminById = new Map(
+    enrollmentAdminDetails
+      .filter((detail) => detail.student_id === selectedId)
+      .map((detail) => [detail.enrollment_id, detail] as const)
+  );
+  function displayStatus(value: string | null) {
+    if (!value) return "-";
+    return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+  function paymentMethod(value: string | null) {
+    if (!value) return "-";
+    const normalized = value.trim().toLowerCase().replace(/[\s_-]+/g, "");
+    const known: Record<string, string> = { gcash: "GCash", paypal: "PayPal", bank: "Bank transfer", banktransfer: "Bank transfer", sentbe: "SentBe" };
+    return known[normalized] ?? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+  function money(amount: number | null, currency: string | null) {
+    if (amount === null || !currency) return "-";
+    try {
+      return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: currency === "KRW" ? 0 : 2 }).format(amount);
+    } catch {
+      return `${currency} ${number.format(amount)}`;
+    }
+  }
   let lessonDetails: ReturnType<typeof parseLessonDetails> = { lessons: [], schedules: [] };
   let lessonsFailed = false;
   if (view === "lessons" && !failed && selectedId && activeTerms.length > 0) {
@@ -396,7 +482,95 @@ export default async function PortalPage({ params, searchParams }: {
               learners.length === 0 ? <section className="rounded-2xl bg-[#EEF2EA] p-6"><h2 className="font-serif text-2xl">{t.noLearners}</h2><p className="mt-3 leading-7 text-[#607568]">{t.noLearnersHelp}</p></section>
               : packages.length === 0 ? <section className="rounded-2xl bg-[#EEF2EA] p-6"><h2 className="font-serif text-2xl">{t.noPackages}</h2><p className="mt-3 text-[#607568]">{t.noPackagesHelp}</p></section>
               : <div className="space-y-8">
-            {view === "enrollment" ? <section>{activeTerms.map(compactTerm)}{activeTerms.length === 0 && <p className="text-[#607568]">{d.noActive}</p>}</section> : activeTerms.length > 0 ? <section aria-label={d.current} className="space-y-5">
+            {view === "enrollment" ? <section className="space-y-6">
+              {activeTerms.length > 0 ? activeTerms.map((item) => {
+                const hasTotal = item.total_lessons !== null && item.total_lessons > 0;
+                const percent = hasTotal ? Math.min(100, item.used_lessons / Number(item.total_lessons) * 100) : 0;
+                return <article key={item.enrollment_id} className="overflow-hidden rounded-2xl border border-[#718A73]/20 bg-[#FAF8F5]">
+                  <div className="flex flex-col gap-4 border-b border-[#718A73]/15 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#607568]">{d.enrollmentOverview}</p>
+                      <h2 className="mt-2 break-words font-serif text-2xl sm:text-3xl">{item.package_name ?? t.packages}</h2>
+                      <p className="mt-1 text-sm text-[#607568]">{item.enrollment_number ?? t.notSet}</p>
+                    </div>
+                    <span className="inline-flex w-fit rounded-full bg-[#E7EFE3] px-3 py-1.5 text-xs font-medium text-[#49634E]">{status(item)}</span>
+                  </div>
+
+                  <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                    <div className="border-b border-[#718A73]/15 p-5 sm:p-7 lg:border-b-0 lg:border-r">
+                      <p className="text-xs font-medium text-[#607568]">{d.lessonUsage}</p>
+                      <div className="mt-4 flex items-end justify-between gap-5">
+                        <div>
+                          <p className="font-serif text-4xl tabular-nums">{number.format(item.remaining_lessons)}</p>
+                          <p className="mt-1 text-sm text-[#607568]">{d.remaining}</p>
+                        </div>
+                        <p className="pb-1 text-sm tabular-nums text-[#607568]">{number.format(item.used_lessons)} / {item.total_lessons === null ? "-" : number.format(item.total_lessons)} {t.used.toLowerCase()}</p>
+                      </div>
+                      {hasTotal && <div role="progressbar" aria-label={t.used} aria-valuemin={0} aria-valuemax={item.total_lessons ?? undefined} aria-valuenow={Math.min(item.used_lessons, item.total_lessons ?? 0)}
+                        className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E6E2DC]">
+                        <div className="h-full rounded-full bg-[#7E9980]" style={{ width: `${percent}%` }} />
+                      </div>}
+                      <div className="mt-6 rounded-xl bg-[#EEF2EA]/65 p-4">
+                        <p className="text-xs font-medium text-[#607568]">{d.termInformation}</p>
+                        <div className="mt-4">{termDetails(item)}</div>
+                      </div>
+                      {item.is_shared && <p className="mt-4 text-xs leading-5 text-[#607568]">{t.sharedNote}</p>}
+                    </div>
+
+                    <div className="p-5 sm:p-7">
+                      <p className="text-xs font-medium text-[#607568]">{d.paymentAgreement}</p>
+                      {(() => {
+                        const admin = item.enrollment_id ? enrollmentAdminById.get(item.enrollment_id) : undefined;
+                        if (enrollmentAdminFailed) return <p className="mt-3 text-sm leading-6 text-[#607568]">{d.adminDetailsError}</p>;
+                        if (!admin) return <p className="mt-3 text-sm leading-6 text-[#607568]">-</p>;
+                        const hasPayment = Boolean(admin.payment_id);
+                        const hasContract = Boolean(admin.contract_id);
+                        return <div className="mt-4 space-y-6">
+                          <section>
+                            <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 gap-y-3 text-sm">
+                              <dt className="text-[#607568]">{d.tuitionLabel}</dt>
+                              <dd className="text-right font-medium">{hasPayment ? money(admin.tuition_amount, admin.tuition_currency) : "-"}</dd>
+                              <dt className="text-[#607568]">{d.paymentStatusLabel}</dt>
+                              <dd className="text-right">{hasPayment ? <span className="inline-flex rounded-full bg-[#E7EFE3] px-2.5 py-1 text-xs font-medium text-[#49634E]">{displayStatus(admin.payment_status)}</span> : "-"}</dd>
+                              <dt className="text-[#607568]">{d.paymentDateLabel}</dt>
+                              <dd className="text-right font-medium">{hasPayment ? date(admin.payment_date) : "-"}</dd>
+                              <dt className="text-[#607568]">{d.paymentMethodLabel}</dt>
+                              <dd className="text-right font-medium">{hasPayment ? paymentMethod(admin.payment_method) : "-"}</dd>
+                            </dl>
+                          </section>
+
+                          <section className="border-t border-[#718A73]/15 pt-5">
+                            <div className="flex items-center justify-between gap-4">
+                              <p className="font-serif text-xl">{d.agreementLabel}</p>
+                              {hasContract && <span className="inline-flex rounded-full bg-[#E7EFE3] px-2.5 py-1 text-xs font-medium text-[#49634E]">{displayStatus(admin.contract_status)}</span>}
+                            </div>
+                            <dl className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 gap-y-3 text-sm">
+                              <dt className="text-[#607568]">{d.agreementNumberLabel}</dt>
+                              <dd className="max-w-[14rem] break-words text-right font-medium">{hasContract ? admin.contract_number ?? "-" : "-"}</dd>
+                              <dt className="text-[#607568]">{d.agreementDateLabel}</dt>
+                              <dd className="text-right font-medium">{hasContract ? date(admin.agreement_date) : "-"}</dd>
+                              {admin.accepted_by_name && <>
+                                <dt className="text-[#607568]">{d.acceptedByLabel}</dt>
+                                <dd className="max-w-[14rem] break-words text-right font-medium">{admin.accepted_by_name}</dd>
+                              </>}
+                              {admin.accepted_by_relationship && <>
+                                <dt className="text-[#607568]">{d.relationshipLabel}</dt>
+                                <dd className="text-right font-medium">{displayStatus(admin.accepted_by_relationship)}</dd>
+                              </>}
+                            </dl>
+                          </section>
+
+                          {hasContract && item.enrollment_id && <Link href={`/${locale}/portal/agreement?enrollment=${encodeURIComponent(item.enrollment_id)}`} className={`flex min-h-20 items-center justify-between gap-4 rounded-xl bg-[#EEF2EA] px-5 py-4 transition hover:bg-[#E5ECE0] ${focus}`}>
+                            <span className="min-w-0"><span className="block text-sm font-medium text-[#293A30]">{d.viewAgreement}</span><span className="mt-1 block text-xs leading-5 text-[#607568]">{d.viewAgreementHelp}</span></span>
+                            <ArrowUpRight size={19} className="shrink-0" aria-hidden="true" />
+                          </Link>}
+                        </div>;
+                      })()}
+                    </div>
+                  </div>
+                </article>;
+              }) : <p className="text-[#607568]">{d.noActive}</p>}
+            </section> : activeTerms.length > 0 ? <section aria-label={d.current} className="space-y-5">
               {activeTerms.map((item) => {
                 const usage = item.total_lessons === null
                   ? `${t.used}: ${number.format(item.used_lessons)}`
@@ -539,12 +713,19 @@ export default async function PortalPage({ params, searchParams }: {
               {pendingTerms.map(compactTerm)}
             </section>}
             {view === "enrollment" && <>
-              <details className="border-y border-[#718A73]/20 py-5">
-                <summary className={`cursor-pointer font-serif text-2xl ${focus}`}>{d.history}</summary>
-                <div className="mt-4">{previousTerms.length ? previousTerms.map(compactTerm) : <p className="text-sm text-[#607568]">{d.emptyHistory}</p>}</div>
+              <details className="overflow-hidden rounded-2xl border border-[#718A73]/20 bg-[#FAF8F5]">
+                <summary className={`cursor-pointer list-none px-5 py-5 sm:px-7 [&::-webkit-details-marker]:hidden ${focus}`}>
+                  <div className="flex items-center justify-between gap-5">
+                    <div><p className="text-xs font-medium uppercase tracking-[0.14em] text-[#607568]">{d.history}</p><p className="mt-1 text-sm text-[#607568]">{d.historyHelp}</p></div>
+                    <ChevronDown size={19} className="shrink-0 text-[#607568]" aria-hidden="true" />
+                  </div>
+                </summary>
+                <div className="border-t border-[#718A73]/15 px-5 py-4 sm:px-7">{previousTerms.length ? previousTerms.map(compactTerm) : <p className="text-sm text-[#607568]">{d.emptyHistory}</p>}</div>
               </details>
-              <p className="text-sm leading-6 text-[#607568]">{d.adminSoon}</p>
-              <Link href={`/${locale}/policy`} className={`inline-flex min-h-11 items-center gap-2 text-sm underline ${focus}`}>{d.fullPolicy}<ArrowUpRight size={16} aria-hidden="true" /></Link>
+              <Link href={`/${locale}/policy`} className={`flex min-h-24 items-center justify-between gap-5 rounded-2xl bg-[#365F4A] px-6 py-5 text-[#FFFDF8] shadow-[0_7px_0_rgba(54,95,74,0.25)] transition hover:bg-[#2F5542] sm:px-8 ${focus}`}>
+                <span className="min-w-0"><span className="block text-base font-medium">{d.fullPolicy}</span><span className="mt-1 block text-xs leading-5 text-[#FFFDF8]/80">{d.policyHelp}</span></span>
+                <ArrowUpRight size={23} className="shrink-0" aria-hidden="true" />
+              </Link>
             </>}
               </div>
             )}
