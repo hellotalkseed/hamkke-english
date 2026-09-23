@@ -12,6 +12,7 @@ import PortalHeader from "@/components/portal/PortalHeader";
 const dashboardCopy = {
   en: {
     scheduleNote: "Check upcoming lessons for rescheduled dates and times.",
+    attendanceSummary: "Attendance summary", attendanceHistory: "Attendance history", completedLabel: "Completed", noShowLabel: "No-show", lateCancellationLabel: "Late cancellation", scheduledLabel: "Upcoming", lessonLabel: "Lesson", statusLabel: "Status", noAttendance: "No attendance records yet for your active term.", attendanceError: "Unable to load attendance records. Please try again.",
     dateLabel: "Date", dayLabel: "Day", timeLabel: "Time",
     upcoming: "Upcoming lessons", noUpcoming: "No upcoming lessons are scheduled for your active term.", noMore: "No additional upcoming lessons.", noSchedule: "Your regular schedule has not been set yet.", lessonError: "Unable to load lesson details. Please try again.", timePending: "Time to be confirmed", teacher: "Teacher", platform: "Platform",
     nextLesson: "Your next lesson", regularSchedule: "Your regular schedule", scheduleUnavailable: "Schedule details are not available in the portal yet. Please confirm with Hamkke through your usual chat.", nextUnavailable: "Your next lesson details are not available here yet.", balance: "Lesson balance",
@@ -27,6 +28,7 @@ const dashboardCopy = {
   },
   ko: {
     scheduleNote: "변경된 수업 날짜와 시간은 예정된 수업에서 확인하세요.",
+    attendanceSummary: "출석 요약", attendanceHistory: "출석 기록", completedLabel: "완료", noShowLabel: "결석", lateCancellationLabel: "늦은 취소", scheduledLabel: "예정된 수업", lessonLabel: "수업", statusLabel: "상태", noAttendance: "현재 수강 과정의 출석 기록이 아직 없습니다.", attendanceError: "출석 기록을 불러오지 못했습니다. 다시 시도해 주세요.",
     dateLabel: "날짜", dayLabel: "요일", timeLabel: "시간",
     upcoming: "예정된 수업", noUpcoming: "현재 수강 기간에 예정된 수업이 없습니다.", noMore: "추가로 예정된 수업이 없습니다.", noSchedule: "정규 수업 일정이 아직 등록되지 않았습니다.", lessonError: "수업 정보를 불러오지 못했습니다. 다시 시도해 주세요.", timePending: "시간 확인 필요", teacher: "선생님", platform: "수업 플랫폼",
     nextLesson: "다음 수업", regularSchedule: "정규 수업 일정", scheduleUnavailable: "아직 포털에서 수업 일정을 확인할 수 없습니다. 평소 사용하는 메신저로 Hamkke에 확인해 주세요.", nextUnavailable: "아직 이곳에서 다음 수업 정보를 확인할 수 없습니다.", balance: "수업 잔여 횟수",
@@ -42,6 +44,7 @@ const dashboardCopy = {
   },
   zh: {
     scheduleNote: "请在即将开始的课程中查看调整后的日期和时间。",
+    attendanceSummary: "出勤概览", attendanceHistory: "出勤记录", completedLabel: "已完成", noShowLabel: "缺席", lateCancellationLabel: "临时取消", scheduledLabel: "即将开始", lessonLabel: "课程", statusLabel: "状态", noAttendance: "当前课程套餐暂无出勤记录。", attendanceError: "无法加载出勤记录，请重试。",
     dateLabel: "日期", dayLabel: "星期", timeLabel: "时间",
     upcoming: "即将开始的课程", noUpcoming: "当前课包暂无已安排的课程。", noMore: "暂无其他已安排的课程。", noSchedule: "固定课表尚未设置。", lessonError: "无法加载课程信息，请重试。", timePending: "时间待确认", teacher: "老师", platform: "上课平台",
     nextLesson: "下一节课", regularSchedule: "固定上课时间", scheduleUnavailable: "学生门户暂未提供课表，请通过常用聊天工具与 Hamkke 确认。", nextUnavailable: "此处暂未提供下一节课的信息。", balance: "课时余额",
@@ -57,6 +60,7 @@ const dashboardCopy = {
   },
   ja: {
     scheduleNote: "変更された日時は、今後のレッスンでご確認ください。",
+    attendanceSummary: "出席状況", attendanceHistory: "出席記録", completedLabel: "完了", noShowLabel: "欠席", lateCancellationLabel: "直前キャンセル", scheduledLabel: "今後のレッスン", lessonLabel: "レッスン", statusLabel: "ステータス", noAttendance: "現在の受講コースにはまだ出席記録がありません。", attendanceError: "出席記録を読み込めませんでした。もう一度お試しください。",
     dateLabel: "日付", dayLabel: "曜日", timeLabel: "時間",
     upcoming: "今後のレッスン", noUpcoming: "現在の受講期間に予定されているレッスンはありません。", noMore: "ほかに予定されているレッスンはありません。", noSchedule: "通常のレッスンスケジュールはまだ設定されていません。", lessonError: "レッスン情報を読み込めませんでした。もう一度お試しください。", timePending: "時間は確認中です", teacher: "講師", platform: "プラットフォーム",
     nextLesson: "次のレッスン", regularSchedule: "通常のレッスンスケジュール", scheduleUnavailable: "ポータルではまだスケジュールを確認できません。いつもの連絡方法で Hamkke にご確認ください。", nextUnavailable: "次のレッスンの詳細は、まだここでは確認できません。", balance: "レッスン残数",
@@ -99,6 +103,50 @@ function parseLessonDetails(value: unknown): { lessons: PortalLesson[]; schedule
       const r = record(value);
       return { student_id: text(r, "student_id"), enrollment_id: text(r, "enrollment_id"), timezone: text(r, "timezone"), day: text(r, "day"), time: text(r, "time") };
     }),
+  };
+}
+
+
+type PortalAttendance = {
+  student_id: string;
+  enrollment_id: string;
+  id: string;
+  lesson_number: number | null;
+  lesson_date: string;
+  schedule_time: string | null;
+  timezone: string;
+  attendance_status: string;
+  resolution: string | null;
+};
+
+type PortalAttendanceData = {
+  records: PortalAttendance[];
+  summary: { completed: number; no_show: number; late_cancellation: number; scheduled: number };
+};
+
+function parseAttendanceDetails(value: unknown): PortalAttendanceData {
+  if (!value || typeof value !== "object") throw new Error("Invalid attendance details");
+  const data = value as Record<string, unknown>;
+  if (!Array.isArray(data.records) || !data.summary || typeof data.summary !== "object") throw new Error("Invalid attendance data");
+  const summary = data.summary as Record<string, unknown>;
+  const count = (key: string) => typeof summary[key] === "number" && Number.isFinite(summary[key]) ? Number(summary[key]) : 0;
+  return {
+    records: data.records.map((value: unknown) => {
+      if (!value || typeof value !== "object") throw new Error("Invalid attendance row");
+      const r = value as Record<string, unknown>;
+      const required = (key: string) => {
+        if (typeof r[key] !== "string") throw new Error(`Invalid ${key}`);
+        return r[key] as string;
+      };
+      const nullable = (key: string) => r[key] === null ? null : required(key);
+      if (r.lesson_number !== null && (typeof r.lesson_number !== "number" || !Number.isFinite(r.lesson_number))) throw new Error("Invalid lesson number");
+      return {
+        student_id: required("student_id"), enrollment_id: required("enrollment_id"), id: required("id"),
+        lesson_number: r.lesson_number as number | null, lesson_date: required("lesson_date"), schedule_time: nullable("schedule_time"),
+        timezone: required("timezone"), attendance_status: required("attendance_status"), resolution: nullable("resolution"),
+      };
+    }),
+    summary: { completed: count("completed"), no_show: count("no_show"), late_cancellation: count("late_cancellation"), scheduled: count("scheduled") },
   };
 }
 
@@ -174,6 +222,15 @@ export default async function PortalPage({ params, searchParams }: {
     if (response.error) lessonsFailed = true;
     else { try { lessonDetails = parseLessonDetails(response.data); } catch { lessonsFailed = true; } }
   }
+  let attendanceDetails: PortalAttendanceData = { records: [], summary: { completed: 0, no_show: 0, late_cancellation: 0, scheduled: 0 } };
+  let attendanceFailed = false;
+  if (view === "attendance" && !failed && selectedId && activeTerms.length > 0) {
+    const response = await supabase.rpc("get_portal_attendance_details");
+    if (response.error) attendanceFailed = true;
+    else { try { attendanceDetails = parseAttendanceDetails(response.data); } catch { attendanceFailed = true; } }
+  }
+  const attendanceRows = attendanceDetails.records.filter((item) => item.student_id === selectedId);
+
   const lessonRows = lessonDetails.lessons.filter((item) => item.student_id === selectedId);
   const scheduleRows = lessonDetails.schedules.filter((item) => item.student_id === selectedId);
   // Keep different packages and timezones separate even when their clock times match.
@@ -206,6 +263,24 @@ export default async function PortalPage({ params, searchParams }: {
     const index = /^\d$/.test(value) ? Number(value) : ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].indexOf(value.toLowerCase().trim().slice(0, 3));
     return index < 0 || index > 6 ? value : new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, 7 + index)));
   }
+  function attendanceStatus(status: string, resolution: string | null) {
+    if (status === "completed") return d.completedLabel;
+    if (status === "no_show") return d.noShowLabel;
+    if (status === "late_cancellation") return d.lateCancellationLabel;
+    if (status === "student_cancelled_rescheduled") return locale === "ko" ? "학생 취소 · 일정 변경" : locale === "zh" ? "学生取消 · 已改期" : locale === "ja" ? "生徒キャンセル · 振替" : "Student cancelled · Rescheduled";
+    if (status === "student_cancelled_credit") return locale === "ko" ? "학생 취소 · 수업 크레딧" : locale === "zh" ? "学生取消 · 课时保留" : locale === "ja" ? "生徒キャンセル · クレジット" : "Student cancelled · Credit";
+    if (status === "teacher_cancelled") return resolution === "rescheduled" ? (locale === "ko" ? "선생님 취소 · 일정 변경" : locale === "zh" ? "老师取消 · 已改期" : locale === "ja" ? "講師キャンセル · 振替" : "Teacher cancelled · Rescheduled") : (locale === "ko" ? "선생님 취소" : locale === "zh" ? "老师取消" : locale === "ja" ? "講師キャンセル" : "Teacher cancelled");
+    if (status === "unexpected_circumstance") return resolution === "counted_as_completed" ? d.completedLabel : (locale === "ko" ? "예기치 못한 상황" : locale === "zh" ? "突发情况" : locale === "ja" ? "予期せぬ事情" : "Unexpected circumstance");
+    return status.replaceAll("_", " ");
+  }
+
+  function attendanceTone(status: string, resolution: string | null) {
+    if (status === "completed" || (status === "unexpected_circumstance" && resolution === "counted_as_completed")) return "bg-[#E7EFE3] text-[#49634E]";
+    if (status === "no_show") return "bg-[#F5E7E4] text-[#8A5148]";
+    if (status === "late_cancellation") return "bg-[#F7EEDC] text-[#856A35]";
+    return "bg-[#EEF0EC] text-[#607568]";
+  }
+
   const focus = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#607568]";
 
   function status(item: PortalEnrollment) {
@@ -241,7 +316,7 @@ export default async function PortalPage({ params, searchParams }: {
         <dl className="mb-6 grid grid-cols-3 gap-3 rounded-xl bg-[#EEF2EA]/60 p-4">
           {[[t.total, item.total_lessons], [t.used, item.used_lessons], [t.remaining, item.remaining_lessons]].map(([label, value]) => <div key={String(label)}>
             <dt className="text-xs leading-5 text-[#607568]">{label}</dt>
-            <dd className="mt-1 font-serif text-2xl">{value === null ? "-" : number.format(Number(value))}</dd>
+            <dd className="mt-1 font-serif text-2xl">{value === null ? "—" : number.format(Number(value))}</dd>
           </div>)}
         </dl>
         {termDetails(item)}
@@ -290,7 +365,7 @@ export default async function PortalPage({ params, searchParams }: {
             {view === "home" ? <section className="mx-auto grid max-w-[1000px] items-center gap-3 py-2 sm:gap-6 sm:py-8 lg:min-h-[65dvh] lg:py-12 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] xl:gap-4">
   <div className="relative z-10 min-w-0">
     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#607568]">{t.portal}</p>
-    <h1 className={`mt-5 break-words font-serif leading-[1.15] ${locale === "ko" ? "text-[30px] sm:text-[38px] xl:text-[42px]" : locale === "ja" ? "text-[27px] sm:text-[32px] xl:text-[35px]" : "text-[46px] sm:text-[60px] xl:text-[72px]"}`}>{selectedName && !failed ? d.greeting.replace("{name}", selectedName) : t.loginTitle}</h1>
+    <h1 className={`mt-5 break-words font-serif leading-[1.2] ${locale === "ko" || locale === "ja" ? "text-[32px] sm:text-[40px] xl:text-[46px]" : "text-[46px] sm:text-[60px] xl:text-[72px]"}`}>{selectedName && !failed ? d.greeting.replace("{name}", selectedName) : t.loginTitle}</h1>
     <p className="mt-4 max-w-lg text-lg sm:mt-7 leading-8 text-[#607568] sm:text-xl">{d.welcomeLine}</p>
     <p lang="en" className="mt-3 font-serif text-[34px] italic leading-[1.15] text-[#718A73] sm:text-[44px] xl:text-[48px]">
       <span className="block">From Small Talk</span>{" "}
@@ -335,7 +410,7 @@ export default async function PortalPage({ params, searchParams }: {
                   <div className="mt-5 w-full">
                     <div className="flex items-baseline justify-between gap-4">
                       <p className="font-serif text-2xl tabular-nums">
-                        {number.format(item.used_lessons)} / {item.total_lessons === null ? "-" : number.format(item.total_lessons)}
+                        {number.format(item.used_lessons)} / {item.total_lessons === null ? "—" : number.format(item.total_lessons)}
                         <span className="ml-2 font-sans text-xs text-[#607568]">{t.used}</span>
                       </p>
                       {hasTotal && <span className="text-xs tabular-nums text-[#607568]">{number.format(Math.round(percent))}%</span>}
@@ -381,7 +456,7 @@ export default async function PortalPage({ params, searchParams }: {
                       <div><dt className="text-xs text-[#46564B]">{d.teacher}</dt><dd className="mt-1 break-words">{nextLesson.teacher_name ?? t.notSet}</dd></div>
                       <div><dt className="text-xs text-[#46564B]">{t.duration}</dt><dd className="mt-1">{nextLesson.duration === null ? t.notSet : t.minutes.replace("{count}", number.format(nextLesson.duration))}</dd></div>
                     </dl>
-                    <dl className="min-w-0 text-sm"><dt className="text-xs text-[#46564B]">{d.platform}</dt><dd className="mt-1 break-words">{nextLesson.platform ?? t.notSet}{nextLesson.class_link ? <a href={nextLesson.class_link} target="_blank" rel="noopener noreferrer" className={`mt-4 block w-fit font-medium underline underline-offset-4 ${focus}`}>Join class -&gt;</a> : null}</dd></dl>
+                    <dl className="min-w-0 text-sm"><dt className="text-xs text-[#46564B]">{d.platform}</dt><dd className="mt-1 break-words"><span className="block">{nextLesson.platform ?? t.notSet}</span>{nextLesson.class_link ? <a href={nextLesson.class_link} target="_blank" rel="noopener noreferrer" className={`mt-3 inline-flex min-h-7 w-fit items-center font-medium underline underline-offset-4 ${focus}`}>Join class -&gt;</a> : null}</dd></dl>
                   </div> : <p className="mt-3 text-sm leading-6 text-[#607568]">{d.noUpcoming}</p>}
                 </section>
                 <section>
@@ -400,8 +475,8 @@ export default async function PortalPage({ params, searchParams }: {
                             <td className="px-4 py-4 align-top">{time(lesson.schedule_time)}<span className="mt-1 block break-words text-xs text-[#607568]">{lesson.timezone.replaceAll("_", " ")}</span></td>
                             <td className="break-words px-4 py-4 align-top">{lesson.teacher_name ?? t.notSet}</td>
                             <td className="break-words px-4 py-4 align-top">
-                              {lesson.platform ?? t.notSet}
-                              {lesson.class_link ? <a href={lesson.class_link} target="_blank" rel="noopener noreferrer" className={`mt-4 block w-fit font-medium underline underline-offset-4 ${focus}`}>Join class -&gt;</a> : null}
+                              <span className="block">{lesson.platform ?? t.notSet}</span>
+                              {lesson.class_link ? <a href={lesson.class_link} target="_blank" rel="noopener noreferrer" className={`mt-3 inline-flex min-h-7 w-fit items-center font-medium underline underline-offset-4 ${focus}`}>Join class -&gt;</a> : null}
                             </td>
                           </tr>)}
                         </tbody>
@@ -412,7 +487,7 @@ export default async function PortalPage({ params, searchParams }: {
                       <div>
                         <p className="text-sm font-medium">{date(lesson.lesson_date)}</p>
                         <p className="mt-1 text-xs text-[#607568]">{[lesson.teacher_name, lesson.platform].filter(Boolean).join(" · ")}</p>
-                        {lesson.class_link ? <a href={lesson.class_link} target="_blank" rel="noopener noreferrer" className={`mt-4 block w-fit text-xs font-medium underline underline-offset-4 ${focus}`}>Join class -&gt;</a> : null}
+                        {lesson.class_link ? <a href={lesson.class_link} target="_blank" rel="noopener noreferrer" className={`mt-3 flex min-h-7 w-fit items-center text-xs font-medium underline underline-offset-4 ${focus}`}>Join class -&gt;</a> : null}
                       </div>
                       <div><p className="text-sm">{time(lesson.schedule_time)}</p><p className="mt-1 text-xs text-[#607568]">{lesson.timezone.replaceAll("_", " ")}</p></div>
                     </li>)}
@@ -473,9 +548,60 @@ export default async function PortalPage({ params, searchParams }: {
             </>}
               </div>
             )}
-            {(view === "attendance" || view === "reports") && <section className="max-w-2xl rounded-2xl bg-[#EEF2EA] p-6 sm:p-8">
-              <p className="leading-7 text-[#607568]">{view === "attendance" ? d.attendanceSoon : d.reportsSoon}</p>
-              {view === "attendance" && <Link href={href("lessons")} className={`mt-5 inline-flex min-h-11 items-center gap-2 text-sm underline ${focus}`}>{d.myLessons}<ArrowUpRight size={16} aria-hidden="true" /></Link>}
+            {view === "attendance" && (failed || attendanceFailed ? <section role="alert" className="rounded-2xl border border-[#718A73]/20 p-6 sm:p-8">
+              <p className="text-sm leading-6 text-[#607568]">{d.attendanceError}</p>
+              <a href={href("attendance")} className={`mt-4 inline-flex min-h-11 items-center text-sm underline ${focus}`}>{t.retry}</a>
+            </section> : activeTerms.length === 0 ? <section className="rounded-2xl bg-[#EEF2EA] p-6 sm:p-8">
+              <p className="leading-7 text-[#607568]">{d.noActive}</p>
+            </section> : <div className="space-y-9">
+              <section aria-labelledby="attendance-summary-heading">
+                <h2 id="attendance-summary-heading" className="font-serif text-2xl sm:text-3xl">{d.attendanceSummary}</h2>
+                <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    [d.completedLabel, attendanceDetails.summary.completed],
+                    [d.noShowLabel, attendanceDetails.summary.no_show],
+                    [d.lateCancellationLabel, attendanceDetails.summary.late_cancellation],
+                    [d.scheduledLabel, attendanceDetails.summary.scheduled],
+                  ].map(([label, value]) => <div key={String(label)} className="rounded-2xl border border-[#718A73]/20 bg-[#FAF8F5] px-5 py-4 sm:px-6 sm:py-4">
+                    <p className="text-xs font-medium text-[#607568]">{label}</p>
+                    <p className="mt-1 font-serif text-4xl leading-none tabular-nums text-[#293A30]">{number.format(Number(value))}</p>
+                  </div>)}
+                </div>
+              </section>
+
+              <section aria-labelledby="attendance-history-heading">
+                <h2 id="attendance-history-heading" className="font-serif text-2xl sm:text-3xl">{d.attendanceHistory}</h2>
+                {attendanceRows.length ? <>
+                  <div className="mt-4 hidden overflow-hidden rounded-2xl border border-[#718A73]/20 md:block">
+                    <table className="w-full table-fixed text-left text-sm">
+                      <caption className="sr-only">{d.attendanceHistory}</caption>
+                      <thead className="bg-[#EEF2EA]/60 text-xs text-[#607568]"><tr>
+                        {[d.dateLabel, d.timeLabel, d.statusLabel, d.lessonLabel].map((label) => <th key={label} scope="col" className="px-5 py-4 font-medium">{label}</th>)}
+                      </tr></thead>
+                      <tbody className="divide-y divide-[#718A73]/15">
+                        {attendanceRows.map((record) => <tr key={record.id}>
+                          <td className="px-5 py-4 align-middle">{date(record.lesson_date)}</td>
+                          <td className="px-5 py-4 align-middle">{time(record.schedule_time)}<span className="mt-1 block text-xs text-[#607568]">{record.timezone.replaceAll("_", " ")}</span></td>
+                          <td className="px-5 py-4 align-middle"><span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-medium ${attendanceTone(record.attendance_status, record.resolution)}`}>{attendanceStatus(record.attendance_status, record.resolution)}</span></td>
+                          <td className="px-5 py-4 align-middle">{record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`}</td>
+                        </tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                  <ul className="mt-4 divide-y divide-[#718A73]/15 rounded-2xl border border-[#718A73]/20 px-5 md:hidden">
+                    {attendanceRows.map((record) => <li key={record.id} className="py-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div><p className="text-sm font-medium">{date(record.lesson_date)}</p><p className="mt-1 text-xs text-[#607568]">{time(record.schedule_time)} · {record.timezone.replaceAll("_", " ")}</p></div>
+                        <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${attendanceTone(record.attendance_status, record.resolution)}`}>{attendanceStatus(record.attendance_status, record.resolution)}</span>
+                      </div>
+                      <p className="mt-2 text-xs text-[#607568]">{record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`}</p>
+                    </li>)}
+                  </ul>
+                </> : <p className="mt-4 text-sm leading-6 text-[#607568]">{d.noAttendance}</p>}
+              </section>
+            </div>)}
+            {view === "reports" && <section className="max-w-2xl rounded-2xl bg-[#EEF2EA] p-6 sm:p-8">
+              <p className="leading-7 text-[#607568]">{d.reportsSoon}</p>
             </section>}
             {view === "settings" && <section className="max-w-2xl">
               <dl className="grid gap-6 rounded-2xl bg-[#EEF2EA] p-6 text-sm sm:grid-cols-2 sm:p-8">
