@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -21,6 +23,7 @@ import {
 
 import { getMessages } from "../lib/getMessages";
 import type { Locale } from "../lib/i18n";
+import PortalLoginModal from "./portal/PortalLoginModal";
 
 /* =====================================================
    LANGUAGE OPTIONS
@@ -80,6 +83,23 @@ export default function Navbar() {
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
+
+  const loginDialogId = useId();
+  const [loginPath, setLoginPath] = useState<string | null>(null);
+  const isLoginOpen = loginPath !== null && loginPath === pathname;
+  const loginReturnFocusRef = useRef<HTMLElement | null>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const closeLogin = useCallback(() => setLoginPath(null), []);
+
+  const openLogin = (trigger: HTMLButtonElement, mobile = false) => {
+    loginReturnFocusRef.current = mobile
+      ? mobileMenuButtonRef.current
+      : trigger;
+    setIsLanguageOpen(false);
+    setIsMobileLanguageOpen(false);
+    setIsMobileMenuOpen(false);
+    setLoginPath(pathname);
+  };
 
   const headerRef =
     useRef<HTMLElement | null>(null);
@@ -981,8 +1001,12 @@ export default function Navbar() {
             )}
           </div>
 
-          <Link
-            href={`/${locale}#login`}
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls={isLoginOpen ? loginDialogId : undefined}
+            aria-expanded={isLoginOpen}
+            onClick={(event) => openLogin(event.currentTarget)}
             className="
               assessment-nav-text
               group
@@ -1028,7 +1052,7 @@ export default function Navbar() {
               "
               aria-hidden="true"
             />
-          </Link>
+          </button>
         </div>
 
         {/* =====================================================
@@ -1167,6 +1191,7 @@ export default function Navbar() {
                 false
               );
             }}
+            ref={mobileMenuButtonRef}
             aria-label="Toggle navigation"
             aria-expanded={
               isMobileMenuOpen
@@ -1275,19 +1300,16 @@ export default function Navbar() {
               </Link>
             ))}
 
-            <Link
-              href={`/${locale}#login`}
-              onClick={() => {
-                setIsMobileMenuOpen(
-                  false
-                );
-
-                setIsMobileLanguageOpen(
-                  false
-                );
-              }}
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls={isLoginOpen ? loginDialogId : undefined}
+              aria-expanded={isLoginOpen}
+              onClick={(event) => openLogin(event.currentTarget, true)}
               className="
                 assessment-nav-text
+                w-full
+                text-left
                 flex
                 items-center
                 gap-2.5
@@ -1309,10 +1331,18 @@ export default function Navbar() {
               <span>
                 {t.nav.login}
               </span>
-            </Link>
+            </button>
           </div>
         </nav>
       </div>
+      {isLoginOpen && (
+        <PortalLoginModal
+          id={loginDialogId}
+          locale={locale}
+          onDismiss={closeLogin}
+          returnFocusRef={loginReturnFocusRef}
+        />
+      )}
     </header>
   );
 }
