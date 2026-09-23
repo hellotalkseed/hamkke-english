@@ -49,6 +49,7 @@ interface LessonRecord {
   actual_teacher_id: string | null;
   substitute_teacher_id: string | null;
   platform: string | null;
+  class_link: string | null;
   material: string | null;
   lesson_page: string | null;
   class_instructions: string | null;
@@ -78,6 +79,7 @@ interface AvailabilityBlock {
 interface PreviousClassInfoRecord {
   lesson_number: number;
   platform: string | null;
+  class_link: string | null;
   material: string | null;
   lesson_page: string | null;
   class_instructions: string | null;
@@ -899,6 +901,7 @@ async function getLesson(
       actual_teacher_id,
       substitute_teacher_id,
       platform,
+      class_link,
       material,
       lesson_page,
       class_instructions,
@@ -1450,6 +1453,7 @@ export async function GET(
       Boolean(
         lesson.class_info_updated_at ||
           lesson.platform ||
+          lesson.class_link ||
           lesson.material ||
           lesson.lesson_page ||
           lesson.class_instructions
@@ -1472,6 +1476,7 @@ export async function GET(
         .select(`
           lesson_number,
           platform,
+          class_link,
           material,
           lesson_page,
           class_instructions,
@@ -1535,6 +1540,13 @@ export async function GET(
         ? lesson.platform
         : previousClassInfo
             ?.platform ??
+          null;
+
+    const effectiveClassLink =
+      hasOwnClassInfo
+        ? lesson.class_link
+        : previousClassInfo
+            ?.class_link ??
           null;
 
     const effectiveMaterial =
@@ -1685,6 +1697,9 @@ export async function GET(
         platform:
           effectivePlatform,
 
+        class_link:
+          effectiveClassLink,
+
         material:
           effectiveMaterial,
 
@@ -1830,6 +1845,8 @@ export async function PATCH(
       teacher_observation?:
         string | null;
       platform?:
+        string | null;
+      class_link?:
         string | null;
       material?:
         string | null;
@@ -2179,6 +2196,7 @@ export async function PATCH(
           actual_teacher_id,
           substitute_teacher_id,
           platform,
+          class_link,
           material,
           lesson_page,
           class_instructions,
@@ -2285,6 +2303,10 @@ export async function PATCH(
       Object.prototype.hasOwnProperty.call(
         body,
         "platform"
+      ) ||
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "class_link"
       ) ||
       Object.prototype.hasOwnProperty.call(
         body,
@@ -2757,6 +2779,7 @@ export async function PATCH(
           actual_teacher_id,
           substitute_teacher_id,
           platform,
+          class_link,
           material,
           lesson_page,
           class_instructions,
@@ -2926,6 +2949,7 @@ export async function PATCH(
           actual_teacher_id,
           substitute_teacher_id,
           platform,
+          class_link,
           material,
           lesson_page,
           class_instructions,
@@ -3020,6 +3044,7 @@ export async function PATCH(
           actual_teacher_id,
           substitute_teacher_id,
           platform,
+          class_link,
           material,
           lesson_page,
           class_instructions,
@@ -3069,6 +3094,14 @@ export async function PATCH(
             "string"
         ) ||
         (
+          body.class_link !==
+            undefined &&
+          body.class_link !==
+            null &&
+          typeof body.class_link !==
+            "string"
+        ) ||
+        (
           body.material !==
             undefined &&
           body.material !==
@@ -3108,6 +3141,10 @@ export async function PATCH(
         body.platform?.trim() ||
         null;
 
+      const cleanedClassLink =
+        body.class_link?.trim() ||
+        null;
+
       const cleanedMaterial =
         body.material?.trim() ||
         null;
@@ -3131,6 +3168,9 @@ export async function PATCH(
         .update({
           platform:
             cleanedPlatform,
+
+          class_link:
+            cleanedClassLink,
 
           material:
             cleanedMaterial,
@@ -3166,6 +3206,7 @@ export async function PATCH(
           actual_teacher_id,
           substitute_teacher_id,
           platform,
+          class_link,
           material,
           lesson_page,
           class_instructions,

@@ -15,6 +15,7 @@ import {
   MessageSquareText,
   Sparkles,
   MonitorPlay,
+  Link2,
   BookMarked,
   ListChecks,
   UserPlus,
@@ -45,6 +46,7 @@ interface LessonDetail {
   substitute_teacher_id: string | null;
 
   platform: string | null;
+  class_link: string | null;
   material: string | null;
   lesson_page: string | null;
   class_instructions: string | null;
@@ -165,6 +167,9 @@ export default function LessonDetailsPage({
   const [platform, setPlatform] =
     useState("");
 
+  const [classLink, setClassLink] =
+    useState("");
+
   const [material, setMaterial] =
     useState("");
 
@@ -242,6 +247,10 @@ export default function LessonDetailsPage({
           result.lesson.platform || ""
         );
 
+        setClassLink(
+          result.lesson.class_link || ""
+        );
+
         setMaterial(
           result.lesson.material || ""
         );
@@ -292,6 +301,7 @@ export default function LessonDetailsPage({
           },
           body: JSON.stringify({
             platform,
+            class_link: classLink,
             material,
             lesson_page: lessonPage,
             class_instructions:
@@ -317,6 +327,8 @@ export default function LessonDetailsPage({
                 ...current.lesson,
                 platform:
                   result.lesson.platform,
+                class_link:
+                  result.lesson.class_link,
                 material:
                   result.lesson.material,
                 lesson_page:
@@ -337,6 +349,10 @@ export default function LessonDetailsPage({
 
       setPlatform(
         result.lesson.platform || ""
+      );
+
+      setClassLink(
+        result.lesson.class_link || ""
       );
 
       setMaterial(
@@ -1194,6 +1210,29 @@ export default function LessonDetailsPage({
                     setClassInfoMessage(null);
                   }}
                   placeholder="e.g. Zoom"
+                  className="w-full rounded-xl border border-[#e7e1da] bg-[#fbfaf8] px-4 py-3 text-sm text-[#3c484b] outline-none transition placeholder:text-[#aaa9a5] focus:border-[#9eb19f] focus:bg-white focus:ring-2 focus:ring-[#eef3ee]"
+                />
+              </div>
+
+              {/* Class Link */}
+              <div>
+                <label
+                  htmlFor="classLink"
+                  className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]"
+                >
+                  <Link2 size={13} />
+                  Class Link
+                </label>
+
+                <input
+                  id="classLink"
+                  type="url"
+                  value={classLink}
+                  onChange={(event) => {
+                    setClassLink(event.target.value);
+                    setClassInfoMessage(null);
+                  }}
+                  placeholder="https://meet.google.com/..."
                   className="w-full rounded-xl border border-[#e7e1da] bg-[#fbfaf8] px-4 py-3 text-sm text-[#3c484b] outline-none transition placeholder:text-[#aaa9a5] focus:border-[#9eb19f] focus:bg-white focus:ring-2 focus:ring-[#eef3ee]"
                 />
               </div>
