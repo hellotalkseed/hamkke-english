@@ -12,6 +12,7 @@ import PortalHeader from "@/components/portal/PortalHeader";
 const dashboardCopy = {
   en: {
     scheduleNote: "Check upcoming lessons for rescheduled dates and times.",
+    termAttendance: "Attendance for this term", noTermAttendance: "No attendance records for this term.",
     attendanceSummary: "Attendance summary", attendanceHistory: "Attendance history", completedLabel: "Completed", noShowLabel: "No-show", lateCancellationLabel: "Late cancellation", scheduledLabel: "Upcoming", lessonLabel: "Lesson", statusLabel: "Status", noAttendance: "No attendance records yet for your active term.", attendanceError: "Unable to load attendance records. Please try again.",
     dateLabel: "Date", dayLabel: "Day", timeLabel: "Time",
     upcoming: "Upcoming lessons", noUpcoming: "No upcoming lessons are scheduled for your active term.", noMore: "No additional upcoming lessons.", noSchedule: "Your regular schedule has not been set yet.", lessonError: "Unable to load lesson details. Please try again.", timePending: "Time to be confirmed", teacher: "Teacher", platform: "Platform",
@@ -28,6 +29,7 @@ const dashboardCopy = {
   },
   ko: {
     scheduleNote: "변경된 수업 날짜와 시간은 예정된 수업에서 확인하세요.",
+    termAttendance: "이 수강 기간의 출석 기록", noTermAttendance: "이 수강 기간의 출석 기록이 없습니다.",
     attendanceSummary: "출석 요약", attendanceHistory: "출석 기록", completedLabel: "완료", noShowLabel: "결석", lateCancellationLabel: "늦은 취소", scheduledLabel: "예정된 수업", lessonLabel: "수업", statusLabel: "상태", noAttendance: "현재 수강 과정의 출석 기록이 아직 없습니다.", attendanceError: "출석 기록을 불러오지 못했습니다. 다시 시도해 주세요.",
     dateLabel: "날짜", dayLabel: "요일", timeLabel: "시간",
     upcoming: "예정된 수업", noUpcoming: "현재 수강 기간에 예정된 수업이 없습니다.", noMore: "추가로 예정된 수업이 없습니다.", noSchedule: "정규 수업 일정이 아직 등록되지 않았습니다.", lessonError: "수업 정보를 불러오지 못했습니다. 다시 시도해 주세요.", timePending: "시간 확인 필요", teacher: "선생님", platform: "수업 플랫폼",
@@ -44,6 +46,7 @@ const dashboardCopy = {
   },
   zh: {
     scheduleNote: "请在即将开始的课程中查看调整后的日期和时间。",
+    termAttendance: "本套餐出勤记录", noTermAttendance: "本套餐暂无出勤记录。",
     attendanceSummary: "出勤概览", attendanceHistory: "出勤记录", completedLabel: "已完成", noShowLabel: "缺席", lateCancellationLabel: "临时取消", scheduledLabel: "即将开始", lessonLabel: "课程", statusLabel: "状态", noAttendance: "当前课程套餐暂无出勤记录。", attendanceError: "无法加载出勤记录，请重试。",
     dateLabel: "日期", dayLabel: "星期", timeLabel: "时间",
     upcoming: "即将开始的课程", noUpcoming: "当前课包暂无已安排的课程。", noMore: "暂无其他已安排的课程。", noSchedule: "固定课表尚未设置。", lessonError: "无法加载课程信息，请重试。", timePending: "时间待确认", teacher: "老师", platform: "上课平台",
@@ -60,6 +63,7 @@ const dashboardCopy = {
   },
   ja: {
     scheduleNote: "変更された日時は、今後のレッスンでご確認ください。",
+    termAttendance: "この受講期間の出席記録", noTermAttendance: "この受講期間の出席記録はありません。",
     attendanceSummary: "出席状況", attendanceHistory: "出席記録", completedLabel: "完了", noShowLabel: "欠席", lateCancellationLabel: "直前キャンセル", scheduledLabel: "今後のレッスン", lessonLabel: "レッスン", statusLabel: "ステータス", noAttendance: "現在の受講コースにはまだ出席記録がありません。", attendanceError: "出席記録を読み込めませんでした。もう一度お試しください。",
     dateLabel: "日付", dayLabel: "曜日", timeLabel: "時間",
     upcoming: "今後のレッスン", noUpcoming: "現在の受講期間に予定されているレッスンはありません。", noMore: "ほかに予定されているレッスンはありません。", noSchedule: "通常のレッスンスケジュールはまだ設定されていません。", lessonError: "レッスン情報を読み込めませんでした。もう一度お試しください。", timePending: "時間は確認中です", teacher: "講師", platform: "プラットフォーム",
@@ -310,7 +314,7 @@ export default async function PortalPage({ params, searchParams }: {
   }
   let attendanceDetails: PortalAttendanceData = { records: [], summary: { completed: 0, no_show: 0, late_cancellation: 0, scheduled: 0 } };
   let attendanceFailed = false;
-  if (view === "attendance" && !failed && selectedId && activeTerms.length > 0) {
+  if ((view === "attendance" || view === "enrollment") && !failed && selectedId) {
     const response = await supabase.rpc("get_portal_attendance_details");
     if (response.error) attendanceFailed = true;
     else { try { attendanceDetails = parseAttendanceDetails(response.data); } catch { attendanceFailed = true; } }
@@ -406,6 +410,42 @@ export default async function PortalPage({ params, searchParams }: {
           </div>)}
         </dl>
         {termDetails(item)}
+        {(item.enrollment_status === "completed" || item.enrollment_status === "cancelled") && (() => {
+          const termAttendance = attendanceRows
+            .filter((record) => record.enrollment_id === item.enrollment_id)
+            .sort((a, b) => a.lesson_date.localeCompare(b.lesson_date) || (a.schedule_time ?? "").localeCompare(b.schedule_time ?? ""));
+          return <div className="mt-7 border-t border-[#718A73]/20 pt-6">
+            <h4 className="font-serif text-xl sm:text-2xl">{d.termAttendance}</h4>
+            {attendanceFailed ? <p className="mt-3 text-sm leading-6 text-[#607568]">{d.attendanceError}</p>
+              : termAttendance.length ? <>
+                <div className="mt-4 hidden overflow-hidden rounded-xl border border-[#718A73]/20 md:block">
+                  <table className="w-full table-fixed text-left text-sm">
+                    <caption className="sr-only">{d.termAttendance}</caption>
+                    <thead className="bg-[#EEF2EA]/60 text-xs text-[#607568]"><tr>
+                      {[d.dateLabel, d.timeLabel, d.statusLabel, d.lessonLabel].map((label) => <th key={label} scope="col" className="px-4 py-3 font-medium">{label}</th>)}
+                    </tr></thead>
+                    <tbody className="divide-y divide-[#718A73]/15">
+                      {termAttendance.map((record) => <tr key={record.id}>
+                        <td className="px-4 py-3 align-middle">{date(record.lesson_date)}</td>
+                        <td className="px-4 py-3 align-middle">{time(record.schedule_time)}<span className="mt-1 block text-xs text-[#607568]">{record.timezone.replaceAll("_", " ")}</span></td>
+                        <td className="px-4 py-3 align-middle"><span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-medium ${attendanceTone(record.attendance_status, record.resolution)}`}>{attendanceStatus(record.attendance_status, record.resolution)}</span></td>
+                        <td className="px-4 py-3 align-middle">{record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`}</td>
+                      </tr>)}
+                    </tbody>
+                  </table>
+                </div>
+                <ul className="mt-4 divide-y divide-[#718A73]/15 rounded-xl border border-[#718A73]/20 px-4 md:hidden">
+                  {termAttendance.map((record) => <li key={record.id} className="py-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div><p className="text-sm font-medium">{date(record.lesson_date)}</p><p className="mt-1 text-xs text-[#607568]">{time(record.schedule_time)} · {record.timezone.replaceAll("_", " ")}</p></div>
+                      <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${attendanceTone(record.attendance_status, record.resolution)}`}>{attendanceStatus(record.attendance_status, record.resolution)}</span>
+                    </div>
+                    <p className="mt-2 text-xs text-[#607568]">{record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`}</p>
+                  </li>)}
+                </ul>
+              </> : <p className="mt-3 text-sm leading-6 text-[#607568]">{d.noTermAttendance}</p>}
+          </div>;
+        })()}
         {item.is_shared && <p className="mt-4 text-sm leading-6 text-[#607568]">{t.sharedNote}</p>}
       </div>
     </details>;
