@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, ChevronDown, Home, BookOpen, ClipboardCheck, FileText, Settings, NotebookPen } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
@@ -171,7 +172,22 @@ export default async function PortalPage({ params, searchParams }: {
       <PortalHeader locale={locale} signOutAction={signOut} studentId={selectedId} view={view} />
       <div className="grid min-h-[calc(100dvh-77px)] lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="min-w-0 border-b border-[#718A73]/20 bg-[#FAF8F5] p-3 lg:border-b-0 lg:border-r lg:px-4 lg:py-8">
-          <nav aria-label={t.portal} className="flex gap-1 overflow-x-auto p-1 lg:sticky lg:top-6 lg:min-h-[calc(100dvh-145px)] lg:flex-col lg:gap-2">
+          <details key={`${view}-${selectedId}`} className="group/mobile lg:hidden">
+            <summary className={`flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl bg-[#E5EBDD] px-4 py-3 text-sm font-medium text-[#31463A] ${focus} [&::-webkit-details-marker]:hidden`}>
+              <span>{navigation.find((item) => item.view === view)?.label}</span>
+              <ChevronDown size={18} aria-hidden="true" className="shrink-0 transition-transform group-open/mobile:rotate-180 motion-reduce:transition-none" />
+            </summary>
+            <nav aria-label={t.portal} className="mt-2 grid gap-1">
+              {navigation.map(({ view: destination, label, icon: Icon }) => (
+                <Link key={destination} href={href(destination)} aria-current={view === destination ? "page" : undefined}
+                  className={`flex min-h-11 items-center gap-3 rounded-xl px-4 py-3 text-sm ${destination === "settings" ? "mt-2 border-t border-[#718A73]/20" : ""} ${focus} ${view === destination ? "bg-[#E5EBDD] font-medium text-[#31463A]" : "text-[#607568] hover:bg-[#EEF2EA]"}`}>
+                  <Icon size={19} strokeWidth={1.6} aria-hidden="true" className="shrink-0" />
+                  <span>{label}</span>
+                </Link>
+              ))}
+            </nav>
+          </details>
+          <nav aria-label={t.portal} className="hidden p-1 lg:sticky lg:top-6 lg:flex lg:min-h-[calc(100dvh-145px)] lg:flex-col lg:gap-2">
             {navigation.map(({ view: destination, label, icon: Icon }) => (
               <Link key={destination} href={href(destination)} aria-current={view === destination ? "page" : undefined}
                 className={`${destination === "settings" ? "ml-3 border-l border-[#718A73]/25 lg:ml-0 lg:mt-auto lg:border-l-0 lg:border-t" : ""} flex min-h-12 shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm lg:shrink ${focus} ${view === destination ? "bg-[#E5EBDD] font-medium text-[#31463A]" : "text-[#607568] hover:bg-[#EEF2EA] hover:text-[#293A30]"}`}>
@@ -188,12 +204,28 @@ export default async function PortalPage({ params, searchParams }: {
                 className={`min-h-11 max-w-full break-words rounded-full px-5 py-3 text-sm ${focus} ${id === selectedId ? "bg-[#31463A] text-[#FFFDF8]" : "bg-[#EEF2EA] text-[#46564B]"}`}>{name}</Link>)}
             </nav>}
 
-            {view === "home" ? <section className="flex min-h-[55dvh] flex-col justify-center py-8 sm:py-12 lg:min-h-[65dvh]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#607568]">{t.portal}</p>
-              <h1 className="mt-5 break-words font-serif text-[34px] leading-tight sm:text-[42px]">{selectedName && !failed ? d.greeting.replace("{name}", selectedName) : t.loginTitle}</h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-[#607568] sm:text-xl">{d.welcomeLine}</p>
-              <p lang="en" className="mt-1 max-w-3xl font-serif text-[28px] italic leading-snug text-[#718A73] sm:text-[36px]">From Small Talk to Big Ideas.</p>
-            </section> : <header className="mb-7 border-b border-[#718A73]/20 pb-6">
+            {view === "home" ? <section className="mx-auto grid max-w-[1000px] items-center gap-3 py-2 sm:gap-6 sm:py-8 lg:min-h-[65dvh] lg:py-12 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] xl:gap-4">
+  <div className="relative z-10 min-w-0">
+    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#607568]">{t.portal}</p>
+    <h1 className="mt-5 break-words font-serif text-[46px] leading-[1.1] sm:text-[60px] xl:text-[72px]">{selectedName && !failed ? d.greeting.replace("{name}", selectedName) : t.loginTitle}</h1>
+    <p className="mt-4 max-w-lg text-lg sm:mt-7 leading-8 text-[#607568] sm:text-xl">{d.welcomeLine}</p>
+    <p lang="en" className="mt-3 font-serif text-[34px] italic leading-[1.15] text-[#718A73] sm:text-[44px] xl:text-[48px]">
+      <span className="block">From Small Talk</span>{" "}
+      <span className="block">to Big Ideas.</span>
+    </p>
+  </div>
+  <div aria-hidden="true" className="relative isolate mx-auto w-full max-w-[220px] sm:max-w-[300px] lg:max-w-[340px] xl:max-w-[460px]">
+    <div className="absolute inset-x-[5%] bottom-[6%] top-[12%] -z-10 rounded-[50%] bg-[#E7EDDF]/70" />
+    <Image
+      src="/mascot/hamkke-portal-welcome.png"
+      alt=""
+      width={1254}
+      height={1254}
+      sizes="(min-width: 1280px) 460px, (min-width: 1024px) 340px, (min-width: 640px) 300px, 220px"
+      className="h-auto w-full object-contain"
+    />
+  </div>
+</section> : <header className="mb-7 border-b border-[#718A73]/20 pb-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#607568]">{selectedName ?? t.portal}</p>
               <h1 className="mt-3 font-serif text-4xl leading-tight sm:text-5xl">{navigation.find((item) => item.view === view)?.label}</h1>
               {view === "enrollment" && <p className="mt-3 text-sm leading-6 text-[#607568]">{d.termsIntro}</p>}
