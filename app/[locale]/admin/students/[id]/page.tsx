@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import LessonActions from "@/components/admin/LessonActions";
 import PrintAttendanceButton from "@/components/admin/PrintAttendanceButton";
 import PrintableAttendance from "@/components/admin/PrintableAttendance";
 import RenewEnrollmentButton from "@/components/admin/RenewEnrollmentButton";
+import StudentPortalInviteButton from "@/components/admin/StudentPortalInviteButton";
 import type { ReactNode } from "react";
 
 interface StudentPageProps {
@@ -203,6 +204,22 @@ export default async function StudentPage({
           },
         ]
       : allStudentsData;
+
+  const { data: portalStudentLink } = await supabase
+    .from("portal_account_students")
+    .select("account_user_id")
+    .eq("student_id", student.id)
+    .maybeSingle();
+
+  let portalAccountStatus: string | null = null;
+  if (portalStudentLink?.account_user_id) {
+    const { data: portalAccount } = await supabase
+      .from("portal_accounts")
+      .select("status")
+      .eq("user_id", portalStudentLink.account_user_id)
+      .maybeSingle();
+    portalAccountStatus = portalAccount?.status ?? null;
+  }
 
   /* ------------------------------------------------------------------------ */
   /* 2. LOAD DIRECT + SHARED ENROLLMENTS                                      */
@@ -1374,6 +1391,33 @@ export default async function StudentPage({
           </div>
         </section>
 
+        {/* STUDENT PORTAL ACCOUNT */}
+        <section className="border-t border-[#DCD8D2] py-10">
+          <SectionHeading
+            icon={<User size={17} strokeWidth={1.5} />}
+            title="Student Portal Account"
+          />
+          <div className="mt-8 rounded-2xl bg-[#F0F4ED] p-6 sm:p-8">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <InfoItem label="Portal Email" value={student.email} />
+              <InfoItem
+                label="Portal Status"
+                value={portalAccountStatus === "invited" ? "Invitation sent" : portalAccountStatus ? portalAccountStatus.charAt(0).toUpperCase() + portalAccountStatus.slice(1) : "Not invited"}
+              />
+            </div>
+            <p className="mt-6 max-w-2xl text-sm leading-6 text-[#6C746E]">
+              Invitations are available only to students with an active enrollment. The student receives a secure email invitation and creates their own password before using the portal.
+            </p>
+            <StudentPortalInviteButton
+              studentId={student.id}
+              email={student.email}
+              hasEnrollment={sortedEnrollments.some((enrollment) => enrollment.status === "active")}
+              existingStatus={portalAccountStatus}
+              locale={locale}
+            />
+          </div>
+        </section>
+
         {/* ENROLLMENT */}
         <section className="border-t border-[#DCD8D2] py-10">
           <div className="flex items-center justify-between gap-6">
@@ -1416,21 +1460,6 @@ export default async function StudentPage({
                   currentTuitionAmount
                 }
                 currency={currentCurrency}
-                enrollmentType={
-                  currentEnrollment.isShared
-                    ? "shared"
-                    : "individual"
-                }
-                students={allStudents}
-                participantIds={
-                  uniqueCurrentEnrollmentParticipantIds
-                }
-                participantSchedules={
-                  printableParticipantSchedules
-                }
-                tuitionAmountKrw={
-                  currentEnrollment.tuition_amount_krw
-                }
               />
             ) : (
               <Link

@@ -34,7 +34,8 @@ export async function updateSession(request: NextRequest) {
     return redirect;
   }
   const isLogin = new RegExp(`^/${locale}/${area}/login(?:/|$)`).test(pathname);
-  if (isLogin) return response;
+  const isPortalSetup = area === "portal" && new RegExp(`^/${locale}/portal/setup-password(?:/|$)`).test(pathname);
+  if (isLogin || isPortalSetup) return response;
   if (error || !data?.claims?.sub) return go(`/${locale}/${area}/login`);
 
   if (area === "admin") {

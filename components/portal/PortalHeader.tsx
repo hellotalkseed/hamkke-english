@@ -10,11 +10,12 @@ type PortalHeaderProps = {
   signOutAction?: () => Promise<void>;
   studentId?: string;
   view?: string;
+  routeOverride?: string;
 };
 
-export default function PortalHeader({ locale, login = false, signOutAction, studentId, view }: PortalHeaderProps) {
+export default function PortalHeader({ locale, login = false, signOutAction, studentId, view, routeOverride }: PortalHeaderProps) {
   const t = portalMessages[locale];
-  const route = login ? "/portal/login" : "/portal";
+  const route = routeOverride ?? (login ? "/portal/login" : "/portal");
   const current = portalLanguages.find((item) => item.locale === locale)!;
   const params = new URLSearchParams();
   if (!login && studentId) params.set("student", studentId);

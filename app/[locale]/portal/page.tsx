@@ -488,26 +488,28 @@ export default async function PortalPage({ params, searchParams }: {
                 className={`min-h-11 max-w-full break-words rounded-full px-5 py-3 text-sm ${focus} ${id === selectedId ? "bg-[#31463A] text-[#FFFDF8]" : "bg-[#EEF2EA] text-[#46564B]"}`}>{name}</Link>)}
             </nav>}
 
-            {view === "home" ? <section className="mx-auto grid max-w-[1000px] items-center gap-3 py-2 sm:gap-6 sm:py-8 lg:min-h-[65dvh] lg:py-12 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] xl:gap-4">
-  <div className="relative z-10 min-w-0">
+            {view === "home" ? <section className="mx-auto max-w-[1120px] py-2 sm:py-5 lg:pt-7 lg:pb-10">
+  <div className="min-w-0">
     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#607568]">{t.portal}</p>
-    <h1 className={`mt-5 break-words font-serif leading-[1.2] ${locale === "ko" || locale === "ja" ? "text-[32px] sm:text-[40px] xl:text-[46px]" : "text-[46px] sm:text-[60px] xl:text-[72px]"}`}>{selectedName && !failed ? d.greeting.replace("{name}", selectedName) : t.loginTitle}</h1>
-    <p className="mt-4 max-w-lg text-lg sm:mt-7 leading-8 text-[#607568] sm:text-xl">{d.welcomeLine}</p>
-    <p lang="en" className="mt-3 font-serif text-[34px] italic leading-[1.15] text-[#718A73] sm:text-[44px] xl:text-[48px]">
-      <span className="block">From Small Talk</span>{" "}
-      <span className="block">to Big Ideas.</span>
-    </p>
+    <h1 className="mt-5 break-words font-serif text-[32px] leading-[1.2] sm:text-[40px] xl:text-[46px]">{selectedName && !failed ? d.greeting.replace("{name}", selectedName) : t.loginTitle}</h1>
   </div>
-  <div aria-hidden="true" className="relative isolate mx-auto w-full max-w-[220px] sm:max-w-[300px] lg:max-w-[340px] xl:max-w-[460px]">
-    <div className="absolute inset-x-[5%] bottom-[6%] top-[12%] -z-10 rounded-[50%] bg-[#E7EDDF]/70" />
-    <Image
-      src="/mascot/hamkke-portal-welcome.png"
-      alt=""
-      width={1254}
-      height={1254}
-      sizes="(min-width: 1280px) 460px, (min-width: 1024px) 340px, (min-width: 640px) 300px, 220px"
-      className="h-auto w-full object-contain"
-    />
+
+  <div className="mt-5 flex flex-col items-center sm:mt-6">
+    <div aria-hidden="true" className="relative isolate w-full max-w-[200px] sm:max-w-[240px] lg:max-w-[270px]">
+      <div className="absolute inset-x-[5%] bottom-[6%] top-[12%] -z-10 rounded-[50%] bg-[#E7EDDF]/70" />
+      <Image
+        src="/mascot/hamkke-portal-welcome.png"
+        alt=""
+        width={1254}
+        height={1254}
+        sizes="(min-width: 1024px) 270px, (min-width: 640px) 240px, 200px"
+        className="h-auto w-full object-contain"
+      />
+    </div>
+    <p className="mt-3 text-center text-lg leading-8 text-[#607568] sm:text-xl">{d.welcomeLine}</p>
+    <p lang="en" className="mt-2 text-center font-serif text-[34px] italic leading-[1.15] text-[#718A73] sm:text-[44px] xl:text-[48px]">
+      From Small Talk to Big Ideas.
+    </p>
   </div>
 </section> : <header className="mb-7 border-b border-[#718A73]/20 pb-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#607568]">{selectedName ?? t.portal}</p>
