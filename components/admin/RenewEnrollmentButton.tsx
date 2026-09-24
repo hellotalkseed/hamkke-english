@@ -1559,7 +1559,11 @@ export default function RenewEnrollmentButton({
                             placeholder={getCurrencyPlaceholder(
                               tuitionCurrencyState
                             )}
-                            min="0.01"
+                            min={
+                              tuitionCurrencyState === "KRW"
+                                ? "1"
+                                : "0.01"
+                            }
                             step={getCurrencyStep(
                               tuitionCurrencyState
                             )}

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -1416,6 +1416,21 @@ export default async function StudentPage({
                   currentTuitionAmount
                 }
                 currency={currentCurrency}
+                enrollmentType={
+                  currentEnrollment.isShared
+                    ? "shared"
+                    : "individual"
+                }
+                students={allStudents}
+                participantIds={
+                  uniqueCurrentEnrollmentParticipantIds
+                }
+                participantSchedules={
+                  printableParticipantSchedules
+                }
+                tuitionAmountKrw={
+                  currentEnrollment.tuition_amount_krw
+                }
               />
             ) : (
               <Link
