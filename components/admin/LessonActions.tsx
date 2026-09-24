@@ -17,6 +17,7 @@ interface LessonActionsProps {
   currentStatus: string;
   currentResolution: string | null;
   currentLessonDate: string | null;
+  currentScheduleTime: string | null;
 }
 
 type Action =
@@ -41,6 +42,7 @@ export default function LessonActions({
   currentStatus,
   currentResolution,
   currentLessonDate,
+  currentScheduleTime,
 }: LessonActionsProps) {
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<Action | null>(null);
@@ -49,6 +51,9 @@ export default function LessonActions({
 
   const [lessonDate, setLessonDate] = useState(
     currentLessonDate ?? ""
+  );
+  const [lessonTime, setLessonTime] = useState(
+    currentScheduleTime?.slice(0, 5) ?? ""
   );
 
   const [notes, setNotes] = useState("");
@@ -103,9 +108,9 @@ export default function LessonActions({
 
     if (
       resolution === "rescheduled" &&
-      !lessonDate
+      (!lessonDate || !lessonTime)
     ) {
-      setError("Please select a new lesson date.");
+      setError("Please select a new lesson date and time.");
       return;
     }
 
@@ -125,6 +130,10 @@ export default function LessonActions({
             lesson_date:
               resolution === "rescheduled"
                 ? lessonDate
+                : null,
+            schedule_time:
+              resolution === "rescheduled"
+                ? lessonTime
                 : null,
             notes: notes.trim() || null,
           }),
@@ -446,6 +455,46 @@ export default function LessonActions({
                 value={lessonDate}
                 onChange={(event) =>
                   setLessonDate(event.target.value)
+                }
+                className="
+                  mt-2
+                  w-full
+                  rounded-xl
+                  border
+                  border-[#DCD8D2]
+                  bg-white
+                  px-3
+                  py-2.5
+                  font-sans
+                  text-[13px]
+                  text-[#292929]
+                  outline-none
+                  focus:border-[#6F8F72]
+                "
+              />
+
+              <label
+                htmlFor={`lesson-time-${lessonId}`}
+                className="
+                  mt-4
+                  block
+                  font-sans
+                  text-[11px]
+                  font-medium
+                  uppercase
+                  tracking-[0.12em]
+                  text-[#6F8F72]
+                "
+              >
+                New lesson time
+              </label>
+
+              <input
+                id={`lesson-time-${lessonId}`}
+                type="time"
+                value={lessonTime}
+                onChange={(event) =>
+                  setLessonTime(event.target.value)
                 }
                 className="
                   mt-2

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -3494,15 +3494,10 @@ function LessonRow({
             studentId={studentId}
             enrollmentId={enrollmentId}
             lessonId={lesson.id}
-            currentStatus={
-              lesson.attendance_status
-            }
-            currentResolution={
-              lesson.resolution
-            }
-            currentLessonDate={
-              lesson.lesson_date
-            }
+            currentStatus={lesson.attendance_status}
+            currentResolution={lesson.resolution}
+            currentLessonDate={lesson.lesson_date}
+            currentScheduleTime={lesson.schedule_time}
           />
         </div>
       </div>

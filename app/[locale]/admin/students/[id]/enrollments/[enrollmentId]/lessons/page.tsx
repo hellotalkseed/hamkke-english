@@ -21,6 +21,7 @@ interface Lesson {
   student_id: string | null;
   lesson_number: number;
   lesson_date: string | null;
+  schedule_time: string | null;
   duration: number | null;
   attendance_status: string;
   notes: string | null;
@@ -105,6 +106,7 @@ export default async function LessonsPage({
           student_id,
           lesson_number,
           lesson_date,
+          schedule_time,
           duration,
           attendance_status,
           notes,
@@ -654,6 +656,7 @@ function LessonRow({
             }
             currentResolution={lesson.resolution}
             currentLessonDate={lesson.lesson_date}
+            currentScheduleTime={lesson.schedule_time}
           />
         </div>
       </div>

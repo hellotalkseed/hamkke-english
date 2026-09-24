@@ -19,6 +19,7 @@ interface LessonRow {
   student_id: string | null;
   consumes_lesson: boolean | null;
   attendance_status: string | null;
+  resolution: string | null;
 }
 
 interface EnrollmentRow {
@@ -448,7 +449,8 @@ export default async function OverviewPage({
       enrollment_id,
       student_id,
       consumes_lesson,
-      attendance_status
+      attendance_status,
+      resolution
     `);
 
   if (lessonsError) {
@@ -601,6 +603,52 @@ export default async function OverviewPage({
     );
   }
 
+  function getAttendanceConsumedLessons(
+    enrollmentId: string
+  ) {
+    const lessons =
+      getEnrollmentLessons(
+        enrollmentId
+      );
+
+    const completedLessons =
+      lessons.filter(
+        (lesson) =>
+          lesson.attendance_status ===
+          "completed"
+      ).length;
+
+    const noShowLessons =
+      lessons.filter(
+        (lesson) =>
+          lesson.attendance_status ===
+          "no_show"
+      ).length;
+
+    const lateCancellationLessons =
+      lessons.filter(
+        (lesson) =>
+          lesson.attendance_status ===
+          "late_cancellation"
+      ).length;
+
+    const countedUnexpectedLessons =
+      lessons.filter(
+        (lesson) =>
+          lesson.attendance_status ===
+            "unexpected_circumstance" &&
+          lesson.resolution ===
+            "counted_as_completed"
+      ).length;
+
+    return (
+      completedLessons +
+      noShowLessons +
+      lateCancellationLessons +
+      countedUnexpectedLessons
+    );
+  }
+
   function getRemainingLessons(
     enrollment: EnrollmentRow
   ) {
@@ -608,16 +656,10 @@ export default async function OverviewPage({
       return null;
     }
 
-    const lessons =
-      getEnrollmentLessons(
+    const consumedLessons =
+      getAttendanceConsumedLessons(
         enrollment.id
       );
-
-    const consumedLessons =
-      lessons.filter(
-        (lesson) =>
-          lesson.consumes_lesson
-      ).length;
 
     const totalLessons =
       enrollment.number_of_lessons ?? 0;
@@ -1806,21 +1848,15 @@ export default async function OverviewPage({
                         displayEnrollment.id
                       );
 
-                    const lessons =
-                      getEnrollmentLessons(
-                        displayEnrollment.id
-                      );
-
                     const isActive =
                       displayEnrollment.status ===
                       "active";
 
                     const consumedLessons =
                       isActive
-                        ? lessons.filter(
-                            (lesson) =>
-                              lesson.consumes_lesson
-                          ).length
+                        ? getAttendanceConsumedLessons(
+                            displayEnrollment.id
+                          )
                         : 0;
 
                     const totalLessons =

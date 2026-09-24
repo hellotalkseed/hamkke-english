@@ -38,6 +38,7 @@ interface LessonRecord {
   lesson_number: number;
   lesson_date: string;
   original_lesson_date: string | null;
+  original_schedule_time: string | null;
   rescheduled_at: string | null;
   schedule_time: string | null;
   duration: number;
@@ -680,6 +681,119 @@ function convertStudentTimeToPhilippineTime(
   }
 }
 
+function convertPhilippineTimeToStudentTime(
+  philippineDate: string,
+  philippineTime: string,
+  studentTimezone: string | null
+) {
+  const targetTimezone =
+    studentTimezone || "Asia/Manila";
+
+  try {
+    const [year, month, day] =
+      philippineDate.split("-").map(Number);
+
+    const [hours, minutes, seconds = 0] =
+      philippineTime.split(":").map(Number);
+
+    const manilaFormatter =
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+      });
+
+    const wallClockAsUtc = Date.UTC(
+      year,
+      month - 1,
+      day,
+      hours,
+      minutes,
+      seconds
+    );
+
+    const manilaParts =
+      manilaFormatter.formatToParts(
+        new Date(wallClockAsUtc)
+      );
+
+    const getManilaPart = (type: string) =>
+      Number(
+        manilaParts.find(
+          (part) => part.type === type
+        )?.value || 0
+      );
+
+    const manilaAsUtc = Date.UTC(
+      getManilaPart("year"),
+      getManilaPart("month") - 1,
+      getManilaPart("day"),
+      getManilaPart("hour"),
+      getManilaPart("minute"),
+      getManilaPart("second")
+    );
+
+    const manilaOffset =
+      manilaAsUtc - wallClockAsUtc;
+
+    const actualUtcTimestamp =
+      wallClockAsUtc - manilaOffset;
+
+    const studentFormatter =
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: targetTimezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+        hourCycle: "h23",
+      });
+
+    const studentParts =
+      studentFormatter.formatToParts(
+        new Date(actualUtcTimestamp)
+      );
+
+    const getStudentPart = (type: string) =>
+      studentParts.find(
+        (part) => part.type === type
+      )?.value || "";
+
+    return {
+      studentDate: [
+        getStudentPart("year"),
+        getStudentPart("month"),
+        getStudentPart("day"),
+      ].join("-"),
+      studentTime: [
+        getStudentPart("hour"),
+        getStudentPart("minute"),
+      ].join(":"),
+    };
+  } catch (error) {
+    console.error(
+      "Philippine-to-student timezone conversion error:",
+      {
+        philippineDate,
+        philippineTime,
+        studentTimezone,
+        error,
+      }
+    );
+
+    return {
+      studentDate: philippineDate,
+      studentTime: philippineTime.slice(0, 5),
+    };
+  }
+}
+
 function timeToMinutes(
   time: string
 ) {
@@ -890,6 +1004,7 @@ async function getLesson(
       lesson_number,
       lesson_date,
       original_lesson_date,
+      original_schedule_time,
       rescheduled_at,
       schedule_time,
       duration,
@@ -1625,6 +1740,16 @@ export async function GET(
         );
     }
 
+    // Teacher-facing lesson pages always use Philippine Time.
+    // The canonical lesson date/time stored in the database remains
+    // in the student's timezone.
+    const teacherSchedule =
+      convertStudentTimeToPhilippineTime(
+        lesson.lesson_date,
+        lesson.schedule_time,
+        student.timezone
+      );
+
     return NextResponse.json({
       viewer: {
         id:
@@ -1659,16 +1784,19 @@ export async function GET(
           lesson.lesson_number,
 
         lesson_date:
-          lesson.lesson_date,
+          teacherSchedule.philippineDate,
 
         original_lesson_date:
           lesson.original_lesson_date,
+
+        original_schedule_time:
+          lesson.original_schedule_time,
 
         rescheduled_at:
           lesson.rescheduled_at,
 
         schedule_time:
-          lesson.schedule_time,
+          teacherSchedule.philippineTime,
 
         duration:
           lesson.duration,
@@ -1837,6 +1965,8 @@ export async function PATCH(
       resolution?:
         string | null;
       lesson_date?:
+        string | null;
+      schedule_time?:
         string | null;
       attendance_notes?:
         string | null;
@@ -2185,6 +2315,7 @@ export async function PATCH(
           lesson_number,
           lesson_date,
           original_lesson_date,
+          original_schedule_time,
           rescheduled_at,
           schedule_time,
           duration,
@@ -2414,6 +2545,18 @@ export async function PATCH(
               body.lesson_date
             );
 
+      const lessonTime =
+        body.schedule_time ===
+          null ||
+        body.schedule_time ===
+          undefined ||
+        body.schedule_time ===
+          ""
+          ? null
+          : String(
+              body.schedule_time
+            ).slice(0, 5);
+
       const attendanceNotes =
         body.attendance_notes ===
           null ||
@@ -2533,12 +2676,13 @@ export async function PATCH(
         }
 
         if (
-          !lessonDate
+          !lessonDate ||
+          !lessonTime
         ) {
           return NextResponse.json(
             {
               error:
-                "A new lesson date is required when rescheduling.",
+                "A new lesson date and time are required when rescheduling.",
             },
             {
               status: 400,
@@ -2599,12 +2743,15 @@ export async function PATCH(
         if (
           resolution ===
             "rescheduled" &&
-          !lessonDate
+          (
+            !lessonDate ||
+            !lessonTime
+          )
         ) {
           return NextResponse.json(
             {
               error:
-                "A new lesson date is required when rescheduling.",
+                "A new lesson date and time are required when rescheduling.",
             },
             {
               status: 400,
@@ -2641,12 +2788,15 @@ export async function PATCH(
         if (
           resolution ===
             "rescheduled" &&
-          !lessonDate
+          (
+            !lessonDate ||
+            !lessonTime
+          )
         ) {
           return NextResponse.json(
             {
               error:
-                "A new lesson date is required when rescheduling.",
+                "A new lesson date and time are required when rescheduling.",
             },
             {
               status: 400,
@@ -2658,10 +2808,64 @@ export async function PATCH(
           false;
       }
 
+      let rescheduledStudentDate =
+        lessonDate;
+      let rescheduledStudentTime =
+        lessonTime;
+
+      if (
+        resolution ===
+          "rescheduled"
+      ) {
+        const {
+          data: rescheduleStudent,
+          error: rescheduleStudentError,
+        } = await admin
+          .from("students")
+          .select("timezone")
+          .eq(
+            "id",
+            enrollmentStudent.student_id
+          )
+          .single();
+
+        if (
+          rescheduleStudentError ||
+          !rescheduleStudent
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Student timezone could not be loaded for rescheduling.",
+            },
+            {
+              status: 500,
+            }
+          );
+        }
+
+        const convertedReschedule =
+          convertPhilippineTimeToStudentTime(
+            lessonDate!,
+            lessonTime!,
+            rescheduleStudent.timezone
+          );
+
+        rescheduledStudentDate =
+          convertedReschedule.studentDate;
+        rescheduledStudentTime =
+          convertedReschedule.studentTime;
+      }
+
       const originalLessonDate =
         lesson
           .original_lesson_date ??
         lesson.lesson_date;
+
+      const originalScheduleTime =
+        lesson
+          .original_schedule_time ??
+        lesson.schedule_time;
 
       const isPayableOutcome =
         attendanceStatus ===
@@ -2690,8 +2894,14 @@ export async function PATCH(
         original_lesson_date:
           string | null;
 
+        original_schedule_time:
+          string | null;
+
         lesson_date:
           string;
+
+        schedule_time:
+          string | null;
 
         rescheduled_at:
           string | null;
@@ -2712,8 +2922,14 @@ export async function PATCH(
         original_lesson_date:
           originalLessonDate,
 
+        original_schedule_time:
+          originalScheduleTime,
+
         lesson_date:
           lesson.lesson_date,
+
+        schedule_time:
+          lesson.schedule_time,
 
         rescheduled_at:
           lesson.rescheduled_at,
@@ -2741,7 +2957,10 @@ export async function PATCH(
         "rescheduled"
       ) {
         updateData.lesson_date =
-          lessonDate!;
+          rescheduledStudentDate!;
+
+        updateData.schedule_time =
+          rescheduledStudentTime!;
 
         updateData.rescheduled_at =
           new Date().toISOString();
@@ -2768,6 +2987,7 @@ export async function PATCH(
           lesson_number,
           lesson_date,
           original_lesson_date,
+          original_schedule_time,
           rescheduled_at,
           schedule_time,
           duration,
