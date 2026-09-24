@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -142,7 +142,7 @@ export default function AdminLoginPage() {
     setResetLoading(true);
 
     const redirectTo =
-      `${window.location.origin}/${locale}/admin/reset-password`;
+      `${window.location.origin}/auth/admin-recovery/${locale}`;
 
     const { error } =
       await supabase.auth.resetPasswordForEmail(

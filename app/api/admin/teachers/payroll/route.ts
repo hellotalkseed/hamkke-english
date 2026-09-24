@@ -51,6 +51,8 @@ type PayrollRecord = {
   payment_date: string | null;
   approved_at: string | null;
   paid_at: string | null;
+  received_at: string | null;
+  received_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -1229,6 +1231,8 @@ export async function GET() {
           payment_date,
           approved_at,
           paid_at,
+          received_at,
+          received_by,
           created_at,
           updated_at
         `
@@ -1373,6 +1377,9 @@ export async function GET() {
                   record.paid_at
                 )
               : null,
+
+          received_at: record.received_at ? String(record.received_at) : null,
+          received_by: record.received_by ? String(record.received_by) : null,
 
           created_at: String(
             record.created_at
@@ -1615,5 +1622,37 @@ export async function GET() {
         status: 500,
       }
     );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+
+    const { data: profile } = await supabase.from("profiles").select("id, role, status").eq("id", user.id).maybeSingle();
+    if (!profile || String(profile.role).toLowerCase() !== "teacher" || String(profile.status).toLowerCase() !== "active") {
+      return NextResponse.json({ error: "Only the teacher assigned to this payroll can confirm receipt." }, { status: 403 });
+    }
+
+    const body = await request.json();
+    if (body?.action !== "confirm_received") return NextResponse.json({ error: "Unsupported payroll action." }, { status: 400 });
+    const payrollId = String(body?.payrollId || "");
+    const admin = createAdminClient();
+    const { data: payroll, error: lookupError } = await admin.from("teacher_payroll").select("id, teacher_id, gross_pay, status").eq("id", payrollId).eq("teacher_id", user.id).maybeSingle();
+    if (lookupError) return NextResponse.json({ error: lookupError.message }, { status: 500 });
+    if (!payroll) return NextResponse.json({ error: "Payroll record not found." }, { status: 404 });
+    if (payroll.status !== "paid") return NextResponse.json({ error: "Payment must be sent before it can be confirmed as received." }, { status: 409 });
+
+    const now = new Date().toISOString();
+    const { data: updated, error: updateError } = await admin.from("teacher_payroll").update({ status: "confirmed", received_at: now, received_by: user.id }).eq("id", payrollId).eq("teacher_id", user.id).eq("status", "paid").select("*").single();
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+
+    await admin.from("teacher_payroll_audit").insert({ payroll_id: payrollId, actor_user_id: user.id, actor_role: "teacher", event_type: "payment_received", details: { amount_received: Number(payroll.gross_pay) } });
+    return NextResponse.json({ success: true, payroll: updated });
+  } catch (error) {
+    console.error("Unexpected teacher payroll PATCH error:", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error." }, { status: 500 });
   }
 }

@@ -16,7 +16,7 @@ type Teacher = {
   teacher_number?: string | null;
 };
 
-type PayrollStatus = "pending" | "approved" | "paid";
+type PayrollStatus = "pending" | "paid" | "confirmed";
 
 type PayrollRecord = {
   id: string;
@@ -40,6 +40,8 @@ type PayrollRecord = {
   payment_method: string | null;
   payment_reference: string | null;
   payment_date: string | null;
+  received_at?: string | null;
+  received_by?: string | null;
 
   status: PayrollStatus;
 };
@@ -262,18 +264,20 @@ function formatLessonDate(value: string) {
 }
 
 function getStatusClasses(status: PayrollStatus) {
-  if (status === "paid") {
+  if (status === "confirmed") {
     return "bg-[#E5EBDD] text-[#607963]";
   }
 
-  if (status === "approved") {
-    return "bg-[#E8EFE5] text-[#6F8F72]";
+  if (status === "paid") {
+    return "bg-[#E5EBDD] text-[#607963]";
   }
 
   return "bg-[#EEECE7] text-[#817D75]";
 }
 
 function formatStatus(status: PayrollStatus) {
+  if (status === "paid") return "Paid";
+  if (status === "confirmed") return "Confirmed";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
@@ -466,12 +470,7 @@ export default function TeacherPayrollPage() {
   }
 
   async function runPayrollAction(
-    payload:
-      | {
-          action: "approve";
-          payrollId: string;
-        }
-      | {
+    payload: {
           action: "mark_paid";
           payrollId: string;
           paymentDate: string;
@@ -517,19 +516,6 @@ export default function TeacherPayrollPage() {
       return false;
     } finally {
       setPayrollActionLoading(false);
-    }
-  }
-
-  async function approvePayroll(record: PayrollRecord) {
-    const approved = await runPayrollAction({
-      action: "approve",
-      payrollId: record.id,
-    });
-
-    if (approved) {
-      setPaymentDate("");
-      setPaymentMethod("");
-      setPaymentReference("");
     }
   }
 
@@ -665,15 +651,20 @@ export default function TeacherPayrollPage() {
       record.gross_pay
     );
 
-    const printWindow = window.open(
-      "",
-      "_blank",
-      "width=900,height=1000"
-    );
+    const printFrame = document.createElement("iframe");
+    printFrame.setAttribute("aria-hidden", "true");
+    printFrame.style.position = "fixed";
+    printFrame.style.width = "0";
+    printFrame.style.height = "0";
+    printFrame.style.border = "0";
+    document.body.appendChild(printFrame);
+    const printWindow = printFrame.contentWindow;
+    if (!printWindow) { printFrame.remove(); return; }
 
-    if (!printWindow) {
-      return;
-    }
+    const breakdown = historyBreakdowns[record.id] ||
+      (currentPayroll?.payroll_record?.id === record.id ? lessonBreakdown : []);
+    const breakdownRows = breakdown.map((lesson) => `
+      <tr><td>${escapeHtml(formatLessonDate(lesson.lesson_date))}</td><td>${escapeHtml(lesson.student_name || "—")}</td><td class="center">${lesson.duration} min</td><td>${escapeHtml(formatLessonStatus(lesson.attendance_status))}</td><td class="right">${formatCurrency(lesson.rate)}</td><td class="right">${formatCurrency(lesson.amount)}</td></tr>`).join("");
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -887,6 +878,14 @@ export default function TeacherPayrollPage() {
               color: #55544f;
               font-weight: 600;
             }
+
+            .payroll-breakdown { break-before: page; page-break-before: always; padding-top: 2mm; }
+            .breakdown-meta { margin: 0 0 18px; color: #74716B; line-height: 1.6; }
+            .breakdown-table { width: 100%; border-collapse: collapse; }
+            .breakdown-table th, .breakdown-table td { padding: 9px 7px; border-bottom: 1px solid #E7E3DD; vertical-align: top; }
+            .breakdown-table th { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #8A8A84; text-align: left; }
+            .breakdown-table .right { text-align: right; } .breakdown-table .center { text-align: center; }
+            .breakdown-total { margin-top: 18px; text-align: right; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; }
           </style>
         </head>
 
@@ -1088,6 +1087,14 @@ export default function TeacherPayrollPage() {
             </div>
           </div>
 
+          <section class="payroll-breakdown">
+            <div class="eyebrow">Payroll Breakdown</div>
+            <h1>Frozen Lesson Breakdown</h1>
+            <p class="breakdown-meta">${periodStart} - ${periodEnd} · ${breakdown.length} payable lesson${breakdown.length === 1 ? "" : "s"}</p>
+            <table class="breakdown-table"><thead><tr><th>Date</th><th>Student</th><th class="center">Duration</th><th>Status</th><th class="right">Rate</th><th class="right">Amount</th></tr></thead><tbody>${breakdownRows || '<tr><td colspan="6">No frozen lesson breakdown is available for this payroll.</td></tr>'}</tbody></table>
+            <div class="breakdown-total"><strong>Total: ${grossPay}</strong></div>
+          </section>
+
           <div class="footer">
             <strong>Hamkke English</strong><br />
             This receipt confirms payment for the teaching
@@ -1100,9 +1107,8 @@ export default function TeacherPayrollPage() {
     printWindow.document.close();
     printWindow.focus();
 
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    printWindow.addEventListener("afterprint", () => window.setTimeout(() => printFrame.remove(), 250), { once: true });
+    setTimeout(() => { printWindow.focus(); printWindow.print(); }, 250);
   }
 
   /* ----------------------------------------------------------------------- */
@@ -1840,128 +1846,43 @@ export default function TeacherPayrollPage() {
 
           {/* OWNER PAYROLL ACTIONS */}
 
-          {currentPayroll.payroll_record &&
-            currentPayroll.status !== "paid" && (
-              <div className="border-t border-[#DCD8D2] px-6 py-7 sm:px-8">
-                <div className="max-w-[720px]">
-                  <p className="font-sans text-[9px] font-medium uppercase tracking-[0.15em] text-[#8A8A84]">
-                    Owner actions
-                  </p>
-
-                  {currentPayroll.status === "pending" && (
-                    <>
-                      <h3 className="mt-2 font-serif text-[21px] font-normal">
-                        Review and approve this payroll
-                      </h3>
-
-                      <p className="mt-2 font-serif text-[13px] leading-6 text-[#74716B]">
-                        Approval confirms that the frozen lesson
-                        breakdown, rates, and total payment have been
-                        reviewed. It does not mark the teacher as paid.
-                      </p>
-
-                      <button
-                        type="button"
-                        disabled={payrollActionLoading}
-                        onClick={() =>
-                          approvePayroll(
-                            currentPayroll.payroll_record as PayrollRecord
-                          )
-                        }
-                        className="mt-5 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {payrollActionLoading
-                          ? "Approving..."
-                          : "Approve Payroll"}
-                      </button>
-                    </>
-                  )}
-
-                  {currentPayroll.status === "approved" && (
-                    <>
-                      <h3 className="mt-2 font-serif text-[21px] font-normal">
-                        Record teacher payment
-                      </h3>
-
-                      <p className="mt-2 font-serif text-[13px] leading-6 text-[#74716B]">
-                        Enter the details after the payment has actually
-                        been sent. The payroll total remains unchanged.
-                      </p>
-
-                      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                        <label className="block">
-                          <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
-                            Payment date
-                          </span>
-
-                          <input
-                            type="date"
-                            value={paymentDate}
-                            onChange={(event) =>
-                              setPaymentDate(event.target.value)
-                            }
-                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors focus:border-[#6F8F72]"
-                          />
-                        </label>
-
-                        <label className="block">
-                          <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
-                            Payment method
-                          </span>
-
-                          <input
-                            type="text"
-                            value={paymentMethod}
-                            onChange={(event) =>
-                              setPaymentMethod(event.target.value)
-                            }
-                            placeholder="e.g. Bank transfer"
-                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors placeholder:text-[#AAA69E] focus:border-[#6F8F72]"
-                          />
-                        </label>
-
-                        <label className="block sm:col-span-2">
-                          <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">
-                            Payment reference
-                          </span>
-
-                          <input
-                            type="text"
-                            value={paymentReference}
-                            onChange={(event) =>
-                              setPaymentReference(event.target.value)
-                            }
-                            placeholder="Optional"
-                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors placeholder:text-[#AAA69E] focus:border-[#6F8F72]"
-                          />
-                        </label>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={payrollActionLoading}
-                        onClick={() =>
-                          markPayrollPaid(
-                            currentPayroll.payroll_record as PayrollRecord
-                          )
-                        }
-                        className="mt-5 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {payrollActionLoading
-                          ? "Saving Payment..."
-                          : "Mark as Paid"}
-                      </button>
-                    </>
-                  )}
-
-                  {payrollActionError && (
-                    <p className="mt-4 font-serif text-[12px] leading-5 text-[#A15F5F]">
-                      {payrollActionError}
-                    </p>
-                  )}
+          {currentPayroll.payroll_record && currentPayroll.status === "pending" && (
+            <div className="border-t border-[#DCD8D2] px-6 py-7 sm:px-8">
+              <div className="max-w-[720px]">
+                <p className="font-sans text-[9px] font-medium uppercase tracking-[0.15em] text-[#8A8A84]">
+                  Owner actions
+                </p>
+                <h3 className="mt-2 font-serif text-[21px] font-normal">
+                  Record teacher payment
+                </h3>
+                <p className="mt-2 font-serif text-[13px] leading-6 text-[#74716B]">
+                  Enter the details after the payment has actually been sent. The automatically generated payroll total remains unchanged.
+                </p>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">Amount paid</span>
+                    <div className="mt-2 w-full border border-[#DCD8D2] bg-[#F1EFEA] px-3 py-2.5 font-serif text-[13px] text-[#5F655F]">{formatCurrency(currentPayroll.gross_pay)}</div>
+                  </label>
+                  <label className="block">
+                    <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">Payment date</span>
+                    <input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors focus:border-[#6F8F72]" />
+                  </label>
+                  <label className="block">
+                    <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">Payment method</span>
+                    <input type="text" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} placeholder="e.g. Bank transfer" className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors placeholder:text-[#AAA69E] focus:border-[#6F8F72]" />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#8A8A84]">Payment reference</span>
+                    <input type="text" value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Optional" className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none transition-colors placeholder:text-[#AAA69E] focus:border-[#6F8F72]" />
+                  </label>
                 </div>
+                <button type="button" disabled={payrollActionLoading} onClick={() => markPayrollPaid(currentPayroll.payroll_record as PayrollRecord)} className="mt-5 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50">
+                  {payrollActionLoading ? "Saving Payment..." : "Record Payment"}
+                </button>
+                {payrollActionError && <p className="mt-4 font-serif text-[12px] leading-5 text-[#A15F5F]">{payrollActionError}</p>}
               </div>
-            )}
+            </div>
+          )}
 
           {/* CURRENT PERIOD FOOTER + PRINT BUTTON */}
 
@@ -2093,29 +2014,19 @@ export default function TeacherPayrollPage() {
                         </td>
 
                         <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] ${getStatusClasses(
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPayroll(record)}
+                            className={`inline-flex rounded-full px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] transition-opacity hover:opacity-75 ${getStatusClasses(
                               record.status
                             )}`}
                           >
                             {formatStatus(record.status)}
-                          </span>
+                          </button>
                         </td>
 
                         <td className="px-5 py-4 sm:px-7">
                           <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSelectedPayroll(
-                                  record
-                                )
-                              }
-                              className="inline-flex items-center gap-1.5 border border-[#DCD8D2] px-3 py-2 font-sans text-[10px] text-[#5F655F] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
-                            >
-                              <EyeIcon />
-                              View
-                            </button>
 
                             <button
                               type="button"
@@ -2182,32 +2093,21 @@ export default function TeacherPayrollPage() {
                         </div>
                       </div>
 
-                      <span
-                        className={`inline-flex shrink-0 rounded-full px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] ${getStatusClasses(
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPayroll(record)}
+                        className={`inline-flex shrink-0 rounded-full px-2.5 py-1.5 font-sans text-[8px] font-medium uppercase tracking-[0.1em] transition-opacity hover:opacity-75 ${getStatusClasses(
                           record.status
                         )}`}
                       >
                         {formatStatus(record.status)}
-                      </span>
+                      </button>
                     </div>
 
                     <div className="mt-5 flex gap-2">
                       <button
                         type="button"
-                        onClick={() =>
-                          setSelectedPayroll(record)
-                        }
-                        className="inline-flex items-center gap-1.5 border border-[#DCD8D2] px-3 py-2 font-sans text-[10px] text-[#5F655F] transition-colors hover:border-[#6F8F72] hover:text-[#6F8F72]"
-                      >
-                        <EyeIcon />
-                        View
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          printPayroll(record)
-                        }
+                        onClick={() => printPayroll(record)}
                         className="inline-flex items-center gap-1.5 border border-[#6F8F72] px-3 py-2 font-sans text-[10px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
                       >
                         <PrinterIcon />
@@ -2619,104 +2519,23 @@ export default function TeacherPayrollPage() {
                   </p>
                 </div>
               </div>
-
-              {selectedPayroll.status !== "paid" && (
+              {selectedPayroll.status === "pending" && (
                 <div className="mt-8 border-t border-[#DCD8D2] pt-7">
-                  <p className="font-sans text-[9px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">
-                    Owner actions
-                  </p>
-
-                  {selectedPayroll.status === "pending" ? (
-                    <button
-                      type="button"
-                      disabled={payrollActionLoading}
-                      onClick={() => approvePayroll(selectedPayroll)}
-                      className="mt-4 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {payrollActionLoading
-                        ? "Approving..."
-                        : "Approve Payroll"}
-                    </button>
-                  ) : (
-                    <>
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                        <label className="block">
-                          <span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
-                            Payment date
-                          </span>
-                          <input
-                            type="date"
-                            value={paymentDate}
-                            onChange={(event) =>
-                              setPaymentDate(event.target.value)
-                            }
-                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]"
-                          />
-                        </label>
-
-                        <label className="block">
-                          <span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
-                            Payment method
-                          </span>
-                          <input
-                            type="text"
-                            value={paymentMethod}
-                            onChange={(event) =>
-                              setPaymentMethod(event.target.value)
-                            }
-                            placeholder="e.g. Bank transfer"
-                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]"
-                          />
-                        </label>
-
-                        <label className="block sm:col-span-2">
-                          <span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
-                            Payment reference
-                          </span>
-                          <input
-                            type="text"
-                            value={paymentReference}
-                            onChange={(event) =>
-                              setPaymentReference(event.target.value)
-                            }
-                            placeholder="Optional"
-                            className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]"
-                          />
-                        </label>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={payrollActionLoading}
-                        onClick={() => markPayrollPaid(selectedPayroll)}
-                        className="mt-4 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {payrollActionLoading
-                          ? "Saving Payment..."
-                          : "Mark as Paid"}
-                      </button>
-                    </>
-                  )}
-
-                  {payrollActionError && (
-                    <p className="mt-4 font-serif text-[12px] leading-5 text-[#A15F5F]">
-                      {payrollActionError}
-                    </p>
-                  )}
+                  <p className="font-sans text-[9px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">Owner actions</p>
+                  <h3 className="mt-2 font-serif text-[18px] font-normal">Record teacher payment</h3>
+                  <p className="mt-2 font-serif text-[13px] leading-6 text-[#74716B]">Enter the details after the payment has actually been sent. The automatically generated payroll total remains unchanged.</p>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <label className="block"><span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">Amount paid</span><div className="mt-2 w-full border border-[#DCD8D2] bg-[#F1EFEA] px-3 py-2.5 font-serif text-[13px] text-[#5F655F]">{formatCurrency(selectedPayroll.gross_pay)}</div></label>
+                    <label className="block"><span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">Payment date</span><input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]" /></label>
+                    <label className="block"><span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">Payment method</span><input type="text" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} placeholder="e.g. Bank transfer" className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]" /></label>
+                    <label className="block sm:col-span-2"><span className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">Payment reference</span><input type="text" value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Optional" className="mt-2 w-full border border-[#DCD8D2] bg-[#FAF8F5] px-3 py-2.5 font-sans text-[13px] outline-none focus:border-[#6F8F72]" /></label>
+                  </div>
+                  <button type="button" disabled={payrollActionLoading} onClick={() => markPayrollPaid(selectedPayroll)} className="mt-4 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{payrollActionLoading ? "Saving Payment..." : "Record Payment"}</button>
+                  {payrollActionError && <p className="mt-4 font-serif text-[12px] leading-5 text-[#A15F5F]">{payrollActionError}</p>}
                 </div>
               )}
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() =>
-                    printPayroll(selectedPayroll)
-                  }
-                  className="inline-flex items-center gap-2 border border-[#6F8F72] px-4 py-2.5 font-sans text-[11px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
-                >
-                  <PrinterIcon />
-                  Print Receipt
-                </button>
 
                 <button
                   type="button"

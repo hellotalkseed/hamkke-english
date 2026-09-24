@@ -16,7 +16,7 @@ type Teacher = {
   teacher_number?: string | null;
 };
 
-type PayrollStatus = "pending" | "approved" | "paid";
+type PayrollStatus = "pending" | "paid" | "confirmed";
 
 type PayrollRecord = {
   id: string;
@@ -40,6 +40,8 @@ type PayrollRecord = {
   payment_method: string | null;
   payment_reference: string | null;
   payment_date: string | null;
+  received_at?: string | null;
+  received_by?: string | null;
 
   status: PayrollStatus;
 };
@@ -223,6 +225,22 @@ function formatShortDate(value: string) {
   }).format(date);
 }
 
+function formatLessonDate(value: string | null | undefined) {
+  if (!value) return "-";
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function formatMonthYear(date: Date) {
   return new Intl.DateTimeFormat("en-PH", {
     month: "long",
@@ -238,18 +256,20 @@ function formatCurrency(amount: number) {
 }
 
 function getStatusClasses(status: PayrollStatus) {
-  if (status === "paid") {
+  if (status === "confirmed") {
     return "bg-[#E5EBDD] text-[#607963]";
   }
 
-  if (status === "approved") {
-    return "bg-[#E8EFE5] text-[#6F8F72]";
+  if (status === "paid") {
+    return "bg-[#E5EBDD] text-[#607963]";
   }
 
   return "bg-[#EEECE7] text-[#817D75]";
 }
 
 function formatStatus(status: PayrollStatus) {
+  if (status === "paid") return "Paid";
+  if (status === "confirmed") return "Confirmed";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
@@ -328,6 +348,8 @@ export default function TeacherPayrollPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [receiptActionLoading, setReceiptActionLoading] = useState(false);
+  const [receiptActionError, setReceiptActionError] = useState("");
 
   /* ----------------------------------------------------------------------- */
   /* LOAD PAYROLL                                                            */
@@ -379,6 +401,25 @@ export default function TeacherPayrollPage() {
 
     loadPayroll();
   }, []);
+
+  async function confirmPaymentReceived(record: PayrollRecord) {
+    try {
+      setReceiptActionLoading(true);
+      setReceiptActionError("");
+      const response = await fetch("/api/admin/teachers/payroll", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "confirm_received", payrollId: record.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Unable to confirm payment receipt.");
+      window.location.reload();
+    } catch (err) {
+      setReceiptActionError(err instanceof Error ? err.message : "Unable to confirm payment receipt.");
+    } finally {
+      setReceiptActionLoading(false);
+    }
+  }
 
   /* ----------------------------------------------------------------------- */
   /* CURRENT PERIOD                                                          */
@@ -478,15 +519,20 @@ export default function TeacherPayrollPage() {
       return;
     }
 
-    const printWindow = window.open(
-      "",
-      "_blank",
-      "width=900,height=1000"
-    );
+    const printFrame = document.createElement("iframe");
+    printFrame.setAttribute("aria-hidden", "true");
+    printFrame.style.position = "fixed";
+    printFrame.style.width = "0";
+    printFrame.style.height = "0";
+    printFrame.style.border = "0";
+    document.body.appendChild(printFrame);
+    const printWindow = printFrame.contentWindow;
+    if (!printWindow) { printFrame.remove(); return; }
 
-    if (!printWindow) {
-      return;
-    }
+    const breakdown = historyBreakdowns[record.id] ||
+      (currentPayroll?.payroll_record?.id === record.id ? lessonBreakdown : []);
+    const breakdownRows = breakdown.map((lesson) => `
+      <tr><td>${formatLessonDate(lesson.lesson_date)}</td><td>${lesson.student_name || "—"}</td><td class="center">${lesson.duration} min</td><td>${formatLessonStatus(lesson.attendance_status)}</td><td class="right">${formatCurrency(lesson.rate)}</td><td class="right">${formatCurrency(lesson.amount)}</td></tr>`).join("");
 
     const total25 = getPayable25Count(record);
     const total50 = getPayable50Count(record);
@@ -643,6 +689,13 @@ export default function TeacherPayrollPage() {
               font-size: 8.5px;
               line-height: 1.6;
             }
+
+            .payroll-breakdown { break-before: page; page-break-before: always; padding-top: 2mm; }
+            .breakdown-table { width: 100%; border-collapse: collapse; }
+            .breakdown-table th, .breakdown-table td { padding: 9px 7px; border-bottom: 1px solid #E7E3DD; vertical-align: top; }
+            .breakdown-table th { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #8A8A84; text-align: left; }
+            .breakdown-table .right { text-align: right; } .breakdown-table .center { text-align: center; }
+            .breakdown-total { margin-top: 18px; text-align: right; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; }
           </style>
         </head>
 
@@ -793,6 +846,13 @@ export default function TeacherPayrollPage() {
             </div>
           </div>
 
+          <section class="payroll-breakdown">
+            <div class="eyebrow">Payroll Breakdown</div>
+            <h1>Frozen Lesson Breakdown</h1>
+            <table class="breakdown-table"><thead><tr><th>Date</th><th>Student</th><th class="center">Duration</th><th>Status</th><th class="right">Rate</th><th class="right">Amount</th></tr></thead><tbody>${breakdownRows || '<tr><td colspan="6">No frozen lesson breakdown is available for this payroll.</td></tr>'}</tbody></table>
+            <div class="breakdown-total"><strong>Total: ${formatCurrency(record.gross_pay)}</strong></div>
+          </section>
+
           <div class="footer">
             <strong>Hamkke English</strong><br />
             This receipt reflects the teaching services covered by the payroll period shown above.
@@ -804,9 +864,8 @@ export default function TeacherPayrollPage() {
     printWindow.document.close();
     printWindow.focus();
 
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    printWindow.addEventListener("afterprint", () => window.setTimeout(() => printFrame.remove(), 250), { once: true });
+    setTimeout(() => { printWindow.focus(); printWindow.print(); }, 250);
   }
 
   function printCurrentPayroll() {
@@ -1374,14 +1433,6 @@ export default function TeacherPayrollPage() {
                               View
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => printPayroll(record)}
-                              className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#6F8F72] px-3 py-2 font-sans text-[10px] text-[#6F8F72] transition-colors hover:bg-[#E8EFE5]"
-                            >
-                              <PrinterIcon />
-                              Print
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1670,8 +1721,13 @@ export default function TeacherPayrollPage() {
                 </p>
               </div>
 
-              <div className="mt-7 grid sm:grid-cols-3 sm:divide-x sm:divide-[#E7E3DD]">
+              <div className="mt-7 grid sm:grid-cols-4 sm:divide-x sm:divide-[#E7E3DD]">
                 <div className="pb-5 sm:pb-0 sm:pr-6">
+                  <p className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">Amount paid</p>
+                  <p className="mt-2 font-serif text-[14px]">{formatCurrency(selectedPayroll.gross_pay)}</p>
+                </div>
+
+                <div className="border-t border-[#E7E3DD] py-5 sm:border-t-0 sm:px-6 sm:py-0">
                   <p className="font-sans text-[8px] uppercase tracking-[0.1em] text-[#8A8A84]">
                     Payment date
                   </p>
@@ -1703,6 +1759,24 @@ export default function TeacherPayrollPage() {
                   </p>
                 </div>
               </div>
+
+              {selectedPayroll.status === "paid" && (
+                <div className="mt-8 border-t border-[#DCD8D2] pt-7">
+                  <p className="font-sans text-[9px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">Payment confirmation</p>
+                  <p className="mt-2 font-serif text-[13px] leading-6 text-[#74716B]">I confirm that I received the payment shown above.</p>
+                  <button type="button" disabled={receiptActionLoading} onClick={() => confirmPaymentReceived(selectedPayroll)} className="mt-4 inline-flex items-center justify-center border border-[#6F8F72] bg-[#6F8F72] px-5 py-2.5 font-sans text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                    {receiptActionLoading ? "Confirming..." : "Confirm Payment Received"}
+                  </button>
+                  {receiptActionError && <p className="mt-3 font-serif text-[12px] text-[#A15F5F]">{receiptActionError}</p>}
+                </div>
+              )}
+
+              {selectedPayroll.status === "confirmed" && (
+                <div className="mt-8 border-t border-[#DCD8D2] pt-7">
+                  <p className="font-sans text-[9px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">Payment confirmation</p>
+                  <p className="mt-2 font-serif text-[13px] leading-6 text-[#607963]">Payment received and confirmed by you.</p>
+                </div>
+              )}
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <button

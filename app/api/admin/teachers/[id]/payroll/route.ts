@@ -49,6 +49,8 @@ type PayrollRecord = {
   payment_date: string | null;
   approved_at: string | null;
   paid_at: string | null;
+  received_at: string | null;
+  received_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -1252,6 +1254,8 @@ export async function GET(
           payment_date,
           approved_at,
           paid_at,
+          received_at,
+          received_by,
           created_at,
           updated_at
         `
@@ -1360,6 +1364,8 @@ export async function GET(
           paid_at: record.paid_at
             ? String(record.paid_at)
             : null,
+          received_at: record.received_at ? String(record.received_at) : null,
+          received_by: record.received_by ? String(record.received_by) : null,
           created_at: String(
             record.created_at
           ),
@@ -1607,6 +1613,84 @@ export async function GET(
  * Only a period that has already ended in Philippine Time can be finalized.
  */
 
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { error: authError } = await getActiveOwner();
+    if (authError) return authError;
+
+    const { id: teacherId } = await context.params;
+    const body = await request.json();
+    const action = String(body?.action || "");
+    const payrollId = String(body?.payrollId || "");
+    if (!teacherId || !payrollId) {
+      return NextResponse.json({ error: "Teacher and payroll are required." }, { status: 400 });
+    }
+
+    const admin = createAdminClient();
+    const { data: payroll, error: payrollError } = await admin
+      .from("teacher_payroll")
+      .select("id, teacher_id, gross_pay, status")
+      .eq("id", payrollId)
+      .eq("teacher_id", teacherId)
+      .maybeSingle();
+    if (payrollError) return NextResponse.json({ error: payrollError.message }, { status: 500 });
+    if (!payroll) return NextResponse.json({ error: "Payroll record not found." }, { status: 404 });
+
+    const now = new Date().toISOString();
+    let update: Record<string, unknown>;
+    let eventType: string;
+
+    if (action === "mark_paid") {
+      if (payroll.status !== "pending") {
+        return NextResponse.json({ error: "Only pending payroll can have payment recorded." }, { status: 409 });
+      }
+      const paymentDate = String(body?.paymentDate || "").trim();
+      const paymentMethod = String(body?.paymentMethod || "").trim();
+      const paymentReference = String(body?.paymentReference || "").trim() || null;
+      if (!paymentDate || !paymentMethod) {
+        return NextResponse.json({ error: "Payment date and method are required." }, { status: 400 });
+      }
+      update = {
+        status: "paid",
+        payment_date: paymentDate,
+        payment_method: paymentMethod,
+        payment_reference: paymentReference,
+        paid_at: now,
+      };
+      eventType = "payment_sent";
+    } else {
+      return NextResponse.json({ error: "Unsupported payroll action." }, { status: 400 });
+    }
+
+    const { data: updated, error: updateError } = await admin
+      .from("teacher_payroll")
+      .update(update)
+      .eq("id", payrollId)
+      .eq("teacher_id", teacherId)
+      .select("*")
+      .single();
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+
+    const { data: { user } } = await (await createClient()).auth.getUser();
+    await admin.from("teacher_payroll_audit").insert({
+      payroll_id: payrollId,
+      actor_user_id: user?.id || null,
+      actor_role: "owner",
+      event_type: eventType,
+      details: eventType === "payment_sent" ? { amount_paid: Number(payroll.gross_pay), payment_date: body.paymentDate, payment_method: body.paymentMethod, payment_reference: body.paymentReference || null } : { gross_pay: Number(payroll.gross_pay) },
+    });
+
+    return NextResponse.json({ success: true, payroll: updated });
+  } catch (error) {
+    console.error("Unexpected teacher payroll PATCH error:", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error." }, { status: 500 });
+  }
+}
+
 export async function POST(
   request: Request,
   context: {
@@ -1771,6 +1855,8 @@ export async function POST(
           payment_date,
           approved_at,
           paid_at,
+          received_at,
+          received_by,
           created_at,
           updated_at
         `
@@ -2191,6 +2277,8 @@ export async function POST(
           payment_date,
           approved_at,
           paid_at,
+          received_at,
+          received_by,
           created_at,
           updated_at
         `
