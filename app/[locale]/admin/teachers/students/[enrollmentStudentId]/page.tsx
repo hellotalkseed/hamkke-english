@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, BookOpen, CalendarDays, FileText, Home, UserRound, Users, Wallet } from "lucide-react";
 import ProgressReportPanel from "@/components/admin/teacher-portal/ProgressReportPanel";
 
@@ -39,7 +40,10 @@ function statusClass(status: string) { if(status==="completed") return "bg-[#ECE
 
 export default function TeachingRecordPage({ params }: Props) {
   const { locale, enrollmentStudentId } = use(params);
-  const [data,setData]=useState<RecordData|null>(null); const [loading,setLoading]=useState(true); const [error,setError]=useState<string|null>(null); const [tab,setTab]=useState<Tab>("overview");
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const initialTab: Tab = requestedTab === "lessons" || requestedTab === "reports" || requestedTab === "notes" ? requestedTab : "overview";
+  const [data,setData]=useState<RecordData|null>(null); const [loading,setLoading]=useState(true); const [error,setError]=useState<string|null>(null); const [tab,setTab]=useState<Tab>(initialTab);
   useEffect(()=>{ let alive=true; fetch(`/api/admin/teachers/students/${enrollmentStudentId}`,{cache:"no-store"}).then(async r=>{const v=await r.json(); if(!r.ok) throw new Error(v.error||"Unable to load Teaching Record."); return v;}).then(v=>{if(alive)setData(v)}).catch(e=>{if(alive)setError(e instanceof Error?e.message:"Unable to load Teaching Record.")}).finally(()=>{if(alive)setLoading(false)}); return()=>{alive=false}; },[enrollmentStudentId]);
   const name=data?.student?.preferred_name||data?.student?.full_name||"Student"; const teacherName=data?.teacher?.full_name||"Teacher"; const firstName=teacherName.trim().split(/\s+/)[0]||"T"; const progress=data?.progress; const pct=progress?.total?Math.min(100,Math.round(progress.used/progress.total*100)):0;
   const completed = useMemo(()=>data?.lessons?.filter(l=>l.attendance_status!=="scheduled")??[],[data]);

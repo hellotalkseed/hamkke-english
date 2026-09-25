@@ -11,6 +11,7 @@ import {
   User,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { countConsumedEnrollmentLessons } from "@/lib/enrollmentLessonUsage";
 import LessonActions from "@/components/admin/LessonActions";
 import PrintAttendanceButton from "@/components/admin/PrintAttendanceButton";
 import PrintableAttendance from "@/components/admin/PrintableAttendance";
@@ -1066,29 +1067,9 @@ export default async function StudentPage({
     ).length;
 
   const consumedLessons =
-    currentLessons.filter((lesson) => {
-      if (lesson.consumes_lesson === true) {
-        return true;
-      }
-
-      if (
-        lesson.attendance_status === "completed" ||
-        lesson.attendance_status === "no_show" ||
-        lesson.attendance_status === "late_cancellation"
-      ) {
-        return true;
-      }
-
-      if (
-        lesson.attendance_status ===
-          "unexpected_circumstance" &&
-        lesson.resolution === "counted_as_completed"
-      ) {
-        return true;
-      }
-
-      return false;
-    }).length;
+    countConsumedEnrollmentLessons(
+      currentLessons
+    );
 
   const totalLessons =
     currentEnrollment?.number_of_lessons ?? 0;

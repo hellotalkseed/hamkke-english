@@ -464,6 +464,53 @@ async function createAutomaticRolloverLesson(
   return rolloverLesson;
 }
 
+
+async function syncEnrollmentCompletionStatus(
+  supabase: any,
+  enrollmentId: string
+) {
+  const { data: enrollment, error: enrollmentError } = await supabase
+    .from("enrollments")
+    .select("id, status, number_of_lessons")
+    .eq("id", enrollmentId)
+    .single();
+
+  if (enrollmentError) {
+    throw new Error(`Unable to load enrollment completion state: ${enrollmentError.message}`);
+  }
+
+  // Never overwrite an explicitly cancelled enrollment.
+  if (enrollment.status === "cancelled") return enrollment.status;
+
+  const { count, error: countError } = await supabase
+    .from("lessons")
+    .select("id", { count: "exact", head: true })
+    .eq("enrollment_id", enrollmentId)
+    .eq("consumes_lesson", true);
+
+  if (countError) {
+    throw new Error(`Unable to count consumed enrollment lessons: ${countError.message}`);
+  }
+
+  const consumedLessons = count ?? 0;
+  const packageLessons = Number(enrollment.number_of_lessons ?? 0);
+  const nextStatus = packageLessons > 0 && consumedLessons >= packageLessons
+    ? "completed"
+    : "active";
+
+  if (enrollment.status !== nextStatus) {
+    const { error: statusError } = await supabase
+      .from("enrollments")
+      .update({ status: nextStatus })
+      .eq("id", enrollmentId);
+
+    if (statusError) {
+      throw new Error(`Unable to update enrollment completion state: ${statusError.message}`);
+    }
+  }
+
+  return nextStatus;
+}
 export async function PATCH(
   request: Request,
   { params }: RouteContext
@@ -1311,6 +1358,11 @@ export async function PATCH(
    * RETURN UPDATED LESSON
    * ------------------------------------------------------------
    */
+
+  await syncEnrollmentCompletionStatus(
+    supabase,
+    lesson.enrollment_id
+  );
 
   return NextResponse.json({
     success: true,

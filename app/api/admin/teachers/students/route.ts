@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { countConsumedEnrollmentLessons } from "@/lib/enrollmentLessonUsage";
 
 type StudentRow = {
   id: string;
@@ -16,6 +17,7 @@ type EnrollmentRow = {
   status: string;
   number_of_lessons: number | null;
   lesson_duration: number | null;
+  renewal_of: string | null;
 };
 
 type EnrollmentStudentRow = {
@@ -88,14 +90,84 @@ export async function GET() {
       .select(`
         id, enrollment_id, student_id,
         students ( id, student_number, full_name, preferred_name, timezone ),
-        enrollments ( id, package_name, status, number_of_lessons, lesson_duration )
+        enrollments ( id, package_name, status, number_of_lessons, lesson_duration, renewal_of )
       `)
       .in("id", ids);
 
     if (participantError) return NextResponse.json({ error: participantError.message }, { status: 500 });
-    const participants = (participantData || []) as EnrollmentStudentRow[];
+    const assignedParticipants = (participantData || []) as EnrollmentStudentRow[];
+    const studentIds = Array.from(new Set(assignedParticipants.map((p) => p.student_id)));
+
+    // Owner/Admin enrollment state is the source of truth for the current term.
+    // A teacher assignment may still point at the just-completed enrollment after
+    // the Owner activates its renewal. Follow only that student's renewal chain,
+    // and use the active descendant as the Teacher Portal current package.
+    const { data: ownerParticipantData, error: ownerParticipantError } = await admin
+      .from("enrollment_students")
+      .select(`
+        id, enrollment_id, student_id,
+        students ( id, student_number, full_name, preferred_name, timezone ),
+        enrollments ( id, package_name, status, number_of_lessons, lesson_duration, renewal_of )
+      `)
+      .in("student_id", studentIds);
+
+    if (ownerParticipantError) {
+      return NextResponse.json({ error: ownerParticipantError.message }, { status: 500 });
+    }
+
+    const ownerParticipants = (ownerParticipantData || []) as EnrollmentStudentRow[];
+    const ownerByStudent = new Map<string, EnrollmentStudentRow[]>();
+    for (const participant of ownerParticipants) {
+      const list = ownerByStudent.get(participant.student_id) || [];
+      list.push(participant);
+      ownerByStudent.set(participant.student_id, list);
+    }
+
+    const resolveOwnerCurrentParticipant = (assigned: EnrollmentStudentRow) => {
+      const candidates = ownerByStudent.get(assigned.student_id) || [];
+      let current = assigned;
+      const visited = new Set<string>();
+
+      while (!visited.has(current.enrollment_id)) {
+        visited.add(current.enrollment_id);
+
+        const child = candidates.find((candidate) => {
+          const enrollment = one(candidate.enrollments);
+          return (
+            enrollment?.renewal_of === current.enrollment_id &&
+            enrollment.status === "active"
+          );
+        });
+
+        if (!child) break;
+        current = child;
+      }
+
+      return current;
+    };
+
+    const resolvedByStudent = new Map<string, EnrollmentStudentRow>();
+    for (const assigned of assignedParticipants) {
+      const resolved = resolveOwnerCurrentParticipant(assigned);
+      const existing = resolvedByStudent.get(assigned.student_id);
+
+      if (!existing) {
+        resolvedByStudent.set(assigned.student_id, resolved);
+        continue;
+      }
+
+      const existingEnrollment = one(existing.enrollments);
+      const resolvedEnrollment = one(resolved.enrollments);
+      if (
+        existingEnrollment?.status !== "active" &&
+        resolvedEnrollment?.status === "active"
+      ) {
+        resolvedByStudent.set(assigned.student_id, resolved);
+      }
+    }
+
+    const participants = Array.from(resolvedByStudent.values());
     const enrollmentIds = Array.from(new Set(participants.map((p) => p.enrollment_id)));
-    const studentIds = Array.from(new Set(participants.map((p) => p.student_id)));
 
     const [{ data: lessons, error: lessonError }, { data: schedules, error: scheduleError }] = await Promise.all([
       admin.from("lessons")
@@ -133,22 +205,10 @@ export async function GET() {
         (l) => l.student_id === participant.student_id
       );
 
-      // Source of truth: same calculation as Owner Admin -> Student Record
-      // -> Attendance & Lessons. Shared enrollments use the complete shared
-      // lesson pool; the student's next lesson remains participant-specific.
-      const consumed = enrollmentLessons.filter((l) => {
-        if (l.consumes_lesson === true) return true;
-        if (
-          l.attendance_status === "completed" ||
-          l.attendance_status === "no_show" ||
-          l.attendance_status === "late_cancellation"
-        ) return true;
-        if (
-          l.attendance_status === "unexpected_circumstance" &&
-          l.resolution === "counted_as_completed"
-        ) return true;
-        return false;
-      }).length;
+      // Owner/Admin Student Record is the source of truth for package usage.
+      // Shared enrollments use the complete enrollment lesson pool; only
+      // participant-specific schedule/next-lesson data is filtered by student.
+      const consumed = countConsumedEnrollmentLessons(enrollmentLessons);
       const next = studentLessons
         .map((l) => ({ ...l, pht: convertStudentTimeToPht(l.lesson_date, l.schedule_time, student?.timezone || null) }))
         .filter((l) => {
