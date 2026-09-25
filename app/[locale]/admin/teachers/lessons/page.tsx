@@ -6,7 +6,14 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  CalendarDays,
+  FileText,
+  Home,
+  UserRound,
+  Users,
+  Wallet,
 } from "lucide-react";
+import TeacherLessonModal from "@/components/admin/teacher-portal/TeacherLessonModal";
 
 interface TeacherLesson {
   id: string;
@@ -300,11 +307,11 @@ function getAssessmentStartMinutes(
 function getAssessmentStatusClass(status: string) {
   switch (status) {
     case "completed":
-      return "border-[#8FB2C7] bg-[#C9DDE9] text-[#365D73] hover:border-[#7CA4BB] hover:bg-[#BDD4E1]";
+      return "border-[#AFC7B2] bg-[#E2EBDD] text-[#4F6F54] hover:border-[#97B39B] hover:bg-[#D9E5D6]";
     case "no_show":
       return "border-[#D6AAA4] bg-[#F3D9D5] text-[#8A5C56] hover:border-[#C8958E] hover:bg-[#EDCFCA]";
     default:
-      return "border-[#A9C4D4] bg-[#DDEAF2] text-[#466B80] hover:border-[#95B5C8] hover:bg-[#D2E3ED]";
+      return "border-[#91AD94] bg-[#DCE8DA] text-[#45634A] hover:border-[#7F9D83] hover:bg-[#D2E1D0]";
   }
 }
 
@@ -362,6 +369,17 @@ function getLessonStatusLabel(status: string) {
   }
 }
 
+const portalNav = (locale: string) => [
+  { label: "Home", href: `/${locale}/admin/teachers`, icon: Home },
+  { label: "My Lessons", href: `/${locale}/admin/teachers/lessons`, icon: BookOpen },
+  { label: "My Students", href: `/${locale}/admin/teachers/students`, icon: Users },
+  { label: "Progress Reports", href: `/${locale}/admin/teachers/progress-reports`, icon: FileText },
+  { label: "Availability", href: `/${locale}/admin/teachers/availability`, icon: CalendarDays },
+  { label: "My Profile", href: `/${locale}/admin/teachers/profile`, icon: UserRound },
+  { label: "Teacher Agreement", href: `/${locale}/admin/teachers/agreement`, icon: FileText },
+  { label: "Payroll", href: `/${locale}/admin/teachers/payroll`, icon: Wallet },
+];
+
 export default function TeacherLessonsPage({
   params,
 }: TeacherLessonsPageProps) {
@@ -380,6 +398,8 @@ export default function TeacherLessonsPage({
 
   const [error, setError] =
     useState<string | null>(null);
+
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
 
   const [currentWeek, setCurrentWeek] =
     useState(() =>
@@ -713,86 +733,35 @@ export default function TeacherLessonsPage({
     };
   }
 
-  const PageHeader = () => (
-    <header
-      className="
-        w-full
-        px-6
-        pt-7
-        sm:px-8
-        sm:pt-8
-        lg:px-10
-        xl:px-12
-      "
-    >
-      <div
-        className="
-          flex
-          w-full
-          items-start
-          justify-between
-          gap-8
-        "
-      >
-        <Link
-          href={`/${locale}/admin/teachers`}
-          className="
-            shrink-0
-            font-sans
-            text-[15px]
-            text-[#5F655F]
-            transition-colors
-            duration-200
-            hover:text-[#6F8F72]
-            sm:text-[16px]
-          "
-        >
-          &larr; Back to Dashboard
+  const Sidebar = () => {
+    const teacherName = data?.teacher?.full_name || "Teacher";
+    const firstName = teacherName.trim().split(/\s+/)[0] || "T";
+    return (
+      <aside className="hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:flex lg:flex-col">
+        <Link href={`/${locale}`} className="block">
+          <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p>
+          <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p>
         </Link>
-
-        <div
-          className="
-            shrink-0
-            text-right
-          "
-        >
-          <p
-            className="
-              font-sans
-              text-[16px]
-              font-semibold
-              leading-none
-              tracking-[0.18em]
-              text-[#6F8F72]
-            "
-          >
-            HAMKKE │ 함께
-          </p>
-
-          <p
-            className="
-              mt-2
-              font-serif
-              text-[13px]
-              font-normal
-              leading-none
-              tracking-[0.02em]
-              text-[#6F8F72]
-            "
-          >
-            From Small Talk to Big Ideas
-          </p>
+        <nav className="mt-9 space-y-1.5">
+          {portalNav(locale).map(({ label, href, icon: Icon }) => (
+            <Link key={label} href={href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 font-sans text-[14px] transition ${label === "My Lessons" ? "bg-[#E2EBDD] font-medium text-[#49614D]" : "text-[#5F5C57] hover:bg-[#ECE8E2]"}`}>
+              <Icon size={16} strokeWidth={1.6} />{label}
+            </Link>
+          ))}
+        </nav>
+        <div className="mt-auto border-t border-[#DED7CF] pt-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E2EBDD] font-serif text-[#55705A]">{firstName.charAt(0)}</div>
+            <div className="min-w-0"><p className="truncate font-sans text-[13px] font-medium">{teacherName}</p><p className="text-[11px] text-[#8A857E]">Teacher</p></div>
+          </div>
         </div>
-      </div>
-    </header>
-  );
+      </aside>
+    );
+  };
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f7f6f1]">
-        <PageHeader />
-
-        <div className="mx-auto max-w-7xl px-6 pb-8 pt-12 lg:px-8 lg:pb-10 lg:pt-16">
+      <main className="min-h-screen bg-[#FAF8F5]"><div className="mx-auto flex min-h-screen max-w-[1500px]"><Sidebar /><section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9"><div className="mx-auto max-w-7xl">
           <div className="flex items-start gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
               <BookOpen
@@ -818,16 +787,15 @@ export default function TeacherLessonsPage({
             </p>
           </div>
         </div>
+        </section>
+      </div>
       </main>
     );
   }
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#f7f6f1]">
-        <PageHeader />
-
-        <div className="mx-auto max-w-7xl px-6 pb-8 pt-12 lg:px-8 lg:pb-10 lg:pt-16">
+      <main className="min-h-screen bg-[#FAF8F5]"><div className="mx-auto flex min-h-screen max-w-[1500px]"><Sidebar /><section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9"><div className="mx-auto max-w-7xl">
           <div className="flex items-start gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
               <BookOpen
@@ -853,41 +821,23 @@ export default function TeacherLessonsPage({
             </p>
           </div>
         </div>
+        </section>
+      </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f6f1] text-[#30332f]">
-      <PageHeader />
-
-      <div className="mx-auto max-w-7xl px-6 pb-8 pt-12 lg:px-8 lg:pb-10 lg:pt-16">
-        <div className="mb-9 flex items-start gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e5ece4] text-[#6f8f72]">
-            <BookOpen
-              size={20}
-              strokeWidth={1.8}
-            />
-          </div>
-
-          <div>
-            <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-[#8a8c86]">
-              Teacher
-            </p>
-
-            <h1 className="text-3xl font-semibold tracking-tight text-[#30332f]">
-              My Lessons
-            </h1>
-
-            {data?.teacher?.full_name && (
-              <p className="mt-2 text-sm text-[#73756f]">
-                Welcome back,{" "}
-                <span className="font-medium text-[#4d514b]">
-                  {data.teacher.full_name}
-                </span>
-              </p>
-            )}
-          </div>
+    <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
+      <div className="mx-auto flex min-h-screen max-w-[1500px]">
+        <Sidebar />
+        <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-9">
+          <div className="mb-7 flex items-center justify-between lg:hidden"><Link href={`/${locale}`} className="font-sans text-[13px] font-semibold tracking-[0.14em] text-[#5F7F63]">HAMKKE │ 함께</Link></div>
+          <p className="font-sans text-[11px] font-medium uppercase tracking-[0.16em] text-[#6F8F72]">Teacher Portal</p>
+          <h1 className="mt-3 font-serif text-[38px] font-normal tracking-[-0.03em] sm:text-[46px]">My Lessons</h1>
+          <p className="mt-2 font-serif text-[17px] text-[#74716B]">View your weekly teaching schedule and class records.</p>
         </div>
 
         <div className="mb-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -968,7 +918,7 @@ export default function TeacherLessonsPage({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto border-y border-[#dcd8d2] bg-[#fffefa]">
+          <div className="overflow-x-auto rounded-[20px] border border-[#E7DDD1] bg-white shadow-[0_8px_30px_rgba(70,65,58,0.035)]">
             <div className="min-w-[980px]">
               <div className="grid grid-cols-[78px_repeat(7,minmax(0,1fr))] border-b border-[#dcd8d2] bg-[#faf8f5]">
                 <div className="border-r border-[#e4e1dc]" />
@@ -1106,9 +1056,10 @@ export default function TeacherLessonsPage({
                               "Student";
 
                             return (
-                              <Link
+                              <button
+                                type="button"
                                 key={lesson.id}
-                                href={`/${locale}/admin/teachers/lessons/${lesson.id}`}
+                                onClick={() => setSelectedLessonId(lesson.id)}
                                 aria-label={`Open lesson ${lesson.lesson_number} for ${studentName}`}
                                 className={`group absolute left-1 right-1 z-20 overflow-hidden border px-2 py-1.5 transition-colors ${getLessonStatusClass(
                                   lesson.attendance_status
@@ -1146,7 +1097,7 @@ export default function TeacherLessonsPage({
                                     )}
                                   </span>
                                 </p>
-                              </Link>
+                              </button>
                             );
                           }
                         )}
@@ -1222,15 +1173,11 @@ export default function TeacherLessonsPage({
                     <span className="font-medium text-[#62675f]">
                       Available
                     </span>
-
-                    <span className="text-[10px] text-[#a0a29c]">
-                      #E4F0E3
-                    </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 shrink-0 border border-[#A9C4D4] bg-[#DDEAF2]" />
+                  <span className="h-3 w-3 shrink-0 border border-[#91AD94] bg-[#DCE8DA]" />
 
                   <div className="flex items-baseline gap-1.5">
                     <span className="font-medium text-[#62675f]">
@@ -1250,10 +1197,6 @@ export default function TeacherLessonsPage({
                     <span className="font-medium text-[#62675f]">
                       Scheduled
                     </span>
-
-                    <span className="text-[10px] text-[#a0a29c]">
-                      #F3E8B8
-                    </span>
                   </div>
                 </div>
 
@@ -1263,10 +1206,6 @@ export default function TeacherLessonsPage({
                   <div className="flex items-baseline gap-1.5">
                     <span className="font-medium text-[#62675f]">
                       Completed
-                    </span>
-
-                    <span className="text-[10px] text-[#a0a29c]">
-                      #ECEBFA
                     </span>
                   </div>
                 </div>
@@ -1278,10 +1217,6 @@ export default function TeacherLessonsPage({
                     <span className="font-medium text-[#62675f]">
                       No-show
                     </span>
-
-                    <span className="text-[10px] text-[#a0a29c]">
-                      #F3D9D5
-                    </span>
                   </div>
                 </div>
 
@@ -1291,10 +1226,6 @@ export default function TeacherLessonsPage({
                   <div className="flex items-baseline gap-1.5">
                     <span className="font-medium text-[#62675f]">
                       Late cancellation
-                    </span>
-
-                    <span className="text-[10px] text-[#a0a29c]">
-                      #F4E3CF
                     </span>
                   </div>
                 </div>
@@ -1306,10 +1237,6 @@ export default function TeacherLessonsPage({
                     <span className="font-medium text-[#62675f]">
                       Adjusted / Cancelled
                     </span>
-
-                    <span className="text-[10px] text-[#a0a29c]">
-                      #ECEEEA
-                    </span>
                   </div>
                 </div>
 
@@ -1319,10 +1246,6 @@ export default function TeacherLessonsPage({
                   <div className="flex items-baseline gap-1.5">
                     <span className="font-medium text-[#62675f]">
                       Unavailable
-                    </span>
-
-                    <span className="text-[10px] text-[#a0a29c]">
-                      #F3D9D5
                     </span>
                   </div>
                 </div>
@@ -1341,6 +1264,9 @@ export default function TeacherLessonsPage({
           </div>
         )}
       </div>
+        </section>
+      </div>
+      <TeacherLessonModal locale={locale} lessonId={selectedLessonId} onClose={() => setSelectedLessonId(null)} />
     </main>
   );
 }

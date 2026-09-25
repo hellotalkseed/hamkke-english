@@ -1,0 +1,69 @@
+"use client";
+
+import Link from "next/link";
+import { use, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, BookOpen, CalendarDays, FileText, Home, UserRound, Users, Wallet } from "lucide-react";
+import ProgressReportPanel from "@/components/admin/teacher-portal/ProgressReportPanel";
+
+type Lesson = { id: string; lesson_number: number; philippine_date: string; philippine_time: string | null; duration: number; attendance_status: string; material?: string | null; lesson_page?: string | null };
+type RecordData = {
+  teacher?: { id: string; full_name: string | null };
+  student?: { id: string; student_number: string | null; full_name: string | null; preferred_name: string | null; timezone: string | null };
+  enrollment?: { id: string; enrollment_number: string | null; package_name: string | null; status: string; number_of_lessons: number | null; lesson_duration: number | null };
+  progress?: { used: number; total: number; remaining: number };
+  regular_schedule?: { id: string; day_of_week: number; schedule_time: string }[];
+  next_lesson?: Lesson | null;
+  current_material?: { material: string | null; lesson_page: string | null; lesson_number: number } | null;
+  recent_lessons?: Lesson[];
+  lessons?: Lesson[];
+  error?: string;
+};
+type Props = { params: Promise<{ locale: string; enrollmentStudentId: string }> };
+type Tab = "overview" | "lessons" | "reports" | "notes";
+
+const nav = (locale: string) => [
+  { label: "Home", href: `/${locale}/admin/teachers`, icon: Home },
+  { label: "My Lessons", href: `/${locale}/admin/teachers/lessons`, icon: BookOpen },
+  { label: "My Students", href: `/${locale}/admin/teachers/students`, icon: Users },
+  { label: "Progress Reports", href: `/${locale}/admin/teachers/progress-reports`, icon: FileText },
+  { label: "Availability", href: `/${locale}/admin/teachers/availability`, icon: CalendarDays },
+  { label: "My Profile", href: `/${locale}/admin/teachers/profile`, icon: UserRound },
+  { label: "Teacher Agreement", href: `/${locale}/admin/teachers/agreement`, icon: FileText },
+  { label: "Payroll", href: `/${locale}/admin/teachers/payroll`, icon: Wallet },
+];
+const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+function formatTime(value: string | null) { if (!value) return "Time to be confirmed"; const [h,m]=value.split(":").map(Number); return new Date(2000,0,1,h,m).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}); }
+function formatDate(value: string) { const [y,m,d]=value.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }
+function statusLabel(status: string) { const map: Record<string,string>={completed:"Completed",no_show:"No-show",late_cancellation:"Late cancellation",student_cancelled_rescheduled:"Rescheduled",student_cancelled_credit:"Credit",unexpected_circumstance:"Unexpected circumstance",teacher_cancelled:"Teacher cancelled",scheduled:"Upcoming"}; return map[status] || status.replaceAll("_"," "); }
+function statusClass(status: string) { if(status==="completed") return "bg-[#ECEBFA] text-[#5F5F8F]"; if(status==="no_show") return "bg-[#F3D9D5] text-[#8A5C56]"; if(status==="late_cancellation") return "bg-[#F4E3CF] text-[#80664A]"; if(status==="scheduled") return "bg-[#F3E8B8] text-[#665A31]"; return "bg-[#ECEEEA] text-[#6F736C]"; }
+
+export default function TeachingRecordPage({ params }: Props) {
+  const { locale, enrollmentStudentId } = use(params);
+  const [data,setData]=useState<RecordData|null>(null); const [loading,setLoading]=useState(true); const [error,setError]=useState<string|null>(null); const [tab,setTab]=useState<Tab>("overview");
+  useEffect(()=>{ let alive=true; fetch(`/api/admin/teachers/students/${enrollmentStudentId}`,{cache:"no-store"}).then(async r=>{const v=await r.json(); if(!r.ok) throw new Error(v.error||"Unable to load Teaching Record."); return v;}).then(v=>{if(alive)setData(v)}).catch(e=>{if(alive)setError(e instanceof Error?e.message:"Unable to load Teaching Record.")}).finally(()=>{if(alive)setLoading(false)}); return()=>{alive=false}; },[enrollmentStudentId]);
+  const name=data?.student?.preferred_name||data?.student?.full_name||"Student"; const teacherName=data?.teacher?.full_name||"Teacher"; const firstName=teacherName.trim().split(/\s+/)[0]||"T"; const progress=data?.progress; const pct=progress?.total?Math.min(100,Math.round(progress.used/progress.total*100)):0;
+  const completed = useMemo(()=>data?.lessons?.filter(l=>l.attendance_status!=="scheduled")??[],[data]);
+
+  return <main className="min-h-screen bg-[#FAF8F5] text-[#292929]"><div className="mx-auto flex min-h-screen max-w-[1500px]">
+    <aside className="hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start lg:flex-col lg:overflow-y-auto"><Link href={`/${locale}`}><p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p><p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p></Link><nav className="mt-9 space-y-1.5">{nav(locale).map(({label,href,icon:Icon})=><Link key={label} href={href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition ${label==="My Students"?"bg-[#E2EBDD] font-medium text-[#49614D]":"text-[#5F5C57] hover:bg-[#ECE8E2]"}`}><Icon size={16} strokeWidth={1.6}/>{label}</Link>)}</nav><div className="mt-auto border-t border-[#DED7CF] pt-5"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E2EBDD] font-serif text-[#55705A]">{firstName.charAt(0)}</div><div><p className="text-[13px] font-medium">{teacherName}</p><p className="text-[11px] text-[#8A857E]">Teacher</p></div></div></div></aside>
+    <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9"><div className="mx-auto max-w-7xl">
+      <Link href={`/${locale}/admin/teachers/students`} className="inline-flex items-center gap-2 text-[12px] font-medium text-[#6F8F72] hover:text-[#4D6951]"><ArrowLeft size={14}/>My Students</Link>
+      {loading?<div className="mt-8 rounded-[20px] border border-[#E7DDD1] bg-white p-10 text-center text-[13px] text-[#8B857E]">Loading Teaching Record...</div>:error?<div className="mt-8 rounded-[20px] border border-[#E6D6D1] bg-[#FFFAF8] p-5 text-[13px] text-[#A45F58]">{error}</div>:<>
+        <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#6F8F72]">Teaching Record</p><div className="mt-3 flex items-center gap-4"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E2EBDD] font-serif text-[24px] text-[#55705A]">{name.charAt(0).toUpperCase()}</div><div><h1 className="font-serif text-[38px] tracking-[-0.03em] sm:text-[46px]">{name}</h1><p className="mt-1 text-[12px] text-[#8B857E]">{data?.student?.student_number||"Student number to be confirmed"} · Active student</p></div></div></div><div className="rounded-full border border-[#C9D8C8] bg-[#EEF4EB] px-3 py-1.5 text-[11px] font-medium text-[#55705A]">{data?.enrollment?.package_name||"Current enrollment"}</div></div>
+        <div className="mt-8 flex gap-1 overflow-x-auto border-b border-[#DDD6CE]">{([['overview','Overview'],['lessons','Lessons'],['reports','Progress Reports'],['notes','Teaching Notes']] as [Tab,string][]).map(([key,label])=><button key={key} onClick={()=>setTab(key)} className={`whitespace-nowrap border-b-2 px-4 py-3 text-[12px] font-medium transition ${tab===key?"border-[#6F8F72] text-[#4E684F]":"border-transparent text-[#817B74] hover:text-[#55514C]"}`}>{label}</button>)}</div>
+
+        {tab==="overview"&&<div className="mt-6 grid gap-5 xl:grid-cols-[1.1fr_.9fr]">
+          <div className="space-y-5"><section className="rounded-[20px] border border-[#E7DDD1] bg-white p-6"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9A948C]">Current package</p><div className="mt-3 flex items-end justify-between"><div><p className="font-serif text-[30px]">{progress?.used??0} / {progress?.total??0}</p><p className="text-[12px] text-[#8B857E]">lessons used · {progress?.remaining??0} remaining</p></div><p className="text-[12px] text-[#6F746E]">{data?.enrollment?.lesson_duration?`${data.enrollment.lesson_duration} minutes per lesson`:""}</p></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-[#EEEAE4]"><div className="h-full rounded-full bg-[#8FAA91]" style={{width:`${pct}%`}}/></div></section>
+          <section className="rounded-[20px] border border-[#E7DDD1] bg-white p-6"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9A948C]">Regular schedule</p><div className="mt-3 flex flex-wrap gap-2">{data?.regular_schedule?.length?data.regular_schedule.map(s=><span key={s.id} className="rounded-full bg-[#F4F1EC] px-3 py-2 text-[12px] text-[#625E58]">{dayNames[s.day_of_week]} · {formatTime(s.schedule_time)}</span>):<p className="text-[12px] text-[#8B857E]">No regular schedule recorded.</p>}</div><p className="mt-3 text-[10px] text-[#9A948C]">Student-local recurring schedule</p></section>
+          <section className="rounded-[20px] border border-[#E7DDD1] bg-white p-6"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9A948C]">Recent classes</p><button onClick={()=>setTab('lessons')} className="text-[11px] font-medium text-[#6F8F72]">View all →</button></div><div className="mt-3 divide-y divide-[#EEE9E3]">{data?.recent_lessons?.length?data.recent_lessons.slice(0,5).map(l=><Link key={l.id} href={`/${locale}/admin/teachers/lessons/${l.id}`} className="flex items-center justify-between gap-4 py-3"><div><p className="text-[13px] font-medium">Lesson {l.lesson_number}</p><p className="mt-1 text-[11px] text-[#8B857E]">{formatDate(l.philippine_date)} · {formatTime(l.philippine_time)}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${statusClass(l.attendance_status)}`}>{statusLabel(l.attendance_status)}</span></Link>):<p className="py-4 text-[12px] text-[#8B857E]">No completed classes yet.</p>}</div></section></div>
+          <div className="space-y-5"><section className="rounded-[20px] border border-[#E8D99B] bg-[#FFF4C7] p-6"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7E713D]">Next lesson</p>{data?.next_lesson?<><p className="mt-3 font-serif text-[25px]">{formatDate(data.next_lesson.philippine_date)}</p><p className="mt-1 text-[14px] text-[#5D563B]">{formatTime(data.next_lesson.philippine_time)} · {data.next_lesson.duration} minutes · PHT</p><Link href={`/${locale}/admin/teachers/lessons/${data.next_lesson.id}`} className="mt-5 inline-block text-[12px] font-semibold text-[#665A31]">Open Class Record →</Link></>:<p className="mt-3 text-[13px] text-[#776F50]">No upcoming lesson scheduled.</p>}</section>
+          <section className="rounded-[20px] border border-[#E7DDD1] bg-white p-6"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9A948C]">Current material & progress</p>{data?.current_material?<div className="mt-3"><p className="font-serif text-[22px]">{data.current_material.material||"Material not named"}</p><p className="mt-2 text-[12px] text-[#74716B]">{data.current_material.lesson_page||"Lesson/page not recorded"}</p><p className="mt-1 text-[10px] text-[#9A948C]">Latest recorded in Lesson {data.current_material.lesson_number}</p></div>:<p className="mt-3 text-[12px] text-[#8B857E]">No material has been recorded in this enrollment yet.</p>}</section></div>
+        </div>}
+
+        {tab==="lessons"&&<section className="mt-6 overflow-hidden rounded-[20px] border border-[#E7DDD1] bg-white"><div className="border-b border-[#EEE9E3] px-6 py-5"><h2 className="font-serif text-[22px]">Lesson history</h2><p className="mt-1 text-[11px] text-[#8B857E]">{data?.student?.preferred_name || data?.student?.full_name || "Student"}'s classes in the current enrollment · Philippine Time</p></div><div className="divide-y divide-[#EEE9E3]">{data?.lessons?.map(l=><Link key={l.id} href={`/${locale}/admin/teachers/lessons/${l.id}`} className="grid gap-2 px-6 py-4 transition hover:bg-[#FBFAF8] sm:grid-cols-[90px_1fr_auto] sm:items-center"><p className="text-[12px] font-medium">Lesson {l.lesson_number}</p><div><p className="text-[13px]">{formatDate(l.philippine_date)} · {formatTime(l.philippine_time)}</p>{(l.material||l.lesson_page)&&<p className="mt-1 text-[11px] text-[#8B857E]">{[l.material,l.lesson_page].filter(Boolean).join(" · ")}</p>}</div><span className={`w-fit rounded-full px-2.5 py-1 text-[10px] font-medium ${statusClass(l.attendance_status)}`}>{statusLabel(l.attendance_status)}</span></Link>)}</div></section>}
+        {tab==="reports"&&<ProgressReportPanel enrollmentStudentId={enrollmentStudentId} studentName={name} packageName={data?.enrollment?.package_name || "Current enrollment"} enrollmentNumber={data?.enrollment?.enrollment_number || "-"} enrollmentStatus={data?.enrollment?.status || "active"} usedLessons={progress?.used || 0} totalLessons={progress?.total || 0} teacherName={teacherName} />}
+        {tab==="notes"&&<section className="mt-6 rounded-[20px] border border-[#E7DDD1] bg-white p-8"><h2 className="font-serif text-[24px]">Teaching Notes</h2><p className="mt-2 max-w-2xl text-[13px] leading-6 text-[#77716A]">Lesson-specific notes and observations remain inside each Class Record. Open a lesson below to review or update its teaching notes.</p><div className="mt-5 flex flex-wrap gap-2">{completed.slice(0,6).map(l=><Link key={l.id} href={`/${locale}/admin/teachers/lessons/${l.id}`} className="rounded-full bg-[#F4F1EC] px-3 py-2 text-[11px] text-[#5F625D]">Lesson {l.lesson_number} →</Link>)}</div></section>}
+      </>}
+    </div></section>
+  </div></main>;
+}

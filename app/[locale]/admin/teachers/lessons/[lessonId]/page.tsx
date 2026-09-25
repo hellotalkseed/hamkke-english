@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import TeacherLessonActions from "@/components/admin/TeacherLessonActions";
 import { use, useEffect, useState } from "react";
 import {
@@ -103,6 +104,8 @@ export default function LessonDetailsPage({
   params,
 }: LessonDetailsPageProps) {
   const { locale, lessonId } = use(params);
+  const searchParams = useSearchParams();
+  const embedded = searchParams.get("embedded") === "1";
 
   const [data, setData] =
     useState<LessonResponse | null>(null);
@@ -797,79 +800,81 @@ export default function LessonDetailsPage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#faf8f5]">
+      <main className={embedded ? "bg-[#faf8f5]" : "min-h-screen bg-[#faf8f5]"}>
+        {!embedded && (
         <header
-          className="
-            w-full
-            px-6
-            pt-7
-            sm:px-8
-            sm:pt-8
-            lg:px-10
-            xl:px-12
-          "
-        >
-          <div
-            className="
-              flex
-              w-full
-              items-start
-              justify-between
-              gap-8
-            "
-          >
-            <Link
-              href={`/${locale}/admin/teachers/lessons`}
-              className="
-                shrink-0
-                font-sans
-                text-[15px]
-                text-[#5F655F]
-                transition-colors
-                duration-200
-                hover:text-[#6F8F72]
-                sm:text-[16px]
-              "
-            >
-              &larr; My Lessons
-            </Link>
-
-            <div
-              className="
-                shrink-0
-                text-right
-              "
-            >
-              <p
-                className="
-                  font-sans
-                  text-[16px]
-                  font-semibold
-                  leading-none
-                  tracking-[0.18em]
-                  text-[#6F8F72]
-                "
-              >
-                HAMKKE │ 함께
-              </p>
-
-              <p
-                className="
-                  mt-2
-                  font-serif
-                  text-[13px]
-                  font-normal
-                  leading-none
-                  tracking-[0.02em]
-                  text-[#6F8F72]
-                "
-              >
-                From Small Talk to Big Ideas
-              </p>
-            </div>
-          </div>
-        </header>
-        <div className="mx-auto max-w-5xl px-6 py-12">
+                  className="
+                    w-full
+                    px-6
+                    pt-7
+                    sm:px-8
+                    sm:pt-8
+                    lg:px-10
+                    xl:px-12
+                  "
+                >
+                  <div
+                    className="
+                      flex
+                      w-full
+                      items-start
+                      justify-between
+                      gap-8
+                    "
+                  >
+                    <Link
+                      href={`/${locale}/admin/teachers/lessons`}
+                      className="
+                        shrink-0
+                        font-sans
+                        text-[15px]
+                        text-[#5F655F]
+                        transition-colors
+                        duration-200
+                        hover:text-[#6F8F72]
+                        sm:text-[16px]
+                      "
+                    >
+                      &larr; My Lessons
+                    </Link>
+        
+                    <div
+                      className="
+                        shrink-0
+                        text-right
+                      "
+                    >
+                      <p
+                        className="
+                          font-sans
+                          text-[16px]
+                          font-semibold
+                          leading-none
+                          tracking-[0.18em]
+                          text-[#6F8F72]
+                        "
+                      >
+                        HAMKKE │ 함께
+                      </p>
+        
+                      <p
+                        className="
+                          mt-2
+                          font-serif
+                          text-[13px]
+                          font-normal
+                          leading-none
+                          tracking-[0.02em]
+                          text-[#6F8F72]
+                        "
+                      >
+                        From Small Talk to Big Ideas
+                      </p>
+                    </div>
+                  </div>
+                </header>
+      )}
+        <div className={embedded ? "mx-auto max-w-5xl px-6 py-7 sm:px-8" : "mx-auto max-w-5xl px-6 py-12"}>
           <div className="animate-pulse space-y-6">
             <div className="h-4 w-32 rounded bg-[#e7e1da]" />
             <div className="h-9 w-64 rounded bg-[#e7e1da]" />
@@ -882,79 +887,81 @@ export default function LessonDetailsPage({
 
   if (error && !data) {
     return (
-      <main className="min-h-screen bg-[#faf8f5]">
+      <main className={embedded ? "bg-[#faf8f5]" : "min-h-screen bg-[#faf8f5]"}>
+        {!embedded && (
         <header
-          className="
-            w-full
-            px-6
-            pt-7
-            sm:px-8
-            sm:pt-8
-            lg:px-10
-            xl:px-12
-          "
-        >
-          <div
-            className="
-              flex
-              w-full
-              items-start
-              justify-between
-              gap-8
-            "
-          >
-            <Link
-              href={`/${locale}/admin/teachers/lessons`}
-              className="
-                shrink-0
-                font-sans
-                text-[15px]
-                text-[#5F655F]
-                transition-colors
-                duration-200
-                hover:text-[#6F8F72]
-                sm:text-[16px]
-              "
-            >
-              &larr; My Lessons
-            </Link>
-
-            <div
-              className="
-                shrink-0
-                text-right
-              "
-            >
-              <p
-                className="
-                  font-sans
-                  text-[16px]
-                  font-semibold
-                  leading-none
-                  tracking-[0.18em]
-                  text-[#6F8F72]
-                "
-              >
-                HAMKKE │ 함께
-              </p>
-
-              <p
-                className="
-                  mt-2
-                  font-serif
-                  text-[13px]
-                  font-normal
-                  leading-none
-                  tracking-[0.02em]
-                  text-[#6F8F72]
-                "
-              >
-                From Small Talk to Big Ideas
-              </p>
-            </div>
-          </div>
-        </header>
-        <div className="mx-auto max-w-5xl px-6 py-12">
+                  className="
+                    w-full
+                    px-6
+                    pt-7
+                    sm:px-8
+                    sm:pt-8
+                    lg:px-10
+                    xl:px-12
+                  "
+                >
+                  <div
+                    className="
+                      flex
+                      w-full
+                      items-start
+                      justify-between
+                      gap-8
+                    "
+                  >
+                    <Link
+                      href={`/${locale}/admin/teachers/lessons`}
+                      className="
+                        shrink-0
+                        font-sans
+                        text-[15px]
+                        text-[#5F655F]
+                        transition-colors
+                        duration-200
+                        hover:text-[#6F8F72]
+                        sm:text-[16px]
+                      "
+                    >
+                      &larr; My Lessons
+                    </Link>
+        
+                    <div
+                      className="
+                        shrink-0
+                        text-right
+                      "
+                    >
+                      <p
+                        className="
+                          font-sans
+                          text-[16px]
+                          font-semibold
+                          leading-none
+                          tracking-[0.18em]
+                          text-[#6F8F72]
+                        "
+                      >
+                        HAMKKE │ 함께
+                      </p>
+        
+                      <p
+                        className="
+                          mt-2
+                          font-serif
+                          text-[13px]
+                          font-normal
+                          leading-none
+                          tracking-[0.02em]
+                          text-[#6F8F72]
+                        "
+                      >
+                        From Small Talk to Big Ideas
+                      </p>
+                    </div>
+                  </div>
+                </header>
+      )}
+        <div className={embedded ? "mx-auto max-w-5xl px-6 py-7 sm:px-8" : "mx-auto max-w-5xl px-6 py-12"}>
 
           <div className="mt-8 rounded-3xl border border-[#eadbd5] bg-white p-6">
             <p className="text-sm text-[#9a5f56]">
@@ -983,82 +990,84 @@ export default function LessonDetailsPage({
 
 
   return (
-    <main className="min-h-screen bg-[#faf8f5]">
-      <header
-          className="
-            w-full
-            px-6
-            pt-7
-            sm:px-8
-            sm:pt-8
-            lg:px-10
-            xl:px-12
-          "
-        >
-          <div
-            className="
-              flex
-              w-full
-              items-start
-              justify-between
-              gap-8
-            "
-          >
-            <Link
-              href={`/${locale}/admin/teachers/lessons`}
-              className="
-                shrink-0
-                font-sans
-                text-[15px]
-                text-[#5F655F]
-                transition-colors
-                duration-200
-                hover:text-[#6F8F72]
-                sm:text-[16px]
-              "
-            >
-              &larr; My Lessons
-            </Link>
-
-            <div
-              className="
-                shrink-0
-                text-right
-              "
-            >
-              <p
-                className="
-                  font-sans
-                  text-[16px]
-                  font-semibold
-                  leading-none
-                  tracking-[0.18em]
-                  text-[#6F8F72]
-                "
-              >
-                HAMKKE │ 함께
-              </p>
-
-              <p
-                className="
-                  mt-2
-                  font-serif
-                  text-[13px]
-                  font-normal
-                  leading-none
-                  tracking-[0.02em]
-                  text-[#6F8F72]
-                "
-              >
-                From Small Talk to Big Ideas
-              </p>
-            </div>
-          </div>
-      </header>
-      <div className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
+    <main className={embedded ? "bg-[#faf8f5]" : "min-h-screen bg-[#faf8f5]"}>
+      {!embedded && (
+        <header
+                  className="
+                    w-full
+                    px-6
+                    pt-7
+                    sm:px-8
+                    sm:pt-8
+                    lg:px-10
+                    xl:px-12
+                  "
+                >
+                  <div
+                    className="
+                      flex
+                      w-full
+                      items-start
+                      justify-between
+                      gap-8
+                    "
+                  >
+                    <Link
+                      href={`/${locale}/admin/teachers/lessons`}
+                      className="
+                        shrink-0
+                        font-sans
+                        text-[15px]
+                        text-[#5F655F]
+                        transition-colors
+                        duration-200
+                        hover:text-[#6F8F72]
+                        sm:text-[16px]
+                      "
+                    >
+                      &larr; My Lessons
+                    </Link>
+        
+                    <div
+                      className="
+                        shrink-0
+                        text-right
+                      "
+                    >
+                      <p
+                        className="
+                          font-sans
+                          text-[16px]
+                          font-semibold
+                          leading-none
+                          tracking-[0.18em]
+                          text-[#6F8F72]
+                        "
+                      >
+                        HAMKKE │ 함께
+                      </p>
+        
+                      <p
+                        className="
+                          mt-2
+                          font-serif
+                          text-[13px]
+                          font-normal
+                          leading-none
+                          tracking-[0.02em]
+                          text-[#6F8F72]
+                        "
+                      >
+                        From Small Talk to Big Ideas
+                      </p>
+                    </div>
+                  </div>
+              </header>
+      )}
+      <div className={embedded ? "mx-auto max-w-6xl px-5 pb-10 pt-5 sm:px-7 sm:pt-7" : "mx-auto max-w-5xl px-6 py-10 sm:py-12"}>
 
         {/* Header */}
-        <div className="mt-8">
+        <div className={embedded ? "mt-0" : "mt-8"}>
           <div className="flex items-start justify-between gap-6">
             <div>
               <h1 className="font-serif text-4xl leading-tight tracking-tight text-[#2d2d2d] sm:text-5xl">

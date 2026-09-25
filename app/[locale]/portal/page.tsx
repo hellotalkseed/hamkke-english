@@ -3,16 +3,19 @@ import Link from "next/link";
 import { ArrowUpRight, ChevronDown, Home, BookOpen, ClipboardCheck, FileText, Settings, NotebookPen } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidLocale } from "@/lib/i18n";
 import { portalMessages } from "@/lib/portal/messages";
 import { parseOverview, type PortalEnrollment } from "@/lib/portal/overview";
 import PortalHeader from "@/components/portal/PortalHeader";
+import PortalProgressReports, { type PortalProgressReport } from "@/components/portal/PortalProgressReports";
+import PortalAttendanceHistory, { type PortalAttendanceHistoryRow } from "@/components/portal/PortalAttendanceHistory";
 
 
 const dashboardCopy = {
   en: {
     scheduleNote: "Check upcoming lessons for rescheduled dates and times.",
-    termAttendance: "Attendance for this term", noTermAttendance: "No attendance records for this term.",
+    lessonNotesLabel: "Lesson Notes", viewNotes: "View", closeNotes: "Close",
     attendanceSummary: "Attendance summary", attendanceHistory: "Attendance history", completedLabel: "Completed", noShowLabel: "No-show", lateCancellationLabel: "Late cancellation", scheduledLabel: "Upcoming", lessonLabel: "Lesson", statusLabel: "Status", noAttendance: "No attendance records yet for your active term.", attendanceError: "Unable to load attendance records. Please try again.",
     dateLabel: "Date", dayLabel: "Day", timeLabel: "Time",
     upcoming: "Upcoming lessons", noUpcoming: "No upcoming lessons are scheduled for your active term.", noMore: "No additional upcoming lessons.", noSchedule: "Your regular schedule has not been set yet.", lessonError: "Unable to load lesson details. Please try again.", timePending: "Time to be confirmed", teacher: "Teacher", platform: "Platform",
@@ -25,11 +28,11 @@ const dashboardCopy = {
     noActiveHelp: "You can check your registered terms below.", lessons: "Explore lessons",
     total: "Lessons in this term", package: "Lesson package", reference: "Enrollment number",
     shared: "Shared term", individual: "Individual term", history: "Previous terms",
-    historyHelp: "View completed and cancelled terms.", pending: "Upcoming & pending terms", enrollmentOverview: "Current enrollment", lessonUsage: "Lesson usage", termInformation: "Term information", paymentAgreement: "Payment & agreement", tuitionLabel: "Tuition", paymentStatusLabel: "Payment status", paymentDateLabel: "Payment date", paymentMethodLabel: "Payment method", agreementLabel: "Lesson Agreement", agreementNumberLabel: "Agreement no.", agreementDateLabel: "Agreement date", acceptedByLabel: "Accepted by", relationshipLabel: "Relationship", adminDetailsError: "Payment and agreement details could not be loaded.", activeStatus: "Active", viewAgreement: "View your Lesson Agreement", viewAgreementHelp: "Read the full agreement you accepted.", policyHelp: "View our lesson policies, cancellation terms, and other important information.",
+    historyHelp: "View completed and cancelled terms.", pending: "Upcoming & pending terms",
   },
   ko: {
     scheduleNote: "변경된 수업 날짜와 시간은 예정된 수업에서 확인하세요.",
-    termAttendance: "이 수강 기간의 출석 기록", noTermAttendance: "이 수강 기간의 출석 기록이 없습니다.",
+    lessonNotesLabel: "수업 노트", viewNotes: "보기", closeNotes: "닫기",
     attendanceSummary: "출석 요약", attendanceHistory: "출석 기록", completedLabel: "완료", noShowLabel: "결석", lateCancellationLabel: "늦은 취소", scheduledLabel: "예정된 수업", lessonLabel: "수업", statusLabel: "상태", noAttendance: "현재 수강 과정의 출석 기록이 아직 없습니다.", attendanceError: "출석 기록을 불러오지 못했습니다. 다시 시도해 주세요.",
     dateLabel: "날짜", dayLabel: "요일", timeLabel: "시간",
     upcoming: "예정된 수업", noUpcoming: "현재 수강 기간에 예정된 수업이 없습니다.", noMore: "추가로 예정된 수업이 없습니다.", noSchedule: "정규 수업 일정이 아직 등록되지 않았습니다.", lessonError: "수업 정보를 불러오지 못했습니다. 다시 시도해 주세요.", timePending: "시간 확인 필요", teacher: "선생님", platform: "수업 플랫폼",
@@ -42,11 +45,11 @@ const dashboardCopy = {
     noActiveHelp: "아래에서 등록된 수강 내역을 확인할 수 있습니다.", lessons: "수업 알아보기",
     total: "전체 수업 횟수", package: "수강 과정", reference: "수강 등록 번호",
     shared: "공유 수강권", individual: "개인 수강권", history: "지난 수강 내역",
-    historyHelp: "완료되거나 취소된 수강 내역을 확인하세요.", pending: "예정 및 대기 중인 수강 내역", enrollmentOverview: "현재 수강 등록", lessonUsage: "수업 이용 현황", termInformation: "수강 정보", paymentAgreement: "결제 및 수강 계약", tuitionLabel: "수강료", paymentStatusLabel: "결제 상태", paymentDateLabel: "결제일", paymentMethodLabel: "결제 방법", agreementLabel: "수강 계약", agreementNumberLabel: "계약 번호", agreementDateLabel: "계약일", acceptedByLabel: "동의자", relationshipLabel: "학생과의 관계", adminDetailsError: "결제 및 수강 계약 정보를 불러오지 못했습니다.", activeStatus: "수강 중", viewAgreement: "수강 계약서 보기", viewAgreementHelp: "동의한 수강 계약서 전문을 확인하세요.", policyHelp: "수업 규정, 취소 규정 및 기타 중요 안내를 확인하세요.",
+    historyHelp: "완료되거나 취소된 수강 내역을 확인하세요.", pending: "예정 및 대기 중인 수강 내역",
   },
   zh: {
     scheduleNote: "请在即将开始的课程中查看调整后的日期和时间。",
-    termAttendance: "本套餐出勤记录", noTermAttendance: "本套餐暂无出勤记录。",
+    lessonNotesLabel: "课堂笔记", viewNotes: "查看", closeNotes: "关闭",
     attendanceSummary: "出勤概览", attendanceHistory: "出勤记录", completedLabel: "已完成", noShowLabel: "缺席", lateCancellationLabel: "临时取消", scheduledLabel: "即将开始", lessonLabel: "课程", statusLabel: "状态", noAttendance: "当前课程套餐暂无出勤记录。", attendanceError: "无法加载出勤记录，请重试。",
     dateLabel: "日期", dayLabel: "星期", timeLabel: "时间",
     upcoming: "即将开始的课程", noUpcoming: "当前课包暂无已安排的课程。", noMore: "暂无其他已安排的课程。", noSchedule: "固定课表尚未设置。", lessonError: "无法加载课程信息，请重试。", timePending: "时间待确认", teacher: "老师", platform: "上课平台",
@@ -59,11 +62,11 @@ const dashboardCopy = {
     noActiveHelp: "你可以在下方查看已登记的套餐。", lessons: "了解课程",
     total: "套餐总课时", package: "课程套餐", reference: "报名编号",
     shared: "共享套餐", individual: "个人套餐", history: "历史套餐",
-    historyHelp: "查看已完成和已取消的套餐。", pending: "即将开始及待处理的套餐", enrollmentOverview: "当前报名", lessonUsage: "课时使用情况", termInformation: "报名信息", paymentAgreement: "付款与课程协议", tuitionLabel: "学费", paymentStatusLabel: "付款状态", paymentDateLabel: "付款日期", paymentMethodLabel: "付款方式", agreementLabel: "课程协议", agreementNumberLabel: "协议编号", agreementDateLabel: "协议日期", acceptedByLabel: "同意人", relationshipLabel: "与学员关系", adminDetailsError: "无法加载付款和课程协议信息。", activeStatus: "进行中", viewAgreement: "查看课程协议", viewAgreementHelp: "查看您已同意的完整课程协议。", policyHelp: "查看课程规定、取消条款及其他重要信息。",
+    historyHelp: "查看已完成和已取消的套餐。", pending: "即将开始及待处理的套餐",
   },
   ja: {
     scheduleNote: "変更された日時は、今後のレッスンでご確認ください。",
-    termAttendance: "この受講期間の出席記録", noTermAttendance: "この受講期間の出席記録はありません。",
+    lessonNotesLabel: "レッスンノート", viewNotes: "表示", closeNotes: "閉じる",
     attendanceSummary: "出席状況", attendanceHistory: "出席記録", completedLabel: "完了", noShowLabel: "欠席", lateCancellationLabel: "直前キャンセル", scheduledLabel: "今後のレッスン", lessonLabel: "レッスン", statusLabel: "ステータス", noAttendance: "現在の受講コースにはまだ出席記録がありません。", attendanceError: "出席記録を読み込めませんでした。もう一度お試しください。",
     dateLabel: "日付", dayLabel: "曜日", timeLabel: "時間",
     upcoming: "今後のレッスン", noUpcoming: "現在の受講期間に予定されているレッスンはありません。", noMore: "ほかに予定されているレッスンはありません。", noSchedule: "通常のレッスンスケジュールはまだ設定されていません。", lessonError: "レッスン情報を読み込めませんでした。もう一度お試しください。", timePending: "時間は確認中です", teacher: "講師", platform: "プラットフォーム",
@@ -76,7 +79,7 @@ const dashboardCopy = {
     noActiveHelp: "登録済みのコースは下から確認できます。", lessons: "レッスンを見る",
     total: "合計レッスン数", package: "受講コース", reference: "受講登録番号",
     shared: "共有パッケージ", individual: "個人パッケージ", history: "過去のコース",
-    historyHelp: "修了・キャンセルしたコースを確認できます。", pending: "開始予定・手続き中のコース", enrollmentOverview: "現在の受講登録", lessonUsage: "レッスン利用状況", termInformation: "受講情報", paymentAgreement: "お支払い・受講契約", tuitionLabel: "受講料", paymentStatusLabel: "支払い状況", paymentDateLabel: "支払日", paymentMethodLabel: "支払い方法", agreementLabel: "受講契約", agreementNumberLabel: "契約番号", agreementDateLabel: "契約日", acceptedByLabel: "同意者", relationshipLabel: "受講者との関係", adminDetailsError: "お支払い・受講契約情報を読み込めませんでした。", activeStatus: "受講中", viewAgreement: "受講契約書を見る", viewAgreementHelp: "同意した受講契約書の全文を確認できます。", policyHelp: "レッスン規定、キャンセル規定、その他の重要事項を確認できます。",
+    historyHelp: "修了・キャンセルしたコースを確認できます。", pending: "開始予定・手続き中のコース",
   },
 } as const;
 
@@ -154,59 +157,6 @@ function parseAttendanceDetails(value: unknown): PortalAttendanceData {
   };
 }
 
-
-type PortalEnrollmentAdminDetail = {
-  student_id: string;
-  enrollment_id: string;
-  payment_id: string | null;
-  tuition_amount: number | null;
-  tuition_currency: string | null;
-  payment_status: string | null;
-  payment_date: string | null;
-  payment_method: string | null;
-  contract_id: string | null;
-  contract_number: string | null;
-  contract_status: string | null;
-  agreement_date: string | null;
-  accepted_by_name: string | null;
-  accepted_by_relationship: string | null;
-};
-
-function parseEnrollmentAdminDetails(value: unknown): PortalEnrollmentAdminDetail[] {
-  if (!Array.isArray(value)) throw new Error("Invalid enrollment admin details");
-  return value.map((entry) => {
-    if (!entry || typeof entry !== "object") throw new Error("Invalid enrollment admin row");
-    const row = entry as Record<string, unknown>;
-    const required = (key: string) => {
-      if (typeof row[key] !== "string") throw new Error(`Invalid ${key}`);
-      return row[key] as string;
-    };
-    const nullable = (key: string) => row[key] === null || row[key] === undefined
-      ? null
-      : required(key);
-    const amount = row.tuition_amount;
-    if (amount !== null && amount !== undefined && (typeof amount !== "number" || !Number.isFinite(amount))) {
-      throw new Error("Invalid tuition_amount");
-    }
-    return {
-      student_id: required("student_id"),
-      enrollment_id: required("enrollment_id"),
-      payment_id: nullable("payment_id"),
-      tuition_amount: amount === null || amount === undefined ? null : Number(amount),
-      tuition_currency: nullable("tuition_currency"),
-      payment_status: nullable("payment_status"),
-      payment_date: nullable("payment_date"),
-      payment_method: nullable("payment_method"),
-      contract_id: nullable("contract_id"),
-      contract_number: nullable("contract_number"),
-      contract_status: nullable("contract_status"),
-      agreement_date: nullable("agreement_date"),
-      accepted_by_name: nullable("accepted_by_name"),
-      accepted_by_relationship: nullable("accepted_by_relationship"),
-    };
-  });
-}
-
 export default async function PortalPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ student?: string; view?: string }>;
@@ -272,39 +222,6 @@ export default async function PortalPage({ params, searchParams }: {
   const activeTerms = packages.filter((item) => item.enrollment_status === "active");
   const previousTerms = packages.filter((item) => item.enrollment_status === "completed" || item.enrollment_status === "cancelled");
   const pendingTerms = packages.filter((item) => item.enrollment_status !== "active" && item.enrollment_status !== "completed" && item.enrollment_status !== "cancelled");
-  let enrollmentAdminDetails: PortalEnrollmentAdminDetail[] = [];
-  let enrollmentAdminFailed = false;
-  if (view === "enrollment" && !failed && selectedId) {
-    const response = await supabase.rpc("get_portal_enrollment_admin_details");
-    if (response.error) enrollmentAdminFailed = true;
-    else {
-      try { enrollmentAdminDetails = parseEnrollmentAdminDetails(response.data); }
-      catch { enrollmentAdminFailed = true; }
-    }
-  }
-  const enrollmentAdminById = new Map(
-    enrollmentAdminDetails
-      .filter((detail) => detail.student_id === selectedId)
-      .map((detail) => [detail.enrollment_id, detail] as const)
-  );
-  function displayStatus(value: string | null) {
-    if (!value) return "-";
-    return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-  function paymentMethod(value: string | null) {
-    if (!value) return "-";
-    const normalized = value.trim().toLowerCase().replace(/[\s_-]+/g, "");
-    const known: Record<string, string> = { gcash: "GCash", paypal: "PayPal", bank: "Bank transfer", banktransfer: "Bank transfer", sentbe: "SentBe" };
-    return known[normalized] ?? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-  function money(amount: number | null, currency: string | null) {
-    if (amount === null || !currency) return "-";
-    try {
-      return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: currency === "KRW" ? 0 : 2 }).format(amount);
-    } catch {
-      return `${currency} ${number.format(amount)}`;
-    }
-  }
   let lessonDetails: ReturnType<typeof parseLessonDetails> = { lessons: [], schedules: [] };
   let lessonsFailed = false;
   if (view === "lessons" && !failed && selectedId && activeTerms.length > 0) {
@@ -314,12 +231,64 @@ export default async function PortalPage({ params, searchParams }: {
   }
   let attendanceDetails: PortalAttendanceData = { records: [], summary: { completed: 0, no_show: 0, late_cancellation: 0, scheduled: 0 } };
   let attendanceFailed = false;
-  if ((view === "attendance" || view === "enrollment") && !failed && selectedId) {
+  if (view === "attendance" && !failed && selectedId && activeTerms.length > 0) {
     const response = await supabase.rpc("get_portal_attendance_details");
     if (response.error) attendanceFailed = true;
     else { try { attendanceDetails = parseAttendanceDetails(response.data); } catch { attendanceFailed = true; } }
   }
   const attendanceRows = attendanceDetails.records.filter((item) => item.student_id === selectedId);
+  const lessonNotesById = new Map<string, string>();
+  if (view === "attendance" && attendanceRows.length > 0) {
+    // The lesson IDs come from the authenticated portal RPC and are already scoped
+    // to this portal account. Query notes only for those authorized lesson IDs.
+    const admin = createAdminClient();
+    const { data: noteRows, error: notesError } = await admin
+      .from("lessons")
+      .select("id, notes")
+      .in("id", attendanceRows.map((item) => item.id));
+    if (notesError) attendanceFailed = true;
+    else for (const row of noteRows ?? []) {
+      if (typeof row.notes === "string" && row.notes.trim()) lessonNotesById.set(row.id, row.notes.trim());
+    }
+  }
+
+  const attendanceHistoryRows: PortalAttendanceHistoryRow[] = attendanceRows.map((record) => ({
+    id: record.id,
+    date: date(record.lesson_date),
+    time: time(record.schedule_time),
+    timezone: record.timezone.replaceAll("_", " "),
+    status: attendanceStatus(record.attendance_status, record.resolution),
+    statusTone: attendanceTone(record.attendance_status, record.resolution),
+    lesson: record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`,
+    notes: lessonNotesById.get(record.id) ?? null,
+  }));
+
+  let progressReports: PortalProgressReport[] = [];
+  if (view === "reports" && !failed && selectedId && packages.length > 0) {
+    const admin = createAdminClient();
+    const enrollmentIds = packages.map((item) => item.enrollment_id).filter((id): id is string => Boolean(id));
+    const { data: participantRows } = await admin.from("enrollment_students").select("id, enrollment_id").eq("student_id", selectedId).in("enrollment_id", enrollmentIds);
+    const participantIds = (participantRows ?? []).map((row) => row.id);
+    if (participantIds.length > 0) {
+      const { data: reportRows } = await admin.from("progress_reports").select("*").in("enrollment_student_id", participantIds).eq("status", "completed");
+      const { data: assignmentRows } = await admin.from("teacher_assignments").select("enrollment_student_id, teacher_id").in("enrollment_student_id", participantIds);
+      const teacherIds = [...new Set((assignmentRows ?? []).map((row) => row.teacher_id).filter(Boolean))];
+      const { data: teacherRows } = teacherIds.length ? await admin.from("profiles").select("id, full_name").in("id", teacherIds) : { data: [] as {id:string;full_name:string|null}[] };
+      const teacherById = new Map((teacherRows ?? []).map((row) => [row.id, row.full_name || "Hamkke Teacher"]));
+      const assignmentByParticipant = new Map((assignmentRows ?? []).map((row) => [row.enrollment_student_id, row.teacher_id]));
+      const participantById = new Map((participantRows ?? []).map((row) => [row.id, row.enrollment_id]));
+      const packageByEnrollment = new Map(packages.map((item) => [item.enrollment_id, item]));
+      progressReports = (reportRows ?? []).map((row: Record<string, any>) => {
+        const enrollmentId = participantById.get(String(row.enrollment_student_id));
+        const term = enrollmentId ? packageByEnrollment.get(enrollmentId) : undefined;
+        const teacherId = String(row.teacher_id ?? assignmentByParticipant.get(String(row.enrollment_student_id)) ?? "");
+        return {
+          id: String(row.id), enrollment_number: term?.enrollment_number ?? "-", enrollment_status: term?.enrollment_status ?? "completed", teacher_name: teacherById.get(teacherId) ?? "Hamkke Teacher",
+          communication_expression: String(row.communication_expression ?? ""), speaking_interaction: String(row.speaking_interaction ?? ""), vocabulary_expression_range: String(row.vocabulary_expression_range ?? ""), grammar_sentence_building: String(row.grammar_sentence_building ?? ""), pronunciation_clarity: String(row.pronunciation_clarity ?? ""), confidence_participation: String(row.confidence_participation ?? ""), overall_progress: String(row.overall_progress ?? ""), next_focus: String(row.next_focus ?? ""), teacher_note: String(row.teacher_note ?? ""),
+        };
+      }).sort((a,b) => b.enrollment_number.localeCompare(a.enrollment_number));
+    }
+  }
 
   const lessonRows = lessonDetails.lessons.filter((item) => item.student_id === selectedId);
   const scheduleRows = lessonDetails.schedules.filter((item) => item.student_id === selectedId);
@@ -410,42 +379,6 @@ export default async function PortalPage({ params, searchParams }: {
           </div>)}
         </dl>
         {termDetails(item)}
-        {(item.enrollment_status === "completed" || item.enrollment_status === "cancelled") && (() => {
-          const termAttendance = attendanceRows
-            .filter((record) => record.enrollment_id === item.enrollment_id)
-            .sort((a, b) => a.lesson_date.localeCompare(b.lesson_date) || (a.schedule_time ?? "").localeCompare(b.schedule_time ?? ""));
-          return <div className="mt-7 border-t border-[#718A73]/20 pt-6">
-            <h4 className="font-serif text-xl sm:text-2xl">{d.termAttendance}</h4>
-            {attendanceFailed ? <p className="mt-3 text-sm leading-6 text-[#607568]">{d.attendanceError}</p>
-              : termAttendance.length ? <>
-                <div className="mt-4 hidden overflow-hidden rounded-xl border border-[#718A73]/20 md:block">
-                  <table className="w-full table-fixed text-left text-sm">
-                    <caption className="sr-only">{d.termAttendance}</caption>
-                    <thead className="bg-[#EEF2EA]/60 text-xs text-[#607568]"><tr>
-                      {[d.dateLabel, d.timeLabel, d.statusLabel, d.lessonLabel].map((label) => <th key={label} scope="col" className="px-4 py-3 font-medium">{label}</th>)}
-                    </tr></thead>
-                    <tbody className="divide-y divide-[#718A73]/15">
-                      {termAttendance.map((record) => <tr key={record.id}>
-                        <td className="px-4 py-3 align-middle">{date(record.lesson_date)}</td>
-                        <td className="px-4 py-3 align-middle">{time(record.schedule_time)}<span className="mt-1 block text-xs text-[#607568]">{record.timezone.replaceAll("_", " ")}</span></td>
-                        <td className="px-4 py-3 align-middle"><span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-medium ${attendanceTone(record.attendance_status, record.resolution)}`}>{attendanceStatus(record.attendance_status, record.resolution)}</span></td>
-                        <td className="px-4 py-3 align-middle">{record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`}</td>
-                      </tr>)}
-                    </tbody>
-                  </table>
-                </div>
-                <ul className="mt-4 divide-y divide-[#718A73]/15 rounded-xl border border-[#718A73]/20 px-4 md:hidden">
-                  {termAttendance.map((record) => <li key={record.id} className="py-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div><p className="text-sm font-medium">{date(record.lesson_date)}</p><p className="mt-1 text-xs text-[#607568]">{time(record.schedule_time)} · {record.timezone.replaceAll("_", " ")}</p></div>
-                      <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${attendanceTone(record.attendance_status, record.resolution)}`}>{attendanceStatus(record.attendance_status, record.resolution)}</span>
-                    </div>
-                    <p className="mt-2 text-xs text-[#607568]">{record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`}</p>
-                  </li>)}
-                </ul>
-              </> : <p className="mt-3 text-sm leading-6 text-[#607568]">{d.noTermAttendance}</p>}
-          </div>;
-        })()}
         {item.is_shared && <p className="mt-4 text-sm leading-6 text-[#607568]">{t.sharedNote}</p>}
       </div>
     </details>;
@@ -524,95 +457,7 @@ export default async function PortalPage({ params, searchParams }: {
               learners.length === 0 ? <section className="rounded-2xl bg-[#EEF2EA] p-6"><h2 className="font-serif text-2xl">{t.noLearners}</h2><p className="mt-3 leading-7 text-[#607568]">{t.noLearnersHelp}</p></section>
               : packages.length === 0 ? <section className="rounded-2xl bg-[#EEF2EA] p-6"><h2 className="font-serif text-2xl">{t.noPackages}</h2><p className="mt-3 text-[#607568]">{t.noPackagesHelp}</p></section>
               : <div className="space-y-8">
-            {view === "enrollment" ? <section className="space-y-6">
-              {activeTerms.length > 0 ? activeTerms.map((item) => {
-                const hasTotal = item.total_lessons !== null && item.total_lessons > 0;
-                const percent = hasTotal ? Math.min(100, item.used_lessons / Number(item.total_lessons) * 100) : 0;
-                return <article key={item.enrollment_id} className="overflow-hidden rounded-2xl border border-[#718A73]/20 bg-[#FAF8F5]">
-                  <div className="flex flex-col gap-4 border-b border-[#718A73]/15 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#607568]">{d.enrollmentOverview}</p>
-                      <h2 className="mt-2 break-words font-serif text-2xl sm:text-3xl">{item.package_name ?? t.packages}</h2>
-                      <p className="mt-1 text-sm text-[#607568]">{item.enrollment_number ?? t.notSet}</p>
-                    </div>
-                    <span className="inline-flex w-fit rounded-full bg-[#E7EFE3] px-3 py-1.5 text-xs font-medium text-[#49634E]">{status(item)}</span>
-                  </div>
-
-                  <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                    <div className="border-b border-[#718A73]/15 p-5 sm:p-7 lg:border-b-0 lg:border-r">
-                      <p className="text-xs font-medium text-[#607568]">{d.lessonUsage}</p>
-                      <div className="mt-4 flex items-end justify-between gap-5">
-                        <div>
-                          <p className="font-serif text-4xl tabular-nums">{number.format(item.remaining_lessons)}</p>
-                          <p className="mt-1 text-sm text-[#607568]">{d.remaining}</p>
-                        </div>
-                        <p className="pb-1 text-sm tabular-nums text-[#607568]">{number.format(item.used_lessons)} / {item.total_lessons === null ? "-" : number.format(item.total_lessons)} {t.used.toLowerCase()}</p>
-                      </div>
-                      {hasTotal && <div role="progressbar" aria-label={t.used} aria-valuemin={0} aria-valuemax={item.total_lessons ?? undefined} aria-valuenow={Math.min(item.used_lessons, item.total_lessons ?? 0)}
-                        className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E6E2DC]">
-                        <div className="h-full rounded-full bg-[#7E9980]" style={{ width: `${percent}%` }} />
-                      </div>}
-                      <div className="mt-6 rounded-xl bg-[#EEF2EA]/65 p-4">
-                        <p className="text-xs font-medium text-[#607568]">{d.termInformation}</p>
-                        <div className="mt-4">{termDetails(item)}</div>
-                      </div>
-                      {item.is_shared && <p className="mt-4 text-xs leading-5 text-[#607568]">{t.sharedNote}</p>}
-                    </div>
-
-                    <div className="p-5 sm:p-7">
-                      <p className="text-xs font-medium text-[#607568]">{d.paymentAgreement}</p>
-                      {(() => {
-                        const admin = item.enrollment_id ? enrollmentAdminById.get(item.enrollment_id) : undefined;
-                        if (enrollmentAdminFailed) return <p className="mt-3 text-sm leading-6 text-[#607568]">{d.adminDetailsError}</p>;
-                        if (!admin) return <p className="mt-3 text-sm leading-6 text-[#607568]">-</p>;
-                        const hasPayment = Boolean(admin.payment_id);
-                        const hasContract = Boolean(admin.contract_id);
-                        return <div className="mt-4 space-y-6">
-                          <section>
-                            <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 gap-y-3 text-sm">
-                              <dt className="text-[#607568]">{d.tuitionLabel}</dt>
-                              <dd className="text-right font-medium">{hasPayment ? money(admin.tuition_amount, admin.tuition_currency) : "-"}</dd>
-                              <dt className="text-[#607568]">{d.paymentStatusLabel}</dt>
-                              <dd className="text-right">{hasPayment ? <span className="inline-flex rounded-full bg-[#E7EFE3] px-2.5 py-1 text-xs font-medium text-[#49634E]">{displayStatus(admin.payment_status)}</span> : "-"}</dd>
-                              <dt className="text-[#607568]">{d.paymentDateLabel}</dt>
-                              <dd className="text-right font-medium">{hasPayment ? date(admin.payment_date) : "-"}</dd>
-                              <dt className="text-[#607568]">{d.paymentMethodLabel}</dt>
-                              <dd className="text-right font-medium">{hasPayment ? paymentMethod(admin.payment_method) : "-"}</dd>
-                            </dl>
-                          </section>
-
-                          <section className="border-t border-[#718A73]/15 pt-5">
-                            <div className="flex items-center justify-between gap-4">
-                              <p className="font-serif text-xl">{d.agreementLabel}</p>
-                              {hasContract && <span className="inline-flex rounded-full bg-[#E7EFE3] px-2.5 py-1 text-xs font-medium text-[#49634E]">{displayStatus(admin.contract_status)}</span>}
-                            </div>
-                            <dl className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 gap-y-3 text-sm">
-                              <dt className="text-[#607568]">{d.agreementNumberLabel}</dt>
-                              <dd className="max-w-[14rem] break-words text-right font-medium">{hasContract ? admin.contract_number ?? "-" : "-"}</dd>
-                              <dt className="text-[#607568]">{d.agreementDateLabel}</dt>
-                              <dd className="text-right font-medium">{hasContract ? date(admin.agreement_date) : "-"}</dd>
-                              {admin.accepted_by_name && <>
-                                <dt className="text-[#607568]">{d.acceptedByLabel}</dt>
-                                <dd className="max-w-[14rem] break-words text-right font-medium">{admin.accepted_by_name}</dd>
-                              </>}
-                              {admin.accepted_by_relationship && <>
-                                <dt className="text-[#607568]">{d.relationshipLabel}</dt>
-                                <dd className="text-right font-medium">{displayStatus(admin.accepted_by_relationship)}</dd>
-                              </>}
-                            </dl>
-                          </section>
-
-                          {hasContract && item.enrollment_id && <Link href={`/${locale}/portal/agreement?enrollment=${encodeURIComponent(item.enrollment_id)}`} className={`flex min-h-20 items-center justify-between gap-4 rounded-xl bg-[#EEF2EA] px-5 py-4 transition hover:bg-[#E5ECE0] ${focus}`}>
-                            <span className="min-w-0"><span className="block text-sm font-medium text-[#293A30]">{d.viewAgreement}</span><span className="mt-1 block text-xs leading-5 text-[#607568]">{d.viewAgreementHelp}</span></span>
-                            <ArrowUpRight size={19} className="shrink-0" aria-hidden="true" />
-                          </Link>}
-                        </div>;
-                      })()}
-                    </div>
-                  </div>
-                </article>;
-              }) : <p className="text-[#607568]">{d.noActive}</p>}
-            </section> : activeTerms.length > 0 ? <section aria-label={d.current} className="space-y-5">
+            {view === "enrollment" ? <section>{activeTerms.map(compactTerm)}{activeTerms.length === 0 && <p className="text-[#607568]">{d.noActive}</p>}</section> : activeTerms.length > 0 ? <section aria-label={d.current} className="space-y-5">
               {activeTerms.map((item) => {
                 const usage = item.total_lessons === null
                   ? `${t.used}: ${number.format(item.used_lessons)}`
@@ -755,19 +600,12 @@ export default async function PortalPage({ params, searchParams }: {
               {pendingTerms.map(compactTerm)}
             </section>}
             {view === "enrollment" && <>
-              <details className="overflow-hidden rounded-2xl border border-[#718A73]/20 bg-[#FAF8F5]">
-                <summary className={`cursor-pointer list-none px-5 py-5 sm:px-7 [&::-webkit-details-marker]:hidden ${focus}`}>
-                  <div className="flex items-center justify-between gap-5">
-                    <div><p className="text-xs font-medium uppercase tracking-[0.14em] text-[#607568]">{d.history}</p><p className="mt-1 text-sm text-[#607568]">{d.historyHelp}</p></div>
-                    <ChevronDown size={19} className="shrink-0 text-[#607568]" aria-hidden="true" />
-                  </div>
-                </summary>
-                <div className="border-t border-[#718A73]/15 px-5 py-4 sm:px-7">{previousTerms.length ? previousTerms.map(compactTerm) : <p className="text-sm text-[#607568]">{d.emptyHistory}</p>}</div>
+              <details className="border-y border-[#718A73]/20 py-5">
+                <summary className={`cursor-pointer font-serif text-2xl ${focus}`}>{d.history}</summary>
+                <div className="mt-4">{previousTerms.length ? previousTerms.map(compactTerm) : <p className="text-sm text-[#607568]">{d.emptyHistory}</p>}</div>
               </details>
-              <Link href={`/${locale}/policy`} className={`flex min-h-24 items-center justify-between gap-5 rounded-2xl bg-[#365F4A] px-6 py-5 text-[#FFFDF8] shadow-[0_7px_0_rgba(54,95,74,0.25)] transition hover:bg-[#2F5542] sm:px-8 ${focus}`}>
-                <span className="min-w-0"><span className="block text-base font-medium">{d.fullPolicy}</span><span className="mt-1 block text-xs leading-5 text-[#FFFDF8]/80">{d.policyHelp}</span></span>
-                <ArrowUpRight size={23} className="shrink-0" aria-hidden="true" />
-              </Link>
+              <p className="text-sm leading-6 text-[#607568]">{d.adminSoon}</p>
+              <Link href={`/${locale}/policy`} className={`inline-flex min-h-11 items-center gap-2 text-sm underline ${focus}`}>{d.fullPolicy}<ArrowUpRight size={16} aria-hidden="true" /></Link>
             </>}
               </div>
             )}
@@ -794,38 +632,23 @@ export default async function PortalPage({ params, searchParams }: {
 
               <section aria-labelledby="attendance-history-heading">
                 <h2 id="attendance-history-heading" className="font-serif text-2xl sm:text-3xl">{d.attendanceHistory}</h2>
-                {attendanceRows.length ? <>
-                  <div className="mt-4 hidden overflow-hidden rounded-2xl border border-[#718A73]/20 md:block">
-                    <table className="w-full table-fixed text-left text-sm">
-                      <caption className="sr-only">{d.attendanceHistory}</caption>
-                      <thead className="bg-[#EEF2EA]/60 text-xs text-[#607568]"><tr>
-                        {[d.dateLabel, d.timeLabel, d.statusLabel, d.lessonLabel].map((label) => <th key={label} scope="col" className="px-5 py-4 font-medium">{label}</th>)}
-                      </tr></thead>
-                      <tbody className="divide-y divide-[#718A73]/15">
-                        {attendanceRows.map((record) => <tr key={record.id}>
-                          <td className="px-5 py-4 align-middle">{date(record.lesson_date)}</td>
-                          <td className="px-5 py-4 align-middle">{time(record.schedule_time)}<span className="mt-1 block text-xs text-[#607568]">{record.timezone.replaceAll("_", " ")}</span></td>
-                          <td className="px-5 py-4 align-middle"><span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-medium ${attendanceTone(record.attendance_status, record.resolution)}`}>{attendanceStatus(record.attendance_status, record.resolution)}</span></td>
-                          <td className="px-5 py-4 align-middle">{record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`}</td>
-                        </tr>)}
-                      </tbody>
-                    </table>
-                  </div>
-                  <ul className="mt-4 divide-y divide-[#718A73]/15 rounded-2xl border border-[#718A73]/20 px-5 md:hidden">
-                    {attendanceRows.map((record) => <li key={record.id} className="py-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div><p className="text-sm font-medium">{date(record.lesson_date)}</p><p className="mt-1 text-xs text-[#607568]">{time(record.schedule_time)} · {record.timezone.replaceAll("_", " ")}</p></div>
-                        <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${attendanceTone(record.attendance_status, record.resolution)}`}>{attendanceStatus(record.attendance_status, record.resolution)}</span>
-                      </div>
-                      <p className="mt-2 text-xs text-[#607568]">{record.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(record.lesson_number)}`}</p>
-                    </li>)}
-                  </ul>
-                </> : <p className="mt-4 text-sm leading-6 text-[#607568]">{d.noAttendance}</p>}
+                <PortalAttendanceHistory
+                  rows={attendanceHistoryRows}
+                  copy={{
+                    history: d.attendanceHistory,
+                    date: d.dateLabel,
+                    time: d.timeLabel,
+                    status: d.statusLabel,
+                    lesson: d.lessonLabel,
+                    lessonNotes: d.lessonNotesLabel,
+                    view: d.viewNotes,
+                    close: d.closeNotes,
+                    noAttendance: d.noAttendance,
+                  }}
+                />
               </section>
             </div>)}
-            {view === "reports" && <section className="max-w-2xl rounded-2xl bg-[#EEF2EA] p-6 sm:p-8">
-              <p className="leading-7 text-[#607568]">{d.reportsSoon}</p>
-            </section>}
+            {view === "reports" && <PortalProgressReports studentName={selectedName ?? "Student"} reports={progressReports} emptyText={d.reportsSoon} />}
             {view === "settings" && <section className="max-w-2xl">
               <dl className="grid gap-6 rounded-2xl bg-[#EEF2EA] p-6 text-sm sm:grid-cols-2 sm:p-8">
                 <div><dt className="text-[#607568]">{t.email}</dt><dd className="mt-2 break-all">{user.email ?? t.notSet}</dd></div>
