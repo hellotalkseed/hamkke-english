@@ -10,7 +10,6 @@ import { parseOverview, type PortalEnrollment } from "@/lib/portal/overview";
 import PortalHeader from "@/components/portal/PortalHeader";
 import PortalProgressReports, { type PortalProgressReport } from "@/components/portal/PortalProgressReports";
 import PortalAttendanceHistory, { type PortalAttendanceHistoryRow } from "@/components/portal/PortalAttendanceHistory";
-import PortalEnrollmentTable, { type EnrollmentDetail } from "@/components/portal/PortalEnrollmentTable";
 
 
 const dashboardCopy = {
@@ -21,7 +20,7 @@ const dashboardCopy = {
     dateLabel: "Date", dayLabel: "Day", timeLabel: "Time",
     upcoming: "Upcoming lessons", noUpcoming: "No upcoming lessons are scheduled for your active term.", noMore: "No additional upcoming lessons.", noSchedule: "Your regular schedule has not been set yet.", lessonError: "Unable to load lesson details. Please try again.", timePending: "Time to be confirmed", teacher: "Teacher", platform: "Platform",
     nextLesson: "Your next lesson", regularSchedule: "Your regular schedule", scheduleUnavailable: "Schedule details are not available in the portal yet. Please confirm with Hamkke through your usual chat.", nextUnavailable: "Your next lesson details are not available here yet.", balance: "Lesson balance",
-    myLessons: "My Lessons", attendance: "Attendance", reports: "Progress Reports", enrollment: "Enrollment", settings: "Settings", welcomeLine: "Let’s keep growing together,", scheduleSoon: "Lesson schedules will be available here soon. Please confirm your next lesson through your usual chat with Hamkke.", attendanceSoon: "Attendance records will be available here soon. Your current package balance is shown in My Lessons.", reportsSoon: "No progress reports yet. Your completed progress reports will appear here.", adminSoon: "Payment details and contracts will be available here soon.", learnerName: "Learner name", timezone: "Learner timezone", settingsNote: "Account details are read-only here. To update them or get password help, contact Hamkke.",
+    myLessons: "My Lessons", attendance: "Attendance", reports: "Progress Reports", enrollment: "Enrollment", settings: "Settings", welcomeLine: "Let’s keep growing together,", scheduleSoon: "Lesson schedules will be available here soon. Please confirm your next lesson through your usual chat with Hamkke.", attendanceSoon: "Attendance records will be available here soon. Your current package balance is shown in My Lessons.", reportsSoon: "Progress reports will be available here once this feature is ready.", adminSoon: "Payment details and contracts will be available here soon.", learnerName: "Learner name", timezone: "Learner timezone", settingsNote: "Account details are read-only here. To update them or get password help, contact Hamkke.",
     home: "Home", terms: "My terms", policy: "Lesson policy", help: "Help", termsIntro: "Your active terms and remaining lessons.", emptyHistory: "No previous terms yet.", helpTitle: "Need a hand?", helpIntro: "For schedule changes, account access, or questions about your lessons, contact Hamkke through your usual chat or send an inquiry.", contact: "Send an inquiry", fullPolicy: "Read the full policy",
     greeting: "Hi, {name}.", intro: "One conversation at a time, we keep growing together.", current: "Your current term",
     remaining: "lessons remaining", usage: "{used} of {total} lessons used", details: "Term details",
@@ -38,7 +37,7 @@ const dashboardCopy = {
     dateLabel: "날짜", dayLabel: "요일", timeLabel: "시간",
     upcoming: "예정된 수업", noUpcoming: "현재 수강 기간에 예정된 수업이 없습니다.", noMore: "추가로 예정된 수업이 없습니다.", noSchedule: "정규 수업 일정이 아직 등록되지 않았습니다.", lessonError: "수업 정보를 불러오지 못했습니다. 다시 시도해 주세요.", timePending: "시간 확인 필요", teacher: "선생님", platform: "수업 플랫폼",
     nextLesson: "다음 수업", regularSchedule: "정규 수업 일정", scheduleUnavailable: "아직 포털에서 수업 일정을 확인할 수 없습니다. 평소 사용하는 메신저로 Hamkke에 확인해 주세요.", nextUnavailable: "아직 이곳에서 다음 수업 정보를 확인할 수 없습니다.", balance: "수업 잔여 횟수",
-    myLessons: "내 수업", attendance: "출석 기록", reports: "학습 보고서", enrollment: "수강 등록", settings: "설정", welcomeLine: "함께 계속 성장해 나가요,", scheduleSoon: "수업 일정은 곧 이곳에서 확인할 수 있습니다. 다음 수업은 평소 사용하는 메신저로 Hamkke에 확인해 주세요.", attendanceSoon: "출석 기록은 곧 이곳에서 확인할 수 있습니다. 남은 수업 횟수는 내 수업에서 확인하세요.", reportsSoon: "아직 완료된 학습 보고서가 없습니다. 완료된 학습 보고서는 이곳에서 확인할 수 있습니다.", adminSoon: "결제 정보와 계약서는 곧 이곳에서 확인할 수 있습니다.", learnerName: "학습자 이름", timezone: "학습자 시간대", settingsNote: "이곳에서는 계정 정보를 확인할 수 있습니다. 정보 변경이나 비밀번호 관련 도움이 필요하면 Hamkke에 문의해 주세요.",
+    myLessons: "내 수업", attendance: "출석 기록", reports: "학습 보고서", enrollment: "수강 등록", settings: "설정", welcomeLine: "함께 계속 성장해 나가요,", scheduleSoon: "수업 일정은 곧 이곳에서 확인할 수 있습니다. 다음 수업은 평소 사용하는 메신저로 Hamkke에 확인해 주세요.", attendanceSoon: "출석 기록은 곧 이곳에서 확인할 수 있습니다. 남은 수업 횟수는 내 수업에서 확인하세요.", reportsSoon: "학습 보고서는 기능이 준비되면 이곳에서 확인할 수 있습니다.", adminSoon: "결제 정보와 계약서는 곧 이곳에서 확인할 수 있습니다.", learnerName: "학습자 이름", timezone: "학습자 시간대", settingsNote: "이곳에서는 계정 정보를 확인할 수 있습니다. 정보 변경이나 비밀번호 관련 도움이 필요하면 Hamkke에 문의해 주세요.",
     home: "홈", terms: "내 수강 정보", policy: "수업 규정", help: "도움말", termsIntro: "현재 수강 과정과 남은 수업을 확인하세요.", emptyHistory: "아직 지난 수강 내역이 없습니다.", helpTitle: "도움이 필요하신가요?", helpIntro: "일정 변경, 계정 이용, 수업 관련 질문은 평소 사용하는 메신저로 Hamkke에 연락하거나 문의를 보내 주세요.", contact: "문의하기", fullPolicy: "전체 규정 보기",
     greeting: "{name}님, 안녕하세요.", intro: "한 번의 대화가 쌓일 때마다, 우리는 함께 성장해요.", current: "현재 수강 중인 과정",
     remaining: "회 남았어요", usage: "전체 {total}회 중 {used}회 사용", details: "수강 상세 정보",
@@ -55,7 +54,7 @@ const dashboardCopy = {
     dateLabel: "日期", dayLabel: "星期", timeLabel: "时间",
     upcoming: "即将开始的课程", noUpcoming: "当前课包暂无已安排的课程。", noMore: "暂无其他已安排的课程。", noSchedule: "固定课表尚未设置。", lessonError: "无法加载课程信息，请重试。", timePending: "时间待确认", teacher: "老师", platform: "上课平台",
     nextLesson: "下一节课", regularSchedule: "固定上课时间", scheduleUnavailable: "学生门户暂未提供课表，请通过常用聊天工具与 Hamkke 确认。", nextUnavailable: "此处暂未提供下一节课的信息。", balance: "课时余额",
-    myLessons: "我的课程", attendance: "出勤记录", reports: "学习报告", enrollment: "报名信息", settings: "设置", welcomeLine: "让我们继续一起成长，", scheduleSoon: "课程安排即将在这里开放。请通过平时使用的聊天软件向 Hamkke 确认下一节课。", attendanceSoon: "出勤记录即将在这里开放。当前套餐的剩余课时可在“我的课程”中查看。", reportsSoon: "目前还没有已完成的学习报告。完成后的学习报告会显示在这里。", adminSoon: "付款详情和合同即将在这里开放。", learnerName: "学员姓名", timezone: "学员时区", settingsNote: "这里的账号信息仅供查看。如需修改信息或获取密码帮助，请联系 Hamkke。",
+    myLessons: "我的课程", attendance: "出勤记录", reports: "学习报告", enrollment: "报名信息", settings: "设置", welcomeLine: "让我们继续一起成长，", scheduleSoon: "课程安排即将在这里开放。请通过平时使用的聊天软件向 Hamkke 确认下一节课。", attendanceSoon: "出勤记录即将在这里开放。当前套餐的剩余课时可在“我的课程”中查看。", reportsSoon: "学习报告功能准备好后，您可以在这里查看报告。", adminSoon: "付款详情和合同即将在这里开放。", learnerName: "学员姓名", timezone: "学员时区", settingsNote: "这里的账号信息仅供查看。如需修改信息或获取密码帮助，请联系 Hamkke。",
     home: "首页", terms: "我的套餐", policy: "课程规定", help: "帮助", termsIntro: "查看当前套餐和剩余课时。", emptyHistory: "暂无历史套餐。", helpTitle: "需要帮助吗？", helpIntro: "如需调整时间、获取账号帮助或咨询课程，请通过平时使用的聊天软件联系 Hamkke，或发送咨询。", contact: "发送咨询", fullPolicy: "查看完整规定",
     greeting: "{name}，你好。", intro: "在一次次对话中，我们一起成长。", current: "当前课程套餐",
     remaining: "节课剩余", usage: "共 {total} 节，已用 {used} 节", details: "套餐详情",
@@ -72,7 +71,7 @@ const dashboardCopy = {
     dateLabel: "日付", dayLabel: "曜日", timeLabel: "時間",
     upcoming: "今後のレッスン", noUpcoming: "現在の受講期間に予定されているレッスンはありません。", noMore: "ほかに予定されているレッスンはありません。", noSchedule: "通常のレッスンスケジュールはまだ設定されていません。", lessonError: "レッスン情報を読み込めませんでした。もう一度お試しください。", timePending: "時間は確認中です", teacher: "講師", platform: "プラットフォーム",
     nextLesson: "次のレッスン", regularSchedule: "通常のレッスンスケジュール", scheduleUnavailable: "ポータルではまだスケジュールを確認できません。いつもの連絡方法で Hamkke にご確認ください。", nextUnavailable: "次のレッスンの詳細は、まだここでは確認できません。", balance: "レッスン残数",
-    myLessons: "マイレッスン", attendance: "出席記録", reports: "学習レポート", enrollment: "受講登録", settings: "設定", welcomeLine: "これからも一緒に成長していきましょう。", scheduleSoon: "レッスン日程は今後こちらで確認できるようになります。次回のレッスンは普段お使いのチャットでHamkkeにご確認ください。", attendanceSoon: "出席記録は今後こちらで確認できるようになります。残りのレッスン数はマイレッスンをご覧ください。", reportsSoon: "まだ完了した学習レポートはありません。完了した学習レポートはこちらに表示されます。", adminSoon: "お支払いの詳細と契約書は今後こちらで確認できるようになります。", learnerName: "受講者名", timezone: "受講者のタイムゾーン", settingsNote: "こちらではアカウント情報の確認ができます。変更やパスワードについてはHamkkeにお問い合わせください。",
+    myLessons: "マイレッスン", attendance: "出席記録", reports: "学習レポート", enrollment: "受講登録", settings: "設定", welcomeLine: "これからも一緒に成長していきましょう。", scheduleSoon: "レッスン日程は今後こちらで確認できるようになります。次回のレッスンは普段お使いのチャットでHamkkeにご確認ください。", attendanceSoon: "出席記録は今後こちらで確認できるようになります。残りのレッスン数はマイレッスンをご覧ください。", reportsSoon: "学習レポートは機能の準備ができ次第、こちらで確認できます。", adminSoon: "お支払いの詳細と契約書は今後こちらで確認できるようになります。", learnerName: "受講者名", timezone: "受講者のタイムゾーン", settingsNote: "こちらではアカウント情報の確認ができます。変更やパスワードについてはHamkkeにお問い合わせください。",
     home: "ホーム", terms: "受講コース", policy: "レッスン規定", help: "ヘルプ", termsIntro: "受講中のコースと残りのレッスンを確認できます。", emptyHistory: "過去のコースはまだありません。", helpTitle: "お困りですか？", helpIntro: "日程変更、アカウント、レッスンについては、普段お使いのチャットでHamkkeにご連絡いただくか、お問い合わせをお送りください。", contact: "お問い合わせ", fullPolicy: "規定の全文を見る",
     greeting: "{name}さん、こんにちは。", intro: "一つひとつの会話を重ねながら、一緒に成長していきましょう。", current: "受講中のコース",
     remaining: "レッスン残っています", usage: "全{total}回中{used}回利用済み", details: "コースの詳細",
@@ -223,52 +222,6 @@ export default async function PortalPage({ params, searchParams }: {
   const activeTerms = packages.filter((item) => item.enrollment_status === "active");
   const previousTerms = packages.filter((item) => item.enrollment_status === "completed" || item.enrollment_status === "cancelled");
   const pendingTerms = packages.filter((item) => item.enrollment_status !== "active" && item.enrollment_status !== "completed" && item.enrollment_status !== "cancelled");
-  let enrollmentDetails: EnrollmentDetail[] = [];
-  if (view === "enrollment" && !failed && selectedId && packages.length > 0) {
-    const admin = createAdminClient();
-    const enrollmentIds = packages.map((item) => item.enrollment_id).filter((id): id is string => Boolean(id));
-    const [{ data: payments }, { data: contracts }, { data: enrollmentLessons }] = await Promise.all([
-      admin.from("payments").select("enrollment_id, amount, currency, payment_date, payment_method, status").in("enrollment_id", enrollmentIds),
-      admin.from("contracts").select("enrollment_id, contract_number, status, agreement_date, accepted_by_name, accepted_by_relationship").in("enrollment_id", enrollmentIds),
-      admin.from("lessons").select("id, enrollment_id, lesson_number, lesson_date, schedule_time, attendance_status, resolution").in("enrollment_id", enrollmentIds).order("lesson_date", { ascending: false }),
-    ]);
-    const paymentByEnrollment = new Map((payments ?? []).map((row) => [row.enrollment_id, row]));
-    const contractByEnrollment = new Map((contracts ?? []).map((row) => [row.enrollment_id, row]));
-    const lessonsByEnrollment = new Map<string, typeof enrollmentLessons>();
-    for (const row of enrollmentLessons ?? []) {
-      const list = lessonsByEnrollment.get(row.enrollment_id) ?? [];
-      list.push(row);
-      lessonsByEnrollment.set(row.enrollment_id, list);
-    }
-    const displayStatus = (value: string | null | undefined) => value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "-";
-    const displayMethod = (value: string | null | undefined) => {
-      if (!value) return "-";
-      const normalized = value.trim().toLowerCase().replace(/[\s_-]+/g, "");
-      return ({ gcash: "GCash", paypal: "PayPal", bank: "Bank transfer", banktransfer: "Bank transfer", sentbe: "SentBe" } as Record<string,string>)[normalized] ?? displayStatus(value);
-    };
-    const money = (amount: number | null | undefined, currency: string | null | undefined) => {
-      if (amount === null || amount === undefined || !currency) return "-";
-      try { return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: currency === "KRW" ? 0 : 2 }).format(amount); }
-      catch { return `${currency} ${number.format(amount)}`; }
-    };
-    enrollmentDetails = packages.map((item) => {
-      const payment = paymentByEnrollment.get(item.enrollment_id!);
-      const contract = contractByEnrollment.get(item.enrollment_id!);
-      return {
-        enrollmentId: item.enrollment_id!, enrollmentNumber: item.enrollment_number ?? "-", packageName: item.package_name ?? t.packages,
-        enrollmentStatus: status(item), startDate: date(item.start_date), lessonDuration: item.lesson_duration === null ? t.notSet : t.minutes.replace("{count}", number.format(item.lesson_duration)),
-        totalLessons: item.total_lessons, usedLessons: item.used_lessons, remainingLessons: item.remaining_lessons, isShared: item.is_shared,
-        payment: payment ? { amount: money(payment.amount, payment.currency), status: displayStatus(payment.status), date: date(payment.payment_date), method: displayMethod(payment.payment_method) } : null,
-        agreement: contract ? { number: contract.contract_number ?? "-", status: displayStatus(contract.status), date: date(contract.agreement_date), acceptedBy: contract.accepted_by_name ?? "-", relationship: displayStatus(contract.accepted_by_relationship), href: `/${locale}/portal/agreement?enrollment=${encodeURIComponent(item.enrollment_id!)}` } : null,
-        attendance: (lessonsByEnrollment.get(item.enrollment_id!) ?? []).map((lesson) => ({
-          lesson: lesson.lesson_number === null ? "-" : `${d.lessonLabel} ${number.format(lesson.lesson_number)}`,
-          date: date(lesson.lesson_date), time: time(lesson.schedule_time), timezone: item.student_timezone?.replaceAll("_", " ") ?? "-",
-          status: attendanceStatus(lesson.attendance_status ?? "scheduled", lesson.resolution ?? null),
-        })),
-      };
-    });
-  }
-
   let lessonDetails: ReturnType<typeof parseLessonDetails> = { lessons: [], schedules: [] };
   let lessonsFailed = false;
   if (view === "lessons" && !failed && selectedId && activeTerms.length > 0) {
@@ -504,7 +457,7 @@ export default async function PortalPage({ params, searchParams }: {
               learners.length === 0 ? <section className="rounded-2xl bg-[#EEF2EA] p-6"><h2 className="font-serif text-2xl">{t.noLearners}</h2><p className="mt-3 leading-7 text-[#607568]">{t.noLearnersHelp}</p></section>
               : packages.length === 0 ? <section className="rounded-2xl bg-[#EEF2EA] p-6"><h2 className="font-serif text-2xl">{t.noPackages}</h2><p className="mt-3 text-[#607568]">{t.noPackagesHelp}</p></section>
               : <div className="space-y-8">
-            {view === "enrollment" ? <section><PortalEnrollmentTable rows={enrollmentDetails} copy={{ enrollment: d.reference, package: d.package, status: d.statusLabel, lessons: d.myLessons, details: d.details, viewDetails: locale === "ko" ? "상세 보기" : locale === "zh" ? "查看详情" : locale === "ja" ? "詳細を見る" : "View Details", startDate: t.starts, duration: t.duration, lessonBalance: d.balance, payment: locale === "ko" ? "결제 정보" : locale === "zh" ? "付款信息" : locale === "ja" ? "お支払い情報" : "Payment Details", amount: locale === "ko" ? "결제 금액" : locale === "zh" ? "付款金额" : locale === "ja" ? "お支払い金額" : "Amount", paymentDate: locale === "ko" ? "결제일" : locale === "zh" ? "付款日期" : locale === "ja" ? "お支払い日" : "Payment Date", paymentMethod: locale === "ko" ? "결제 방법" : locale === "zh" ? "付款方式" : locale === "ja" ? "お支払い方法" : "Payment Method", agreement: locale === "ko" ? "수업 계약" : locale === "zh" ? "课程协议" : locale === "ja" ? "レッスン契約" : "Lesson Agreement", agreementNumber: locale === "ko" ? "계약 번호" : locale === "zh" ? "协议编号" : locale === "ja" ? "契約番号" : "Agreement Number", agreementDate: locale === "ko" ? "동의일" : locale === "zh" ? "同意日期" : locale === "ja" ? "同意日" : "Agreement Date", acceptedBy: locale === "ko" ? "동의자" : locale === "zh" ? "同意人" : locale === "ja" ? "同意者" : "Accepted By", attendance: d.attendanceHistory, lesson: d.lessonLabel, date: d.dateLabel, time: d.timeLabel, close: d.closeNotes, noAttendance: d.noAttendance, viewAgreement: locale === "ko" ? "수업 계약서 보기" : locale === "zh" ? "查看课程协议" : locale === "ja" ? "レッスン契約書を見る" : "View Agreement", viewAgreementHelp: locale === "ko" ? "동의한 전체 수업 계약서를 확인하세요." : locale === "zh" ? "查看您已同意的完整课程协议。" : locale === "ja" ? "同意済みのレッスン契約書全文を確認できます。" : "Read the full agreement you accepted.", contractLabel: locale === "ko" ? "계약서" : locale === "zh" ? "合同" : locale === "ja" ? "契約書" : "Contract", contractAction: locale === "ko" ? "보기" : locale === "zh" ? "查看" : locale === "ja" ? "表示" : "View" }} /></section> : activeTerms.length > 0 ? <section aria-label={d.current} className="space-y-5">
+            {view === "enrollment" ? <section>{activeTerms.map(compactTerm)}{activeTerms.length === 0 && <p className="text-[#607568]">{d.noActive}</p>}</section> : activeTerms.length > 0 ? <section aria-label={d.current} className="space-y-5">
               {activeTerms.map((item) => {
                 const usage = item.total_lessons === null
                   ? `${t.used}: ${number.format(item.used_lessons)}`
@@ -642,9 +595,18 @@ export default async function PortalPage({ params, searchParams }: {
               </>}
             </div>}
 
-            {view === "enrollment" && <div className="pt-1">
-              <Link href={`/${locale}/policy`} className={`inline-flex min-h-11 items-center gap-2 rounded-full border border-[#718A73]/40 px-5 py-2.5 text-sm font-medium text-[#31463A] transition hover:bg-[#EEF2EA] ${focus}`}>{d.fullPolicy}<ArrowUpRight size={16} aria-hidden="true" /></Link>
-            </div>}
+            {view === "enrollment" && pendingTerms.length > 0 && <section aria-label={d.pending}>
+              <h2 className="mb-2 font-serif text-2xl sm:text-3xl">{d.pending}</h2>
+              {pendingTerms.map(compactTerm)}
+            </section>}
+            {view === "enrollment" && <>
+              <details className="border-y border-[#718A73]/20 py-5">
+                <summary className={`cursor-pointer font-serif text-2xl ${focus}`}>{d.history}</summary>
+                <div className="mt-4">{previousTerms.length ? previousTerms.map(compactTerm) : <p className="text-sm text-[#607568]">{d.emptyHistory}</p>}</div>
+              </details>
+              <p className="text-sm leading-6 text-[#607568]">{d.adminSoon}</p>
+              <Link href={`/${locale}/policy`} className={`inline-flex min-h-11 items-center gap-2 text-sm underline ${focus}`}>{d.fullPolicy}<ArrowUpRight size={16} aria-hidden="true" /></Link>
+            </>}
               </div>
             )}
             {view === "attendance" && (failed || attendanceFailed ? <section role="alert" className="rounded-2xl border border-[#718A73]/20 p-6 sm:p-8">

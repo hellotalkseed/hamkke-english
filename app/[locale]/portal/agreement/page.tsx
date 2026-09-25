@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PrintButton from "./PrintButton";
@@ -50,10 +48,10 @@ const DAY_LABELS: Record<number, string> = {
 
 const agreementCopy = {
   en: {
-    back: "{t.back}",
+    back: "Back to Enrollment",
     print: "Print Contract",
-    privateLessons: "{t.privateLessons}",
-    lessonAgreement: "{t.lessonAgreement}",
+    privateLessons: "Private English Lessons",
+    lessonAgreement: "Lesson Agreement",
     student: "Student", students: "Students",
     contractNumber: "Contract Number", agreementDate: "Agreement Date",
     overview: "Agreement Overview", enrollmentDetails: "Enrollment Details",
@@ -61,15 +59,15 @@ const agreementCopy = {
     unexpected: "Unexpected Circumstances", lateArrivals: "Late Arrivals",
     teacherCancellations: "Teacher Cancellations", repeatedCancellations: "Repeated Cancellations",
     refundsTransfers: "Refunds & Transfers", communication: "Communication",
-    acceptance: "Agreement & Acceptance", digitalAgreement: "{t.digitalAgreement}",
-    paymentAcceptance: "{t.paymentAcceptance}", ofAgreement: "of this {t.lessonAgreement}.",
+    acceptance: "Agreement & Acceptance", digitalAgreement: "Digital Agreement",
+    paymentAcceptance: "Payment constitutes acceptance", ofAgreement: "of this Lesson Agreement.",
     package: "Package", numberLessons: "Number of Lessons", lessonDuration: "Lesson Duration",
     lessonsPerWeek: "Lessons Per Week", startDate: "Start Date", lessonDays: "Lesson Days",
     lessonSchedule: "Lesson Schedule", studentTimezone: "Student Timezone", tuition: "Tuition",
     acceptedBy: "Accepted By", relationship: "Relationship to Student",
     toBeConfirmed: "To be confirmed", lessons: "lessons", minutes: "minutes",
     footer1: "These guidelines are here to help keep lessons predictable, respectful, and comfortable for both sides.",
-    footer2: "{t.footer2}",
+    footer2: "Thank you for respecting the time we've set aside for each conversation.",
   },
   ko: {
     back: "수강 등록으로 돌아가기",
@@ -710,30 +708,8 @@ export default async function ContractPage({
       {/* ================================================================== */}
 
       <div className="w-full py-5 print:hidden">
-        <div className="flex w-full items-center justify-between px-5 sm:px-8 lg:px-10">
-
-          <Link
-            href={`/${locale}/portal?view=enrollment&student=${student.id}`}
-            className="
-              inline-flex
-              items-center
-              gap-2
-              font-sans
-              text-[13px]
-              text-[#555]
-              hover:text-[#222]
-            "
-          >
-            <ArrowLeft
-              size={15}
-              strokeWidth={1.5}
-            />
-
-            Back to Enrollment
-          </Link>
-
+        <div className="flex w-full justify-end px-5 sm:px-8 lg:px-10">
           <PrintButton label={t.print} />
-
         </div>
       </div>
 
@@ -1212,7 +1188,7 @@ export default async function ContractPage({
                     text-[#555]
                   "
                 >
-                  Digital Agreement
+                  {t.digitalAgreement}
                 </p>
 
                 <h2
@@ -1224,7 +1200,7 @@ export default async function ContractPage({
                     text-[#222]
                   "
                 >
-                  Payment constitutes acceptance
+                  {t.paymentAcceptance}
                 </h2>
 
                 <p
@@ -1235,7 +1211,7 @@ export default async function ContractPage({
                     text-[#666]
                   "
                 >
-                  of this {t.lessonAgreement}.
+                  {t.ofAgreement}
                 </p>
 
               </div>
@@ -1373,7 +1349,7 @@ export default async function ContractPage({
                 text-[#777]
               "
             >
-              Thank you for respecting the time we've set aside for each conversation.
+              {t.footer2}
             </p>
 
           </footer>
