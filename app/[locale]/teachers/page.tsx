@@ -1,6 +1,19 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  ArrowRight,
+  AudioLines,
+  BookOpen,
+  BriefcaseBusiness,
+  Building2,
+  ClipboardCheck,
+  HeartHandshake,
+  MessageCircle,
+  MessagesSquare,
+  Sparkles,
+  Sprout,
+} from "lucide-react";
 
 import Navbar from "../../../components/Navbar";
 import { getMessages } from "../../../lib/getMessages";
@@ -20,6 +33,21 @@ type SpecialtyItem = {
   title: string;
   description: string;
 };
+
+const teachingFocusIcons = {
+  Conversation: MessageCircle,
+  "Speaking Confidence": Sparkles,
+  Pronunciation: AudioLines,
+  Vocabulary: BookOpen,
+  "Grammar in Conversation": MessagesSquare,
+  "Beginner English": Sprout,
+  "Interview Preparation": BriefcaseBusiness,
+  "Exam Speaking": ClipboardCheck,
+  "Business English": Building2,
+} as const;
+
+type TeachingFocusName =
+  keyof typeof teachingFocusIcons;
 
 function renderHighlightedText(
   text: string,
@@ -422,10 +450,33 @@ export default async function TeachersPage({
                       ? content.presentations.jesica
                       : content.presentations.default;
 
-                  const specialties =
+                  const presentationSpecialties =
                     getSpecialties(
                       presentation.specialties
                     );
+
+                  const specialtyByTitle = new Map(
+                    presentationSpecialties.map(
+                      (specialty) => [
+                        specialty.title,
+                        specialty,
+                      ]
+                    )
+                  );
+
+                  const specialties =
+                    teacher.teaching_focus
+                      .slice(0, 3)
+                      .map((focus) => {
+                        const existing =
+                          specialtyByTitle.get(focus);
+
+                        return {
+                          title: focus,
+                          description:
+                            existing?.description || "",
+                        };
+                      });
 
                   const firstName =
                     teacher.name
@@ -512,33 +563,16 @@ export default async function TeachersPage({
                           </div>
 
                           <div className="min-w-0 pt-1">
-                            <span
-                              className="
-                                inline-flex
-                                rounded-full
-                                bg-[#E5EBDD]
-                                px-3
-                                py-1.5
-                                text-[10px]
-                                font-semibold
-                                uppercase
-                                tracking-[0.12em]
-                                text-[#52685A]
-                              "
-                            >
-                              {presentation.role}
-                            </span>
 
                             <h2
                               className="
-                                mt-3
                                 font-serif
                                 text-[31px]
                                 leading-none
                                 text-[#304A39]
                               "
                             >
-                              {firstName}
+                              Teacher {firstName}
                             </h2>
 
                             <p
@@ -551,7 +585,7 @@ export default async function TeachersPage({
                                 text-[#718A73]
                               "
                             >
-                              “{presentation.quote}”
+                              {teacher.intro_quote}
                             </p>
                           </div>
                         </div>
@@ -620,11 +654,19 @@ export default async function TeachersPage({
                                   "
                                   aria-hidden="true"
                                 >
-                                  {index === 0
-                                    ? "○"
-                                    : index === 1
-                                      ? "◎"
-                                      : "◇"}
+                                  {(() => {
+                                    const FocusIcon =
+                                      teachingFocusIcons[
+                                        specialty.title as TeachingFocusName
+                                      ] ?? HeartHandshake;
+
+                                    return (
+                                      <FocusIcon
+                                        size={15}
+                                        strokeWidth={1.8}
+                                      />
+                                    );
+                                  })()}
                                 </div>
 
                                 <p
@@ -703,19 +745,16 @@ export default async function TeachersPage({
                               )}
                             </span>
 
-                            <span
+                            <ArrowRight
+                              size={19}
+                              strokeWidth={1.8}
                               className="
-                                text-[20px]
-                                font-normal
-                                leading-none
                                 transition-transform
                                 duration-200
                                 group-hover/button:translate-x-1
                               "
                               aria-hidden="true"
-                            >
-                              →
-                            </span>
+                            />
                           </Link>
                         </div>
                       </div>
@@ -765,3 +804,5 @@ export default async function TeachersPage({
     </>
   );
 }
+
+

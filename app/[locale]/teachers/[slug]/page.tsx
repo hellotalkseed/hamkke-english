@@ -1,6 +1,7 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
 import TeacherAudioPlayer from "@/components/TeacherAudioPlayer";
@@ -426,21 +427,9 @@ export default async function TeacherProfilePage({
               {/* Teacher identity */}
 
               <div className="max-w-[760px]">
-                <p
-                  className="
-                    text-[11px]
-                    font-semibold
-                    uppercase
-                    tracking-[0.24em]
-                    text-[#718A73]
-                  "
-                >
-                  {content.teacher.label}
-                </p>
 
                 <h1
                   className="
-                    mt-2
                     font-serif
                     text-[52px]
                     leading-[0.95]
@@ -450,7 +439,7 @@ export default async function TeacherProfilePage({
                     lg:text-[64px]
                   "
                 >
-                  {firstName}
+                  Teacher {firstName}
                 </h1>
 
                 {teacher.intro_quote && (
@@ -466,7 +455,7 @@ export default async function TeacherProfilePage({
                       sm:text-[23px]
                     "
                   >
-                    “{teacher.intro_quote}”
+                    &ldquo;{teacher.intro_quote}&rdquo;
                   </p>
                 )}
               </div>
@@ -601,17 +590,17 @@ export default async function TeacherProfilePage({
                       {content.getStarted.button}
                     </span>
 
-                    <span
+                    <ArrowRight
+                      size={19}
+                      strokeWidth={1.8}
                       className="
-                        ml-3
-                        text-[18px]
-                        font-normal
-                        leading-none
+                        shrink-0
+                        transition-transform
+                        duration-200
+                        group-hover:translate-x-1
                       "
                       aria-hidden="true"
-                    >
-                      →
-                    </span>
+                    />
                   </Link>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { createAdminClient } from "./supabase/admin";
+﻿import { createAdminClient } from "./supabase/admin";
 
 const TEACHER_AVATAR_BUCKET =
   "teacher-avatars";
@@ -9,7 +9,9 @@ export type PublicTeacher = {
   name: string;
   avatar_url: string | null;
   card_label: string | null;
+  intro_quote: string | null;
   learner_groups: string[];
+  teaching_focus: string[];
 };
 
 export async function getPublicTeachers(): Promise<
@@ -27,7 +29,9 @@ export async function getPublicTeachers(): Promise<
         teacher_id,
         slug,
         card_label,
+        intro_quote,
         learner_groups,
+        teaching_focus,
         display_order,
         profiles!teacher_public_profiles_teacher_id_fkey!inner (
           full_name,
@@ -78,8 +82,12 @@ export async function getPublicTeachers(): Promise<
           avatar_url: avatarUrl,
           card_label:
             item.card_label || null,
+          intro_quote:
+            item.intro_quote || null,
           learner_groups:
             item.learner_groups || [],
+          teaching_focus:
+            item.teaching_focus || [],
         };
       }
     );
@@ -92,3 +100,4 @@ export async function getPublicTeachers(): Promise<
     return [];
   }
 }
+

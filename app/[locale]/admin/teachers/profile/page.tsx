@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   redirect,
 } from "next/navigation";
@@ -9,11 +9,11 @@ import {
   FileText,
   Wallet,
   UserRound,
-  Mic2,
   CalendarDays,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import PublicProfileEditor from "./PublicProfileEditor";
 
 interface TeacherProfilePageProps {
@@ -75,6 +75,7 @@ export default async function TeacherProfilePage({
         slug,
         card_label,
         learner_groups,
+        teaching_focus,
         is_published,
         intro_quote,
         about,
@@ -90,6 +91,15 @@ export default async function TeacherProfilePage({
     ? publicProfile.learner_groups.filter(
         (group): group is string =>
           typeof group === "string"
+      )
+    : [];
+
+  const teachingFocus = Array.isArray(
+    publicProfile?.teaching_focus
+  )
+    ? publicProfile.teaching_focus.filter(
+        (focus): focus is string =>
+          typeof focus === "string"
       )
     : [];
 
@@ -162,17 +172,28 @@ export default async function TeacherProfilePage({
         "[]"
     );
 
+    const teachingFocusRaw = String(
+      formData.get("teaching_focus") ?? "[]"
+    );
+
+    const about = String(
+      formData.get("about") ?? ""
+    ).trim();
+
+    const introQuote = String(
+      formData.get("intro_quote") ?? ""
+    ).trim();
+
+    const qualificationsRaw = String(
+      formData.get("qualifications") ?? "[]"
+    );
+
     if (!fullName) {
       throw new Error(
         "Name is required."
       );
     }
 
-    if (!cardLabel) {
-      throw new Error(
-        "Profile label is required."
-      );
-    }
 
     let learnerGroups: string[] = [];
 
@@ -208,13 +229,71 @@ export default async function TeacherProfilePage({
       );
     }
 
-    const { error: profileError } =
-      await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName,
-        })
-        .eq("id", user.id);
+    const allowedTeachingFocus = [
+      "Conversation",
+      "Speaking Confidence",
+      "Pronunciation",
+      "Vocabulary",
+      "Grammar in Conversation",
+      "Beginner English",
+      "Interview Preparation",
+      "Exam Speaking",
+      "Business English",
+    ];
+
+    let teachingFocus: string[] = [];
+
+    try {
+      const parsed = JSON.parse(teachingFocusRaw);
+
+      if (Array.isArray(parsed)) {
+        teachingFocus = parsed.filter(
+          (focus): focus is string =>
+            typeof focus === "string" &&
+            allowedTeachingFocus.includes(focus)
+        );
+      }
+    } catch {
+      throw new Error("Invalid teaching focus.");
+    }
+
+    if (teachingFocus.length > 5) {
+      throw new Error(
+        "Select no more than five teaching focus areas."
+      );
+    }
+
+    let nextQualifications: Qualification[] = [];
+
+    try {
+      const parsed = JSON.parse(qualificationsRaw);
+      if (Array.isArray(parsed)) {
+        nextQualifications = parsed
+          .filter((item) => item && typeof item === "object")
+          .map((item) => ({
+            title: String(item.title ?? "").trim(),
+            institution: String(item.institution ?? "").trim(),
+            year: String(item.year ?? "").trim(),
+          }))
+          .filter((item) => item.title || item.institution || item.year);
+      }
+    } catch {
+      throw new Error("Invalid qualifications.");
+    }
+
+    const admin = createAdminClient();
+
+    const {
+      data: updatedProfile,
+      error: profileError,
+    } = await admin
+      .from("profiles")
+      .update({
+        full_name: fullName,
+      })
+      .eq("id", user.id)
+      .select("id, full_name")
+      .maybeSingle();
 
     if (profileError) {
       throw new Error(
@@ -222,7 +301,20 @@ export default async function TeacherProfilePage({
       );
     }
 
+    if (!updatedProfile) {
+      throw new Error(
+        "Display name was not updated."
+      );
+    }
+
+    if (updatedProfile.full_name !== fullName) {
+      throw new Error(
+        "Display name was not stored correctly."
+      );
+    }
+
     const {
+      data: updatedPublicProfile,
       error: publicProfileError,
     } = await supabase
       .from(
@@ -232,12 +324,35 @@ export default async function TeacherProfilePage({
         card_label: cardLabel,
         learner_groups:
           learnerGroups,
+        teaching_focus: teachingFocus,
+        about,
+        intro_quote: introQuote,
+        qualifications: nextQualifications,
       })
-      .eq("teacher_id", user.id);
+      .eq("teacher_id", user.id)
+      .select("teacher_id, teaching_focus")
+      .maybeSingle();
 
     if (publicProfileError) {
       throw new Error(
         publicProfileError.message
+      );
+    }
+
+    if (!updatedPublicProfile) {
+      throw new Error(
+        "No teacher public profile row was updated."
+      );
+    }
+
+    if (
+      JSON.stringify(
+        [...(updatedPublicProfile.teaching_focus ?? [])].sort()
+      ) !==
+      JSON.stringify([...teachingFocus].sort())
+    ) {
+      throw new Error(
+        "Teaching Focus was not stored correctly."
       );
     }
   }
@@ -293,14 +408,14 @@ export default async function TeacherProfilePage({
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
       <div className="mx-auto flex min-h-screen max-w-[1500px]">
         <aside className="hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start lg:flex-col lg:overflow-y-auto">
-          <Link href={`/${locale}`}>
-            <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">
-              HAMKKE │ 함께
-            </p>
-            <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">
-              Teacher Portal
-            </p>
-          </Link>
+          <div>
+  <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">
+    HAMKKE │ 함께
+  </p>
+  <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">
+    Teacher Portal
+  </p>
+</div>
 
           <nav className="mt-9 space-y-1.5">
             {teacherNav.map(
@@ -456,130 +571,17 @@ export default async function TeacherProfilePage({
 
       <section className="mx-auto w-full max-w-none pb-24">
         <div className="border-t border-[#DCD8D2] py-10">
-          <div className="mb-8">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[#718A73]">
-              Public page
-            </p>
-            <h2 className="mt-2 font-serif text-[28px] font-normal text-[#30342F]">
-              Teacher identity
-            </h2>
-            <p className="mt-2 max-w-2xl font-sans text-[13px] leading-6 text-[#817B74]">
-              These details appear at the top of your public teacher profile and on teacher cards across Hamkke.
-            </p>
-          </div>
-
           <PublicProfileEditor
             initialFullName={profile.full_name || ""}
             initialCardLabel={publicProfile?.card_label || ""}
             initialLearnerGroups={learnerGroups}
+            initialTeachingFocus={teachingFocus}
+            initialAbout={publicProfile?.about || ""}
+            initialIntroQuote={publicProfile?.intro_quote || ""}
+            initialQualifications={qualifications}
+            hasAudio={hasAudio}
             updateAction={updatePublicProfile}
           />
-        </div>
-
-        <div className="border-t border-[#DCD8D2] py-10">
-          <ProfileSection
-            number="01"
-            title="Introduction"
-            description="The short message learners see beside your name when they open your full profile."
-          >
-            <ReadOnlyField
-              label="Profile quote"
-              value={publicProfile?.intro_quote || "Not added yet"}
-              quote
-            />
-          </ProfileSection>
-        </div>
-
-        <div className="border-t border-[#DCD8D2] py-10">
-          <ProfileSection
-            number="02"
-            title="About"
-            description="Your main introduction in the About tab of the public profile."
-          >
-            {publicProfile?.about ? (
-              <div className="max-w-[720px] whitespace-pre-line font-sans text-[15px] leading-8 text-[#555650]">
-                {publicProfile.about}
-              </div>
-            ) : (
-              <EmptyValue text="No About Me introduction added yet." />
-            )}
-          </ProfileSection>
-        </div>
-
-        <div className="border-t border-[#DCD8D2] py-10">
-          <ProfileSection
-            number="03"
-            title="Qualifications"
-            description="Credentials and experience shown in the Qualifications tab of your public profile."
-          >
-            {qualifications.length > 0 ? (
-              <div className="max-w-[760px] divide-y divide-[#E2DED7] border-y border-[#E2DED7]">
-                {qualifications.map((qualification, index) => (
-                  <div
-                    key={`${qualification.title}-${index}`}
-                    className="grid gap-1 py-5 sm:grid-cols-[minmax(0,1fr)_120px] sm:gap-6"
-                  >
-                    <div>
-                      <p className="font-serif text-[18px] leading-7 text-[#333630]">
-                        {qualification.title || "Untitled qualification"}
-                      </p>
-                      <p className="mt-1 font-sans text-[13px] leading-6 text-[#74716B]">
-                        {qualification.institution || "Institution not added"}
-                      </p>
-                    </div>
-                    <p className="font-sans text-[13px] font-medium text-[#718A73] sm:text-right">
-                      {qualification.year || ""}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyValue text="No qualifications added yet." />
-            )}
-          </ProfileSection>
-        </div>
-
-        <div className="border-y border-[#DCD8D2] py-10">
-          <ProfileSection
-            number="04"
-            title="Audio introduction"
-            description="A short hello learners can play directly from your public teacher profile."
-          >
-            <div className="flex max-w-[560px] items-center gap-4 rounded-[16px] border border-[#DDD9D2] bg-white px-5 py-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E2EBDD] text-[#5F7F63]">
-                <Mic2 size={18} strokeWidth={1.6} />
-              </div>
-              <div>
-                <p className="font-sans text-[13px] font-medium text-[#3F433D]">
-                  {hasAudio ? "Audio introduction uploaded" : "No audio introduction uploaded"}
-                </p>
-                <p className="mt-1 font-sans text-[12px] leading-5 text-[#88827A]">
-                  {hasAudio
-                    ? "This audio is currently available on your public profile."
-                    : "Your public profile will show that an audio introduction is coming soon."}
-                </p>
-              </div>
-            </div>
-          </ProfileSection>
-        </div>
-
-        <div className="mt-8 rounded-[18px] bg-[#F1F3ED] px-6 py-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
-          <div>
-            <p className="font-serif text-[18px] text-[#3F4D42]">What is managed elsewhere?</p>
-            <p className="mt-1 font-sans text-[13px] leading-6 text-[#73766F]">
-              Availability has its own Teacher Portal section. Learner Stories come from approved student reflections, so neither is edited here.
-            </p>
-          </div>
-          {publicProfileHref ? (
-            <Link
-              href={publicProfileHref}
-              target="_blank"
-              className="mt-4 inline-flex shrink-0 items-center gap-2 font-sans text-[13px] font-medium text-[#526B55] underline underline-offset-4 sm:mt-0"
-            >
-              Check public profile
-              <ExternalLink size={13} strokeWidth={1.6} />
-            </Link>
-          ) : null}
         </div>
       </section>
           </div>
@@ -589,64 +591,5 @@ export default async function TeacherProfilePage({
   );
 }
 
-/* ------------------------------------------------------------------------- */
-/* SMALL PRESENTATIONAL HELPERS                                              */
-/* ------------------------------------------------------------------------- */
 
-function ProfileSection({
-  number,
-  title,
-  description,
-  children,
-}: {
-  number: string;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-7 md:grid-cols-[220px_minmax(0,1fr)] md:gap-12">
-      <div>
-        <p className="font-sans text-[11px] font-semibold tracking-[0.14em] text-[#8AA08A]">
-          {number}
-        </p>
-        <h2 className="mt-2 font-serif text-[25px] font-normal leading-tight text-[#30342F]">
-          {title}
-        </h2>
-        <p className="mt-2 max-w-[210px] font-sans text-[12px] leading-5 text-[#8A857E]">
-          {description}
-        </p>
-      </div>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
 
-function ReadOnlyField({
-  label,
-  value,
-  quote = false,
-}: {
-  label: string;
-  value: string;
-  quote?: boolean;
-}) {
-  return (
-    <div className="max-w-[720px]">
-      <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8A8A84]">
-        {label}
-      </p>
-      <p className={`mt-3 text-[#444640] ${quote ? "font-serif text-[20px] italic leading-8" : "font-sans text-[15px] leading-7"}`}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function EmptyValue({ text }: { text: string }) {
-  return (
-    <p className="font-sans text-[14px] leading-7 text-[#98928A]">
-      {text}
-    </p>
-  );
-}
