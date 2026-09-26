@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
 
         if (userError || !user) {
           router.replace(
-            `/${locale}/admin/login?error=invalid_session`
+            `/${locale}/portal/login?error=invalid_session`
           );
 
           router.refresh();
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
         }
 
         router.replace(
-          `/${locale}/admin/login?error=invalid_session`
+          `/${locale}/portal/login?error=invalid_session`
         );
 
         router.refresh();

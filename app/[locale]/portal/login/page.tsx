@@ -15,10 +15,10 @@ export default async function PortalLoginPage({ params, searchParams }: {
   return (
     <div className="min-h-screen bg-[#FFFDF8] text-[#293A30]">
       <PortalHeader locale={locale} login />
-      <main className="mx-auto w-full max-w-lg px-6 py-14 sm:py-20">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#718A73]">{t.portal}</p>
-        <h1 className="mt-4 font-serif text-4xl leading-tight sm:text-5xl">{t.loginTitle}</h1>
-        <p className="mt-5 leading-7 text-[#607568]">{t.loginIntro}</p>
+      <main className="mx-auto w-full max-w-lg px-6 py-12 sm:py-16">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#718A73]">{t.loginBrand}</p>
+        <h1 className="mt-3 font-serif text-4xl leading-tight sm:text-5xl">{t.loginTitle}</h1>
+        <p className="mt-3 leading-7 text-[#607568]">{t.loginIntro}</p>
         <PortalLoginForm locale={locale} denied={error === "access"} />
       </main>
     </div>

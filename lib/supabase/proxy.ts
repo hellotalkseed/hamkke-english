@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
   const isLogin = new RegExp(`^/${locale}/${area}/login(?:/|$)`).test(pathname);
   const isPortalSetup = area === "portal" && new RegExp(`^/${locale}/portal/setup-password(?:/|$)`).test(pathname);
   if (isLogin || isPortalSetup) return response;
-  if (error || !data?.claims?.sub) return go(`/${locale}/${area}/login`);
+  if (error || !data?.claims?.sub) return go(`/${locale}/portal/login`);
 
   if (area === "admin") {
     const { data: profile, error: profileError } = await supabase.from("profiles")
@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
       (profile?.role === "owner" && profile.status === "active") ||
       (profile?.role === "teacher" && ["active", "pending"].includes(profile.status))
     );
-    if (!allowed) return go(`/${locale}/admin/login`);
+    if (!allowed) return go(`/${locale}/portal/login`);
   }
   // Portal account status and learner authorization are checked in the page/RPC.
   // API handlers must continue to perform their own authorization.

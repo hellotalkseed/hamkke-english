@@ -15,7 +15,7 @@ export async function GET(
   if (errorDescription) {
     return NextResponse.redirect(
       new URL(
-        `/${locale}/admin/login?error=recovery_link_invalid`,
+        `/${locale}/portal/login?error=recovery_link_invalid`,
         request.url
       )
     );
@@ -24,7 +24,7 @@ export async function GET(
   if (!code) {
     return NextResponse.redirect(
       new URL(
-        `/${locale}/admin/login?error=recovery_link_invalid`,
+        `/${locale}/portal/login?error=recovery_link_invalid`,
         request.url
       )
     );
@@ -37,7 +37,7 @@ export async function GET(
     console.error("Admin recovery code exchange failed:", error);
     return NextResponse.redirect(
       new URL(
-        `/${locale}/admin/login?error=recovery_link_invalid`,
+        `/${locale}/portal/login?error=recovery_link_invalid`,
         request.url
       )
     );

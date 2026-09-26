@@ -46,7 +46,7 @@ export default async function AdminPage({
 
     await supabase.auth.signOut();
 
-    redirect(`/${locale}/admin/login`);
+    redirect(`/${locale}/portal/login`);
   }
 
   /*
@@ -850,7 +850,7 @@ export default async function AdminPage({
         </p>
 
         <Link
-          href={`/${locale}/admin/login`}
+          href={`/${locale}/portal/login`}
           className="
             mt-8
             inline-flex

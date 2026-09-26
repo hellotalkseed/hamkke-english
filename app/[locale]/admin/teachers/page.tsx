@@ -9,7 +9,7 @@ export default async function TeachersPage({ params }: TeachersPageProps) {
   const { locale } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect(`/${locale}/admin/login`);
+  if (!user) redirect(`/${locale}/portal/login`);
 
   const { data: profile } = await supabase.from("profiles").select("full_name, role, status, avatar_path").eq("id", user.id).maybeSingle();
 
@@ -18,9 +18,9 @@ export default async function TeachersPage({ params }: TeachersPageProps) {
 
   if (profile?.role === "teacher" && profile?.status === "active") {
     const avatarUrl = profile.avatar_path ? supabase.storage.from("teacher-avatars").getPublicUrl(profile.avatar_path).data.publicUrl : null;
-    async function handleSignOut() { "use server"; const client = await createClient(); await client.auth.signOut(); redirect(`/${locale}/admin/login`); }
+    async function handleSignOut() { "use server"; const client = await createClient(); await client.auth.signOut(); redirect(`/${locale}/portal/login`); }
     return <TeacherDashboardHome locale={locale} fullName={profile.full_name} avatarUrl={avatarUrl} signOutAction={handleSignOut} />;
   }
 
-  redirect(`/${locale}/admin/login`);
+  redirect(`/${locale}/portal/login`);
 }

@@ -55,7 +55,7 @@ export async function GET(
     request.nextUrl.clone();
 
   errorUrl.pathname =
-    `/${locale}/admin/login`;
+    `/${locale}/portal/login`;
 
   errorUrl.search = "";
 

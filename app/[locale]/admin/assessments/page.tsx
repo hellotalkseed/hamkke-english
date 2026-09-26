@@ -77,7 +77,7 @@ export default async function AssessmentsPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/${locale}/admin/login`);
+    redirect(`/${locale}/portal/login`);
   }
 
   const admin = createAdminClient();

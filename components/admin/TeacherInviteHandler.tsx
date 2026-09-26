@@ -55,7 +55,7 @@ export default function TeacherInviteHandler({
         !refreshToken
       ) {
         router.replace(
-          `/${locale}/admin/login?error=invalid_invitation`
+          `/${locale}/portal/login?error=invalid_invitation`
         );
         return;
       }
@@ -81,7 +81,7 @@ export default function TeacherInviteHandler({
         await supabase.auth.signOut();
 
         router.replace(
-          `/${locale}/admin/login?error=invalid_invitation`
+          `/${locale}/portal/login?error=invalid_invitation`
         );
 
         return;
@@ -110,7 +110,7 @@ export default function TeacherInviteHandler({
         await supabase.auth.signOut();
 
         router.replace(
-          `/${locale}/admin/login?error=invalid_invitation`
+          `/${locale}/portal/login?error=invalid_invitation`
         );
 
         return;

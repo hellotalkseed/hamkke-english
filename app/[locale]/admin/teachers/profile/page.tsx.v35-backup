@@ -8,9 +8,13 @@ import {
   Users,
   FileText,
   Wallet,
+  Image as ImageIcon,
+  Quote,
   UserRound,
+  GraduationCap,
   Mic2,
   CalendarDays,
+  HeartHandshake,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
@@ -44,7 +48,7 @@ export default async function TeacherProfilePage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/${locale}/portal/login`);
+    redirect(`/${locale}/admin/login`);
   }
 
   const { data: profile } = await supabase
@@ -104,6 +108,10 @@ export default async function TeacherProfilePage({
     publicProfile.is_published
       ? `/${locale}/teachers/${publicProfile.slug}`
       : null;
+
+  const hasAvatar = Boolean(
+    profile.avatar_path
+  );
 
   const hasAudio = Boolean(
     publicProfile?.audio_intro_path
@@ -452,134 +460,395 @@ export default async function TeacherProfilePage({
         </div>
       </section>
 
-      {/* PUBLIC PROFILE CONTENT */}
+      {/* PROFILE SECTIONS */}
 
-      <section className="mx-auto w-full max-w-none pb-24">
-        <div className="border-t border-[#DCD8D2] py-10">
-          <div className="mb-8">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[#718A73]">
-              Public page
-            </p>
-            <h2 className="mt-2 font-serif text-[28px] font-normal text-[#30342F]">
-              Teacher identity
-            </h2>
-            <p className="mt-2 max-w-2xl font-sans text-[13px] leading-6 text-[#817B74]">
-              These details appear at the top of your public teacher profile and on teacher cards across Hamkke.
-            </p>
-          </div>
+      <section
+        className="
+          mx-auto
+          w-full
+          max-w-none
+          px-6
+          pb-24
+          sm:px-8
+          lg:px-10
+        "
+      >
+        {/* BASIC PROFILE */}
 
-          <PublicProfileEditor
-            initialFullName={profile.full_name || ""}
-            initialCardLabel={publicProfile?.card_label || ""}
-            initialLearnerGroups={learnerGroups}
-            updateAction={updatePublicProfile}
-          />
-        </div>
-
-        <div className="border-t border-[#DCD8D2] py-10">
-          <ProfileSection
-            number="01"
-            title="Introduction"
-            description="The short message learners see beside your name when they open your full profile."
+        <div
+          className="
+            border-t
+            border-[#DCD8D2]
+            py-10
+          "
+        >
+          <div
+            className="
+              grid
+              gap-8
+              md:grid-cols-[220px_minmax(0,1fr)]
+              md:gap-12
+            "
           >
-            <ReadOnlyField
-              label="Profile quote"
-              value={publicProfile?.intro_quote || "Not added yet"}
-              quote
-            />
-          </ProfileSection>
-        </div>
+            <div>
+              <div
+                className="
+                  flex
+                  h-11
+                  w-11
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#E2EBDD]
+                  text-[#6F8F72]
+                "
+              >
+                <UserRound
+                  size={19}
+                  strokeWidth={1.5}
+                />
+              </div>
 
-        <div className="border-t border-[#DCD8D2] py-10">
-          <ProfileSection
-            number="02"
-            title="About"
-            description="Your main introduction in the About tab of the public profile."
-          >
-            {publicProfile?.about ? (
-              <div className="max-w-[720px] whitespace-pre-line font-sans text-[15px] leading-8 text-[#555650]">
-                {publicProfile.about}
-              </div>
-            ) : (
-              <EmptyValue text="No About Me introduction added yet." />
-            )}
-          </ProfileSection>
-        </div>
-
-        <div className="border-t border-[#DCD8D2] py-10">
-          <ProfileSection
-            number="03"
-            title="Qualifications"
-            description="Credentials and experience shown in the Qualifications tab of your public profile."
-          >
-            {qualifications.length > 0 ? (
-              <div className="max-w-[760px] divide-y divide-[#E2DED7] border-y border-[#E2DED7]">
-                {qualifications.map((qualification, index) => (
-                  <div
-                    key={`${qualification.title}-${index}`}
-                    className="grid gap-1 py-5 sm:grid-cols-[minmax(0,1fr)_120px] sm:gap-6"
-                  >
-                    <div>
-                      <p className="font-serif text-[18px] leading-7 text-[#333630]">
-                        {qualification.title || "Untitled qualification"}
-                      </p>
-                      <p className="mt-1 font-sans text-[13px] leading-6 text-[#74716B]">
-                        {qualification.institution || "Institution not added"}
-                      </p>
-                    </div>
-                    <p className="font-sans text-[13px] font-medium text-[#718A73] sm:text-right">
-                      {qualification.year || ""}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyValue text="No qualifications added yet." />
-            )}
-          </ProfileSection>
-        </div>
-
-        <div className="border-y border-[#DCD8D2] py-10">
-          <ProfileSection
-            number="04"
-            title="Audio introduction"
-            description="A short hello learners can play directly from your public teacher profile."
-          >
-            <div className="flex max-w-[560px] items-center gap-4 rounded-[16px] border border-[#DDD9D2] bg-white px-5 py-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E2EBDD] text-[#5F7F63]">
-                <Mic2 size={18} strokeWidth={1.6} />
-              </div>
-              <div>
-                <p className="font-sans text-[13px] font-medium text-[#3F433D]">
-                  {hasAudio ? "Audio introduction uploaded" : "No audio introduction uploaded"}
-                </p>
-                <p className="mt-1 font-sans text-[12px] leading-5 text-[#88827A]">
-                  {hasAudio
-                    ? "This audio is currently available on your public profile."
-                    : "Your public profile will show that an audio introduction is coming soon."}
-                </p>
-              </div>
+              <h2
+                className="
+                  mt-4
+                  font-serif
+                  text-[27px]
+                  font-normal
+                "
+              >
+                Public Profile
+              </h2>
             </div>
-          </ProfileSection>
+
+            <PublicProfileEditor
+              initialFullName={
+                profile.full_name || ""
+              }
+              initialCardLabel={
+                publicProfile?.card_label ||
+                ""
+              }
+              initialLearnerGroups={
+                learnerGroups
+              }
+              updateAction={
+                updatePublicProfile
+              }
+            />
+          </div>
         </div>
 
-        <div className="mt-8 rounded-[18px] bg-[#F1F3ED] px-6 py-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
-          <div>
-            <p className="font-serif text-[18px] text-[#3F4D42]">What is managed elsewhere?</p>
-            <p className="mt-1 font-sans text-[13px] leading-6 text-[#73766F]">
-              Availability has its own Teacher Portal section. Learner Stories come from approved student reflections, so neither is edited here.
-            </p>
-          </div>
-          {publicProfileHref ? (
-            <Link
-              href={publicProfileHref}
-              target="_blank"
-              className="mt-4 inline-flex shrink-0 items-center gap-2 font-sans text-[13px] font-medium text-[#526B55] underline underline-offset-4 sm:mt-0"
+        {/* PROFILE PHOTO */}
+
+        <div
+          className="
+            border-t
+            border-[#DCD8D2]
+            py-10
+          "
+        >
+          <SectionRow
+            icon={
+              <ImageIcon
+                size={19}
+                strokeWidth={1.5}
+              />
+            }
+            title="Profile Photo"
+          >
+            <StatusLine
+              complete={hasAvatar}
+              completeText="Profile photo uploaded"
+              incompleteText="No profile photo uploaded"
+            />
+          </SectionRow>
+        </div>
+
+        {/* INTRO QUOTE */}
+
+        <div
+          className="
+            border-t
+            border-[#DCD8D2]
+            py-10
+          "
+        >
+          <SectionRow
+            icon={
+              <Quote
+                size={19}
+                strokeWidth={1.5}
+              />
+            }
+            title="Introduction"
+          >
+            <ProfileField
+              label="Profile quote"
+              value={
+                publicProfile?.intro_quote ||
+                "Not added"
+              }
+            />
+          </SectionRow>
+        </div>
+
+        {/* ABOUT */}
+
+        <div
+          className="
+            border-t
+            border-[#DCD8D2]
+            py-10
+          "
+        >
+          <SectionRow
+            icon={
+              <UserRound
+                size={19}
+                strokeWidth={1.5}
+              />
+            }
+            title="About Me"
+          >
+            <div>
+              <p className={fieldLabelClass}>
+                About
+              </p>
+
+              {publicProfile?.about ? (
+                <div
+                  className="
+                    mt-3
+                    space-y-4
+                    whitespace-pre-line
+                    font-serif
+                    text-[17px]
+                    leading-8
+                    text-[#4F4D48]
+                  "
+                >
+                  {publicProfile.about}
+                </div>
+              ) : (
+                <p className={fieldValueClass}>
+                  Not added
+                </p>
+              )}
+            </div>
+          </SectionRow>
+        </div>
+
+        {/* QUALIFICATIONS */}
+
+        <div
+          className="
+            border-t
+            border-[#DCD8D2]
+            py-10
+          "
+        >
+          <SectionRow
+            icon={
+              <GraduationCap
+                size={19}
+                strokeWidth={1.5}
+              />
+            }
+            title="Qualifications & Credentials"
+          >
+            {qualifications.length >
+            0 ? (
+              <div
+                className="
+                  divide-y
+                  divide-[#E2DED7]
+                  border-y
+                  border-[#E2DED7]
+                "
+              >
+                {qualifications.map(
+                  (
+                    qualification,
+                    index
+                  ) => (
+                    <div
+                      key={`${qualification.title}-${index}`}
+                      className="
+                        flex
+                        flex-col
+                        gap-2
+                        py-5
+                        sm:flex-row
+                        sm:items-start
+                        sm:justify-between
+                        sm:gap-6
+                      "
+                    >
+                      <div>
+                        <p
+                          className="
+                            font-serif
+                            text-[18px]
+                            leading-7
+                            text-[#333630]
+                          "
+                        >
+                          {qualification.title ||
+                            "Untitled qualification"}
+                        </p>
+
+                        <p
+                          className="
+                            mt-1
+                            font-sans
+                            text-[13px]
+                            leading-6
+                            text-[#74716B]
+                          "
+                        >
+                          {qualification.institution ||
+                            "Institution not added"}
+                        </p>
+                      </div>
+
+                      {qualification.year ? (
+                        <span
+                          className="
+                            shrink-0
+                            font-sans
+                            text-[13px]
+                            font-medium
+                            text-[#718A73]
+                          "
+                        >
+                          {
+                            qualification.year
+                          }
+                        </span>
+                      ) : null}
+                    </div>
+                  )
+                )}
+              </div>
+            ) : (
+              <p className={fieldValueClass}>
+                No qualifications added
+                yet.
+              </p>
+            )}
+          </SectionRow>
+        </div>
+
+        {/* AUDIO INTRO */}
+
+        <div
+          className="
+            border-t
+            border-[#DCD8D2]
+            py-10
+          "
+        >
+          <SectionRow
+            icon={
+              <Mic2
+                size={19}
+                strokeWidth={1.5}
+              />
+            }
+            title="Audio Introduction"
+          >
+            <StatusLine
+              complete={hasAudio}
+              completeText="Audio introduction uploaded"
+              incompleteText="No audio introduction uploaded"
+            />
+          </SectionRow>
+        </div>
+
+        {/* AVAILABILITY */}
+
+        <div
+          className="
+            border-t
+            border-[#DCD8D2]
+            py-10
+          "
+        >
+          <SectionRow
+            icon={
+              <CalendarDays
+                size={19}
+                strokeWidth={1.5}
+              />
+            }
+            title="Availability"
+          >
+            <p
+              className="
+                font-serif
+                text-[17px]
+                leading-7
+                text-[#5F5D58]
+              "
             >
-              Check public profile
-              <ExternalLink size={13} strokeWidth={1.6} />
+              Your public availability is
+              managed separately from your
+              profile information.
+            </p>
+
+            <Link
+              href={`/${locale}/admin/teachers/availability`}
+              className="
+                mt-4
+                inline-block
+                font-sans
+                text-[14px]
+                font-medium
+                text-[#6F8F72]
+                underline
+                underline-offset-4
+                transition-colors
+                hover:text-[#526B55]
+              "
+            >
+              Manage availability
             </Link>
-          ) : null}
+          </SectionRow>
+        </div>
+
+        {/* LEARNER STORIES */}
+
+        <div
+          className="
+            border-y
+            border-[#DCD8D2]
+            py-10
+          "
+        >
+          <SectionRow
+            icon={
+              <HeartHandshake
+                size={19}
+                strokeWidth={1.5}
+              />
+            }
+            title="Learner Stories"
+          >
+            <p
+              className="
+                font-serif
+                text-[17px]
+                leading-7
+                text-[#5F5D58]
+              "
+            >
+              Learner Stories come from
+              Hamkke&apos;s approved student
+              reflections and are not manually
+              written from this profile page.
+            </p>
+          </SectionRow>
         </div>
       </section>
           </div>
@@ -593,60 +862,130 @@ export default async function TeacherProfilePage({
 /* SMALL PRESENTATIONAL HELPERS                                              */
 /* ------------------------------------------------------------------------- */
 
-function ProfileSection({
-  number,
-  title,
-  description,
-  children,
-}: {
-  number: string;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-7 md:grid-cols-[220px_minmax(0,1fr)] md:gap-12">
-      <div>
-        <p className="font-sans text-[11px] font-semibold tracking-[0.14em] text-[#8AA08A]">
-          {number}
-        </p>
-        <h2 className="mt-2 font-serif text-[25px] font-normal leading-tight text-[#30342F]">
-          {title}
-        </h2>
-        <p className="mt-2 max-w-[210px] font-sans text-[12px] leading-5 text-[#8A857E]">
-          {description}
-        </p>
-      </div>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
+const fieldLabelClass = `
+  font-sans
+  text-[11px]
+  font-semibold
+  uppercase
+  tracking-[0.12em]
+  text-[#8A8A84]
+`;
 
-function ReadOnlyField({
+const fieldValueClass = `
+  mt-2
+  font-serif
+  text-[18px]
+  leading-7
+  text-[#444640]
+`;
+
+function ProfileField({
   label,
   value,
-  quote = false,
 }: {
   label: string;
   value: string;
-  quote?: boolean;
 }) {
   return (
-    <div className="max-w-[720px]">
-      <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8A8A84]">
+    <div>
+      <p className={fieldLabelClass}>
         {label}
       </p>
-      <p className={`mt-3 text-[#444640] ${quote ? "font-serif text-[20px] italic leading-8" : "font-sans text-[15px] leading-7"}`}>
+
+      <p className={fieldValueClass}>
         {value}
       </p>
     </div>
   );
 }
 
-function EmptyValue({ text }: { text: string }) {
+function SectionRow({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <p className="font-sans text-[14px] leading-7 text-[#98928A]">
-      {text}
-    </p>
+    <div
+      className="
+        grid
+        gap-8
+        md:grid-cols-[220px_minmax(0,1fr)]
+        md:gap-12
+      "
+    >
+      <div>
+        <div
+          className="
+            flex
+            h-11
+            w-11
+            items-center
+            justify-center
+            rounded-full
+            bg-[#E2EBDD]
+            text-[#6F8F72]
+          "
+        >
+          {icon}
+        </div>
+
+        <h2
+          className="
+            mt-4
+            font-serif
+            text-[27px]
+            font-normal
+            leading-tight
+          "
+        >
+          {title}
+        </h2>
+      </div>
+
+      <div>{children}</div>
+    </div>
+  );
+}
+
+function StatusLine({
+  complete,
+  completeText,
+  incompleteText,
+}: {
+  complete: boolean;
+  completeText: string;
+  incompleteText: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className={`
+          h-2.5
+          w-2.5
+          rounded-full
+          ${
+            complete
+              ? "bg-[#718A73]"
+              : "bg-[#C7C2BA]"
+          }
+        `}
+      />
+
+      <p
+        className="
+          font-serif
+          text-[17px]
+          text-[#5F5D58]
+        "
+      >
+        {complete
+          ? completeText
+          : incompleteText}
+      </p>
+    </div>
   );
 }

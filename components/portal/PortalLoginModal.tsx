@@ -71,9 +71,9 @@ export default function PortalLoginModal({
           event.clientY < rect.top || event.clientY > rect.bottom
         ) onDismiss();
       }}
-      className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[520px] overflow-y-auto overscroll-contain rounded-2xl border border-[#E7DDD1] bg-[#FFFDF8] p-0 text-[#293A30] shadow-2xl backdrop:bg-[#1F3027]/50 backdrop:backdrop-blur-sm sm:rounded-3xl"
+      className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[540px] overflow-hidden rounded-2xl border border-[#E7DDD1] bg-[#FFFDF8] p-0 text-[#293A30] shadow-2xl backdrop:bg-[#1F3027]/50 backdrop:backdrop-blur-sm sm:rounded-3xl"
     >
-      <div className="relative px-6 pb-7 pt-8 sm:px-9 sm:pb-9 sm:pt-10">
+      <div className="relative px-6 pb-6 pt-7 sm:px-9 sm:pb-7 sm:pt-8">
         <button
           type="button"
           onClick={onDismiss}
@@ -82,12 +82,12 @@ export default function PortalLoginModal({
         >
           <X size={21} strokeWidth={1.8} aria-hidden="true" />
         </button>
-        <p className="pr-9 text-xs font-semibold uppercase tracking-[0.18em] text-[#718A73]">{t.portal}</p>
+        <p className="pr-9 text-xs font-semibold uppercase tracking-[0.18em] text-[#718A73]">{t.loginBrand}</p>
         <h2 id={headingId} tabIndex={-1} data-login-heading
-          className="mt-4 font-serif text-4xl leading-tight outline-none sm:text-5xl">
+          className="mt-3 font-serif text-4xl leading-tight outline-none sm:text-5xl">
           {t.loginTitle}
         </h2>
-        <p id={descriptionId} className="mt-4 leading-7 text-[#607568]">{t.loginIntro}</p>
+        <p id={descriptionId} className="mt-3 leading-7 text-[#607568]">{t.loginIntro}</p>
         <PortalLoginForm locale={locale} denied={false} />
       </div>
     </dialog>,
