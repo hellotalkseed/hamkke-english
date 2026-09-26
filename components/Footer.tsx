@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import InquiryModal from "./InquiryModal";
+import ContactModal from "./ContactModal";
 import { getMessages } from "../lib/getMessages";
 import type { Locale } from "../lib/i18n";
 
@@ -393,12 +393,11 @@ export default function Footer() {
         </div>
       </footer>
 
-      <InquiryModal
+      <ContactModal
         isOpen={isInquiryOpen}
         onClose={() =>
           setIsInquiryOpen(false)
         }
-        source="start-a-conversation"
         locale={locale}
       />
     </>

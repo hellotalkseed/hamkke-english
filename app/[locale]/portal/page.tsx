@@ -695,7 +695,7 @@ export default async function PortalPage({ params, searchParams }: {
               </dl>
               <p className="mt-5 text-sm leading-7 text-[#607568]">{d.settingsNote}</p>
               <p className="mt-4 text-sm leading-7 text-[#607568]">{d.helpIntro}</p>
-              <Link href={`/${locale}/inquiry`} className={`mt-5 inline-flex min-h-11 items-center gap-3 rounded-full bg-[#31463A] px-6 py-3 text-sm text-[#FFFDF8] ${focus}`}>{d.contact}<ArrowUpRight size={17} aria-hidden="true" /></Link>
+              <Link href={`/${locale}/contact`} className={`mt-5 inline-flex min-h-11 items-center gap-3 rounded-full bg-[#31463A] px-6 py-3 text-sm text-[#FFFDF8] ${focus}`}>{d.contact}<ArrowUpRight size={17} aria-hidden="true" /></Link>
             </section>}
           </div>
         </main>

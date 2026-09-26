@@ -122,7 +122,7 @@ export default function PortalLoginForm({ locale, denied }: { locale: Locale; de
       <div className="text-center">
         <p className="font-serif text-xl text-[#31463A]">{t.newToHamkke}</p>
         <p className="mx-auto mt-1.5 max-w-sm text-sm leading-6 text-[#607568]">{t.enrollmentAccount}</p>
-        <Link href={`/${locale}/inquiry`} className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full border border-[#718A73] px-5 py-2.5 text-sm font-semibold text-[#31463A] transition-colors hover:bg-[#EEF2EA]">
+        <Link href={`/${locale}/assessment`} className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full border border-[#718A73] px-5 py-2.5 text-sm font-semibold text-[#31463A] transition-colors hover:bg-[#EEF2EA]">
           {t.bookAssessment} →
         </Link>
       </div>
