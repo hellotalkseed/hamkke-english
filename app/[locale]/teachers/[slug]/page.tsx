@@ -566,7 +566,7 @@ export default async function TeacherProfilePage({
                   />
 
                   <Link
-                    href={`/${locale}#get-started`}
+                    href={`/${locale}/assessment?teacher=${encodeURIComponent(teacher.slug)}`}
                     className="
                       relative
                       z-10
@@ -611,3 +611,4 @@ export default async function TeacherProfilePage({
     </>
   );
 }
+
