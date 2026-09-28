@@ -1064,123 +1064,47 @@ export default async function OverviewPage({
       "
     >
       {/* =================================================================== */}
-      {/* HEADER                                                              */}
-      {/* =================================================================== */}
-
-      <header
-        className="
-          w-full
-          px-6
-          pt-7
-          sm:px-8
-          sm:pt-8
-          lg:px-10
-          xl:px-12
-        "
-      >
-        <div
-          className="
-            flex
-            w-full
-            items-start
-            justify-between
-            gap-8
-          "
-        >
-          {/* Back to Administration */}
-
-          <Link
-            href={`/${locale}/admin`}
-            className="
-              shrink-0
-              font-sans
-              text-[15px]
-              text-[#5F655F]
-              transition-colors
-              duration-200
-              hover:text-[#6F8F72]
-              sm:text-[16px]
-            "
-          >
-            &larr; Administration
-          </Link>
-
-          {/* Hamkke Brand */}
-
-          <div className="shrink-0 text-right">
-            <p
-              className="
-                font-sans
-                text-[16px]
-                font-semibold
-                leading-none
-                tracking-[0.18em]
-                text-[#6F8F72]
-              "
-            >
-              HAMKKE │ 함께
-            </p>
-
-            <p
-              className="
-                mt-2
-                font-serif
-                text-[13px]
-                font-normal
-                leading-none
-                tracking-[0.02em]
-                text-[#6F8F72]
-              "
-            >
-              From Small Talk to Big Ideas
-            </p>
-          </div>
-        </div>
-      </header>
-
-      {/* =================================================================== */}
       {/* INTRO                                                               */}
       {/* =================================================================== */}
 
       <section
         className="
           mx-auto
-          max-w-[1200px]
-          px-6
-          pb-12
-          pt-12
-          sm:px-8
-          sm:pb-14
-          sm:pt-16
-          lg:px-10
-          lg:pb-16
-          lg:pt-20
+          max-w-[1320px]
+          px-8
+          pb-6
+          pt-[92px]
+          sm:px-10
+          lg:px-14
+          xl:px-16
         "
       >
         <div className="max-w-[760px]">
-          <p
-            className="
-              mb-4
-              font-sans
-              text-[10px]
-              font-medium
-              uppercase
-              tracking-[0.18em]
-              text-[#8A8A84]
-            "
-          >
-            Administration
-          </p>
+          <div className="mb-5 flex items-center gap-4">
+            <span className="h-px w-12 bg-[#6F8F72]" />
+            <span
+              className="
+                font-sans
+                text-[10px]
+                font-medium
+                uppercase
+                tracking-[0.2em]
+                text-[#6F8F72]
+              "
+            >
+              Administration
+            </span>
+          </div>
 
           <h1
             className="
               font-serif
-              text-[48px]
+              text-[46px]
               font-normal
               leading-[1]
               tracking-[-0.035em]
-              sm:text-[58px]
-              lg:text-[66px]
+              sm:text-[54px]
+              lg:text-[60px]
             "
           >
             Overview
@@ -1188,18 +1112,16 @@ export default async function OverviewPage({
 
           <p
             className="
-              mt-5
+              mt-4
               max-w-[620px]
               font-serif
-              text-[18px]
+              text-[17px]
               leading-8
               text-[#74716B]
-              sm:text-[20px]
-              sm:leading-9
+              sm:text-[18px]
             "
           >
-            A simple view of your students,
-            lessons, and income.
+            A simple view of your students, lessons, and income.
           </p>
         </div>
       </section>
@@ -1211,10 +1133,11 @@ export default async function OverviewPage({
       <div
         className="
           mx-auto
-          max-w-[1200px]
-          px-6
-          sm:px-8
-          lg:px-10
+          max-w-[1320px]
+          px-8
+          sm:px-10
+          lg:px-14
+          xl:px-16
         "
       >
         <div className="flex justify-end pb-3">
@@ -1240,23 +1163,24 @@ export default async function OverviewPage({
       <section
         className="
           mx-auto
-          max-w-[1200px]
-          px-6
-          sm:px-8
-          lg:px-10
+          max-w-[1320px]
+          px-8
+          sm:px-10
+          lg:px-14
+          xl:px-16
         "
       >
         <div
           className="
             grid
             grid-cols-1
-            gap-12
+            gap-8
             border-y
             border-[#DCD8D2]
-            py-10
+            py-7
             lg:grid-cols-[0.72fr_1.28fr]
-            lg:gap-16
-            lg:py-12
+            lg:gap-10
+            lg:py-7
           "
         >
           <div
@@ -1266,12 +1190,12 @@ export default async function OverviewPage({
               justify-center
               lg:border-r
               lg:border-[#E1DDD7]
-              lg:pr-16
+              lg:pr-10
             "
           >
             <p
               className="
-                mb-6
+                mb-4
                 font-sans
                 text-[10px]
                 font-medium
@@ -1393,10 +1317,10 @@ export default async function OverviewPage({
 
             <div
               className="
-                mt-6
+                mt-4
                 grid
                 grid-cols-2
-                gap-10
+                gap-8
               "
             >
               <div>
@@ -1481,11 +1405,11 @@ export default async function OverviewPage({
               </div>
             </div>
 
-            <div className="mt-9">
+            <div className="mt-5">
               <div
                 className="
                   flex
-                  h-[145px]
+                  h-[82px]
                   items-end
                   gap-2
                   border-b
@@ -1621,7 +1545,7 @@ export default async function OverviewPage({
       <section
         className="
           mx-auto
-          max-w-[1200px]
+          max-w-[1320px]
           px-6
           pb-20
           pt-14
@@ -2205,7 +2129,7 @@ export default async function OverviewPage({
 
             {hasFilters && (
               <Link
-                href={`/${locale}/admin`}
+                href={`/${locale}/admin/overview`}
                 className="
                   mt-6
                   inline-block

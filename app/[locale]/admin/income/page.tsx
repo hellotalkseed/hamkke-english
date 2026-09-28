@@ -258,42 +258,21 @@ export default async function IncomePage({
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      <header
-        className="
-          print:hidden
-          w-full
-          px-6
-          pt-7
-          sm:px-8
-          sm:pt-8
-          lg:px-10
-          xl:px-12
-        "
-      >
-        <div className="flex w-full items-start justify-between gap-8">
-          <Link
-            href={`/${locale}/admin/overview`}
-            className="
-              shrink-0
-              font-sans
-              text-[15px]
-              text-[#5F655F]
-              transition-colors
-              duration-200
-              hover:text-[#6F8F72]
-              sm:text-[16px]
-            "
-          >
-            &larr; Overview
-          </Link>
-
-          <div className="shrink-0 text-right">
-            <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
+      <header className="hidden print:block print:pb-5">
+        <div className="flex items-start justify-between gap-8 border-b border-[#DCD8D2] pb-5">
+          <div>
+            <div className="font-sans text-[13px] font-semibold tracking-[0.18em] text-[#5F7F63]">
               HAMKKE │ 함께
-            </p>
-            <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
+            </div>
+            <div className="mt-1 font-serif text-[10px] text-[#5F7F63]">
               From Small Talk to Big Ideas
-            </p>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="font-sans text-[8px] uppercase tracking-[0.2em] text-[#6F6B65]">
+              Income Statement
+            </div>
           </div>
         </div>
       </header>

@@ -390,44 +390,23 @@ export default function DailySchedulePage() {
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
-        <div className="flex w-full items-start justify-between gap-8">
-          <Link
-            href={`/${locale}/admin`}
-            className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
-          >
-            &larr; Administration
-          </Link>
-
-          <div className="shrink-0 text-right">
-            <p className="font-sans text-[16px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
-              HAMKKE │ 함께
-            </p>
-            <p className="mt-2 font-serif text-[13px] font-normal leading-none tracking-[0.02em] text-[#6F8F72]">
-              From Small Talk to Big Ideas
-            </p>
-          </div>
-        </div>
-      </header>
-
-      <section className="mx-auto w-full max-w-[1180px] px-6 pb-20 pt-12 sm:px-8 sm:pt-16 lg:px-10">        <div className="pb-9">
-          <div className="relative left-1/2 flex w-full -translate-x-1/2 flex-col gap-7 lg:w-[calc(100%+8rem)] lg:flex-row lg:items-end lg:justify-between xl:w-[calc(100%+10rem)] 2xl:w-[calc(100%+12rem)]">
-            <div>
-              <div className="flex items-center gap-2 font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]">
-                <CalendarDays size={14} strokeWidth={1.5} />
-                Daily operations
-              </div>
-
-              <h1 className="mt-4 font-serif text-[46px] font-normal leading-none tracking-[-0.035em] sm:text-[56px]">
-                Daily Schedule
-              </h1>
-
-              <p className="mt-5 max-w-2xl font-serif text-[18px] leading-8 text-[#66645F]">
-                See every class for the day and assign regular or substitute
-                teachers without checking each teacher calendar.
-              </p>
+      <section className="mx-auto w-full max-w-[1320px] px-8 pb-20 pt-[92px] sm:px-10 lg:px-14 xl:px-16">
+        <div className="pb-6">
+          <div className="max-w-[820px]">
+            <div className="mb-5 flex items-center gap-4">
+              <span className="h-px w-12 bg-[#6F8F72]" />
+              <span className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-[#6F8F72]">
+                Administration
+              </span>
             </div>
 
+            <h1 className="font-serif text-[46px] font-normal leading-[1] tracking-[-0.035em] sm:text-[54px] lg:text-[60px]">
+              Daily Schedule
+            </h1>
+
+            <p className="mt-4 max-w-[720px] font-serif text-[17px] leading-8 text-[#74716B] sm:text-[18px]">
+              See every class for the day and assign regular or substitute teachers without checking each teacher calendar.
+            </p>
           </div>
         </div>
 
@@ -441,9 +420,7 @@ export default function DailySchedulePage() {
               -translate-x-1/2
               justify-end
               pb-2
-              lg:w-[calc(100%+8rem)]
-              xl:w-[calc(100%+10rem)]
-              2xl:w-[calc(100%+12rem)]
+              lg:w-full
             "
           >
             <button
@@ -484,12 +461,10 @@ export default function DailySchedulePage() {
               px-4
               py-4
               sm:px-5
-              lg:w-[calc(100%+8rem)]
+              lg:w-full
               lg:flex-row
               lg:items-center
               lg:justify-between
-              xl:w-[calc(100%+10rem)]
-              2xl:w-[calc(100%+12rem)]
             "
           >
             <div className="flex shrink-0 items-center gap-3">
@@ -581,12 +556,10 @@ export default function DailySchedulePage() {
               -translate-x-1/2
               flex-col
               gap-4
-              lg:w-[calc(100%+8rem)]
+              lg:w-full
               lg:flex-row
               lg:items-end
               lg:justify-between
-              xl:w-[calc(100%+10rem)]
-              2xl:w-[calc(100%+12rem)]
             "
           >
             <div className="flex flex-wrap gap-2">
@@ -689,9 +662,7 @@ export default function DailySchedulePage() {
                   border-y
                   border-[#DCD8D2]
                   lg:block
-                  lg:w-[calc(100%+8rem)]
-                  xl:w-[calc(100%+10rem)]
-                  2xl:w-[calc(100%+12rem)]
+                  lg:w-full
                 "
               >
                 <table className="w-full table-fixed border-collapse">

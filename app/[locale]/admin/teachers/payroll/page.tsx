@@ -1,5 +1,7 @@
 "use client";
 
+import { categoryAmount, lessonRateLabel, type PayrollLine, type PayableStatus } from "@/lib/payroll/presentation";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -118,6 +120,7 @@ type PayrollApiResponse = {
   >;
 
   compensation_progression?: {
+    current_level?: number;
     qualifying_minutes_before: number;
     qualifying_minutes_current_period: number;
     qualifying_minutes_total: number;
@@ -535,6 +538,11 @@ export default function TeacherPayrollPage() {
   /* PRINT                                                                   */
   /* ----------------------------------------------------------------------- */
 
+  function payrollLines(record: PayrollRecord) {
+    return historyBreakdowns[record.id] ||
+      (record.id === "current-period" || currentPayroll?.payroll_record?.id === record.id ? lessonBreakdown : []);
+  }
+
   function printPayroll(record: PayrollRecord) {
     if (!teacher) {
       return;
@@ -550,8 +558,7 @@ export default function TeacherPayrollPage() {
     const printWindow = printFrame.contentWindow;
     if (!printWindow) { printFrame.remove(); return; }
 
-    const breakdown = historyBreakdowns[record.id] ||
-      (currentPayroll?.payroll_record?.id === record.id ? lessonBreakdown : []);
+    const breakdown = payrollLines(record);
     const breakdownRows = breakdown.map((lesson) => `
       <tr><td>${formatLessonDate(lesson.lesson_date)}</td><td>${lesson.student_name || "—"}</td><td class="center">${lesson.duration} min</td><td>${formatLessonStatus(lesson.attendance_status)}</td><td class="right">${formatCurrency(lesson.rate)}</td><td class="right">${formatCurrency(lesson.amount)}</td></tr>`).join("");
 
@@ -559,22 +566,13 @@ export default function TeacherPayrollPage() {
     const total50 = getPayable50Count(record);
 
     const completedAmount =
-      getAmount(record.completed_25_count, record.rate_25) +
-      getAmount(record.completed_50_count, record.rate_50);
+      categoryAmount(record, payrollLines(record), "completed");
 
     const noShowAmount =
-      getAmount(record.no_show_25_count, record.rate_25) +
-      getAmount(record.no_show_50_count, record.rate_50);
+      categoryAmount(record, payrollLines(record), "no_show");
 
     const lateAmount =
-      getAmount(
-        record.late_cancellation_25_count,
-        record.rate_25
-      ) +
-      getAmount(
-        record.late_cancellation_50_count,
-        record.rate_50
-      );
+      categoryAmount(record, payrollLines(record), "late_cancellation");
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -1018,7 +1016,7 @@ export default function TeacherPayrollPage() {
               <p className="font-sans text-[10px] font-medium uppercase tracking-[0.14em] text-[#8A8A84]">Current rate</p>
               <div className="mt-4 flex items-end justify-between gap-4">
                 <div>
-                  <p className="font-serif text-[22px]">Level {currentPayroll.compensation_rate.level}</p>
+                  <p className="font-serif text-[22px]">Level {compensationProgression?.current_level ?? currentPayroll.compensation_rate.level}</p>
                   <p className="mt-2 font-serif text-[13px] text-[#74716B]">{((compensationProgression?.qualifying_minutes_total ?? currentPayroll.teaching_minutes_before) / 60).toLocaleString("en-PH", { maximumFractionDigits: 1 })} qualifying hours</p>
                   {compensationProgression?.next_rate && (
                     <p className="mt-1 font-sans text-[10px] text-[#8A8780]">
@@ -1027,8 +1025,8 @@ export default function TeacherPayrollPage() {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="font-serif text-[16px]">{formatCurrency(currentPayroll.compensation_rate.rate_25)} <span className="text-[11px] text-[#8A8780]">/ 25 min</span></p>
-                  <p className="mt-1 font-serif text-[16px]">{formatCurrency(currentPayroll.compensation_rate.rate_50)} <span className="text-[11px] text-[#8A8780]">/ 50 min</span></p>
+                  <p className="font-serif text-[16px]">{lessonRateLabel(lessonBreakdown, 25, currentPayroll.compensation_rate.rate_25)} <span className="text-[11px] text-[#8A8780]">/ 25 min</span></p>
+                  <p className="mt-1 font-serif text-[16px]">{lessonRateLabel(lessonBreakdown, 50, currentPayroll.compensation_rate.rate_50)} <span className="text-[11px] text-[#8A8780]">/ 50 min</span></p>
                 </div>
               </div>
             </div>
@@ -1101,6 +1099,7 @@ export default function TeacherPayrollPage() {
           </div>
 
           {/* LESSON PAYMENTS */}
+          <p className="px-6 pt-5 text-xs leading-5 text-[#74716B] sm:px-8">Each lesson uses the rate earned before it starts. A higher level applies to the next lesson after the qualifying-hours threshold is reached, including within this payroll period.</p>
 
           <div className="px-6 py-7 sm:px-8 sm:py-8">
             <p className="mb-4 font-sans text-[9px] font-medium uppercase tracking-[0.15em] text-[#8A8A84]">
@@ -1144,7 +1143,7 @@ export default function TeacherPayrollPage() {
                     count50={currentPayroll.completed_50_count}
                     rate25={currentPayroll.compensation_rate.rate_25}
                     rate50={currentPayroll.compensation_rate.rate_50}
-                  />
+                  lines={lessonBreakdown} status="completed" />
 
                   <PayrollRow
                     label="No-Show"
@@ -1152,7 +1151,7 @@ export default function TeacherPayrollPage() {
                     count50={currentPayroll.no_show_50_count}
                     rate25={currentPayroll.compensation_rate.rate_25}
                     rate50={currentPayroll.compensation_rate.rate_50}
-                  />
+                  lines={lessonBreakdown} status="no_show" />
 
                   <PayrollRow
                     label="Late Cancellation"
@@ -1164,7 +1163,7 @@ export default function TeacherPayrollPage() {
                     }
                     rate25={currentPayroll.compensation_rate.rate_25}
                     rate50={currentPayroll.compensation_rate.rate_50}
-                  />
+                  lines={lessonBreakdown} status="late_cancellation" />
 
                   <tr>
                     <td className="px-3 pt-5 font-serif text-[16px]">
@@ -1486,7 +1485,7 @@ export default function TeacherPayrollPage() {
                       count50={selectedPayroll.completed_50_count}
                       rate25={selectedPayroll.rate_25}
                       rate50={selectedPayroll.rate_50}
-                    />
+                    lines={payrollLines(selectedPayroll)} status="completed" />
 
                     <ModalPayrollRow
                       label="No-Show"
@@ -1494,7 +1493,7 @@ export default function TeacherPayrollPage() {
                       count50={selectedPayroll.no_show_50_count}
                       rate25={selectedPayroll.rate_25}
                       rate50={selectedPayroll.rate_50}
-                    />
+                    lines={payrollLines(selectedPayroll)} status="no_show" />
 
                     <ModalPayrollRow
                       label="Late Cancellation"
@@ -1506,7 +1505,7 @@ export default function TeacherPayrollPage() {
                       }
                       rate25={selectedPayroll.rate_25}
                       rate50={selectedPayroll.rate_50}
-                    />
+                    lines={payrollLines(selectedPayroll)} status="late_cancellation" />
 
                     <tr>
                       <td className="px-3 pt-5 font-serif text-[15px]">
@@ -1542,7 +1541,7 @@ export default function TeacherPayrollPage() {
                   </p>
 
                   <p className="mt-2 font-serif text-[16px]">
-                    {formatCurrency(selectedPayroll.rate_25)}
+                    {lessonRateLabel(payrollLines(selectedPayroll), 25, selectedPayroll.rate_25)}
                   </p>
                 </div>
 
@@ -1552,7 +1551,7 @@ export default function TeacherPayrollPage() {
                   </p>
 
                   <p className="mt-2 font-serif text-[16px]">
-                    {formatCurrency(selectedPayroll.rate_50)}
+                    {lessonRateLabel(payrollLines(selectedPayroll), 50, selectedPayroll.rate_50)}
                   </p>
                 </div>
 
@@ -1849,16 +1848,18 @@ function PayrollRow({
   count50,
   rate25,
   rate50,
+  lines,
+  status,
 }: {
   label: string;
   count25: number;
   count50: number;
   rate25: number;
   rate50: number;
+  lines: PayrollLine[];
+  status: PayableStatus;
 }) {
-  const amount =
-    getAmount(count25, rate25) +
-    getAmount(count50, rate50);
+  const amount = lines.length ? lines.filter(line => line.attendance_status === status).reduce((sum, line) => sum + Math.round(line.amount * 100), 0) / 100 : getAmount(count25, rate25) + getAmount(count50, rate50);
 
   return (
     <tr className="border-b border-[#E7E3DD]">
@@ -1871,7 +1872,7 @@ function PayrollRow({
       </td>
 
       <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-        {formatCurrency(rate25)}
+        {lessonRateLabel(lines.filter(line => line.attendance_status === status), 25, rate25)}
       </td>
 
       <td className="px-3 py-4 text-right font-serif text-[14px]">
@@ -1879,7 +1880,7 @@ function PayrollRow({
       </td>
 
       <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-        {formatCurrency(rate50)}
+        {lessonRateLabel(lines.filter(line => line.attendance_status === status), 50, rate50)}
       </td>
 
       <td className="px-3 py-4 text-right font-serif text-[14px]">
@@ -1899,16 +1900,18 @@ function ModalPayrollRow({
   count50,
   rate25,
   rate50,
+  lines,
+  status,
 }: {
   label: string;
   count25: number;
   count50: number;
   rate25: number;
   rate50: number;
+  lines: PayrollLine[];
+  status: PayableStatus;
 }) {
-  const amount =
-    getAmount(count25, rate25) +
-    getAmount(count50, rate50);
+  const amount = lines.length ? lines.filter(line => line.attendance_status === status).reduce((sum, line) => sum + Math.round(line.amount * 100), 0) / 100 : getAmount(count25, rate25) + getAmount(count50, rate50);
 
   return (
     <tr className="border-b border-[#E7E3DD]">

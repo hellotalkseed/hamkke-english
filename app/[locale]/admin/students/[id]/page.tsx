@@ -136,6 +136,20 @@ interface Enrollment {
 /* PAGE                                                                       */
 /* -------------------------------------------------------------------------- */
 
+function formatTimezoneForDisplay(timezone: string | null | undefined) {
+  const value = timezone?.trim();
+  if (!value) return "—";
+
+  const friendlyNames: Record<string, string> = {
+    "Asia/Ho_Chi_Minh": "Ho Chi Minh City (GMT+7)",
+    "Asia/Seoul": "Seoul (GMT+9)",
+    "Asia/Manila": "Manila (GMT+8)",
+    "Asia/Tokyo": "Tokyo (GMT+9)",
+  };
+
+  return friendlyNames[value] ?? value.replaceAll("_", " ");
+}
+
 export default async function StudentPage({
   params,
   searchParams,
@@ -1137,146 +1151,25 @@ export default async function StudentPage({
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      {/* =================================================================== */}
-      {/* HEADER                                                              */}
-      {/* =================================================================== */}
-
-      <header
-        className="
-          w-full
-          px-6
-          pt-7
-          sm:px-8
-          sm:pt-8
-          lg:px-10
-          xl:px-12
-        "
-      >
-        <div
-          className="
-            flex
-            w-full
-            items-start
-            justify-between
-            gap-8
-          "
-        >
-          {/* Back to Administration */}
-
-          <Link
-  href={`/${locale}/admin/students`}
-  className="
-    shrink-0
-    font-sans
-    text-[15px]
-    text-[#5F655F]
-    transition-colors
-    duration-200
-    hover:text-[#6F8F72]
-    sm:text-[16px]
-  "
->
-  &larr; Students
-</Link>
-
-          {/* Hamkke Brand */}
-
-          <div className="shrink-0 text-right">
-            <p
-              className="
-                font-sans
-                text-[16px]
-                font-semibold
-                leading-none
-                tracking-[0.18em]
-                text-[#6F8F72]
-              "
-            >
-              HAMKKE │ 함께
-            </p>
-
-            <p
-              className="
-                mt-2
-                font-serif
-                text-[13px]
-                font-normal
-                leading-none
-                tracking-[0.02em]
-                text-[#6F8F72]
-              "
-            >
-              From Small Talk to Big Ideas
-            </p>
-          </div>
-        </div>
-      </header>
-
       {/* INTRO */}
-      <section
-        className="
-          mx-auto
-          w-full
-          max-w-[1040px]
-          px-6
-          pb-12
-          pt-10
-          sm:px-8
-          sm:pb-14
-          sm:pt-20
-          lg:px-10
-          lg:pb-16
-          lg:pt-24
-          print:hidden
-        "
-      >
-        <div
-          className="
-            mb-5
-            text-center
-            font-sans
-            text-[11px]
-            font-medium
-            uppercase
-            tracking-[0.14em]
-            text-[#6F8F72]
-          "
-        >
-          Student Record
+      <section className="mx-auto w-full max-w-[1320px] px-8 pb-4 pt-[76px] sm:px-10 lg:px-14 xl:px-16 print:hidden">
+        <div className="max-w-[820px]">
+          <div className="mb-5 flex items-center gap-4">
+            <span className="h-px w-12 bg-[#6F8F72]" />
+            <span className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-[#6F8F72]">
+              Student Record
+            </span>
+          </div>
+          <h1 className="font-serif text-[46px] font-normal leading-[1] tracking-[-0.035em] text-[#292929] sm:text-[54px] lg:text-[60px]">
+            {student.preferred_name || student.full_name}
+          </h1>
+          {student.preferred_name &&
+            student.preferred_name !== student.full_name && (
+              <p className="mt-3 font-sans text-[14px] text-[#777771]">
+                {student.full_name}
+              </p>
+            )}
         </div>
-
-        <h1
-          className="
-            text-center
-            font-serif
-            text-[52px]
-            font-normal
-            leading-[1.05]
-            tracking-[-0.035em]
-            text-[#292929]
-            sm:text-[62px]
-            lg:text-[70px]
-          "
-        >
-          {student.preferred_name ||
-            student.full_name}
-        </h1>
-
-        {student.preferred_name &&
-          student.preferred_name !==
-            student.full_name && (
-            <p
-              className="
-                mt-4
-                text-center
-                font-sans
-                text-[14px]
-                text-[#777771]
-              "
-            >
-              {student.full_name}
-            </p>
-          )}
       </section>
 
       {/* PRINTABLE ATTENDANCE */}
@@ -1307,7 +1200,7 @@ export default async function StudentPage({
         className="
           mx-auto
           w-full
-          max-w-[1040px]
+          max-w-[1320px]
           px-6
           pb-24
           sm:px-8
@@ -1353,7 +1246,7 @@ export default async function StudentPage({
 
             <InfoItem
               label="Timezone"
-              value={student.timezone}
+              value={formatTimezoneForDisplay(student.timezone)}
             />
 
             <InfoItem

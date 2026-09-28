@@ -978,6 +978,14 @@ export async function POST(
     );
   }
 
+  /*
+   * When this is a renewal, preserve the incumbent regular teacher for each
+   * continuing student. The map is populated while verifying the previous
+   * enrollment and applied after the new enrollment_students rows exist.
+   */
+  const renewalTeacherByStudent =
+    new Map<string, string>();
+
   /* ======================================================================== */
   /* BUILD INDIVIDUAL SCHEDULE                                                */
   /* ======================================================================== */
@@ -1342,6 +1350,68 @@ export async function POST(
         );
       }
     }
+
+    const {
+      data: previousParticipants,
+      error: previousParticipantsError,
+    } = await supabase
+      .from("enrollment_students")
+      .select("id, student_id")
+      .eq("enrollment_id", renewalOf);
+
+    if (previousParticipantsError) {
+      return databaseErrorResponse(
+        "Unable to load the previous enrollment's teacher assignments.",
+        previousParticipantsError
+      );
+    }
+
+    const previousParticipantIds =
+      (previousParticipants || []).map(
+        (participant) => participant.id
+      );
+
+    if (previousParticipantIds.length > 0) {
+      const {
+        data: previousAssignments,
+        error: previousAssignmentsError,
+      } = await supabase
+        .from("teacher_assignments")
+        .select("enrollment_student_id, teacher_id, status")
+        .in("enrollment_student_id", previousParticipantIds)
+        .eq("status", "active");
+
+      if (previousAssignmentsError) {
+        return databaseErrorResponse(
+          "Unable to load the previous enrollment's teacher assignments.",
+          previousAssignmentsError
+        );
+      }
+
+      const previousStudentByParticipant =
+        new Map(
+          (previousParticipants || []).map(
+            (participant) => [
+              participant.id,
+              participant.student_id,
+            ]
+          )
+        );
+
+      for (const assignment of previousAssignments || []) {
+        const previousStudentId =
+          previousStudentByParticipant.get(
+            assignment.enrollment_student_id
+          );
+
+        if (previousStudentId) {
+          renewalTeacherByStudent.set(
+            previousStudentId,
+            assignment.teacher_id
+          );
+        }
+      }
+    }
   }
 
   /* ======================================================================== */
@@ -1660,6 +1730,97 @@ export async function POST(
     "ENROLLMENT SCHEDULES CREATED:",
     createdSchedules
   );
+
+  /* ======================================================================== */
+  /* CARRY REGULAR TEACHERS THROUGH RENEWAL                                  */
+  /* ======================================================================== */
+
+  if (
+    renewalOf &&
+    renewalTeacherByStudent.size > 0
+  ) {
+    const inheritedAssignmentRows =
+      createdParticipants
+        .map((participant) => {
+          const teacherId =
+            renewalTeacherByStudent.get(
+              participant.student_id
+            );
+
+          if (!teacherId) {
+            return null;
+          }
+
+          return {
+            enrollment_student_id:
+              participant.id,
+            teacher_id:
+              teacherId,
+            start_date:
+              startDate,
+            status:
+              "active",
+          };
+        })
+        .filter(
+          (
+            row
+          ): row is {
+            enrollment_student_id: string;
+            teacher_id: string;
+            start_date: string;
+            status: string;
+          } => Boolean(row)
+        );
+
+    if (
+      inheritedAssignmentRows.length > 0
+    ) {
+      const {
+        error: inheritedAssignmentError,
+      } = await supabase
+        .from("teacher_assignments")
+        .insert(
+          inheritedAssignmentRows
+        );
+
+      if (inheritedAssignmentError) {
+        console.error(
+          "RENEWAL TEACHER CARRY-OVER ERROR:",
+          inheritedAssignmentError
+        );
+
+        await supabase
+          .from("enrollment_schedules")
+          .delete()
+          .eq(
+            "enrollment_id",
+            enrollment.id
+          );
+
+        await supabase
+          .from("enrollment_students")
+          .delete()
+          .eq(
+            "enrollment_id",
+            enrollment.id
+          );
+
+        await supabase
+          .from("enrollments")
+          .delete()
+          .eq(
+            "id",
+            enrollment.id
+          );
+
+        return databaseErrorResponse(
+          "Unable to carry the regular teacher into the renewal.",
+          inheritedAssignmentError
+        );
+      }
+    }
+  }
 
   /* ======================================================================== */
   /* CREATE CONTRACT                                                          */

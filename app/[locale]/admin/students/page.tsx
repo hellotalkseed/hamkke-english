@@ -167,145 +167,22 @@ export default async function StudentsPage({
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      {/* =================================================================== */}
-      {/* HEADER                                                              */}
-      {/* =================================================================== */}
-
-      <header
-        className="
-          w-full
-          px-6
-          pt-7
-          sm:px-8
-          sm:pt-8
-          lg:px-10
-          xl:px-12
-        "
-      >
-        <div
-          className="
-            flex
-            w-full
-            items-start
-            justify-between
-            gap-8
-          "
-        >
-          <Link
-            href={`/${locale}/admin`}
-            className="
-              shrink-0
-              font-sans
-              text-[15px]
-              text-[#5F655F]
-              transition-colors
-              duration-200
-              hover:text-[#6F8F72]
-              sm:text-[16px]
-            "
-          >
-            &larr; Administration
-          </Link>
-
-          <div className="shrink-0 text-right">
-            <p
-              className="
-                font-sans
-                text-[16px]
-                font-semibold
-                leading-none
-                tracking-[0.18em]
-                text-[#6F8F72]
-              "
-            >
-              HAMKKE │ 함께
-            </p>
-
-            <p
-              className="
-                mt-2
-                font-serif
-                text-[13px]
-                font-normal
-                leading-none
-                tracking-[0.02em]
-                text-[#6F8F72]
-              "
-            >
-              From Small Talk to Big Ideas
-            </p>
-          </div>
-        </div>
-      </header>
-
       {/* INTRO */}
-      <section
-        className="
-          mx-auto
-          w-full
-          max-w-[1040px]
-          px-6
-          pb-12
-          pt-10
-          sm:px-8
-          sm:pb-14
-          sm:pt-20
-          lg:px-10
-          lg:pb-16
-          lg:pt-24
-        "
-      >
-        <div
-          className="
-            mb-0
-            text-center
-            font-sans
-            text-[14px]
-            font-medium
-            tracking-[0.02em]
-            text-[#6F8F72]
-            sm:hidden
-          "
-        >
-          Hamkke │ 함께
+      <section className="mx-auto w-full max-w-[1320px] px-8 pb-7 pt-[92px] sm:px-10 lg:px-14 xl:px-16">
+        <div className="max-w-[820px]">
+          <div className="mb-5 flex items-center gap-4">
+            <span className="h-px w-12 bg-[#6F8F72]" />
+            <span className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-[#6F8F72]">
+              Administration
+            </span>
+          </div>
+          <h1 className="font-serif text-[46px] font-normal leading-[1] tracking-[-0.035em] sm:text-[54px] lg:text-[60px]">
+            Students
+          </h1>
+          <p className="mt-4 max-w-[720px] font-serif text-[17px] leading-8 text-[#74716B] sm:text-[18px]">
+            Manage students, enrollments, lessons, contracts, and payments in one place.
+          </p>
         </div>
-
-        <h1
-          className="
-            text-center
-            font-serif
-            text-[52px]
-            font-normal
-            leading-[1.05]
-            tracking-[-0.035em]
-            text-[#292929]
-            sm:text-[62px]
-            lg:text-[70px]
-          "
-        >
-          Students
-        </h1>
-
-        <p
-          className="
-            mx-auto
-            mt-8
-            max-w-[850px]
-            text-center
-            font-serif
-            text-[21px]
-            font-normal
-            leading-8
-            text-[#4A4A4A]
-            sm:text-[23px]
-            sm:leading-9
-            lg:text-[25px]
-            lg:leading-10
-          "
-        >
-          Manage your students, enrollments, lessons,
-          contracts, and payments in one place.
-        </p>
       </section>
 
       {/* STUDENT LIST */}
@@ -313,11 +190,12 @@ export default async function StudentsPage({
         className="
           mx-auto
           w-full
-          max-w-[1040px]
-          px-6
+          max-w-[1320px]
+          px-8
           pb-20
-          sm:px-8
-          lg:px-10
+          sm:px-10
+          lg:px-14
+          xl:px-16
           lg:pb-24
         "
       >

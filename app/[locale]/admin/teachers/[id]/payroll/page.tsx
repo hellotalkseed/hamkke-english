@@ -1,5 +1,7 @@
 "use client";
 
+import { categoryAmount, lessonRateLabel, type PayrollLine, type PayableStatus } from "@/lib/payroll/presentation";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -581,6 +583,11 @@ export default function TeacherPayrollPage() {
   /* PRINT SAVED PAYMENT RECEIPT                                            */
   /* ----------------------------------------------------------------------- */
 
+  function payrollLines(record: PayrollRecord) {
+    return historyBreakdowns[record.id] ||
+      (record.id === "current-period" || currentPayroll?.payroll_record?.id === record.id ? lessonBreakdown : []);
+  }
+
   function printPayroll(record: PayrollRecord) {
     if (!teacher) {
       return;
@@ -618,34 +625,13 @@ export default function TeacherPayrollPage() {
     const total50 = getPayable50Count(record);
 
     const amountCompleted =
-      getAmount(
-        record.completed_25_count,
-        record.rate_25
-      ) +
-      getAmount(
-        record.completed_50_count,
-        record.rate_50
-      );
+      categoryAmount(record, payrollLines(record), "completed");
 
     const amountNoShow =
-      getAmount(
-        record.no_show_25_count,
-        record.rate_25
-      ) +
-      getAmount(
-        record.no_show_50_count,
-        record.rate_50
-      );
+      categoryAmount(record, payrollLines(record), "no_show");
 
     const amountLateCancellation =
-      getAmount(
-        record.late_cancellation_25_count,
-        record.rate_25
-      ) +
-      getAmount(
-        record.late_cancellation_50_count,
-        record.rate_50
-      );
+      categoryAmount(record, payrollLines(record), "late_cancellation");
 
     const grossPay = formatCurrency(
       record.gross_pay
@@ -661,8 +647,7 @@ export default function TeacherPayrollPage() {
     const printWindow = printFrame.contentWindow;
     if (!printWindow) { printFrame.remove(); return; }
 
-    const breakdown = historyBreakdowns[record.id] ||
-      (currentPayroll?.payroll_record?.id === record.id ? lessonBreakdown : []);
+    const breakdown = payrollLines(record);
     const breakdownRows = breakdown.map((lesson) => `
       <tr><td>${escapeHtml(formatLessonDate(lesson.lesson_date))}</td><td>${escapeHtml(lesson.student_name || "—")}</td><td class="center">${lesson.duration} min</td><td>${escapeHtml(formatLessonStatus(lesson.attendance_status))}</td><td class="right">${formatCurrency(lesson.rate)}</td><td class="right">${formatCurrency(lesson.amount)}</td></tr>`).join("");
 
@@ -949,7 +934,7 @@ export default function TeacherPayrollPage() {
               </div>
 
               <div class="value">
-                ${formatCurrency(record.rate_25)}
+                ${lessonRateLabel(payrollLines(record), 25, record.rate_25)}
               </div>
             </div>
 
@@ -959,7 +944,7 @@ export default function TeacherPayrollPage() {
               </div>
 
               <div class="value">
-                ${formatCurrency(record.rate_50)}
+                ${lessonRateLabel(payrollLines(record), 50, record.rate_50)}
               </div>
             </div>
           </div>
@@ -1232,7 +1217,7 @@ export default function TeacherPayrollPage() {
           </div>
         </header>
 
-        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
+        <section className="mx-auto max-w-[1320px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
           <div className="border-y border-[#DCD8D2] py-20 text-center">
             <p className="font-serif text-[17px] text-[#74716B]">
               Loading payroll...
@@ -1317,7 +1302,7 @@ export default function TeacherPayrollPage() {
           </div>
         </header>
 
-        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
+        <section className="mx-auto max-w-[1320px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
           <div className="border-y border-[#DCD8D2] py-20 text-center">
             <h1 className="font-serif text-[30px] font-normal">
               Unable to load payroll
@@ -1357,82 +1342,10 @@ export default function TeacherPayrollPage() {
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      {/* =================================================================== */}
-      {/* HEADER                                                              */}
-      {/* =================================================================== */}
-
-      <header
-          className="
-            w-full
-            px-6
-            pt-7
-            sm:px-8
-            sm:pt-8
-            lg:px-10
-            xl:px-12
-          "
-        >
-          <div
-            className="
-              flex
-              w-full
-              items-start
-              justify-between
-              gap-8
-            "
-          >
-            <Link
-              href={`/${locale}/admin/teachers/${teacherId}`}
-              className="
-                shrink-0
-                font-sans
-                text-[15px]
-                text-[#5F655F]
-                transition-colors
-                duration-200
-                hover:text-[#6F8F72]
-                sm:text-[16px]
-              "
-            >
-              &larr; Teacher
-            </Link>
-
-            <div className="shrink-0 text-right">
-              <p
-                className="
-                  font-sans
-                  text-[16px]
-                  font-semibold
-                  leading-none
-                  tracking-[0.18em]
-                  text-[#6F8F72]
-                "
-              >
-                HAMKKE │ 함께
-              </p>
-
-              <p
-                className="
-                  mt-2
-                  font-serif
-                  text-[13px]
-                  font-normal
-                  leading-none
-                  tracking-[0.02em]
-                  text-[#6F8F72]
-                "
-              >
-                From Small Talk to Big Ideas
-              </p>
-            </div>
-          </div>
-        </header>
-
-      {/* =================================================================== */}
       {/* INTRO                                                               */}
       {/* =================================================================== */}
 
-      <section className="mx-auto max-w-[1200px] px-6 pb-10 pt-12 sm:px-8 sm:pb-12 sm:pt-16 lg:px-10 lg:pt-20">
+      <section className="mx-auto max-w-[1320px] px-6 pb-10 pt-12 sm:px-8 sm:pb-12 sm:pt-16 lg:px-10 lg:pt-20">
         <div className="max-w-[760px]">
           <p className="mb-4 font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
             Teaching team
@@ -1462,10 +1375,46 @@ export default function TeacherPayrollPage() {
       </section>
 
       {/* =================================================================== */}
+      {/* TEACHER WORKSPACE TABS                                              */}
+      {/* =================================================================== */}
+
+      <nav
+        aria-label="Teacher workspace"
+        className="sticky top-0 z-20 border-y border-[#DED9D2] bg-[#FAF8F5]/95 backdrop-blur print:hidden"
+      >
+        <div className="mx-auto flex max-w-[1320px] overflow-x-auto px-6 sm:px-8 lg:px-10">
+          <Link
+            href={`/${locale}/admin/teachers/${teacherId}?tab=agreement`}
+            className="shrink-0 border-b-2 border-transparent px-4 py-3.5 font-sans text-[12px] text-[#777771] transition hover:bg-[#F4F1EC] hover:text-[#49614D]"
+          >
+            Agreement
+          </Link>
+          <Link
+            href={`/${locale}/admin/teachers/${teacherId}?tab=schedule`}
+            className="shrink-0 border-b-2 border-transparent px-4 py-3.5 font-sans text-[12px] text-[#777771] transition hover:bg-[#F4F1EC] hover:text-[#49614D]"
+          >
+            Schedule &amp; Availability
+          </Link>
+          <Link
+            href={`/${locale}/admin/teachers/${teacherId}?tab=assignments`}
+            className="shrink-0 border-b-2 border-transparent px-4 py-3.5 font-sans text-[12px] text-[#777771] transition hover:bg-[#F4F1EC] hover:text-[#49614D]"
+          >
+            Assignments
+          </Link>
+          <span
+            aria-current="page"
+            className="shrink-0 border-b-2 border-[#6F8F72] px-4 py-3.5 font-sans text-[12px] font-medium text-[#49614D]"
+          >
+            Payroll
+          </span>
+        </div>
+      </nav>
+
+      {/* =================================================================== */}
       {/* CURRENT PAYMENT RECEIPT                                             */}
       {/* =================================================================== */}
 
-      <section className="mx-auto max-w-[1200px] px-6 pb-16 sm:px-8 lg:px-10">
+      <section className="mx-auto max-w-[1320px] px-6 pb-16 sm:px-8 lg:px-10">
         <div className="border-y border-[#DCD8D2] bg-[#FCFBF8]">
           {/* RECEIPT HEADER */}
 
@@ -1530,6 +1479,7 @@ export default function TeacherPayrollPage() {
           </div>
 
           {/* LESSON PAYMENTS */}
+          <p className="px-6 pt-5 text-xs leading-5 text-[#74716B] sm:px-8">Each lesson uses the rate earned before it starts. A higher level applies to the next lesson after the qualifying-hours threshold is reached, including within this payroll period.</p>
 
           <div className="px-6 py-7 sm:px-8 sm:py-8">
             <p className="mb-4 font-sans text-[9px] font-medium uppercase tracking-[0.15em] text-[#8A8A84]">
@@ -1577,7 +1527,7 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      {formatCurrency(currentPayroll.compensation_rate.rate_25)}
+                      {lessonRateLabel(lessonBreakdown, 25, currentPayroll.compensation_rate.rate_25)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
@@ -1585,19 +1535,12 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      {formatCurrency(currentPayroll.compensation_rate.rate_50)}
+                      {lessonRateLabel(lessonBreakdown, 50, currentPayroll.compensation_rate.rate_50)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
                       {formatCurrency(
-                        getAmount(
-                          currentPayroll.completed_25_count,
-                          currentPayroll.compensation_rate.rate_25
-                        ) +
-                          getAmount(
-                            currentPayroll.completed_50_count,
-                            currentPayroll.compensation_rate.rate_50
-                          )
+                        categoryAmount({ ...currentPayroll, ...currentPayroll.compensation_rate }, lessonBreakdown, "completed")
                       )}
                     </td>
                   </tr>
@@ -1612,7 +1555,7 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      {formatCurrency(currentPayroll.compensation_rate.rate_25)}
+                      {lessonRateLabel(lessonBreakdown, 25, currentPayroll.compensation_rate.rate_25)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
@@ -1620,19 +1563,12 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      {formatCurrency(currentPayroll.compensation_rate.rate_50)}
+                      {lessonRateLabel(lessonBreakdown, 50, currentPayroll.compensation_rate.rate_50)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
                       {formatCurrency(
-                        getAmount(
-                          currentPayroll.no_show_25_count,
-                          currentPayroll.compensation_rate.rate_25
-                        ) +
-                          getAmount(
-                            currentPayroll.no_show_50_count,
-                            currentPayroll.compensation_rate.rate_50
-                          )
+                        categoryAmount({ ...currentPayroll, ...currentPayroll.compensation_rate }, lessonBreakdown, "no_show")
                       )}
                     </td>
                   </tr>
@@ -1647,7 +1583,7 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      {formatCurrency(currentPayroll.compensation_rate.rate_25)}
+                      {lessonRateLabel(lessonBreakdown, 25, currentPayroll.compensation_rate.rate_25)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
@@ -1655,19 +1591,12 @@ export default function TeacherPayrollPage() {
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[13px] text-[#8A8780]">
-                      {formatCurrency(currentPayroll.compensation_rate.rate_50)}
+                      {lessonRateLabel(lessonBreakdown, 50, currentPayroll.compensation_rate.rate_50)}
                     </td>
 
                     <td className="px-3 py-4 text-right font-serif text-[14px]">
                       {formatCurrency(
-                        getAmount(
-                          currentPayroll.late_cancellation_25_count,
-                          currentPayroll.compensation_rate.rate_25
-                        ) +
-                          getAmount(
-                            currentPayroll.late_cancellation_50_count,
-                            currentPayroll.compensation_rate.rate_50
-                          )
+                        categoryAmount({ ...currentPayroll, ...currentPayroll.compensation_rate }, lessonBreakdown, "late_cancellation")
                       )}
                     </td>
                   </tr>
@@ -1909,7 +1838,7 @@ export default function TeacherPayrollPage() {
       {/* PAYROLL HISTORY                                                     */}
       {/* =================================================================== */}
 
-      <section className="mx-auto max-w-[1200px] px-6 pb-20 sm:px-8 sm:pb-24 lg:px-10">
+      <section className="mx-auto max-w-[1320px] px-6 pb-20 sm:px-8 sm:pb-24 lg:px-10">
         <div className="border-y border-[#DCD8D2]">
           <div className="flex flex-col gap-5 px-5 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-7">
             <div>
@@ -2225,14 +2154,7 @@ export default function TeacherPayrollPage() {
 
                       <td className="px-3 py-4 text-right font-serif text-[13px]">
                         {formatCurrency(
-                          getAmount(
-                            selectedPayroll.completed_25_count,
-                            selectedPayroll.rate_25
-                          ) +
-                          getAmount(
-                            selectedPayroll.completed_50_count,
-                            selectedPayroll.rate_50
-                          )
+                          categoryAmount(selectedPayroll, payrollLines(selectedPayroll), "completed")
                         )}
                       </td>
                     </tr>
@@ -2256,14 +2178,7 @@ export default function TeacherPayrollPage() {
 
                       <td className="px-3 py-4 text-right font-serif text-[13px]">
                         {formatCurrency(
-                          getAmount(
-                            selectedPayroll.no_show_25_count,
-                            selectedPayroll.rate_25
-                          ) +
-                          getAmount(
-                            selectedPayroll.no_show_50_count,
-                            selectedPayroll.rate_50
-                          )
+                          categoryAmount(selectedPayroll, payrollLines(selectedPayroll), "no_show")
                         )}
                       </td>
                     </tr>
@@ -2287,14 +2202,7 @@ export default function TeacherPayrollPage() {
 
                       <td className="px-3 py-4 text-right font-serif text-[13px]">
                         {formatCurrency(
-                          getAmount(
-                            selectedPayroll.late_cancellation_25_count,
-                            selectedPayroll.rate_25
-                          ) +
-                          getAmount(
-                            selectedPayroll.late_cancellation_50_count,
-                            selectedPayroll.rate_50
-                          )
+                          categoryAmount(selectedPayroll, payrollLines(selectedPayroll), "late_cancellation")
                         )}
                       </td>
                     </tr>
@@ -2341,9 +2249,7 @@ export default function TeacherPayrollPage() {
                   </p>
 
                   <p className="mt-2 font-serif text-[16px]">
-                    {formatCurrency(
-                      selectedPayroll.rate_25
-                    )}
+                    {lessonRateLabel(payrollLines(selectedPayroll), 25, selectedPayroll.rate_25)}
                   </p>
                 </div>
 
@@ -2353,9 +2259,7 @@ export default function TeacherPayrollPage() {
                   </p>
 
                   <p className="mt-2 font-serif text-[16px]">
-                    {formatCurrency(
-                      selectedPayroll.rate_50
-                    )}
+                    {lessonRateLabel(payrollLines(selectedPayroll), 50, selectedPayroll.rate_50)}
                   </p>
                 </div>
 

@@ -1,28 +1,66 @@
-﻿import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  LayoutDashboard,
-  CalendarDays,
-  ClipboardCheck,
-  Users,
-  UserRound,
-  HeartHandshake,
-  LogOut,
-} from "lucide-react";
-
 import { createClient } from "@/lib/supabase/server";
 
-interface AdminPageProps {
-  params: Promise<{
-    locale: string;
-  }>;
+const DAILY_THOUGHTS = [
+  "You made the system to save time. Try not to spend all day improving the system.",
+  "Some days you build the business. Some days the business builds your patience.",
+  "Progress is great. So is closing the laptop on time.",
+  "Building something takes time. Mostly because everything has edge cases.",
+  "A productive day can also mean deciding what isn't worth doing.",
+  "Small improvements are suspiciously good at becoming big ones.",
+  "Not every problem needs a new feature.",
+  "Consistency is less exciting than motivation. It also shows up more often.",
+  "If everything feels urgent, something probably needs a better system.",
+  "A quiet day with fewer problems is still a successful day.",
+  "You can care about the details without letting the details eat the whole day.",
+  "The goal is a business that works, not a to-do list that never ends.",
+  "Good systems should eventually give you fewer things to think about.",
+  "Some problems need fixing. Others just need tomorrow.",
+  "There will always be one more thing to improve. That's not a deadline.",
+  "Being busy and moving forward occasionally have very different schedules.",
+  "You don't have to optimize a thing that already works.",
+  "The boring little improvements are usually doing more than they get credit for.",
+  "A business grows one sensible decision at a time. Usually between several questionable ones.",
+  "Today's win may simply be making tomorrow less complicated.",
+  "Teaching requires patience. Running the teaching business apparently requires extra.",
+  "If the plan changed, congratulations: the plan met reality.",
+  "You are allowed to finish the day before the ideas do.",
+  "A clear no can save more time than an enthusiastic maybe.",
+  "The best workflow is sometimes the one you stop changing.",
+  "Slow progress still counts. It just has terrible marketing.",
+  "A good decision today is enough. You don't need twelve.",
+  "The tiny task you've been avoiding would like to formally remain tiny.",
+  "Rest is not a bug in the productivity system.",
+  "There is no prize for making a simple thing complicated.",
+  "Some days the most professional thing you can do is call it a day.",
+];
+
+function getPhilippineDateKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
-export default async function AdminPage({
-  params,
-}: AdminPageProps) {
-  const { locale } = await params;
+function getDailyThought() {
+  const dateKey = getPhilippineDateKey();
+  let hash = 0;
 
+  for (const character of dateKey) {
+    hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  }
+
+  return DAILY_THOUGHTS[hash % DAILY_THOUGHTS.length];
+}
+
+export default async function AdminHomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const supabase = await createClient();
 
   const {
@@ -30,845 +68,74 @@ export default async function AdminPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return null;
+    redirect(`/${locale}/admin/login`);
   }
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, status")
+    .select("role, status, full_name")
     .eq("id", user.id)
     .single();
 
-  async function handleSignOut() {
-    "use server";
-
-    const supabase = await createClient();
-
-    await supabase.auth.signOut();
-
-    redirect(`/${locale}/portal/login`);
-  }
-
-  /*
-   * --------------------------------
-   * TEACHER ROUTING
-   * --------------------------------
-   *
-   * Pending teachers must complete their
-   * Teacher Agreement before receiving
-   * access to the Teacher Dashboard.
-   */
-
-  if (
-    profile?.role === "teacher" &&
-    profile?.status === "pending"
-  ) {
-    redirect(`/${locale}/admin/teachers/agreement`);
-  }
-
-  if (
-    profile?.role === "teacher" &&
-    profile?.status === "active"
-  ) {
+  if (profile?.role !== "owner" || profile?.status !== "active") {
     redirect(`/${locale}/admin/teachers`);
   }
 
-  /*
-   * --------------------------------
-   * OWNER DASHBOARD
-   * --------------------------------
-   */
+  const firstName =
+    profile.full_name?.trim().split(/\s+/)[0] ||
+    user.user_metadata?.full_name?.trim().split(/\s+/)[0] ||
+    "Jesica";
 
-  if (
-    profile?.role === "owner" &&
-    profile?.status === "active"
-  ) {
-    return (
-      <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-        {/* HEADER */}
-
-        <header
-          className="
-            w-full
-            px-6
-            pt-7
-            sm:px-8
-            sm:pt-8
-            lg:px-10
-            xl:px-12
-          "
-        >
-          <div
-            className="
-              flex
-              w-full
-              items-start
-              justify-between
-              gap-8
-            "
-          >
-            <form action={handleSignOut}>
-              <button
-                type="submit"
-                className="
-                  inline-flex
-                  shrink-0
-                  items-center
-                  gap-2
-                  font-sans
-                  text-[15px]
-                  text-[#5F655F]
-                  transition-colors
-                  duration-200
-                  hover:text-[#6F8F72]
-                  sm:text-[16px]
-                "
-              >
-                <LogOut
-                  size={15}
-                  strokeWidth={1.7}
-                />
-                Log out
-              </button>
-            </form>
-
-            <Link
-              href={`/${locale}`}
-              className="
-                shrink-0
-                text-right
-                transition-opacity
-                duration-200
-                hover:opacity-75
-              "
-              aria-label="Go to Hamkke homepage"
-            >
-              <p
-                className="
-                  font-sans
-                  text-[16px]
-                  font-semibold
-                  leading-none
-                  tracking-[0.18em]
-                  text-[#6F8F72]
-                "
-              >
-                HAMKKE │ 함께
-              </p>
-
-              <p
-                className="
-                  mt-2
-                  font-serif
-                  text-[13px]
-                  font-normal
-                  leading-none
-                  tracking-[0.02em]
-                  text-[#6F8F72]
-                "
-              >
-                From Small Talk to Big Ideas
-              </p>
-            </Link>
-          </div>
-        </header>
-
-        {/* INTRO */}
-
-        <section
-          className="
-            mx-auto
-            w-full
-            max-w-[1040px]
-            px-6
-            pb-12
-            pt-10
-            sm:px-8
-            sm:pb-14
-            sm:pt-20
-            lg:px-10
-            lg:pb-16
-            lg:pt-24
-          "
-        >
-          <h1
-            className="
-              text-center
-              font-serif
-              text-[52px]
-              font-normal
-              leading-[1.05]
-              tracking-[-0.035em]
-              text-[#292929]
-              sm:text-[62px]
-              lg:text-[70px]
-            "
-          >
-            Administration
-          </h1>
-
-          <p
-            className="
-              mx-auto
-              mt-8
-              max-w-[850px]
-              text-center
-              font-serif
-              text-[21px]
-              font-normal
-              leading-8
-              text-[#4A4A4A]
-              sm:text-[23px]
-              sm:leading-9
-              lg:text-[25px]
-              lg:leading-10
-            "
-          >
-            Manage your students, teachers, and student
-            stories in one place.
-          </p>
-        </section>
-
-        {/* ADMIN OPTIONS */}
-
-        <section
-          className="
-            mx-auto
-            w-full
-            max-w-[1040px]
-            px-6
-            pb-20
-            sm:px-8
-            lg:px-10
-            lg:pb-24
-          "
-        >
-          {/* OVERVIEW */}
-
-          <Link
-            href={`/${locale}/admin/overview`}
-            className="
-              group
-              block
-              border-t
-              border-[#DCD8D2]
-              py-10
-              transition-colors
-              hover:bg-[#F0F4ED]
-            "
-          >
-            <div className="flex gap-6">
-              <span
-                className="
-                  pt-1
-                  font-sans
-                  text-[11px]
-                  font-medium
-                  tracking-[0.14em]
-                  text-[#8A8A84]
-                "
-              >
-                01
-              </span>
-
-              <div
-                className="
-                  flex
-                  min-w-0
-                  flex-1
-                  items-start
-                  justify-between
-                  gap-6
-                "
-              >
-                <div>
-                  <h2
-                    className="
-                      font-serif
-                      text-[34px]
-                      font-normal
-                      leading-tight
-                      tracking-[-0.02em]
-                    "
-                  >
-                    Overview
-                  </h2>
-
-                  <p
-                    className="
-                      mt-3
-                      max-w-xl
-                      font-serif
-                      text-[17px]
-                      leading-7
-                      text-[#6B6B66]
-                    "
-                  >
-                    Get a quick look at your students,
-                    active enrollments, and income.
-                  </p>
-                </div>
-
-                <div
-                  className="
-                    flex
-                    h-11
-                    w-11
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#E2EBDD]
-                    text-[#6F8F72]
-                    transition-transform
-                    group-hover:translate-x-1
-                  "
-                >
-                  <LayoutDashboard
-                    size={19}
-                    strokeWidth={1.5}
-                  />
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* DAILY SCHEDULE */}
-
-          <Link
-            href={`/${locale}/admin/daily-schedule`}
-            className="
-              group
-              block
-              border-t
-              border-[#DCD8D2]
-              py-10
-              transition-colors
-              hover:bg-[#F0F4ED]
-            "
-          >
-            <div className="flex gap-6">
-              <span
-                className="
-                  pt-1
-                  font-sans
-                  text-[11px]
-                  font-medium
-                  tracking-[0.14em]
-                  text-[#8A8A84]
-                "
-              >
-                02
-              </span>
-
-              <div
-                className="
-                  flex
-                  min-w-0
-                  flex-1
-                  items-start
-                  justify-between
-                  gap-6
-                "
-              >
-                <div>
-                  <h2
-                    className="
-                      font-serif
-                      text-[34px]
-                      font-normal
-                      leading-tight
-                      tracking-[-0.02em]
-                    "
-                  >
-                    Daily Schedule
-                  </h2>
-
-                  <p
-                    className="
-                      mt-3
-                      max-w-xl
-                      font-serif
-                      text-[17px]
-                      leading-7
-                      text-[#6B6B66]
-                    "
-                  >
-                    See every class for the day and find an
-                    available regular or substitute teacher.
-                  </p>
-                </div>
-
-                <div
-                  className="
-                    flex
-                    h-11
-                    w-11
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#E2EBDD]
-                    text-[#6F8F72]
-                    transition-transform
-                    group-hover:translate-x-1
-                  "
-                >
-                  <CalendarDays
-                    size={19}
-                    strokeWidth={1.5}
-                  />
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* ASSESSMENTS */}
-
-          <Link
-            href={`/${locale}/admin/assessments`}
-            className="
-              group
-              block
-              border-t
-              border-[#DCD8D2]
-              py-10
-              transition-colors
-              hover:bg-[#F0F4ED]
-            "
-          >
-            <div className="flex gap-6">
-              <span
-                className="
-                  pt-1
-                  font-sans
-                  text-[11px]
-                  font-medium
-                  tracking-[0.14em]
-                  text-[#8A8A84]
-                "
-              >
-                03
-              </span>
-
-              <div
-                className="
-                  flex
-                  min-w-0
-                  flex-1
-                  items-start
-                  justify-between
-                  gap-6
-                "
-              >
-                <div>
-                  <h2
-                    className="
-                      font-serif
-                      text-[34px]
-                      font-normal
-                      leading-tight
-                      tracking-[-0.02em]
-                    "
-                  >
-                    Assessments
-                  </h2>
-
-                  <p
-                    className="
-                      mt-3
-                      max-w-xl
-                      font-serif
-                      text-[17px]
-                      leading-7
-                      text-[#6B6B66]
-                    "
-                  >
-                    Manage upcoming Free Assessments, learner
-                    details, and follow-up status.
-                  </p>
-                </div>
-
-                <div
-                  className="
-                    flex
-                    h-11
-                    w-11
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#E2EBDD]
-                    text-[#6F8F72]
-                    transition-transform
-                    group-hover:translate-x-1
-                  "
-                >
-                  <ClipboardCheck
-                    size={19}
-                    strokeWidth={1.5}
-                  />
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* STUDENTS */}
-
-          <Link
-            href={`/${locale}/admin/students`}
-            className="
-              group
-              block
-              border-t
-              border-[#DCD8D2]
-              py-10
-              transition-colors
-              hover:bg-[#F0F4ED]
-            "
-          >
-            <div className="flex gap-6">
-              <span
-                className="
-                  pt-1
-                  font-sans
-                  text-[11px]
-                  font-medium
-                  tracking-[0.14em]
-                  text-[#8A8A84]
-                "
-              >
-                04
-              </span>
-
-              <div
-                className="
-                  flex
-                  min-w-0
-                  flex-1
-                  items-start
-                  justify-between
-                  gap-6
-                "
-              >
-                <div>
-                  <h2
-                    className="
-                      font-serif
-                      text-[34px]
-                      font-normal
-                      leading-tight
-                      tracking-[-0.02em]
-                    "
-                  >
-                    Students
-                  </h2>
-
-                  <p
-                    className="
-                      mt-3
-                      max-w-xl
-                      font-serif
-                      text-[17px]
-                      leading-7
-                      text-[#6B6B66]
-                    "
-                  >
-                    Manage student records, enrollments,
-                    lessons, attendance, contracts,
-                    and payments.
-                  </p>
-                </div>
-
-                <div
-                  className="
-                    flex
-                    h-11
-                    w-11
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#E2EBDD]
-                    text-[#6F8F72]
-                    transition-transform
-                    group-hover:translate-x-1
-                  "
-                >
-                  <Users
-                    size={19}
-                    strokeWidth={1.5}
-                  />
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* TEACHERS */}
-
-          <Link
-            href={`/${locale}/admin/teachers`}
-            className="
-              group
-              block
-              border-t
-              border-[#DCD8D2]
-              py-10
-              transition-colors
-              hover:bg-[#F0F4ED]
-            "
-          >
-            <div className="flex gap-6">
-              <span
-                className="
-                  pt-1
-                  font-sans
-                  text-[11px]
-                  font-medium
-                  tracking-[0.14em]
-                  text-[#8A8A84]
-                "
-              >
-                05
-              </span>
-
-              <div
-                className="
-                  flex
-                  min-w-0
-                  flex-1
-                  items-start
-                  justify-between
-                  gap-6
-                "
-              >
-                <div>
-                  <h2
-                    className="
-                      font-serif
-                      text-[34px]
-                      font-normal
-                      leading-tight
-                      tracking-[-0.02em]
-                    "
-                  >
-                    Teachers
-                  </h2>
-
-                  <p
-                    className="
-                      mt-3
-                      max-w-xl
-                      font-serif
-                      text-[17px]
-                      leading-7
-                      text-[#6B6B66]
-                    "
-                  >
-                    Manage teachers, assign students,
-                    and view teaching information and payroll.
-                  </p>
-                </div>
-
-                <div
-                  className="
-                    flex
-                    h-11
-                    w-11
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#E2EBDD]
-                    text-[#6F8F72]
-                    transition-transform
-                    group-hover:translate-x-1
-                  "
-                >
-                  <UserRound
-                    size={19}
-                    strokeWidth={1.5}
-                  />
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* REFLECTIONS */}
-
-          <Link
-            href={`/${locale}/admin/reflections`}
-            className="
-              group
-              block
-              border-y
-              border-[#DCD8D2]
-              py-10
-              transition-colors
-              hover:bg-[#F0F4ED]
-            "
-          >
-            <div className="flex gap-6">
-              <span
-                className="
-                  pt-1
-                  font-sans
-                  text-[11px]
-                  font-medium
-                  tracking-[0.14em]
-                  text-[#8A8A84]
-                "
-              >
-                06
-              </span>
-
-              <div
-                className="
-                  flex
-                  min-w-0
-                  flex-1
-                  items-start
-                  justify-between
-                  gap-6
-                "
-              >
-                <div>
-                  <h2
-                    className="
-                      font-serif
-                      text-[34px]
-                      font-normal
-                      leading-tight
-                      tracking-[-0.02em]
-                    "
-                  >
-                    Reflections
-                  </h2>
-
-                  <p
-                    className="
-                      mt-3
-                      max-w-xl
-                      font-serif
-                      text-[17px]
-                      leading-7
-                      text-[#6B6B66]
-                    "
-                  >
-                    Review and approve student stories
-                    before they appear on the website.
-                  </p>
-                </div>
-
-                <div
-                  className="
-                    flex
-                    h-11
-                    w-11
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#E2EBDD]
-                    text-[#6F8F72]
-                    transition-transform
-                    group-hover:translate-x-1
-                  "
-                >
-                  <HeartHandshake
-                    size={19}
-                    strokeWidth={1.5}
-                  />
-                </div>
-              </div>
-            </div>
-          </Link>
-        </section>
-      </main>
-    );
-  }
-
-  /*
-   * --------------------------------
-   * UNKNOWN / INACTIVE ROLE
-   * --------------------------------
-   */
+  const thought = getDailyThought();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#FAF8F5] px-6">
-      <div className="max-w-md text-center">
-        <div>
-          <p
-            className="
-              font-sans
-              text-[16px]
-              font-semibold
-              leading-none
-              tracking-[0.18em]
-              text-[#6F8F72]
-            "
-          >
-            HAMKKE │ 함께
-          </p>
+    <main className="relative min-h-screen overflow-hidden bg-[#FAF8F5]">
+      {/* Soft Hamkke-inspired background forms */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-24 -top-24 h-[420px] w-[420px] rounded-full border border-[#DDE5D9]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-4 top-10 h-[260px] w-[260px] rounded-full bg-[#EEF2EA]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-[-150px] left-[10%] h-[310px] w-[310px] rounded-full border border-[#E4DDD4]"
+      />
 
-          <p
-            className="
-              mt-2
-              font-serif
-              text-[13px]
-              font-normal
-              text-[#6F8F72]
-            "
-          >
-            From Small Talk to Big Ideas
-          </p>
+      <section className="relative mx-auto flex min-h-screen w-full max-w-[1320px] flex-col justify-center px-10 py-20 sm:px-14 lg:px-20">
+        <div className="max-w-[940px] -translate-y-5">
+          <div className="mb-8 flex items-center gap-4">
+            <span className="h-px w-12 bg-[#6F8F72]" />
+            <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#6F8F72]">
+              A thought for today
+            </span>
+          </div>
+
+          <h1 className="font-serif text-[clamp(2.3rem,4vw,4rem)] font-normal leading-[1.05] tracking-[-0.03em] text-[#292929]">
+            Greetings, {firstName}.
+          </h1>
+
+          <div className="relative mt-12 max-w-[900px] pl-7 sm:pl-10">
+            <span
+              aria-hidden="true"
+              className="absolute -left-1 -top-8 font-serif text-[88px] font-normal leading-none text-[#C8D5C4]"
+            >
+              “
+            </span>
+
+            <p className="relative font-serif text-[clamp(1.8rem,3.2vw,3.15rem)] font-normal leading-[1.3] tracking-[-0.025em] text-[#3B3A37]">
+              {thought}
+            </p>
+
+            <div className="mt-10 flex items-center gap-3">
+              <span className="h-2 w-2 rounded-full bg-[#6F8F72]" />
+              <span className="h-px w-20 bg-[#D5CEC4]" />
+            </div>
+          </div>
         </div>
-
-        <h1
-          className="
-            mt-7
-            font-serif
-            text-[42px]
-            font-normal
-            tracking-[-0.03em]
-          "
-        >
-          Access unavailable
-        </h1>
-
-        <p
-          className="
-            mt-5
-            font-serif
-            text-[18px]
-            leading-7
-            text-[#666]
-          "
-        >
-          Your account does not currently have
-          permission to access this area.
-        </p>
-
-        <Link
-          href={`/${locale}/portal/login`}
-          className="
-            mt-8
-            inline-flex
-            rounded-full
-            bg-[#6F8F72]
-            px-6
-            py-3
-            font-sans
-            text-[15px]
-            font-medium
-            text-white
-            transition
-            hover:bg-[#5F7F63]
-          "
-        >
-          Return to sign in
-        </Link>
-      </div>
+      </section>
     </main>
   );
 }

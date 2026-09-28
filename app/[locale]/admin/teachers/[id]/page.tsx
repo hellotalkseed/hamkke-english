@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 import TeacherAgreement from "@/components/admin/TeacherAgreement";
 
@@ -965,9 +965,16 @@ function getLessonProgress(
 
 export default function ManageTeacherPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
 
   const locale = String(params.locale);
   const teacherId = String(params.id);
+  const requestedTab = searchParams.get("tab");
+  const activeTab =
+    requestedTab === "schedule" ||
+    requestedTab === "assignments"
+      ? requestedTab
+      : "agreement";
 
   const [teacher, setTeacher] =
     useState<Teacher | null>(null);
@@ -1967,7 +1974,7 @@ export default function ManageTeacherPage() {
           </div>
         </header>
 
-        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
+        <section id="schedule" className="scroll-mt-16 mx-auto max-w-[1320px] px-6 pb-24 pt-20 sm:px-8 lg:px-10">
           <div className="border-y border-[#DCD8D2] py-20 text-center">
             <p className="font-serif text-[17px] text-[#74716B]">
               Loading teacher...
@@ -2048,7 +2055,7 @@ export default function ManageTeacherPage() {
           </div>
         </header>
 
-        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 sm:px-8 sm:pt-16 lg:px-10">
+        <section id="assignments" className="scroll-mt-16 mx-auto max-w-[1320px] px-6 pb-24 pt-20 sm:px-8 sm:pt-16 lg:px-10">
           <div className="border-y border-[#DCD8D2] py-20 text-center">
             <h1 className="font-serif text-[30px] font-normal">
               Unable to load teacher
@@ -2073,82 +2080,10 @@ export default function ManageTeacherPage() {
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      {/* =================================================================== */}
-      {/* HEADER                                                              */}
-      {/* =================================================================== */}
-
-      <header
-          className="
-            w-full
-            px-6
-            pt-7
-            sm:px-8
-            sm:pt-8
-            lg:px-10
-            xl:px-12
-          "
-        >
-          <div
-            className="
-              flex
-              w-full
-              items-start
-              justify-between
-              gap-8
-            "
-          >
-            <Link
-              href={`/${locale}/admin`}
-              className="
-                shrink-0
-                font-sans
-                text-[15px]
-                text-[#5F655F]
-                transition-colors
-                duration-200
-                hover:text-[#6F8F72]
-                sm:text-[16px]
-              "
-            >
-              &larr; Administration
-            </Link>
-
-            <div className="shrink-0 text-right">
-              <p
-                className="
-                  font-sans
-                  text-[16px]
-                  font-semibold
-                  leading-none
-                  tracking-[0.18em]
-                  text-[#6F8F72]
-                "
-              >
-                HAMKKE │ 함께
-              </p>
-
-              <p
-                className="
-                  mt-2
-                  font-serif
-                  text-[13px]
-                  font-normal
-                  leading-none
-                  tracking-[0.02em]
-                  text-[#6F8F72]
-                "
-              >
-                From Small Talk to Big Ideas
-              </p>
-            </div>
-          </div>
-        </header>
-
-      {/* =================================================================== */}
       {/* INTRO                                                               */}
       {/* =================================================================== */}
 
-      <section className="mx-auto max-w-[1200px] px-6 pb-10 pt-12 sm:px-8 sm:pb-12 sm:pt-16 lg:px-10 lg:pt-20">
+      <section id="overview" className="scroll-mt-16 mx-auto max-w-[1320px] px-6 pb-10 pt-12 sm:px-8 sm:pb-12 sm:pt-16 lg:px-10 lg:pt-20">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
             {teacher.avatar_url ? (
@@ -2222,29 +2157,58 @@ export default function ManageTeacherPage() {
               </div>
             </div>
           </div>
-
-          <Link
-            href={`/${locale}/admin/teachers/${teacher.id}/payroll`}
-            className="inline-flex w-fit items-center justify-center rounded-full border border-[#E5B8B2] bg-[#E5B8B2] px-5 py-2.5 font-sans text-[13px] font-bold text-white transition-colors hover:border-[#748260] hover:bg-[#748260]"
-          >
-            Payroll →
-          </Link>
         </div>
       </section>
 
       {/* =================================================================== */}
-      {/* TEACHER AGREEMENT                                                   */}
+      {/* TEACHER WORKSPACE TABS                                              */}
       {/* =================================================================== */}
 
-      <section className="mx-auto max-w-[1200px] px-6 pb-10 sm:px-8 sm:pb-12 lg:px-10">
+      <nav
+        aria-label="Teacher workspace"
+        className="sticky top-0 z-20 border-y border-[#DED9D2] bg-[#FAF8F5]/95 backdrop-blur"
+      >
+        <div className="mx-auto flex max-w-[1320px] overflow-x-auto px-6 sm:px-8 lg:px-10">
+          {[
+            ["agreement", "Agreement"],
+            ["schedule", "Schedule & Availability"],
+            ["assignments", "Assignments"],
+          ].map(([tab, label]) => (
+            <Link
+              key={tab}
+              href={`/${locale}/admin/teachers/${teacher.id}?tab=${tab}`}
+              aria-current={activeTab === tab ? "page" : undefined}
+              className={`shrink-0 border-b-2 px-4 py-3.5 font-sans text-[12px] transition ${
+                activeTab === tab
+                  ? "border-[#6F8F72] font-medium text-[#49614D]"
+                  : "border-transparent text-[#777771] hover:bg-[#F4F1EC] hover:text-[#49614D]"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+          <Link
+            href={`/${locale}/admin/teachers/${teacher.id}/payroll`}
+            className="shrink-0 border-b-2 border-transparent px-4 py-3.5 font-sans text-[12px] text-[#777771] transition hover:bg-[#F4F1EC] hover:text-[#49614D]"
+          >
+            Payroll
+          </Link>
+        </div>
+      </nav>
+
+      {activeTab === "agreement" && (
+        <section id="agreement" className="scroll-mt-16 mx-auto max-w-[1320px] px-6 pb-10 sm:px-8 sm:pb-12 lg:px-10">
         <TeacherAgreement teacher={teacher} />
       </section>
+      )}
 
+      {activeTab === "schedule" && (
+        <>
       {/* =================================================================== */}
       {/* CALENDAR                                                             */}
       {/* =================================================================== */}
 
-      <section className="mx-auto max-w-[1200px] px-6 pb-16 sm:px-8 lg:px-10">
+      <section className="mx-auto max-w-[1320px] px-6 pb-16 sm:px-8 lg:px-10">
         <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
@@ -2909,11 +2873,16 @@ export default function ManageTeacherPage() {
         </div>
       )}
 
+        </>
+      )}
+
+      {activeTab === "assignments" && (
+        <>
       {/* =================================================================== */}
       {/* ASSIGNED STUDENTS                                                   */}
       {/* =================================================================== */}
 
-      <section className="mx-auto max-w-[1200px] px-6 pb-20 sm:px-8 sm:pb-24 lg:px-10">
+      <section className="mx-auto max-w-[1320px] px-6 pb-20 sm:px-8 sm:pb-24 lg:px-10">
         <div className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-sans text-[10px] font-medium uppercase tracking-[0.18em] text-[#8A8A84]">
@@ -3165,6 +3134,9 @@ export default function ManageTeacherPage() {
           </div>
         )}
       </section>
+        </>
+      )}
+
     </main>
   );
 }

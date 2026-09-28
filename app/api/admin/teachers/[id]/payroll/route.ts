@@ -1,3 +1,5 @@
+import { calculateLessonRates } from "@/lib/payroll/lessonRates";
+import { loadPayrollLessons, loadPayrollRows } from "@/lib/payroll/loadPayrollLessons";
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -330,26 +332,7 @@ function calculateCounts(
   return counts;
 }
 
-function calculateGrossPay(
-  counts: PayrollCounts,
-  rate25: number,
-  rate50: number
-) {
-  const payable25Count =
-    counts.completed_25_count +
-    counts.no_show_25_count +
-    counts.late_cancellation_25_count;
 
-  const payable50Count =
-    counts.completed_50_count +
-    counts.no_show_50_count +
-    counts.late_cancellation_50_count;
-
-  return (
-    payable25Count * rate25 +
-    payable50Count * rate50
-  );
-}
 
 function mapLessons(rawLessons: unknown[]) {
   return (rawLessons || [])
@@ -525,7 +508,38 @@ async function loadTeacher(
     );
   }
 
-  return teacher;
+  if (!teacher) {
+    return null;
+  }
+
+  /*
+   * Payroll/document name source of truth.
+   * profiles.full_name is the teacher's display name (for example "Jes").
+   * teacher_document_profiles.full_name is the full name the teacher saved
+   * specifically for official documents.
+   */
+  const {
+    data: documentProfile,
+    error: documentProfileError,
+  } = await admin
+    .from("teacher_document_profiles")
+    .select("full_name")
+    .eq("teacher_id", teacherId)
+    .maybeSingle();
+
+  if (documentProfileError) {
+    console.error(
+      "Owner payroll document-name lookup error:",
+      documentProfileError
+    );
+  }
+
+  return {
+    ...teacher,
+    full_name:
+      documentProfile?.full_name?.trim() ||
+      teacher.full_name,
+  };
 }
 
 async function loadCompensationRates(
@@ -571,44 +585,8 @@ async function loadCompensationRates(
   );
 }
 
-async function loadTeacherLessons(
-  admin: ReturnType<typeof createAdminClient>,
-  teacherId: string
-) {
-  const {
-    data: rawLessons,
-    error: lessonsError,
-  } = await admin
-    .from("lessons")
-    .select(
-      `
-        id,
-        enrollment_id,
-        student_id,
-        lesson_number,
-        lesson_date,
-        duration,
-        attendance_status,
-        consumes_lesson,
-        resolution,
-        actual_teacher_id
-      `
-    )
-    .eq("actual_teacher_id", teacherId)
-    .order("lesson_date", {
-      ascending: true,
-    })
-    .order("lesson_number", {
-      ascending: true,
-    });
-
-  if (lessonsError) {
-    throw new Error(
-      `Failed to load teacher lessons: ${lessonsError.message}`
-    );
-  }
-
-  return mapLessons(rawLessons || []);
+async function loadTeacherLessons(admin: ReturnType<typeof createAdminClient>, teacherId: string) {
+  return loadPayrollLessons(admin, teacherId);
 }
 
 async function loadStudentNames(
@@ -857,29 +835,8 @@ async function loadFrozenPayrollHistoryBreakdowns(
     return {};
   }
 
-  const {
-    data: snapshotRows,
-    error: snapshotError,
-  } = await admin
-    .from("teacher_payroll_lessons")
-    .select(
-      `
-        payroll_id,
-        lesson_id,
-        duration,
-        attendance_status,
-        resolution,
-        rate,
-        amount
-      `
-    )
-    .in("payroll_id", payrollIds);
-
-  if (snapshotError) {
-    throw new Error(
-      `Failed to load payroll history lesson snapshots: ${snapshotError.message}`
-    );
-  }
+  const snapshotRows = await loadPayrollRows(admin, "teacher_payroll_lessons",
+    "payroll_id, lesson_id, duration, attendance_status, resolution, rate, amount", "payroll_id", payrollIds, "lesson_id");
 
   const grouped: Record<string, any[]> =
     Object.fromEntries(
@@ -902,27 +859,8 @@ async function loadFrozenPayrollHistoryBreakdowns(
     ),
   ];
 
-  const {
-    data: lessonRows,
-    error: lessonRowsError,
-  } = await admin
-    .from("lessons")
-    .select(
-      `
-        id,
-        enrollment_id,
-        student_id,
-        lesson_number,
-        lesson_date
-      `
-    )
-    .in("id", lessonIds);
-
-  if (lessonRowsError) {
-    throw new Error(
-      `Failed to load payroll history lesson details: ${lessonRowsError.message}`
-    );
-  }
+  const lessonRows = await loadPayrollRows(admin, "lessons",
+    "id, enrollment_id, student_id, lesson_number, lesson_date", "id", lessonIds, "id");
 
   const lessonById = new Map(
     (lessonRows || []).map((lesson) => [
@@ -1169,6 +1107,8 @@ export async function GET(
         teacherId
       );
 
+    const pricing = calculateLessonRates(lessons, rates);
+
     const teachingMinutesBefore =
       getTeachingMinutesBefore(
         lessons,
@@ -1219,12 +1159,7 @@ export async function GET(
       compensationRate.rate_50
     );
 
-    const grossPay =
-      calculateGrossPay(
-        currentCounts,
-        rate25,
-        rate50
-      );
+    const grossPay = pricing.total(payableCurrentLessons);
 
     const {
       data: rawPayrollHistory,
@@ -1418,9 +1353,7 @@ export async function GET(
               : null;
 
           const rate =
-            Number(lesson.duration) === 50
-              ? rate50
-              : rate25;
+            pricing.forLesson(lesson.id).rate;
 
           return {
             id: lesson.id,
@@ -1912,6 +1845,8 @@ export async function POST(
         teacherId
       );
 
+    const pricing = calculateLessonRates(lessons, rates);
+
     const teachingMinutesBefore =
       getTeachingMinutesBefore(
         lessons,
@@ -1976,12 +1911,7 @@ export async function POST(
         compensationRate.rate_50
       );
 
-    const grossPay =
-      calculateGrossPay(
-        counts,
-        rate25,
-        rate50
-      );
+    const grossPay = pricing.total(payableLessons);
 
     /*
      * Guard against any lesson already belonging to another
@@ -2069,17 +1999,9 @@ export async function POST(
               resolution:
                 lesson.resolution,
               rate:
-                Number(
-                  lesson.duration
-                ) === 25
-                  ? rate25
-                  : rate50,
+                pricing.forLesson(lesson.id).rate,
               amount:
-                Number(
-                  lesson.duration
-                ) === 25
-                  ? rate25
-                  : rate50,
+                pricing.forLesson(lesson.id).rate,
               already_in_payroll:
                 conflictingLessonIds.has(
                   lesson.id
@@ -2355,9 +2277,7 @@ export async function POST(
               );
 
             const rate =
-              duration === 25
-                ? rate25
-                : rate50;
+              pricing.forLesson(lesson.id).rate;
 
             return {
               payroll_id:
@@ -2462,11 +2382,7 @@ export async function POST(
             attendance_status:
               lesson.attendance_status,
             rate:
-              Number(
-                lesson.duration
-              ) === 25
-                ? rate25
-                : rate50,
+              pricing.forLesson(lesson.id).rate,
           })
         ),
     });

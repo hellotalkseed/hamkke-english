@@ -146,6 +146,16 @@ async function createStudent(formData: FormData) {
   redirect(`/${locale}/admin/students/${data.id}`);
 }
 
+function getSupportedTimezones() {
+  const intlWithSupportedValues = Intl as typeof Intl & {
+    supportedValuesOf?: (key: "timeZone") => string[];
+  };
+
+  return intlWithSupportedValues.supportedValuesOf
+    ? intlWithSupportedValues.supportedValuesOf("timeZone")
+    : [];
+}
+
 export default async function NewStudentPage({
   params,
   searchParams,
@@ -201,6 +211,8 @@ export default async function NewStudentPage({
 
   const convertingAssessment = Boolean(assessment);
 
+  const supportedTimezones = getSupportedTimezones();
+
   const countryByTimezone: Record<string, string> = {
     "Asia/Manila": "Philippines",
     "Asia/Seoul": "South Korea",
@@ -219,151 +231,24 @@ export default async function NewStudentPage({
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      {/* HEADER */}
-      <header
-        className="
-          w-full
-          px-6
-          pt-7
-          sm:px-8
-          sm:pt-8
-          lg:px-10
-          xl:px-12
-        "
-      >
-        <div className="relative flex w-full items-center justify-between">
-          <Link
-            href={
-              convertingAssessment
-                ? `/${locale}/admin/assessments`
-                : `/${locale}/admin/students`
-            }
-            className="
-              shrink-0
-              font-sans
-              text-[15px]
-              text-[#5F655F]
-              transition-colors
-              duration-200
-              hover:text-[#6F8F72]
-              sm:text-[16px]
-            "
-          >
-            {convertingAssessment
-              ? "← Assessments"
-              : "← Students"}
-          </Link>
-
-          <div
-            className="
-              absolute
-              left-1/2
-              hidden
-              -translate-x-1/2
-              whitespace-nowrap
-              font-sans
-              text-[15px]
-              font-medium
-              text-[#6F8F72]
-              sm:block
-              sm:text-[16px]
-            "
-          >
-            Hamkke │ 함께
-          </div>
-
-          <div
-            className="
-              flex
-              shrink-0
-              items-center
-              gap-3
-              font-sans
-              text-[14px]
-              text-[#5F655F]
-              sm:gap-4
-              sm:text-[15px]
-            "
-          >
-            <span className="font-medium text-[#6F8F72]">
-              EN
-            </span>
-
-            <span>한국어</span>
-            <span>中文</span>
-          </div>
-        </div>
-      </header>
-
       {/* INTRO */}
-      <section
-        className="
-          mx-auto
-          w-full
-          max-w-[1040px]
-          px-6
-          pb-12
-          pt-10
-          sm:px-8
-          sm:pb-14
-          sm:pt-20
-          lg:px-10
-          lg:pb-16
-          lg:pt-24
-        "
-      >
-        <div
-          className="
-            text-center
-            font-sans
-            text-[14px]
-            font-medium
-            tracking-[0.02em]
-            text-[#6F8F72]
-            sm:hidden
-          "
-        >
-          Hamkke │ 함께
+      <section className="mx-auto w-full max-w-[1320px] px-8 pb-7 pt-[92px] sm:px-10 lg:px-14 xl:px-16">
+        <div className="max-w-[820px]">
+          <div className="mb-5 flex items-center gap-4">
+            <span className="h-px w-12 bg-[#6F8F72]" />
+            <span className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-[#6F8F72]">
+              {convertingAssessment ? "Assessment Conversion" : "Students"}
+            </span>
+          </div>
+          <h1 className="font-serif text-[46px] font-normal leading-[1] tracking-[-0.035em] sm:text-[54px] lg:text-[60px]">
+            {convertingAssessment ? "Convert to Student" : "New Student"}
+          </h1>
+          <p className="mt-4 max-w-[760px] font-serif text-[17px] leading-8 text-[#74716B] sm:text-[18px]">
+            {convertingAssessment
+              ? "Review the assessment details, complete any missing information, and create the student record."
+              : "Create a student record before setting up their lesson enrollment."}
+          </p>
         </div>
-
-        <h1
-          className="
-            text-center
-            font-serif
-            text-[52px]
-            font-normal
-            leading-[1.05]
-            tracking-[-0.035em]
-            text-[#292929]
-            sm:text-[62px]
-            lg:text-[70px]
-          "
-        >
-          {convertingAssessment
-            ? "Convert to Student"
-            : "New Student"}
-        </h1>
-
-        <p
-          className="
-            mx-auto
-            mt-8
-            max-w-[760px]
-            text-center
-            font-serif
-            text-[21px]
-            leading-8
-            text-[#4A4A4A]
-            sm:text-[23px]
-            sm:leading-9
-            lg:text-[25px]
-            lg:leading-10
-          "
-        >
-          {convertingAssessment
-            ? "Review the assessment details, complete any missing information, and create the student record."
-            : "Create a student record before setting up their lesson enrollment."}
-        </p>
       </section>
 
       {/* FORM */}
@@ -696,8 +581,10 @@ export default async function NewStudentPage({
                   id="timezone"
                   name="timezone"
                   type="text"
+                  list="student-timezone-options"
+                  autoComplete="off"
                   defaultValue={assessment?.timezone ?? ""}
-                  placeholder="Asia/Seoul"
+                  placeholder="Search a city or timezone, e.g. Seoul"
                   className="
                     mt-3
                     w-full
@@ -713,6 +600,16 @@ export default async function NewStudentPage({
                     focus:border-[#6F8F72]
                   "
                 />
+                <datalist id="student-timezone-options">
+                  {supportedTimezones.map((timezone) => (
+                    <option key={timezone} value={timezone}>
+                      {timezone.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </datalist>
+                <p className="mt-2 font-sans text-[11px] leading-5 text-[#8A8A84]">
+                  Start typing a city or IANA timezone name to search all supported time zones.
+                </p>
               </div>
 
               {/* CONTACT METHOD */}

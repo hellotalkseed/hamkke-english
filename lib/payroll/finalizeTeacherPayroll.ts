@@ -1,3 +1,5 @@
+import { calculateLessonRates } from "@/lib/payroll/lessonRates";
+import { loadPayrollLessons } from "@/lib/payroll/loadPayrollLessons";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type LessonRecord = {
@@ -126,26 +128,7 @@ function calculateCounts(
   return counts;
 }
 
-function calculateGrossPay(
-  counts: PayrollCounts,
-  rate25: number,
-  rate50: number
-) {
-  const payable25Count =
-    counts.completed_25_count +
-    counts.no_show_25_count +
-    counts.late_cancellation_25_count;
 
-  const payable50Count =
-    counts.completed_50_count +
-    counts.no_show_50_count +
-    counts.late_cancellation_50_count;
-
-  return (
-    payable25Count * rate25 +
-    payable50Count * rate50
-  );
-}
 
 async function loadRates(
   admin: ReturnType<typeof createAdminClient>
@@ -187,67 +170,8 @@ async function loadRates(
   );
 }
 
-async function loadTeacherLessons(
-  admin: ReturnType<typeof createAdminClient>,
-  teacherId: string
-) {
-  const { data, error } = await admin
-    .from("lessons")
-    .select(
-      `
-        id,
-        enrollment_id,
-        lesson_number,
-        lesson_date,
-        duration,
-        attendance_status,
-        resolution,
-        actual_teacher_id
-      `
-    )
-    .eq("actual_teacher_id", teacherId)
-    .order("lesson_date", {
-      ascending: true,
-    })
-    .order("lesson_number", {
-      ascending: true,
-    });
-
-  if (error) {
-    throw new Error(
-      `Failed to load teacher lessons: ${error.message}`
-    );
-  }
-
-  return (data || []).map(
-    (lesson): LessonRecord => ({
-      id: String(lesson.id),
-      enrollment_id: String(
-        lesson.enrollment_id
-      ),
-      lesson_number: Number(
-        lesson.lesson_number
-      ),
-      lesson_date: String(
-        lesson.lesson_date
-      ),
-      duration: Number(
-        lesson.duration
-      ),
-      attendance_status: String(
-        lesson.attendance_status || ""
-      ),
-      resolution: lesson.resolution
-        ? String(lesson.resolution)
-        : null,
-      actual_teacher_id:
-        lesson.actual_teacher_id
-          ? String(
-              lesson.actual_teacher_id
-            )
-          : null,
-    })
-  );
+async function loadTeacherLessons(admin: ReturnType<typeof createAdminClient>, teacherId: string) {
+  return loadPayrollLessons(admin, teacherId);
 }
 
 function getTeachingMinutesBefore(
@@ -340,6 +264,8 @@ export async function finalizeTeacherPayroll(
     );
   }
 
+  const pricing = calculateLessonRates(lessons, rates);
+
   const teachingMinutesBefore =
     getTeachingMinutesBefore(
       lessons,
@@ -392,12 +318,7 @@ export async function finalizeTeacherPayroll(
     compensationRate.rate_50
   );
 
-  const grossPay =
-    calculateGrossPay(
-      counts,
-      rate25,
-      rate50
-    );
+  const grossPay = pricing.total(payableLessons);
 
   const lessonIds =
     payableLessons.map(
@@ -544,9 +465,7 @@ export async function finalizeTeacherPayroll(
             );
 
           const rate =
-            duration === 25
-              ? rate25
-              : rate50;
+            pricing.forLesson(lesson.id).rate;
 
           return {
             payroll_id:

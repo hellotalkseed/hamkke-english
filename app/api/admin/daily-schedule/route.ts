@@ -348,7 +348,7 @@ export async function GET(request: Request) {
       assignedEsIds.length
         ? await admin
             .from("enrollment_students")
-            .select("id, enrollment_id, student_id")
+            .select("id, enrollment_id, student_id, enrollments(status)")
             .in("id", assignedEsIds)
         : { data: [], error: null };
 
@@ -408,6 +408,24 @@ export async function GET(request: Request) {
     for (const assignment of activeAssignments) {
       const es = assignedEsMap.get(assignment.enrollment_student_id);
       if (!es) continue;
+
+      const enrollmentRelation =
+        Array.isArray(es.enrollments)
+          ? es.enrollments[0]
+          : es.enrollments;
+
+      /*
+       * A previous term may still have an assignment row marked active.
+       * It must not block the same teacher from the student's renewed term.
+       * Only assignments belonging to an active enrollment occupy recurring
+       * teacher capacity.
+       */
+      if (
+        !enrollmentRelation ||
+        enrollmentRelation.status !== "active"
+      ) {
+        continue;
+      }
 
       const studentTimezone = assignedTimezoneMap.get(es.student_id);
       const studentSchedules = (assignedSchedulesResult.data || []).filter(

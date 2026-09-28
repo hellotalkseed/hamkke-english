@@ -194,7 +194,7 @@ export default function SearchFilters({
     setStatus("");
 
     router.replace(
-      `/${locale}/admin`,
+      `/${locale}/admin/overview`,
       {
         scroll: false,
       }

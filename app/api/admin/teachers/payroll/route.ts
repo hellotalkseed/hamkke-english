@@ -1,4 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { calculateLessonRates } from "@/lib/payroll/lessonRates";
+import { loadPayrollLessons, loadPayrollRows } from "@/lib/payroll/loadPayrollLessons";
+import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -258,26 +260,7 @@ function calculateCounts(
   return counts;
 }
 
-function calculateGrossPay(
-  counts: PayrollCounts,
-  rate25: number,
-  rate50: number
-) {
-  const payable25Count =
-    counts.completed_25_count +
-    counts.no_show_25_count +
-    counts.late_cancellation_25_count;
 
-  const payable50Count =
-    counts.completed_50_count +
-    counts.no_show_50_count +
-    counts.late_cancellation_50_count;
-
-  return (
-    payable25Count * rate25 +
-    payable50Count * rate50
-  );
-}
 
 function mapLessons(rawLessons: unknown[]) {
   return (rawLessons || [])
@@ -534,49 +517,8 @@ async function loadCompensationRates(
   );
 }
 
-async function loadTeacherLessons(
-  admin: ReturnType<typeof createAdminClient>,
-  teacherId: string
-) {
-  const {
-    data: rawLessons,
-    error: lessonsError,
-  } = await admin
-    .from("lessons")
-    .select(
-      `
-        id,
-        enrollment_id,
-        student_id,
-        lesson_number,
-        lesson_date,
-        duration,
-        attendance_status,
-        consumes_lesson,
-        resolution,
-        actual_teacher_id
-      `
-    )
-    .eq(
-      "actual_teacher_id",
-      teacherId
-    )
-    .order("lesson_date", {
-      ascending: true,
-    })
-    .order("lesson_number", {
-      ascending: true,
-    });
-
-  if (lessonsError) {
-    throw new Error(
-      `Failed to load teacher lessons: ${lessonsError.message}`
-    );
-  }
-
-  return mapLessons(
-    rawLessons || []
-  );
+async function loadTeacherLessons(admin: ReturnType<typeof createAdminClient>, teacherId: string) {
+  return loadPayrollLessons(admin, teacherId);
 }
 
 async function loadStudentNames(
@@ -824,29 +766,8 @@ async function loadFrozenPayrollHistoryBreakdowns(
     return {};
   }
 
-  const {
-    data: snapshotRows,
-    error: snapshotError,
-  } = await admin
-    .from("teacher_payroll_lessons")
-    .select(
-      `
-        payroll_id,
-        lesson_id,
-        duration,
-        attendance_status,
-        resolution,
-        rate,
-        amount
-      `
-    )
-    .in("payroll_id", payrollIds);
-
-  if (snapshotError) {
-    throw new Error(
-      `Failed to load payroll history lesson snapshots: ${snapshotError.message}`
-    );
-  }
+  const snapshotRows = await loadPayrollRows(admin, "teacher_payroll_lessons",
+    "payroll_id, lesson_id, duration, attendance_status, resolution, rate, amount", "payroll_id", payrollIds, "lesson_id");
 
   const grouped: Record<string, any[]> =
     Object.fromEntries(
@@ -869,27 +790,8 @@ async function loadFrozenPayrollHistoryBreakdowns(
     ),
   ];
 
-  const {
-    data: lessonRows,
-    error: lessonRowsError,
-  } = await admin
-    .from("lessons")
-    .select(
-      `
-        id,
-        enrollment_id,
-        student_id,
-        lesson_number,
-        lesson_date
-      `
-    )
-    .in("id", lessonIds);
-
-  if (lessonRowsError) {
-    throw new Error(
-      `Failed to load payroll history lesson details: ${lessonRowsError.message}`
-    );
-  }
+  const lessonRows = await loadPayrollRows(admin, "lessons",
+    "id, enrollment_id, student_id, lesson_number, lesson_date", "id", lessonIds, "id");
 
   const lessonById = new Map(
     (lessonRows || []).map((lesson) => [
@@ -1121,9 +1023,11 @@ export async function GET() {
       );
 
     /*
-     * Compensation level is fixed using qualifying
-     * completed teaching minutes BEFORE this payroll period.
+     * Period-opening compensation metadata is retained for compatibility.
+     * Earnings use each lesson's own qualifying-hours rate.
      */
+    const pricing = calculateLessonRates(lessons, rates);
+
     const teachingMinutesBefore =
       getTeachingMinutesBefore(
         lessons,
@@ -1192,12 +1096,7 @@ export async function GET() {
         compensationRate.rate_50
       );
 
-    const grossPay =
-      calculateGrossPay(
-        currentCounts,
-        rate25,
-        rate50
-      );
+    const grossPay = pricing.total(payableCurrentLessons);
 
     /* ---------------------------------------------------------------------- */
     /* SAVED PAYROLL HISTORY                                                  */
@@ -1477,9 +1376,7 @@ export async function GET() {
               : null;
 
           const rate =
-            lesson.duration === 50
-              ? rate50
-              : rate25;
+            pricing.forLesson(lesson.id).rate;
 
           return {
             id: lesson.id,
@@ -1511,7 +1408,7 @@ export async function GET() {
 
     /*
      * Display-only compensation progression metadata.
-     * The payroll rate itself remains fixed from teachingMinutesBefore.
+     * Lesson earnings use qualifying teaching minutes before each lesson starts.
      */
     const qualifyingMinutesCurrentPeriod =
       currentPeriodLessons
@@ -1632,6 +1529,7 @@ export async function GET() {
         historyBreakdowns,
 
       compensation_progression: {
+        current_level: getCompensationRate(rates, qualifyingMinutesTotal)?.level ?? compensationRate.level,
         qualifying_minutes_before:
           teachingMinutesBefore,
         qualifying_minutes_current_period:
