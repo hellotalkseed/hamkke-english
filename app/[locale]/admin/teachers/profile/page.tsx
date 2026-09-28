@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import {
   redirect,
 } from "next/navigation";
@@ -15,6 +15,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import PublicProfileEditor from "./PublicProfileEditor";
+import DocumentNameForm from "@/components/admin/DocumentNameForm";
+import { revalidatePath } from "next/cache";
 
 interface TeacherProfilePageProps {
   params: Promise<{
@@ -58,9 +60,34 @@ export default async function TeacherProfilePage({
   if (
     !profile ||
     profile.role !== "teacher" ||
-    profile.status !== "active"
+    !["active", "pending"].includes(profile.status)
   ) {
     redirect(`/${locale}/admin`);
+  }
+
+  const { data: documentProfile, error: documentProfileError } = await supabase
+    .from("teacher_document_profiles").select("full_name").eq("teacher_id", user.id).maybeSingle();
+  if (documentProfileError) throw new Error("Unable to load document details. Apply the teacher document-name migration first.");
+
+  async function saveDocumentName(fullName: string) {
+    "use server";
+    const client = await createClient();
+    const { data: { user: currentUser } } = await client.auth.getUser();
+    if (!currentUser) throw new Error("Please sign in again.");
+    const { data: currentProfile } = await client.from("profiles")
+      .select("role, status").eq("id", currentUser.id).maybeSingle();
+    if (currentProfile?.role !== "teacher" || !["active", "pending"].includes(currentProfile.status)) {
+      throw new Error("Teacher access required.");
+    }
+    const name = typeof fullName === "string" ? fullName.trim() : "";
+    if (!name || name.length > 200 || /[\x00-\x1f\x7f]/.test(name)) {
+      throw new Error("Enter your full name, up to 200 characters, on one line.");
+    }
+    const { data, error } = await client.from("teacher_document_profiles")
+      .upsert({ teacher_id: currentUser.id, full_name: name }, { onConflict: "teacher_id" })
+      .select("full_name").single();
+    if (error || data?.full_name !== name) throw new Error("Could not save your full name. Please try again.");
+    revalidatePath(`/${locale}/admin/teachers/profile`);
   }
 
   /* ----------------------------------------------------------------------- */
@@ -472,7 +499,7 @@ export default async function TeacherProfilePage({
                 </h1>
 
                 <p className="mt-2 max-w-2xl font-sans text-[13px] leading-6 text-[#817B74]">
-                  Manage the profile information learners see when they visit your Hamkke teacher page.
+                  Manage your document details and the public profile learners see.
                 </p>
               </div>
 
@@ -567,11 +594,13 @@ export default async function TeacherProfilePage({
         </div>
       </section>
 
+      <DocumentNameForm initialName={documentProfile?.full_name ?? ""} saveAction={saveDocumentName} />
+
       {/* PUBLIC PROFILE CONTENT */}
 
       <section className="mx-auto w-full max-w-none pb-24">
         <div className="border-t border-[#DCD8D2] py-10">
-          <PublicProfileEditor
+          {profile.status === "active" ? <PublicProfileEditor
             initialFullName={profile.full_name || ""}
             initialCardLabel={publicProfile?.card_label || ""}
             initialLearnerGroups={learnerGroups}
@@ -581,7 +610,7 @@ export default async function TeacherProfilePage({
             initialQualifications={qualifications}
             hasAudio={hasAudio}
             updateAction={updatePublicProfile}
-          />
+          /> : <p className="text-sm text-[#777]">Public profile editing will be available once your teacher account is active.</p>}
         </div>
       </section>
           </div>

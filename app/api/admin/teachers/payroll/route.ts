@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -1045,7 +1045,7 @@ function getTeachingMinutesBefore(
 }
 
 /* -------------------------------------------------------------------------- */
-/* GET — TEACHER SELF-SERVICE PAYROLL                                         */
+/* GET â€” TEACHER SELF-SERVICE PAYROLL                                         */
 /* -------------------------------------------------------------------------- */
 
 export async function GET() {
@@ -1510,6 +1510,38 @@ export async function GET() {
       liveLessonBreakdown;
 
     /*
+     * Display-only compensation progression metadata.
+     * The payroll rate itself remains fixed from teachingMinutesBefore.
+     */
+    const qualifyingMinutesCurrentPeriod =
+      currentPeriodLessons
+        .filter(isQualifyingTeachingLesson)
+        .reduce((total, lesson) => {
+          const duration = Number(lesson.duration);
+          return duration === 25 || duration === 50
+            ? total + duration
+            : total;
+        }, 0);
+
+    const qualifyingMinutesTotal =
+      teachingMinutesBefore +
+      qualifyingMinutesCurrentPeriod;
+
+    const nextCompensationRate =
+      rates
+        .filter((rate) => rate.is_active)
+        .filter(
+          (rate) =>
+            Number(rate.min_teaching_minutes) >
+            qualifyingMinutesTotal
+        )
+        .sort(
+          (a, b) =>
+            Number(a.min_teaching_minutes) -
+            Number(b.min_teaching_minutes)
+        )[0] || null;
+
+    /*
      * Keep the response shape aligned with the owner GET endpoint.
      * This lets the teacher payroll page reuse the same display model
      * without exposing any owner-only mutations.
@@ -1599,6 +1631,34 @@ export async function GET() {
       history_breakdowns:
         historyBreakdowns,
 
+      compensation_progression: {
+        qualifying_minutes_before:
+          teachingMinutesBefore,
+        qualifying_minutes_current_period:
+          qualifyingMinutesCurrentPeriod,
+        qualifying_minutes_total:
+          qualifyingMinutesTotal,
+        minutes_until_next_rate:
+          nextCompensationRate
+            ? Math.max(
+                0,
+                Number(nextCompensationRate.min_teaching_minutes) -
+                  qualifyingMinutesTotal
+              )
+            : null,
+        next_rate:
+          nextCompensationRate
+            ? {
+                id: nextCompensationRate.id,
+                level: nextCompensationRate.level,
+                min_teaching_minutes:
+                  nextCompensationRate.min_teaching_minutes,
+                rate_25: nextCompensationRate.rate_25,
+                rate_50: nextCompensationRate.rate_50,
+              }
+            : null,
+      },
+
       lessons:
         currentPeriodLessons,
 
@@ -1656,3 +1716,4 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error." }, { status: 500 });
   }
 }
+

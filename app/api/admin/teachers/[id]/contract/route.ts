@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CURRENT_TEACHER_AGREEMENT } from "@/lib/teacher-agreements/versions";
+import { createHash } from "node:crypto";
+
+export const runtime = "nodejs";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -38,11 +42,46 @@ type TeacherContract = {
   updated_at: string;
   sent_at: string | null;
   sent_by: string | null;
+  agreement_content: string | null;
+  agreement_content_hash: string | null;
+  framework_version: string | null;
+  policy_version: string | null;
+  teacher_full_name: string | null;
+  teacher_number_snapshot: string | null;
 };
 
 /* ========================================================================= */
 /* HELPERS                                                                   */
 /* ========================================================================= */
+
+function hashAgreementContent(
+  content: string
+) {
+  return createHash("sha256")
+    .update(content, "utf8")
+    .digest("hex");
+}
+
+function hasValidAgreementSnapshot(
+  contract: TeacherContract
+) {
+  if (
+    !contract.teacher_full_name?.trim() ||
+    !contract.agreement_content ||
+    !contract.agreement_content_hash ||
+    !contract.framework_version ||
+    !contract.policy_version
+  ) {
+    return false;
+  }
+
+  return (
+    hashAgreementContent(
+      contract.agreement_content
+    ) ===
+    contract.agreement_content_hash
+  );
+}
 
 async function getAuthenticatedProfile() {
   const supabase = await createClient();
@@ -243,7 +282,13 @@ const CONTRACT_SELECT = `
   created_at,
   updated_at,
   sent_at,
-  sent_by
+  sent_by,
+  agreement_content,
+  agreement_content_hash,
+  framework_version,
+  policy_version,
+  teacher_full_name,
+  teacher_number_snapshot
 `;
 
 /* ========================================================================= */
@@ -344,60 +389,29 @@ export async function GET(
       teacherId
     );
 
-  /*
-   * Teachers must never see drafts.
-   */
+  // A teacher may view only issued records, including their own history.
   if (isTeacher) {
-    contractQuery =
-      contractQuery.in("status", [
-        "pending_acceptance",
-        "accepted",
-      ]);
-  } else {
-    /*
-     * Owners can see drafts, pending agreements,
-     * and accepted agreements.
-     */
-    contractQuery =
-      contractQuery.in("status", [
-        "draft",
-        "pending_acceptance",
-        "accepted",
-      ]);
+    contractQuery = contractQuery.in("status", ["pending_acceptance", "accepted", "terminated"]);
   }
-
-  const {
-    data: contractData,
-    error: contractError,
-  } = await contractQuery
-    .order("created_at", {
-      ascending: false,
-    })
-    .limit(1)
-    .maybeSingle();
-
+  const { data, error: contractError } = await contractQuery
+    .order("created_at", { ascending: false }).order("id", { ascending: false });
   if (contractError) {
-    console.error(
-      "Failed to load teacher contract:",
-      contractError
-    );
-
-    return NextResponse.json(
-      {
-        error:
-          "Failed to load teacher agreement.",
-      },
-      { status: 500 }
-    );
+    console.error("Failed to load teacher agreements:", contractError);
+    return NextResponse.json({ error: "Failed to load teacher agreements." }, { status: 500 });
   }
-
-  const contract =
-    contractData as TeacherContract | null;
-
+  const contracts = (data as TeacherContract[] ?? []).map((item) => ({
+    ...item,
+    snapshot_valid: hasValidAgreementSnapshot(item),
+  }));
+  const currentAccepted = [...contracts]
+    .filter((item) => item.status === "accepted")
+    .sort((a, b) => (b.accepted_at ?? "").localeCompare(a.accepted_at ?? "") || b.created_at.localeCompare(a.created_at))[0] ?? null;
   return NextResponse.json({
-    contract:
-      contract ?? null,
-  });
+    contract: contracts[0] ?? null,
+    contracts,
+    currentAcceptedId: currentAccepted?.id ?? null,
+    currentVersion: CURRENT_TEACHER_AGREEMENT.version,
+  }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 /* ========================================================================= */
@@ -442,8 +456,11 @@ export async function POST(
     action?:
       | "create"
       | "send"
-      | "accept";
+      | "accept"
+      | "save_name";
     contractId?: string | null;
+    fullName?: string;
+    revision?: string;
   };
 
   try {
@@ -458,7 +475,17 @@ export async function POST(
     );
   }
 
+  if (
+    !body || typeof body !== "object" || Array.isArray(body) ||
+    (body.contractId != null && typeof body.contractId !== "string")
+  ) {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
   const action = body.action;
+  if (action && !["create", "send", "accept", "save_name"].includes(action)) {
+    return NextResponse.json({ error: "Unsupported action." }, { status: 400 });
+  }
 
   if (!action) {
     return NextResponse.json(
@@ -492,7 +519,7 @@ export async function POST(
    */
   if (
     action === "create" ||
-    action === "send"
+    action === "send" || action === "save_name"
   ) {
     if (!isOwner) {
       return NextResponse.json(
@@ -603,6 +630,20 @@ export async function POST(
       );
     }
 
+    const legacyAccepted =
+      contract.status === "accepted" &&
+      contract.version === "1.0" &&
+      contract.agreement_content === null &&
+      contract.agreement_content_hash === null &&
+      contract.framework_version === null &&
+      contract.policy_version === null;
+    if (contract.status === "accepted" && !legacyAccepted && !hasValidAgreementSnapshot(contract)) {
+      return NextResponse.json(
+        { error: "Agreement snapshot integrity check failed." },
+        { status: 409 }
+      );
+    }
+
     /*
      * ---------------------------------------------------------
      * RECOVERY FOR AN ALREADY ACCEPTED AGREEMENT
@@ -669,6 +710,22 @@ export async function POST(
      * Only a sent agreement can be accepted.
      */
     if (
+      contract.status ===
+        "pending_acceptance" &&
+      !hasValidAgreementSnapshot(
+        contract
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Agreement snapshot integrity check failed. The agreement cannot be accepted.",
+        },
+        { status: 409 }
+      );
+    }
+
+    if (
       contract.status !==
       "pending_acceptance"
     ) {
@@ -677,6 +734,13 @@ export async function POST(
           error:
             "This agreement is not currently available for acceptance.",
         },
+        { status: 409 }
+      );
+    }
+
+    if (!contract.sent_at) {
+      return NextResponse.json(
+        { error: "This agreement has no sending record. Please contact Hamkke." },
         { status: 409 }
       );
     }
@@ -724,10 +788,19 @@ export async function POST(
         "status",
         "pending_acceptance"
       )
+      .eq("updated_at", contract.updated_at)
+      .eq("agreement_content_hash", contract.agreement_content_hash!)
       .select(
         CONTRACT_SELECT
       )
       .maybeSingle();
+
+    if (!updateError && !updatedContractData) {
+      return NextResponse.json(
+        { error: "The agreement changed during acceptance. Reload and try again." },
+        { status: 409 }
+      );
+    }
 
     if (
       updateError ||
@@ -816,6 +889,25 @@ export async function POST(
     );
   }
 
+  if (action === "save_name") {
+    if (!body.contractId || typeof body.revision !== "string") {
+      return NextResponse.json({ error: "Reload the draft before updating its name." }, { status: 400 });
+    }
+    const { data: identity, error: identityError } = await admin.from("teacher_document_profiles")
+      .select("full_name").eq("teacher_id", teacherId).maybeSingle();
+    if (identityError) return NextResponse.json({ error: "Unable to load the teacher's document full name." }, { status: 500 });
+    const name = identity?.full_name?.trim();
+    if (!name) return NextResponse.json({ error: "Ask the teacher to save their full name in My Profile first." }, { status: 409 });
+    const { data, error } = await admin.from("teacher_contracts")
+      .update({ teacher_full_name: name })
+      .eq("id", body.contractId).eq("teacher_id", teacherId)
+      .eq("status", "draft").is("sent_at", null).is("accepted_at", null)
+      .eq("updated_at", body.revision).select(CONTRACT_SELECT).maybeSingle();
+    if (error) return NextResponse.json({ error: "Unable to save the agreement name." }, { status: 500 });
+    if (!data) return NextResponse.json({ error: "This draft changed or was already sent. Reload before editing." }, { status: 409 });
+    return NextResponse.json({ contract: data });
+  }
+
   /* ----------------------------------------------------------------------- */
   /* LOAD EXISTING CONTRACT                                                  */
   /* ----------------------------------------------------------------------- */
@@ -859,40 +951,91 @@ export async function POST(
   const existingContract =
     existingContractData as TeacherContract | null;
 
-  /* ----------------------------------------------------------------------- */
-  /* ACCEPTED CONTRACT PROTECTION                                            */
-  /* ----------------------------------------------------------------------- */
-
-  if (
-    existingContract?.status ===
-    "accepted"
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "This agreement has already been accepted. Create a new version instead of modifying the accepted agreement.",
-        contract:
-          existingContract,
-      },
-      { status: 409 }
-    );
-  }
-
-  /* ----------------------------------------------------------------------- */
   /* CREATE                                                                  */
   /* ----------------------------------------------------------------------- */
 
   if (
     action === "create"
   ) {
+    const currentAgreement =
+      CURRENT_TEACHER_AGREEMENT;
+
+    if (
+      !currentAgreement.version || !currentAgreement.content.trim() ||
+      !currentAgreement.frameworkVersion || !currentAgreement.policyVersion ||
+      hashAgreementContent(currentAgreement.content) !== currentAgreement.contentHash
+    ) {
+      return NextResponse.json({ error: "The current agreement source is invalid." }, { status: 500 });
+    }
+
+    const { data: targetTeacher, error: targetError } = await admin
+      .from("profiles").select("id, role, status, full_name, teacher_number").eq("id", teacherId).maybeSingle();
+    if (targetError) {
+      return NextResponse.json({ error: "Failed to load teacher profile." }, { status: 500 });
+    }
+    if (!targetTeacher || targetTeacher.role !== "teacher") {
+      return NextResponse.json({ error: "Teacher not found." }, { status: 404 });
+    }
+
+    const { data: documentProfile, error: documentError } = await admin.from("teacher_document_profiles")
+      .select("full_name").eq("teacher_id", teacherId).maybeSingle();
+    if (documentError) return NextResponse.json({ error: "Unable to load the teacher's document full name." }, { status: 500 });
+    const teacherFullName = documentProfile?.full_name?.trim();
+    if (!teacherFullName) {
+      return NextResponse.json(
+        { error: "Save the teacher's full name in their profile before creating an agreement." },
+        { status: 409 }
+      );
+    }
+
     /*
-     * Do not create duplicates.
+     * Agreement versions are global Hamkke versions.
+     * An older accepted agreement does not block the
+     * teacher from receiving the current version.
      */
-    if (existingContract) {
+    const {
+      data: currentVersionData,
+      error: currentVersionError,
+    } = await admin
+      .from("teacher_contracts")
+      .select(CONTRACT_SELECT)
+      .eq(
+        "teacher_id",
+        teacherId
+      )
+      .eq(
+        "version",
+        currentAgreement.version
+      )
+      .maybeSingle();
+
+    if (currentVersionError) {
+      console.error(
+        "Failed to check current agreement version:",
+        currentVersionError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Failed to check teacher agreement version.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const currentVersionContract =
+      currentVersionData as TeacherContract | null;
+
+    /*
+     * One record per teacher per agreement version.
+     */
+    if (currentVersionContract) {
       return NextResponse.json({
         success: true,
+        alreadyExists: true,
         contract:
-          existingContract,
+          currentVersionContract,
       });
     }
 
@@ -934,17 +1077,53 @@ export async function POST(
       .insert({
         teacher_id:
           teacherId,
+        teacher_full_name: teacherFullName,
+        teacher_number_snapshot: targetTeacher.teacher_number ?? null,
+
         contract_number:
           contractNumber,
-        version: "1.0",
-        status: "draft",
+
+        version:
+          currentAgreement.version,
+
+        status:
+          "draft",
+
         agreement_date:
           today,
+
+        agreement_content:
+          currentAgreement.content,
+
+        agreement_content_hash:
+          currentAgreement.contentHash,
+
+        framework_version:
+          currentAgreement.frameworkVersion,
+
+        policy_version:
+          currentAgreement.policyVersion,
       })
       .select(
         CONTRACT_SELECT
       )
       .single();
+
+    // The database UNIQUE (teacher_id, version) resolves simultaneous creates.
+    // Return only the same teacher/version winner, never an unrelated number conflict.
+    if (createError?.code === "23505") {
+      const { data: winner, error: winnerError } = await admin
+        .from("teacher_contracts").select(CONTRACT_SELECT)
+        .eq("teacher_id", teacherId).eq("version", currentAgreement.version)
+        .maybeSingle();
+      if (!winnerError && winner) {
+        return NextResponse.json({ success: true, alreadyExists: true, contract: winner });
+      }
+      return NextResponse.json(
+        { error: "An agreement creation conflict occurred. Reload and try again." },
+        { status: 409 }
+      );
+    }
 
     if (
       createError ||
@@ -981,7 +1160,49 @@ export async function POST(
   if (
     action === "send"
   ) {
-    if (!existingContract) {
+    let contractToSend =
+      existingContract;
+
+    /*
+     * Prefer an explicitly requested contract version.
+     */
+    if (body.contractId) {
+      const {
+        data: requestedContractData,
+        error: requestedContractError,
+      } = await admin
+        .from("teacher_contracts")
+        .select(CONTRACT_SELECT)
+        .eq(
+          "id",
+          body.contractId
+        )
+        .eq(
+          "teacher_id",
+          teacherId
+        )
+        .maybeSingle();
+
+      if (requestedContractError) {
+        console.error(
+          "Failed to load agreement for sending:",
+          requestedContractError
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              "Failed to load teacher agreement.",
+          },
+          { status: 500 }
+        );
+      }
+
+      contractToSend =
+        requestedContractData as TeacherContract | null;
+    }
+
+    if (!contractToSend) {
       return NextResponse.json(
         {
           error:
@@ -991,32 +1212,84 @@ export async function POST(
       );
     }
 
-    const sentAt =
-      new Date().toISOString();
+    if (
+      contractToSend.status ===
+      "accepted"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "An accepted agreement cannot be sent again.",
+          contract:
+            contractToSend,
+        },
+        { status: 409 }
+      );
+    }
 
-    const updatePayload: Record<
-      string,
-      unknown
-    > = {
+    if (
+      contractToSend.status !== "draft" &&
+      contractToSend.status !==
+        "pending_acceptance"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "This agreement cannot be sent in its current status.",
+        },
+        { status: 409 }
+      );
+    }
+
+    /*
+     * A new agreement may only be sent when the exact
+     * stored content matches its stored SHA-256 hash.
+     */
+    if (
+      !hasValidAgreementSnapshot(
+        contractToSend
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Agreement snapshot integrity check failed. Create a new agreement version instead of sending this record.",
+        },
+        { status: 409 }
+      );
+    }
+
+    // Retrying send must not overwrite the original sending evidence.
+    if (contractToSend.status === "pending_acceptance") {
+      return NextResponse.json({
+        success: true,
+        alreadySent: true,
+        message: "Teacher agreement is already available for acceptance.",
+        contract: contractToSend,
+      });
+    }
+
+    if (contractToSend.sent_at) {
+      return NextResponse.json(
+        { error: "This draft already has a sending record. Please review its history." },
+        { status: 409 }
+      );
+    }
+
+    const { data: documentProfile, error: documentError } = await admin.from("teacher_document_profiles")
+      .select("full_name").eq("teacher_id", teacherId).maybeSingle();
+    if (documentError) return NextResponse.json({ error: "Unable to verify the teacher's document full name." }, { status: 500 });
+    if (!documentProfile?.full_name?.trim() || contractToSend.teacher_full_name !== documentProfile.full_name.trim()) {
+      return NextResponse.json({ error: "The draft name does not match the teacher's document profile. Use profile full name, review the draft, then send again." }, { status: 409 });
+    }
+
+    const sentAt = new Date().toISOString();
+    const updatePayload = {
+      status: "pending_acceptance",
       sent_at: sentAt,
       sent_by: user.id,
       updated_at: sentAt,
     };
-
-    /*
-     * A draft becomes pending acceptance
-     * when first sent.
-     *
-     * Resending a pending agreement keeps
-     * it pending.
-     */
-    if (
-      existingContract.status ===
-      "draft"
-    ) {
-      updatePayload.status =
-        "pending_acceptance";
-    }
 
     const {
       data: updatedContractData,
@@ -1028,16 +1301,25 @@ export async function POST(
       )
       .eq(
         "id",
-        existingContract.id
+        contractToSend.id
       )
       .eq(
         "teacher_id",
         teacherId
       )
-      .select(
-        CONTRACT_SELECT
-      )
-      .single();
+      .eq("status", "draft")
+      .is("sent_at", null)
+      .eq("updated_at", contractToSend.updated_at)
+      .eq("agreement_content_hash", contractToSend.agreement_content_hash!)
+      .select(CONTRACT_SELECT)
+      .maybeSingle();
+
+    if (!updateError && !updatedContractData) {
+      return NextResponse.json(
+        { error: "The agreement changed during sending. Reload and try again." },
+        { status: 409 }
+      );
+    }
 
     if (
       updateError ||
