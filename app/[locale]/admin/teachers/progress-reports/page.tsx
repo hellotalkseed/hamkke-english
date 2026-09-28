@@ -1,5 +1,7 @@
 "use client";
 
+import PortalSignOut from "@/components/admin/PortalSignOut";
+
 import Link from "next/link";
 import ProgressReportDirectModal from "@/components/admin/teacher-portal/ProgressReportDirectModal";
 import { use, useEffect, useMemo, useState } from "react";
@@ -102,7 +104,7 @@ export default function ProgressReportsPage({ params }: Props) {
       <div><p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p><p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p></div>
       <nav className="mt-9 space-y-1.5">{nav(locale).map(({ label, href, icon: Icon }) => <Link key={label} href={href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition ${label === "Progress Reports" ? "bg-[#E2EBDD] font-medium text-[#49614D]" : "text-[#5F5C57] hover:bg-[#ECE8E2]"}`}><Icon size={16} strokeWidth={1.6}/>{label}</Link>)}</nav>
       <div className="mt-auto border-t border-[#DED7CF] pt-5"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E2EBDD] font-serif text-[#55705A]">{firstName.charAt(0).toUpperCase()}</div><div><p className="text-[13px] font-medium">{teacherName}</p><p className="text-[11px] text-[#8A857E]">Teacher</p></div></div></div>
-    </aside>
+    <PortalSignOut locale={locale} /></aside>
 
     <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9"><div className="mx-auto max-w-7xl">
       <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#6F8F72]">Teacher Portal</p>

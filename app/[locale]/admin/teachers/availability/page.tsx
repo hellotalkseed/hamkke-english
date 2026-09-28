@@ -1,5 +1,7 @@
 "use client";
 
+import PortalSignOut from "@/components/admin/PortalSignOut";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -1058,7 +1060,7 @@ export default function TeacherAvailabilityPage() {
               </div>
             </div>
           </div>
-        </aside>
+        <PortalSignOut locale={locale} /></aside>
 
         <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
           <div className="mx-auto max-w-7xl">

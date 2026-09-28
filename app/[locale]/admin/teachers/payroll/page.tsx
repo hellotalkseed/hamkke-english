@@ -1,5 +1,7 @@
 "use client";
 
+import PortalSignOut from "@/components/admin/PortalSignOut";
+
 import { categoryAmount, lessonRateLabel, type PayrollLine, type PayableStatus } from "@/lib/payroll/presentation";
 
 import Link from "next/link";
@@ -1834,7 +1836,7 @@ function TeacherPortalSidebar({ locale, teacher }: { locale: string; teacher: Te
           </div>
         </div>
       </div>
-    </aside>
+    <PortalSignOut locale={locale} /></aside>
   );
 }
 

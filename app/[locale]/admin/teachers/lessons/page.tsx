@@ -1,5 +1,7 @@
 "use client";
 
+import PortalSignOut from "@/components/admin/PortalSignOut";
+
 import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
 import {
@@ -755,7 +757,7 @@ export default function TeacherLessonsPage({
             <div className="min-w-0"><p className="truncate font-sans text-[13px] font-medium">{teacherName}</p><p className="text-[11px] text-[#8A857E]">Teacher</p></div>
           </div>
         </div>
-      </aside>
+      <PortalSignOut locale={locale} /></aside>
     );
   };
 

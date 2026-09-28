@@ -1,5 +1,7 @@
 "use client";
 
+import PortalSignOut from "@/components/admin/PortalSignOut";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -136,7 +138,7 @@ export default function OwnerAdminShell({
 
   return (
     <div className="min-h-screen bg-[#FAF8F5]">
-      <aside className="group/adminrail fixed inset-y-0 left-0 z-50 w-[64px] overflow-hidden border-r border-[#E4DDD4] bg-[#F4F1EC] shadow-[4px_0_18px_rgba(41,41,41,0)] transition-[width,box-shadow] duration-200 ease-out hover:w-[228px] hover:shadow-[4px_0_18px_rgba(41,41,41,0.08)]">
+      <aside className="group/adminrail fixed inset-y-0 left-0 z-50 w-[64px] overflow-hidden border-r border-[#E4DDD4] bg-[#F4F1EC] shadow-[4px_0_18px_rgba(41,41,41,0)] transition-[width,box-shadow] duration-200 ease-out hover:w-[228px] focus-within:w-[228px] hover:shadow-[4px_0_18px_rgba(41,41,41,0.08)]">
         <div className="flex h-full w-[228px] flex-col">
           <Link
             href={`/${locale}/admin`}
@@ -191,6 +193,7 @@ export default function OwnerAdminShell({
             })}
           </nav>
 
+          <div className="mx-2"><PortalSignOut locale={locale} owner /></div>
           <div className="mx-2 mb-4 flex h-10 items-center rounded-xl px-3 text-[#55705A]">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#DDE7D9] text-[11px] font-semibold">
               JA

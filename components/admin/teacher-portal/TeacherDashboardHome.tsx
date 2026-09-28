@@ -1,5 +1,7 @@
 "use client";
 
+import PortalSignOut from "@/components/admin/PortalSignOut";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CalendarDays, FileText, Home, LogOut, UserRound, Users, Wallet } from "lucide-react";
@@ -204,12 +206,12 @@ export default function TeacherDashboardHome({ locale, fullName, avatarUrl, sign
               {avatarUrl ? <img src={avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" /> : <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E2EBDD] font-serif text-[#55705A]">{firstName.charAt(0)}</div>}
               <div className="min-w-0"><p className="truncate font-sans text-[13px] font-medium">{fullName || "Teacher"}</p><p className="text-[11px] text-[#8A857E]">Teacher</p></div>
             </div>
-            <form action={signOutAction} className="mt-4"><button className="flex items-center gap-2 font-sans text-[13px] text-[#69655F] hover:text-[#55705A]"><LogOut size={15} />Log out</button></form>
+            
           </div>
-        </aside>
+        <PortalSignOut locale={locale} /></aside>
 
         <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
-          <div className="mb-7 flex items-center justify-between lg:hidden"><div className="font-sans text-[13px] font-semibold tracking-[0.14em] text-[#5F7F63]">HAMKKE │ 함께</div><form action={signOutAction}><button className="text-[13px] text-[#666]">Log out</button></form></div>
+          <div className="mb-7 flex items-center justify-between lg:hidden"><div className="font-sans text-[13px] font-semibold tracking-[0.14em] text-[#5F7F63]">HAMKKE │ 함께</div></div>
           <p className="font-sans text-[11px] font-medium uppercase tracking-[0.16em] text-[#6F8F72]">Teacher Portal</p>
           <h1 className="mt-3 font-serif text-[38px] font-normal tracking-[-0.03em] sm:text-[46px]">{`Greetings, Teacher ${firstName}.`}</h1>
           <p className="mt-2 font-serif text-[17px] text-[#74716B]">Here&apos;s what&apos;s happening with your classes today.</p>

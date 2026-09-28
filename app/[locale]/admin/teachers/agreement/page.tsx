@@ -1,3 +1,4 @@
+import PortalSignOut from "@/components/admin/PortalSignOut";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Home, Users, FileText, Wallet, UserRound, CalendarDays, ChevronDown } from "lucide-react";
@@ -178,7 +179,7 @@ if (!canAccessAgreement) {
               </div>
             </div>
           </div>
-        </aside>
+        <PortalSignOut locale={locale} /></aside>
 
         <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
           <div className="mx-auto max-w-[1100px]">
