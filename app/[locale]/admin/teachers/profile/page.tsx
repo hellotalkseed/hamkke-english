@@ -503,103 +503,41 @@ export default async function TeacherProfilePage({
                 </p>
               </div>
 
-              {publicProfileHref ? (
-                <Link
-                  href={publicProfileHref}
-                  target="_blank"
-                  className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-[#C8D4C3] px-4 py-2.5 font-sans text-[13px] font-medium text-[#526B55] transition-colors hover:bg-[#EEF2EA]"
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  className={`inline-flex items-center gap-2 font-sans text-[12px] font-medium ${
+                    publicProfile?.is_published
+                      ? "text-[#5F7F63]"
+                      : "text-[#8A857E]"
+                  }`}
                 >
-                  View Public Profile
-                  <ExternalLink
-                    size={14}
-                    strokeWidth={1.6}
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      publicProfile?.is_published
+                        ? "bg-[#6F8F72]"
+                        : "bg-[#B9B3AA]"
+                    }`}
                   />
-                </Link>
-              ) : null}
+                  {publicProfile?.is_published ? "Published" : "Not published"}
+                </span>
+
+                {publicProfileHref ? (
+                  <Link
+                    href={publicProfileHref}
+                    target="_blank"
+                    className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-[#C8D4C3] px-4 py-2.5 font-sans text-[13px] font-medium text-[#526B55] transition-colors hover:bg-[#EEF2EA]"
+                  >
+                    View Public Profile
+                    <ExternalLink size={14} strokeWidth={1.6} />
+                  </Link>
+                ) : null}
+              </div>
             </div>
-
-      {/* PROFILE STATUS */}
-
-      <section
-        className="
-          mx-auto
-          w-full
-          max-w-none
-          px-0
-          pb-8
-        "
-      >
-        <div
-          className="
-            flex
-            flex-wrap
-            items-center
-            justify-between
-            gap-4
-            rounded-[18px]
-            bg-[#EEF2EA]
-            px-6
-            py-5
-          "
-        >
-          <div>
-            <p
-              className="
-                font-sans
-                text-[11px]
-                font-semibold
-                uppercase
-                tracking-[0.14em]
-                text-[#718A73]
-              "
-            >
-              Profile Status
-            </p>
-
-            <p
-              className="
-                mt-2
-                font-serif
-                text-[18px]
-                text-[#3F4D42]
-              "
-            >
-              {publicProfile?.is_published
-                ? "Your teacher profile is currently published."
-                : "Your teacher profile is not currently published."}
-            </p>
-          </div>
-
-          <span
-            className={`
-              rounded-full
-              px-4
-              py-2
-              font-sans
-              text-[12px]
-              font-semibold
-              uppercase
-              tracking-[0.1em]
-              ${
-                publicProfile?.is_published
-                  ? "bg-[#DCE4D7] text-[#526B55]"
-                  : "bg-[#E8E4DD] text-[#77736C]"
-              }
-            `}
-          >
-            {publicProfile?.is_published
-              ? "Published"
-              : "Not Published"}
-          </span>
-        </div>
-      </section>
-
-      <DocumentNameForm initialName={documentProfile?.full_name ?? ""} saveAction={saveDocumentName} />
 
       {/* PUBLIC PROFILE CONTENT */}
 
       <section className="mx-auto w-full max-w-none pb-24">
-        <div className="border-t border-[#DCD8D2] py-10">
+        <div className="pt-8">
           {profile.status === "active" ? <PublicProfileEditor
             initialFullName={profile.full_name || ""}
             initialCardLabel={publicProfile?.card_label || ""}
@@ -610,6 +548,12 @@ export default async function TeacherProfilePage({
             initialQualifications={qualifications}
             hasAudio={hasAudio}
             updateAction={updatePublicProfile}
+            documentNameSection={
+              <DocumentNameForm
+                initialName={documentProfile?.full_name ?? ""}
+                saveAction={saveDocumentName}
+              />
+            }
           /> : <p className="text-sm text-[#777]">Public profile editing will be available once your teacher account is active.</p>}
         </div>
       </section>
