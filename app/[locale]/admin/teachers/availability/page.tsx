@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, FileText, Home, UserRound, Users, Wallet } from "lucide-react";
+import { CalendarDays, CalendarPlus, FileText, Home, UserRound, Users, Wallet } from "lucide-react";
 
 
 function teacherPortalNav(locale: string) {
@@ -195,6 +195,18 @@ export default function TeacherAvailabilityPage() {
 
   const [regularSlots, setRegularSlots] =
     useState<Set<string>>(new Set());
+
+  const [availabilityView, setAvailabilityView] =
+    useState<"regular" | "additional">("regular");
+
+  const [quickDays, setQuickDays] =
+    useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
+
+  const [quickStart, setQuickStart] =
+    useState("17:00");
+
+  const [quickEnd, setQuickEnd] =
+    useState("21:00");
 
   /*
    * ADDITIONAL / DATE-SPECIFIC AVAILABILITY
@@ -826,6 +838,118 @@ export default function TeacherAvailabilityPage() {
   }
 
   /*
+   * QUICK APPLY
+   *
+   * This is intentionally only a UI convenience layer. It writes into the
+   * same regularSlots Set used by individual 30-minute slot editing, so the
+   * existing conversion and API save logic remain the source of truth.
+   */
+
+  function toggleQuickDay(day: number) {
+    setQuickDays((current) => {
+      const next = new Set(current);
+
+      if (next.has(day)) {
+        next.delete(day);
+      } else {
+        next.add(day);
+      }
+
+      return next;
+    });
+
+    setMessage("");
+    setError("");
+  }
+
+  function setQuickDayPreset(days: number[]) {
+    setQuickDays(new Set(days));
+    setMessage("");
+    setError("");
+  }
+
+  function applyQuickAvailability() {
+    setMessage("");
+    setError("");
+
+    if (quickDays.size === 0) {
+      setError("Choose at least one day for Quick Apply.");
+      return;
+    }
+
+    const startIndex = timeSlots.findIndex(
+      (slot) => slot.key === quickStart
+    );
+
+    const endMinutes =
+      quickEnd === "24:00"
+        ? 24 * 60
+        : Number(quickEnd.slice(0, 2)) * 60 +
+          Number(quickEnd.slice(3, 5));
+
+    const startMinutes =
+      Number(quickStart.slice(0, 2)) * 60 +
+      Number(quickStart.slice(3, 5));
+
+    if (startIndex < 0 || endMinutes <= startMinutes) {
+      setError("Choose an end time that is later than the start time.");
+      return;
+    }
+
+    setRegularSlots((current) => {
+      const next = new Set(current);
+
+      for (const day of quickDays) {
+        for (const slot of timeSlots) {
+          const slotMinutes =
+            slot.hour * 60 + slot.minute;
+
+          if (
+            slotMinutes >= startMinutes &&
+            slotMinutes < endMinutes
+          ) {
+            next.add(
+              createSlotKey(day, slot.key)
+            );
+          }
+        }
+      }
+
+      return next;
+    });
+
+    const selectedLabels = DAYS
+      .filter((day) => quickDays.has(day.value))
+      .map((day) => day.label)
+      .join(", ");
+
+    setMessage(
+      `Added ${formatTime(
+        Number(quickStart.slice(0, 2)),
+        Number(quickStart.slice(3, 5))
+      )}–${
+        quickEnd === "24:00"
+          ? "12:00 AM"
+          : formatTime(
+              Number(quickEnd.slice(0, 2)),
+              Number(quickEnd.slice(3, 5))
+            )
+      } to ${selectedLabels}. Existing hours were kept. Save the schedule when you're ready.`
+    );
+  }
+
+  const quickEndOptions = [
+    ...timeSlots.slice(1).map((slot) => ({
+      key: slot.key,
+      label: slot.label,
+    })),
+    {
+      key: "24:00",
+      label: "12:00 AM",
+    },
+  ];
+
+  /*
    * PERIOD SLOT BUTTONS
    */
 
@@ -905,963 +1029,484 @@ export default function TeacherAvailabilityPage() {
             <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p>
             <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p>
           </Link>
+
           <nav className="mt-9 space-y-1.5">
             {teacherPortalNav(locale).map(({ label, href, icon: Icon }) => (
-              <Link key={label} href={href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition ${label === "Availability" ? "bg-[#E2EBDD] font-medium text-[#49614D]" : "text-[#5F5C57] hover:bg-[#ECE8E2]"}`}>
+              <Link
+                key={label}
+                href={href}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition ${
+                  label === "Availability"
+                    ? "bg-[#E2EBDD] font-medium text-[#49614D]"
+                    : "text-[#5F5C57] hover:bg-[#ECE8E2]"
+                }`}
+              >
                 <Icon size={16} strokeWidth={1.6} />
                 {label}
               </Link>
             ))}
           </nav>
+
           <div className="mt-auto border-t border-[#DED7CF] pt-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E2EBDD] font-serif text-[#55705A]">{firstName.charAt(0).toUpperCase()}</div>
-              <div><p className="text-[13px] font-medium">{teacherName || "Teacher"}</p><p className="text-[11px] text-[#8A857E]">Teacher</p></div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E2EBDD] font-serif text-[#55705A]">
+                {firstName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-[13px] font-medium">{teacherName || "Teacher"}</p>
+                <p className="text-[11px] text-[#8A857E]">Teacher</p>
+              </div>
             </div>
           </div>
         </aside>
+
         <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
           <div className="mx-auto max-w-7xl">
-            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#6F8F72]">Teacher Portal</p>
-            <h1 className="mt-2 font-serif text-[28px] tracking-[-0.025em] sm:text-[40px]">Availability</h1>
-            <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[#817B74]">Set your regular teaching availability and add one-time openings without changing your recurring schedule.</p>
-            <p className="mt-2 text-[11px] text-[#9A948C]">Philippine Time (PHT)</p>
-        {loading ? (
-          <div className="mt-12 text-center">
-            <p
-              className="
-                font-sans
-                text-[13px]
-                text-[#777]
-              "
-            >
-              Loading your availability...
+            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#6F8F72]">
+              Teacher Portal
             </p>
-          </div>
-        ) : (
-          <>
-            {/* REGULAR CLASS SCHEDULE */}
+            <h1 className="mt-2 font-serif text-[28px] tracking-[-0.025em] sm:text-[40px]">
+              Availability
+            </h1>
+            <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[#817B74]">
+              Set your regular teaching hours or add one-time openings.
+            </p>
+            <p className="mt-1 text-[11px] text-[#9A948C]">
+              Philippine Time (PHT)
+            </p>
 
-            <section
-              className="
-                mt-8
-                rounded-[24px]
-                border
-                border-[#E5DDD3]
-                bg-[#F1EDE6]
-                p-6
-
-                sm:mt-10
-                sm:p-8
-
-                lg:p-10
-              "
-            >
-              <div className="max-w-4xl">
-                <p
-                  className="
-                    font-sans
-                    text-[16px]
-                    font-semibold
-                    uppercase
-                    tracking-[0.14em]
-                    text-[#5F7F63]
-                  "
-                >
-                  Regular Class Schedule
-                </p>
-
-                <h2
-                  className="
-                    mt-3
-                    font-serif
-                    text-[28px]
-                    font-normal
-                    leading-tight
-                    tracking-[-0.025em]
-                    text-[#292929]
-
-                    sm:text-[32px]
-                  "
-                >
-                  When are you available?
-                </h2>
-
-                <p
-                  className="
-                    mt-4
-                    max-w-none
-                    font-sans
-                    text-[15px]
-                    leading-7
-                    text-[#777]
-
-                    sm:text-[16px]
-                  "
-                >
-                  Choose a day, then select the
-                  30-minute periods when you can
-                  teach. Your schedule repeats
-                  every week.
-                </p>
+            {loading ? (
+              <div className="mt-12 text-center text-[13px] text-[#777]">
+                Loading your availability...
               </div>
-
-              {/* DAYS */}
-
-              <div className="mt-9">
-                <p
-                  className="
-                    font-sans
-                    text-[13px]
-                    font-medium
-                    uppercase
-                    tracking-[0.12em]
-                    text-[#6F8F72]
-                  "
-                >
-                  Days
-                </p>
-
-                <div
-                  className="
-                    mt-4
-                    grid
-                    grid-cols-2
-                    gap-2.5
-
-                    sm:grid-cols-4
-
-                    lg:grid-cols-7
-                    lg:gap-3
-                  "
-                >
-                  {DAYS.map((day) => {
-                    const active =
-                      selectedDay ===
-                      day.value;
-
-                    const hasAvailability =
-                      getSelectedRegularSlots(
-                        day.value
-                      ).length > 0;
-
-                    return (
-                      <button
-                        key={day.value}
-                        type="button"
-                        onClick={() =>
-                          setSelectedDay(
-                            day.value
-                          )
-                        }
-                        className={`
-                          flex
-                          w-full
-                          items-center
-                          justify-center
-                          rounded-full
-                          border
-                          px-3
-                          py-3
-                          font-sans
-                          text-[14px]
-                          font-medium
-                          transition
-
-                          ${
-                            active
-                              ? "border-[#6F8F72] bg-[#F4F7F2] text-[#5F7F63]"
-                              : "border-[#D8CCBE] bg-white text-[#666] hover:border-[#6F8F72] hover:bg-[#F4F7F2]"
-                          }
-                        `}
-                      >
-                        {day.label}
-
-                        {hasAvailability && (
-                          <span
-                            className="
-                              ml-2
-                              inline-block
-                              h-1.5
-                              w-1.5
-                              shrink-0
-                              rounded-full
-                              bg-[#6F8F72]
-                            "
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {selectedDay !== null && (
-                <div
-                  className="
-                    mt-8
-                    rounded-3xl
-                    border
-                    border-[#E7DDD1]
-                    bg-white
-                    p-6
-
-                    sm:p-8
-                  "
-                >
-                  <div
-                    className="
-                      flex
-                      items-start
-                      justify-between
-                      gap-4
-                    "
-                  >
-                    <div>
-                      <p
-                        className="
-                          font-sans
-                          text-[12px]
-                          font-medium
-                          uppercase
-                          tracking-[0.12em]
-                          text-[#6F8F72]
-                        "
-                      >
-                        Selected Day
-                      </p>
-
-                      <h3
-                        className="
-                          mt-2
-                          font-serif
-                          text-[26px]
-                          font-normal
-                          tracking-[-0.02em]
-                        "
-                      >
-                        {
-                          DAYS.find(
-                            (day) =>
-                              day.value ===
-                              selectedDay
-                          )?.label
-                        }
-                      </h3>
-                    </div>
-
-                    <p
-                      className="
-                        font-sans
-                        text-[13px]
-                        text-[#999]
-                      "
-                    >
-                      {
-                        getSelectedRegularSlots(
-                          selectedDay
-                        ).length
-                      }{" "}
-                      slots
-                    </p>
-                  </div>
-
-                  <p
-                    className="
-                      mt-4
-                      font-sans
-                      text-[13px]
-                      leading-6
-                      text-[#777]
-                    "
-                  >
-                    Select every 30-minute period
-                    when you are available.
-                  </p>
-
-                  <div
-                    className="
-                      mt-8
-                      grid
-                      grid-cols-1
-                      gap-5
-
-                      md:grid-cols-3
-                      md:gap-5
-
-                      lg:gap-6
-                    "
-                  >
-                    {TIME_PERIODS.map(
-                      (period) => {
-                        const periodSlots =
-                          getSlotsForPeriod(
-                            timeSlots,
-                            period
-                          );
-
-                        return (
-                          <div
-                            key={period.label}
-                            className="
-                              min-w-0
-                              rounded-2xl
-                              border
-                              border-[#E7DDD1]
-                              bg-[#FCFBF9]
-                              p-4
-
-                              sm:p-5
-                            "
-                          >
-                            <div
-                              className="
-                                border-b
-                                border-[#E7DDD1]
-                                pb-3
-                                text-center
-                              "
-                            >
-                              <p
-                                className="
-                                  font-serif
-                                  text-[20px]
-                                  font-normal
-                                  text-[#292929]
-                                "
-                              >
-                                {period.label}
-                              </p>
-
-                              <p
-                                className="
-                                  mt-1
-                                  font-sans
-                                  text-[12px]
-                                  text-[#999]
-                                "
-                              >
-                                {formatTime(
-                                  period.startHour,
-                                  0
-                                )}{" "}
-                                –{" "}
-                                {formatTime(
-                                  period.endHour,
-                                  0
-                                )}
-                              </p>
-                            </div>
-
-                            {renderTimeSlots(
-                              periodSlots,
-                              (slot) =>
-                                regularSlots.has(
-                                  createSlotKey(
-                                    selectedDay,
-                                    slot.key
-                                  )
-                                ),
-                              (slot) =>
-                                toggleRegularSlot(
-                                  selectedDay,
-                                  slot.key
-                                ),
-                              "border-[#B8C9B5] bg-[#EAF1E7] font-medium text-[#5F7F63]",
-                              "border-[#E7DDD1] bg-white text-[#666] hover:border-[#B8C9B5] hover:bg-[#F4F7F2]"
-                            )}
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div
-                className="
-                  mt-8
-                  flex
-                  flex-col
-                  gap-3
-                  border-t
-                  border-[#DDD4C8]
-                  pt-6
-
-                  sm:flex-row
-                  sm:items-center
-                  sm:justify-between
-                "
-              >
-                <p
-                  className="
-                    max-w-md
-                    font-sans
-                    text-[12px]
-                    leading-5
-                    text-[#999]
-                  "
-                >
-                  30-minute intervals work for
-                  both 25-minute and 50-minute
-                  classes.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={
-                    saveRegularAvailability
-                  }
-                  disabled={savingRegular}
-                  className="
-                    inline-flex
-                    justify-center
-                    rounded-full
-                    bg-[#6F8F72]
-                    px-7
-                    py-3
-                    font-sans
-                    text-[13px]
-                    font-medium
-                    text-white
-                    transition
-                    hover:bg-[#5F7F63]
-                    disabled:cursor-not-allowed
-                    disabled:opacity-50
-                  "
-                >
-                  {savingRegular
-                    ? "Saving..."
-                    : "Save Schedule"}
-                </button>
-              </div>
-            </section>
-
-            {/* ADDITIONAL AVAILABILITY */}
-
-            <section
-              className="
-                mt-8
-                rounded-[24px]
-                border
-                border-[#E5DDD3]
-                bg-[#F3EFE8]
-                p-6
-
-                sm:mt-10
-                sm:p-8
-
-                lg:p-10
-              "
-            >
-              <div className="max-w-4xl">
-                <p
-                  className="
-                    font-sans
-                    text-[16px]
-                    font-semibold
-                    uppercase
-                    tracking-[0.14em]
-                    text-[#5F7F63]
-                  "
-                >
-                  Additional Availability
-                </p>
-
-                <h2
-                  className="
-                    mt-3
-                    font-serif
-                    text-[26px]
-                    font-normal
-                    tracking-[-0.02em]
-                    text-[#292929]
-                  "
-                >
-                  Did a specific date open up?
-                </h2>
-
-                <p
-                  className="
-                    mt-2.5
-                    max-w-2xl
-                    font-sans
-                    text-[13px]
-                    leading-6
-                    text-[#777]
-                  "
-                >
-                  Add one-time availability when
-                  you have an extra opening, such
-                  as when a regular student is on
-                  break or cancels with enough
-                  notice. Your regular schedule
-                  will not be changed.
-                </p>
-              </div>
-
-              {/* ADD DATE */}
-
-              <div className="mt-8">
-                <label
-                  htmlFor="sub-date"
-                  className="
-                    font-sans
-                    text-[11px]
-                    font-medium
-                    uppercase
-                    tracking-[0.12em]
-                    text-[#6F8F72]
-                  "
-                >
-                  Add a date
-                </label>
-
-                <div
-                  className="
-                    mt-3
-                    flex
-                    flex-col
-                    gap-2.5
-
-                    sm:flex-row
-                    sm:items-center
-                  "
-                >
-                  <input
-                    id="sub-date"
-                    type="date"
-                    min={getTodayString()}
-                    onChange={(event) => {
-                      if (
-                        event.target.value
-                      ) {
-                        updateSubDate(
-                          event.target.value
-                        );
-
-                        event.target.value = "";
-                      }
+            ) : (
+              <>
+                <div className="mx-auto mt-7 grid max-w-[820px] gap-4 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAvailabilityView("regular");
+                      setMessage("");
+                      setError("");
                     }}
-                    className="
-                      rounded-xl
-                      border
-                      border-[#D8CCBE]
-                      bg-white
-                      px-4
-                      py-3
-                      font-sans
-                      text-[13px]
-                      text-[#292929]
-                      outline-none
-                      focus:border-[#6F8F72]
-                      focus:ring-2
-                      focus:ring-[#E2EBDD]
-                    "
-                  />
+                    aria-pressed={availabilityView === "regular"}
+                    className={`flex min-h-[112px] flex-col items-center justify-center rounded-[20px] border px-6 py-5 text-center transition ${
+                      availabilityView === "regular"
+                        ? "border-[#8EAD91] bg-[#EEF4EB] text-[#55705A] shadow-[inset_0_0_0_1px_rgba(111,143,114,0.08)]"
+                        : "border-[#DED5CA] bg-white text-[#454545] hover:border-[#B8C9B5] hover:bg-[#FCFBF9]"
+                    }`}
+                  >
+                    <CalendarDays size={28} strokeWidth={1.6} />
+                    <span className="mt-3 text-[16px] font-semibold">
+                      Regular Availability
+                    </span>
+                  </button>
 
                   <button
                     type="button"
-                    onClick={addSubDate}
-                    className="
-                      inline-flex
-                      justify-center
-                      rounded-full
-                      border
-                      border-[#D8CCBE]
-                      px-5
-                      py-3
-                      font-sans
-                      text-[13px]
-                      font-medium
-                      text-[#5F7F63]
-                      transition
-                      hover:border-[#6F8F72]
-                      hover:bg-[#F4F7F2]
-                    "
+                    onClick={() => {
+                      setAvailabilityView("additional");
+                      setMessage("");
+                      setError("");
+                    }}
+                    aria-pressed={availabilityView === "additional"}
+                    className={`flex min-h-[112px] flex-col items-center justify-center rounded-[20px] border px-6 py-5 text-center transition ${
+                      availabilityView === "additional"
+                        ? "border-[#8EAD91] bg-[#EEF4EB] text-[#55705A] shadow-[inset_0_0_0_1px_rgba(111,143,114,0.08)]"
+                        : "border-[#DED5CA] bg-white text-[#454545] hover:border-[#B8C9B5] hover:bg-[#FCFBF9]"
+                    }`}
                   >
-                    + Add today
+                    <CalendarPlus size={28} strokeWidth={1.6} />
+                    <span className="mt-3 text-[16px] font-semibold">
+                      Additional Availability
+                    </span>
                   </button>
                 </div>
-              </div>
 
-              {/* DATE LIST */}
+                {availabilityView === "regular" ? (
+                  <section className="mt-7 rounded-[28px] border border-[#E5DDD3] bg-[#F3EFE8] p-5 sm:p-7 lg:p-8">
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]">
+                        Regular Class Schedule
+                      </p>
+                      <h2 className="mt-2 font-serif text-[27px] tracking-[-0.02em]">
+                        Weekly availability
+                      </h2>
+                      <p className="mt-1 text-[13px] leading-6 text-[#817B74]">
+                        Repeats every week. Use Quick Apply to update several days at once.
+                      </p>
+                    </div>
 
-              {subDates.length > 0 && (
-                <div className="mt-7 space-y-3">
-                  {subDates.map((date) => {
-                    const active =
-                      selectedSubDate === date;
-
-                    const selectedCount =
-                      getSelectedSubSlots(
-                        date
-                      ).length;
-
-                    return (
-                      <div
-                        key={date}
-                        className={`
-                          rounded-3xl
-                          border
-                          p-5
-                          transition
-
-                          ${
-                            active
-                              ? "border-[#B8C9B5] bg-[#F4F7F2]"
-                              : "border-[#E7DDD1] bg-white"
-                          }
-                        `}
-                      >
-                        <div
-                          className="
-                            flex
-                            flex-col
-                            gap-3
-
-                            sm:flex-row
-                            sm:items-center
-                            sm:justify-between
-                          "
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedSubDate(
-                                date
-                              )
-                            }
-                            className="text-left"
-                          >
-                            <p
-                              className="
-                                font-serif
-                                text-[20px]
-                                font-normal
-                                tracking-[-0.02em]
-                              "
-                            >
-                              {formatDate(date)}
-                            </p>
-
-                            <p
-                              className="
-                                mt-0.5
-                                font-sans
-                                text-[12px]
-                                text-[#999]
-                              "
-                            >
-                              {selectedCount}{" "}
-                              {selectedCount ===
-                              1
-                                ? "slot"
-                                : "slots"}{" "}
-                              selected
-                            </p>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeSubDate(
-                                date
-                              )
-                            }
-                            className="
-                              self-start
-                              font-sans
-                              text-[12px]
-                              text-[#999]
-                              transition
-                              hover:text-[#9A5D50]
-
-                              sm:self-auto
-                            "
-                          >
-                            Remove
-                          </button>
+                    <div className="mt-5 rounded-[20px] border border-[#E7DDD1] bg-white p-5 sm:p-6">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-[14px] font-semibold">Quick apply</h3>
+                          <p className="mt-1 text-[12px] text-[#8A857E]">
+                            Choose days and add one time range to all of them.
+                          </p>
                         </div>
 
-                        {active && (
-                          <div className="mt-7">
-                            <p
-                              className="
-                                font-sans
-                                text-[11px]
-                                font-medium
-                                uppercase
-                                tracking-[0.12em]
-                                text-[#6F8F72]
-                              "
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { label: "Weekdays", days: [1, 2, 3, 4, 5] },
+                            { label: "Weekend", days: [0, 6] },
+                            { label: "Every day", days: [0, 1, 2, 3, 4, 5, 6] },
+                          ].map((preset) => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => setQuickDayPreset(preset.days)}
+                              className="rounded-full border border-[#D8CCBE] px-3 py-2 text-[11px] font-medium text-[#5F7F63] transition hover:border-[#6F8F72] hover:bg-[#F4F7F2]"
                             >
-                              Available Hours
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                        {DAYS.map((day) => {
+                          const selected = quickDays.has(day.value);
+
+                          return (
+                            <button
+                              key={day.value}
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() => toggleQuickDay(day.value)}
+                              className={`rounded-xl border px-3 py-2.5 text-[12px] font-medium transition ${
+                                selected
+                                  ? "border-[#AFC2AC] bg-[#EAF1E7] text-[#55705A]"
+                                  : "border-[#E4DDD4] bg-[#FCFBF9] text-[#777] hover:border-[#B8C9B5]"
+                              }`}
+                            >
+                              {day.label.slice(0, 3)}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                        <label className="text-[12px] font-medium text-[#5F5C57]">
+                          From
+                          <select
+                            value={quickStart}
+                            onChange={(event) => setQuickStart(event.target.value)}
+                            className="mt-2 block w-full rounded-xl border border-[#D8CCBE] bg-white px-3 py-3 text-[14px] outline-none focus:border-[#6F8F72] focus:ring-2 focus:ring-[#E2EBDD]"
+                          >
+                            {timeSlots.map((slot) => (
+                              <option key={slot.key} value={slot.key}>
+                                {slot.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label className="text-[12px] font-medium text-[#5F5C57]">
+                          To
+                          <select
+                            value={quickEnd}
+                            onChange={(event) => setQuickEnd(event.target.value)}
+                            className="mt-2 block w-full rounded-xl border border-[#D8CCBE] bg-white px-3 py-3 text-[14px] outline-none focus:border-[#6F8F72] focus:ring-2 focus:ring-[#E2EBDD]"
+                          >
+                            {quickEndOptions.map((option) => (
+                              <option key={option.key} value={option.key}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={applyQuickAvailability}
+                          className="rounded-xl bg-[#6F8F72] px-5 py-3 text-[13px] font-medium text-white transition hover:bg-[#5F7F63]"
+                        >
+                          Apply to selected days
+                        </button>
+                      </div>
+
+                      <p className="mt-3 text-[11px] leading-5 text-[#999]">
+                        Quick Apply adds these hours. It does not remove availability you already selected.
+                      </p>
+                    </div>
+
+                    <div className="mt-6">
+                      <div className="flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                          <h3 className="text-[14px] font-semibold">Your weekly schedule</h3>
+                          <p className="mt-1 text-[12px] text-[#8A857E]">
+                            Select a day to edit its individual 30-minute slots.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                        {DAYS.map((day) => {
+                          const count = getSelectedRegularSlots(day.value).length;
+                          const active = selectedDay === day.value;
+
+                          return (
+                            <button
+                              key={day.value}
+                              type="button"
+                              onClick={() => setSelectedDay(day.value)}
+                              className={`rounded-xl border p-3 text-left transition ${
+                                active
+                                  ? "border-[#AFC2AC] bg-[#EAF1E7]"
+                                  : "border-[#E7DDD1] bg-white hover:border-[#B8C9B5]"
+                              }`}
+                            >
+                              <span className={`block text-[13px] font-medium ${active ? "text-[#55705A]" : "text-[#555]"}`}>
+                                {day.label}
+                              </span>
+                              <span className="mt-1 block text-[11px] text-[#999]">
+                                {count > 0 ? `${count} slots` : "Not set"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {selectedDay !== null && (
+                      <div className="mt-4 rounded-[20px] border border-[#E7DDD1] bg-white p-5 sm:p-6">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]">
+                              Editing day
                             </p>
+                            <h3 className="mt-1 font-serif text-[22px]">
+                              {DAYS.find((day) => day.value === selectedDay)?.label}
+                            </h3>
+                          </div>
+                          <span className="text-[11px] text-[#999]">
+                            {getSelectedRegularSlots(selectedDay).length} slots selected
+                          </span>
+                        </div>
 
-                            <div
-                              className="
-                                mt-6
-                                grid
-                                grid-cols-1
-                                gap-5
+                        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                          {TIME_PERIODS.map((period) => {
+                            const periodSlots = getSlotsForPeriod(timeSlots, period);
 
-                                md:grid-cols-3
-                                md:gap-5
+                            return (
+                              <div key={period.label} className="min-w-0">
+                                <div className="flex items-baseline justify-between gap-2 border-b border-[#EEE8E1] pb-2">
+                                  <p className="font-serif text-[17px]">{period.label}</p>
+                                  <p className="text-[10px] text-[#AAA]">
+                                    {formatTime(period.startHour, 0)} – {formatTime(period.endHour, 0)}
+                                  </p>
+                                </div>
 
-                                lg:gap-6
-                              "
-                            >
-                              {TIME_PERIODS.map(
-                                (period) => {
-                                  const periodSlots =
-                                    getSlotsForPeriod(
-                                      timeSlots,
-                                      period
-                                    );
+                                {renderTimeSlots(
+                                  periodSlots,
+                                  (slot) =>
+                                    regularSlots.has(
+                                      createSlotKey(selectedDay, slot.key)
+                                    ),
+                                  (slot) =>
+                                    toggleRegularSlot(selectedDay, slot.key),
+                                  "border-[#B8C9B5] bg-[#EAF1E7] font-medium text-[#5F7F63]",
+                                  "border-[#E7DDD1] bg-white text-[#666] hover:border-[#B8C9B5] hover:bg-[#F4F7F2]"
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
-                                  return (
-                                    <div
-                                      key={
-                                        period.label
-                                      }
-                                      className="
-                                        min-w-0
-                                        rounded-2xl
-                                        border
-                                        border-[#E7DDD1]
-                                        bg-white
-                                        p-4
+                    <div className="mt-5 flex flex-col gap-3 border-t border-[#E7DDD1] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="max-w-md text-[11px] leading-5 text-[#999]">
+                        30-minute intervals work for both 25-minute and 50-minute classes.
+                      </p>
 
-                                        sm:p-5
-                                      "
-                                    >
-                                      <div
-                                        className="
-                                          border-b
-                                          border-[#E7DDD1]
-                                          pb-3
-                                          text-center
-                                        "
-                                      >
-                                        <p
-                                          className="
-                                            font-serif
-                                            text-[20px]
-                                            font-normal
-                                            text-[#292929]
-                                          "
-                                        >
-                                          {
-                                            period.label
-                                          }
-                                        </p>
+                      <button
+                        type="button"
+                        onClick={saveRegularAvailability}
+                        disabled={savingRegular}
+                        className="rounded-full bg-[#6F8F72] px-6 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#5F7F63] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {savingRegular ? "Saving..." : "Save Schedule"}
+                      </button>
+                    </div>
+                  </section>
+                ) : (
+                  <section className="mt-7 rounded-[28px] border border-[#E5DDD3] bg-[#F3EFE8] p-5 sm:p-7 lg:p-8">
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]">
+                        One-time openings
+                      </p>
+                      <h2 className="mt-2 font-serif text-[27px] tracking-[-0.02em]">
+                        Additional availability
+                      </h2>
+                      <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[#817B74]">
+                        Add availability for a specific date without changing your regular weekly schedule.
+                      </p>
+                    </div>
 
-                                        <p
-                                          className="
-                                            mt-1
-                                            font-sans
-                                            text-[11px]
-                                            text-[#999]
-                                          "
-                                        >
-                                          {formatTime(
-                                            period.startHour,
-                                            0
-                                          )}{" "}
-                                          –{" "}
-                                          {formatTime(
-                                            period.endHour,
-                                            0
-                                          )}
-                                        </p>
-                                      </div>
+                    <div className="mt-5 rounded-[20px] border border-[#E7DDD1] bg-white p-5 sm:p-6">
+                      <label
+                        htmlFor="sub-date"
+                        className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]"
+                      >
+                        Add a date
+                      </label>
 
-                                      {renderTimeSlots(
-                                        periodSlots,
-                                        (slot) =>
-                                          subSlots.has(
-                                            createDateSlotKey(
-                                              date,
-                                              slot.key
-                                            )
-                                          ),
-                                        (slot) =>
-                                          toggleSubSlot(
-                                            date,
-                                            slot.key
-                                          ),
-                                        "border-[#D6B88C] bg-[#FBF4E8] font-medium text-[#8A6A3F]",
-                                        "border-[#E7DDD1] bg-white text-[#666] hover:border-[#D6B88C] hover:bg-[#FBF4E8]"
-                                      )}
+                      <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center">
+                        <input
+                          id="sub-date"
+                          type="date"
+                          min={getTodayString()}
+                          onChange={(event) => {
+                            if (event.target.value) {
+                              updateSubDate(event.target.value);
+                              event.target.value = "";
+                            }
+                          }}
+                          className="rounded-xl border border-[#D8CCBE] bg-white px-4 py-3 text-[13px] outline-none focus:border-[#6F8F72] focus:ring-2 focus:ring-[#E2EBDD]"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={addSubDate}
+                          className="rounded-full border border-[#D8CCBE] px-5 py-3 text-[13px] font-medium text-[#5F7F63] transition hover:border-[#6F8F72] hover:bg-[#F4F7F2]"
+                        >
+                          + Add today
+                        </button>
+                      </div>
+                    </div>
+
+                    {subDates.length > 0 ? (
+                      <>
+                        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {subDates.map((date) => {
+                            const active = selectedSubDate === date;
+                            const count = getSelectedSubSlots(date).length;
+
+                            return (
+                              <div
+                                key={date}
+                                className={`flex items-center gap-2 rounded-xl border p-2 ${
+                                  active
+                                    ? "border-[#AFC2AC] bg-[#EAF1E7]"
+                                    : "border-[#E7DDD1] bg-white"
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedSubDate(date)}
+                                  className="min-w-0 flex-1 px-2 py-1.5 text-left"
+                                >
+                                  <span className="block truncate text-[12px] font-medium">
+                                    {formatDate(date)}
+                                  </span>
+                                  <span className="mt-0.5 block text-[10px] text-[#999]">
+                                    {count} slots
+                                  </span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => removeSubDate(date)}
+                                  className="rounded-full px-2 py-1 text-[11px] text-[#A06A60] hover:bg-[#FBF1EE]"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {selectedSubDate && (
+                          <div className="mt-4 rounded-[20px] border border-[#E7DDD1] bg-white p-5 sm:p-6">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]">
+                                  Editing date
+                                </p>
+                                <h3 className="mt-1 font-serif text-[21px]">
+                                  {formatDate(selectedSubDate)}
+                                </h3>
+                              </div>
+                              <span className="text-[11px] text-[#999]">
+                                {getSelectedSubSlots(selectedSubDate).length} slots selected
+                              </span>
+                            </div>
+
+                            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                              {TIME_PERIODS.map((period) => {
+                                const periodSlots = getSlotsForPeriod(timeSlots, period);
+
+                                return (
+                                  <div key={period.label} className="min-w-0">
+                                    <div className="flex items-baseline justify-between gap-2 border-b border-[#EEE8E1] pb-2">
+                                      <p className="font-serif text-[17px]">{period.label}</p>
+                                      <p className="text-[10px] text-[#AAA]">
+                                        {formatTime(period.startHour, 0)} – {formatTime(period.endHour, 0)}
+                                      </p>
                                     </div>
-                                  );
-                                }
-                              )}
+
+                                    {renderTimeSlots(
+                                      periodSlots,
+                                      (slot) =>
+                                        subSlots.has(
+                                          createDateSlotKey(
+                                            selectedSubDate,
+                                            slot.key
+                                          )
+                                        ),
+                                      (slot) =>
+                                        toggleSubSlot(
+                                          selectedSubDate,
+                                          slot.key
+                                        ),
+                                      "border-[#B8C9B5] bg-[#EAF1E7] font-medium text-[#5F7F63]",
+                                      "border-[#E7DDD1] bg-white text-[#666] hover:border-[#B8C9B5] hover:bg-[#F4F7F2]"
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
+
+                        <div className="mt-5 flex justify-end border-t border-[#E7DDD1] pt-5">
+                          <button
+                            type="button"
+                            onClick={saveSubAvailability}
+                            disabled={savingSub}
+                            className="rounded-full bg-[#6F8F72] px-6 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#5F7F63] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {savingSub
+                              ? "Saving..."
+                              : "Save Additional Availability"}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mt-5 rounded-[20px] border border-dashed border-[#D8CCBE] px-5 py-8 text-center">
+                        <p className="text-[13px] text-[#777]">
+                          No additional availability added yet.
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    )}
+                  </section>
+                )}
 
-              {subDates.length === 0 && (
-                <div
-                  className="
-                    mt-7
-                    rounded-3xl
-                    border
-                    border-dashed
-                    border-[#D8CCBE]
-                    bg-white
-                    px-5
-                    py-9
-                    text-center
-                  "
-                >
-                  <p
-                    className="
-                      font-serif
-                      text-[20px]
-                      text-[#666]
-                    "
-                  >
-                    No additional dates yet.
-                  </p>
+                {message && (
+                  <div className="mt-5 rounded-xl border border-[#D8E2D4] bg-[#F4F7F2] px-4 py-3 text-[12px] text-[#5F7F63]">
+                    {message}
+                  </div>
+                )}
 
-                  <p
-                    className="
-                      mt-1.5
-                      font-sans
-                      text-[12px]
-                      leading-5
-                      text-[#999]
-                    "
-                  >
-                    Add a specific date when a
-                    temporary opening becomes
-                    available.
-                  </p>
-                </div>
-              )}
-
-              {/* SAVE */}
-
-              <div
-                className="
-                  mt-7
-                  flex
-                  flex-col
-                  gap-3
-                  border-t
-                  border-[#DDD4C8]
-                  pt-6
-
-                  sm:flex-row
-                  sm:items-center
-                  sm:justify-between
-                "
-              >
-                <p
-                  className="
-                    max-w-md
-                    font-sans
-                    text-[12px]
-                    leading-5
-                    text-[#999]
-                  "
-                >
-                  These openings apply only to
-                  the selected dates. Your
-                  regular weekly schedule stays
-                  unchanged.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={
-                    saveSubAvailability
-                  }
-                  disabled={savingSub}
-                  className="
-                    inline-flex
-                    justify-center
-                    rounded-full
-                    bg-[#6F8F72]
-                    px-7
-                    py-3
-                    font-sans
-                    text-[13px]
-                    font-medium
-                    text-white
-                    transition
-                    hover:bg-[#5F7F63]
-                    disabled:cursor-not-allowed
-                    disabled:opacity-50
-                  "
-                >
-                  {savingSub
-                    ? "Saving..."
-                    : "Save Additional Availability"}
-                </button>
-              </div>
-            </section>
-          </>
-        )}
-
-        {/* MESSAGE */}
-
-        {message && (
-          <div
-            className="
-              mt-7
-              rounded-2xl
-              border
-              border-[#D8E2D4]
-              bg-[#F4F7F2]
-              px-5
-              py-4
-            "
-          >
-            <p
-              className="
-                font-sans
-                text-[13px]
-                text-[#5F7F63]
-              "
-            >
-              {message}
-            </p>
-          </div>
-        )}
-
-        {/* ERROR */}
-
-        {error && (
-          <div
-            className="
-              mt-7
-              rounded-2xl
-              border
-              border-[#E5C8C0]
-              bg-[#FBF1EE]
-              px-5
-              py-4
-            "
-          >
-            <p
-              className="
-                font-sans
-                text-[13px]
-                text-[#9A5D50]
-              "
-            >
-              {error}
-            </p>
-          </div>
-        )}
+                {error && (
+                  <div className="mt-5 rounded-xl border border-[#E5C8C0] bg-[#FBF1EE] px-4 py-3 text-[12px] text-[#9A5D50]">
+                    {error}
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="h-16" />
           </div>
