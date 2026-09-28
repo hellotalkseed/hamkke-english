@@ -1025,10 +1025,10 @@ export default function TeacherAvailabilityPage() {
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
       <div className="mx-auto flex min-h-screen max-w-[1500px]">
         <aside className="hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start lg:flex-col lg:overflow-y-auto">
-          <Link href={`/${locale}/admin/teachers`}>
+          <div>
             <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p>
             <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p>
-          </Link>
+          </div>
 
           <nav className="mt-9 space-y-1.5">
             {teacherPortalNav(locale).map(({ label, href, icon: Icon }) => (

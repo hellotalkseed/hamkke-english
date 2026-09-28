@@ -188,10 +188,10 @@ export default function TeacherDashboardHome({ locale, fullName, avatarUrl, sign
     <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
       <div className="mx-auto flex min-h-screen max-w-[1500px]">
         <aside className="hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:flex lg:flex-col">
-          <Link href={`/${locale}`} className="block">
+          <div className="block">
             <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p>
             <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p>
-          </Link>
+          </div>
           <nav className="mt-9 space-y-1.5">
             {nav(locale).map(({ label, href, icon: Icon }) => (
               <Link key={label} href={href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 font-sans text-[14px] transition ${label === "Home" ? "bg-[#E2EBDD] font-medium text-[#49614D]" : "text-[#5F5C57] hover:bg-[#ECE8E2]"}`}>
@@ -209,7 +209,7 @@ export default function TeacherDashboardHome({ locale, fullName, avatarUrl, sign
         </aside>
 
         <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
-          <div className="mb-7 flex items-center justify-between lg:hidden"><Link href={`/${locale}`} className="font-sans text-[13px] font-semibold tracking-[0.14em] text-[#5F7F63]">HAMKKE │ 함께</Link><form action={signOutAction}><button className="text-[13px] text-[#666]">Log out</button></form></div>
+          <div className="mb-7 flex items-center justify-between lg:hidden"><div className="font-sans text-[13px] font-semibold tracking-[0.14em] text-[#5F7F63]">HAMKKE │ 함께</div><form action={signOutAction}><button className="text-[13px] text-[#666]">Log out</button></form></div>
           <p className="font-sans text-[11px] font-medium uppercase tracking-[0.16em] text-[#6F8F72]">Teacher Portal</p>
           <h1 className="mt-3 font-serif text-[38px] font-normal tracking-[-0.03em] sm:text-[46px]">{`Greetings, Teacher ${firstName}.`}</h1>
           <p className="mt-2 font-serif text-[17px] text-[#74716B]">Here&apos;s what&apos;s happening with your classes today.</p>

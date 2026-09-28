@@ -906,7 +906,7 @@ export default function TeacherPayrollPage() {
           <TeacherPortalSidebar locale={locale} teacher={teacher} />
           <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
             <div className="mb-7 lg:hidden">
-              <Link href={`/${locale}`} className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</Link>
+              <div className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</div>
             </div>
           <div className="border-y border-[#DCD8D2] py-20 text-center">
             <p className="font-serif text-[17px] text-[#74716B]">
@@ -930,7 +930,7 @@ export default function TeacherPayrollPage() {
           <TeacherPortalSidebar locale={locale} teacher={teacher} />
           <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
             <div className="mb-7 lg:hidden">
-              <Link href={`/${locale}`} className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</Link>
+              <div className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</div>
             </div>
           <div className="border-y border-[#DCD8D2] py-20 text-center">
             <h1 className="font-serif text-[30px] font-normal">
@@ -989,7 +989,7 @@ export default function TeacherPayrollPage() {
 
         <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
           <div className="mb-7 flex items-center justify-between lg:hidden">
-            <Link href={`/${locale}`} className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</Link>
+            <div className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</div>
             <Link href={`/${locale}/admin/teachers`} className="font-sans text-[12px] text-[#6F8F72]">Dashboard</Link>
           </div>
 
@@ -1798,10 +1798,10 @@ function TeacherPortalSidebar({ locale, teacher }: { locale: string; teacher: Te
 
   return (
     <aside className="hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:flex lg:flex-col">
-      <Link href={`/${locale}`} className="block">
+      <div className="block">
         <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p>
         <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p>
-      </Link>
+      </div>
 
       <nav className="mt-9 space-y-1.5">
         {teacherPortalNav(locale).map(({ label, href, icon: Icon }) => {
