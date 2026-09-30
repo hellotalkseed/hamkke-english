@@ -9,7 +9,7 @@ import AssessmentsTable, {
 
 interface AssessmentsPageProps {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; followUp?: string }>;
 }
 
 type AssessmentStatus = "confirmed" | "completed" | "cancelled" | "no_show";
@@ -28,6 +28,8 @@ interface AssessmentRow {
   preferred_name: string | null;
   learner_age: number | null;
   contact_name: string;
+  contact_method: string | null;
+  contact_id: string | null;
   email: string;
   english_level: string;
   learning_goal: string;
@@ -107,6 +109,8 @@ export default async function AssessmentsPage({
       preferred_name,
       learner_age,
       contact_name,
+      contact_method,
+      contact_id,
       email,
       english_level,
       learning_goal,
@@ -159,9 +163,11 @@ export default async function AssessmentsPage({
     ])
   );
 
-  const filteredRows = statusFilter
-    ? assessmentRows.filter((assessment) => assessment.status === statusFilter)
-    : assessmentRows;
+  const needsFollowUp = (assessment: AssessmentRow) => assessment.status === "completed" && !assessment.converted_student_id && assessment.follow_up_status !== "not_proceeding";
+  const followUpFilter = filters.followUp === "pending";
+  const filteredRows = assessmentRows.filter((assessment) =>
+    (!statusFilter || assessment.status === statusFilter) && (!followUpFilter || needsFollowUp(assessment))
+  );
 
   const tableRows: AssessmentTableRow[] = filteredRows.map((assessment) => ({
     ...assessment,
@@ -245,8 +251,12 @@ export default async function AssessmentsPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-[#DCD8D2] py-6">
+          <Link href={`/${locale}/admin/assessments?followUp=pending`}
+            className={`rounded-full px-4 py-2 font-sans text-[11px] font-medium ${followUpFilter ? "bg-[#6F8F72] text-white" : "bg-[#EEEAE3] text-[#6F6B65]"}`}>
+            Needs follow-up · {assessmentRows.filter(needsFollowUp).length}
+          </Link>
           {statusOptions.map((option) => {
-            const active = statusFilter === option.value;
+            const active = !followUpFilter && statusFilter === option.value;
             return (
               <Link
                 key={option.value || "all"}
@@ -267,8 +277,11 @@ export default async function AssessmentsPage({
           })}
         </div>
 
+        <p className="py-5 text-sm leading-6 text-[#74716B]">
+          Review the teacher’s observations, contact the learner, then mark Interested to create their student record. Add their enrollment from the student profile.
+        </p>
         {tableRows.length > 0 ? (
-          <AssessmentsTable locale={locale} assessments={tableRows} />
+          <AssessmentsTable key={`${statusFilter}:${followUpFilter}`} locale={locale} assessments={tableRows} />
         ) : (
           <div className="border-b border-[#DCD8D2] py-20 text-center">
             <CalendarCheck2

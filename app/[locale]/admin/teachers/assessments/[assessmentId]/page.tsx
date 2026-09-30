@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AssessmentMeetingDetails from "@/components/admin/AssessmentMeetingDetails";
 import { use, useEffect, useState } from "react";
 import {
   CalendarDays,
@@ -398,7 +399,7 @@ export default function TeacherAssessmentPage({
 
       setObservationMessage(
         status === "completed"
-          ? "Assessment marked as completed."
+          ? "Assessment completed. It is now ready for owner follow-up."
           : "Assessment marked as no-show."
       );
     } catch (err) {
@@ -416,10 +417,10 @@ export default function TeacherAssessmentPage({
     <header className="w-full px-6 pt-7 sm:px-8 sm:pt-8 lg:px-10 xl:px-12">
       <div className="flex w-full items-start justify-between gap-8">
         <Link
-          href={`/${locale}/admin/teachers/lessons`}
+          href={data?.viewer.role === "owner" || data?.viewer.role === "admin" ? `/${locale}/admin/assessments` : `/${locale}/admin/teachers/lessons`}
           className="shrink-0 font-sans text-[15px] text-[#5F655F] transition-colors duration-200 hover:text-[#6F8F72] sm:text-[16px]"
         >
-          &larr; My Lessons
+          &larr; {data?.viewer.role === "owner" || data?.viewer.role === "admin" ? "Assessments" : "My Lessons"}
         </Link>
 
         <div className="shrink-0 text-right">
@@ -613,6 +614,8 @@ export default function TeacherAssessmentPage({
           </section>
         </div>
 
+        <AssessmentMeetingDetails assessmentId={assessmentId} status={assessment.status} />
+
         <section className="mt-6 rounded-[26px] border border-[#e7e1da] bg-white p-6 shadow-[0_8px_30px_rgba(70,65,58,0.04)] sm:p-7">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef3ee] text-[#6f8f72]">
@@ -717,6 +720,7 @@ export default function TeacherAssessmentPage({
               setObservationMessage(null);
             }}
             placeholder="Communication, strengths, difficulties, confidence, vocabulary, grammar, pronunciation, and recommended focus."
+            disabled={Boolean(assessment.converted_student_id) || assessment.status === "cancelled"}
             rows={7}
             maxLength={5000}
             className="mt-5 w-full resize-y rounded-2xl border border-[#e7e1da] bg-[#fbfaf8] px-5 py-4 text-sm leading-6 text-[#3c484b] outline-none transition placeholder:text-[#aaa9a5] focus:border-[#9eb19f] focus:bg-white focus:ring-2 focus:ring-[#eef3ee]"
@@ -730,7 +734,7 @@ export default function TeacherAssessmentPage({
             <button
               type="button"
               onClick={saveObservation}
-              disabled={savingObservation}
+              disabled={savingObservation || updatingStatus || Boolean(assessment.converted_student_id) || assessment.status === "cancelled"}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[#6f8f72] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#628267] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Check size={16} />
@@ -773,7 +777,7 @@ export default function TeacherAssessmentPage({
             </span>
           </div>
 
-          {assessment.status !==
+          {!assessment.converted_student_id && assessment.status !==
             "cancelled" && (
             <div className="mt-6 flex flex-col gap-3 border-t border-[#eee9e3] pt-5 sm:flex-row">
               <button
@@ -781,7 +785,7 @@ export default function TeacherAssessmentPage({
                 onClick={() =>
                   updateStatus("completed")
                 }
-                disabled={updatingStatus}
+                disabled={updatingStatus || savingObservation}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[#6f8f72] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#628267] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Check size={16} />
@@ -793,7 +797,7 @@ export default function TeacherAssessmentPage({
                 onClick={() =>
                   updateStatus("no_show")
                 }
-                disabled={updatingStatus}
+                disabled={updatingStatus || savingObservation}
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d8b8b2] bg-[#fffaf8] px-6 py-3 text-sm font-medium text-[#8a5c56] transition hover:bg-[#f8eeeb] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <X size={16} />
@@ -803,7 +807,7 @@ export default function TeacherAssessmentPage({
           )}
 
           <p className="mt-5 text-xs leading-5 text-[#8b918d]">
-            Saving a status also saves the current Teacher Observation.
+            Outcomes can be recorded after the 30-minute assessment ends. Add observations before marking Completed; this sends the record to owner follow-up. Converted and cancelled assessments are read-only.
           </p>
         </section>
 

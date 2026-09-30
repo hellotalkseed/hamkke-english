@@ -61,7 +61,7 @@ export async function PATCH(
       );
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
 
     const followUpStatus = body?.followUpStatus as
       | FollowUpStatus
@@ -120,6 +120,7 @@ export async function PATCH(
       })
       .eq("id", assessmentId)
       .is("converted_student_id", null)
+      .eq("status", "completed")
       .select("id, follow_up_status")
       .single();
 

@@ -78,6 +78,7 @@ async function loadAssessment(
       assessment_time,
       status,
       teacher_observation,
+      follow_up_status,
       converted_student_id,
       converted_at,
       created_at,
@@ -230,10 +231,17 @@ export async function PATCH(
       );
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+    if (currentAssessment.converted_student_id || currentAssessment.status === "cancelled") {
+      return NextResponse.json({ error: "This assessment is read-only because it has been converted or cancelled." }, { status: 409 });
+    }
     const update: {
       status?: "completed" | "no_show";
       teacher_observation?: string | null;
+      follow_up_status?: string | null;
     } = {};
 
     if (body.status !== undefined) {
@@ -308,11 +316,30 @@ export async function PATCH(
       );
     }
 
+    if (update.status) {
+      // Stored booking times are Philippine time, independently of learner timezone.
+      const endsAt = Date.parse(`${currentAssessment.assessment_date}T${currentAssessment.assessment_time.slice(0, 8)}+08:00`) + 30 * 60 * 1000;
+      if (!Number.isFinite(endsAt) || Date.now() < endsAt) {
+        return NextResponse.json({ error: "Record the outcome after the assessment has ended." }, { status: 409 });
+      }
+      const observation = update.teacher_observation === undefined
+        ? currentAssessment.teacher_observation : update.teacher_observation;
+      if (update.status === "completed" && !observation?.trim()) {
+        return NextResponse.json({ error: "Add your observations and recommended starting point before completing the assessment." }, { status: 400 });
+      }
+      if (update.status !== currentAssessment.status) {
+        update.follow_up_status = update.status === "completed" ? "awaiting_follow_up" : null;
+      }
+    }
+
     const { data: assessment, error } =
       await admin
         .from("assessment_bookings")
         .update(update)
         .eq("id", assessmentId)
+        .eq("status", currentAssessment.status)
+        .eq("updated_at", currentAssessment.updated_at)
+        .is("converted_student_id", null)
         .eq(
           "teacher_id",
           currentAssessment.teacher_id
@@ -336,15 +363,19 @@ export async function PATCH(
           assessment_time,
           status,
           teacher_observation,
+      follow_up_status,
           converted_student_id,
           converted_at,
           updated_at
         `)
-        .single();
+        .maybeSingle();
 
-    if (error) {
+    if (!error && !assessment) {
+      return NextResponse.json({ error: "This assessment changed. Reload it before saving again." }, { status: 409 });
+    }
+    if (error || !assessment) {
       return NextResponse.json(
-        { error: error.message },
+        { error: "Unable to save the assessment." },
         { status: 500 }
       );
     }

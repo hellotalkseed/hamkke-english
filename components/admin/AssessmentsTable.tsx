@@ -27,6 +27,8 @@ export interface AssessmentTableRow {
   preferred_name: string | null;
   learner_age: number | null;
   contact_name: string;
+  contact_method: string | null;
+  contact_id: string | null;
   email: string;
   english_level: string;
   learning_goal: string;
@@ -411,8 +413,14 @@ export default function AssessmentsTable({
                       </div>
                       <p className="flex items-start gap-2 font-sans text-[11px] leading-5 text-[#666862]">
                         <Mail size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-[#6F8F72]" />
-                        {assessment.email}
+                        <a href={`mailto:${assessment.email}`} className="underline underline-offset-4">{assessment.email}</a>
                       </p>
+                      {assessment.contact_method && (
+                        <p className="break-words font-sans text-[11px] leading-5 text-[#666862]">
+                          Preferred contact · {formatValue(assessment.contact_method)}
+                          {assessment.contact_id ? ` · ${assessment.contact_id}` : ""}
+                        </p>
+                      )}
                       <p className="flex items-start gap-2 font-sans text-[11px] leading-5 text-[#666862]">
                         <UserRound size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-[#6F8F72]" />
                         {assessment.learner_type === "child"
@@ -496,7 +504,7 @@ export default function AssessmentsTable({
                       <div className="mt-3">
                         <select
                           value={effectiveFollowUp || "awaiting_follow_up"}
-                          disabled={savingId === assessment.id}
+                          disabled={savingId !== null}
                           onClick={(event) => event.stopPropagation()}
                           onChange={(event) =>
                             updateFollowUp(
@@ -533,6 +541,12 @@ export default function AssessmentsTable({
                   </section>
 
                   <div className="flex flex-wrap items-center justify-end gap-3">
+                    <Link
+                      href={`/${locale}/admin/teachers/assessments/${assessment.id}`}
+                      className="inline-flex rounded-full border border-[#D8D4CD] px-4 py-2 font-sans text-[11px] font-medium text-[#607963] hover:bg-[#E5EBDD]"
+                    >
+                      View assessment
+                    </Link>
                     <p className="font-sans text-[10px] text-[#97938C]">
                       Assigned teacher · {assessment.teacher_name}
                     </p>

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
+import StudentCreateForm, { CreateStudentButton } from "./StudentCreateForm";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -19,131 +21,46 @@ interface AssessmentPrefillRow {
   email: string;
   timezone: string;
   status: string;
+  follow_up_status: string | null;
   converted_student_id: string | null;
 }
 
-async function createStudent(formData: FormData) {
+async function createStudent(_previous: { error: string }, formData: FormData): Promise<{ error: string }> {
   "use server";
-
-  const supabase = await createClient();
-
-  const locale = String(
-    formData.get("locale") ?? "en"
-  );
-
-  const assessmentId = String(
-    formData.get("assessment_id") ?? ""
-  ).trim();
-
-  const fullName = String(
-    formData.get("full_name") ?? ""
-  ).trim();
-
-  const preferredName = String(
-    formData.get("preferred_name") ?? ""
-  ).trim();
-
-  const email = String(
-    formData.get("email") ?? ""
-  ).trim();
-
-  const country = String(
-    formData.get("country") ?? ""
-  ).trim();
-
-  const timezone = String(
-    formData.get("timezone") ?? ""
-  ).trim();
-
-  const contactMethod = String(
-    formData.get("contact_method") ?? ""
-  ).trim();
-
-  const preferredLanguage = String(
-    formData.get("preferred_language") ?? ""
-  ).trim();
-
-  if (!fullName) {
-    throw new Error("Full name is required.");
+  const rawLocale = String(formData.get("locale") || "en");
+  const locale = ["en", "ko", "ja", "zh"].includes(rawLocale) ? rawLocale : "en";
+  const requestId = String(formData.get("request_id") || "");
+  const assessmentId = String(formData.get("assessment_id") || "").trim();
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuid.test(requestId) || (assessmentId && !uuid.test(assessmentId))) {
+    return { error: "This form could not be verified. Reload the page before creating the student." };
   }
-
-  if (assessmentId) {
-    const {
-      data: assessment,
-      error: assessmentError,
-    } = await supabase
-      .from("assessment_bookings")
-      .select("id, converted_student_id")
-      .eq("id", assessmentId)
-      .single();
-
-    if (assessmentError || !assessment) {
-      console.error(
-        "Unable to verify assessment conversion:",
-        assessmentError
-      );
-      throw new Error(
-        "Unable to verify the assessment booking."
-      );
+  const value = (name: string) => String(formData.get(name) || "").trim();
+  if (!value("full_name")) return { error: "Full name is required." };
+  let studentId: string;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("create_student_once", {
+      p_request_id: requestId,
+      p_assessment_id: assessmentId || null,
+      p_details: {
+        full_name: value("full_name"), preferred_name: value("preferred_name"),
+        email: value("email"), country: value("country"), timezone: value("timezone"),
+        contact_method: value("contact_method"), preferred_language: value("preferred_language"),
+      },
+    });
+    if (error || typeof data !== "string" || !uuid.test(data)) {
+      console.error("Create student request failed:", error);
+      if (error?.code === "22023") return { error: error.message };
+      if (error?.code === "42501") return { error: "Sign in with an active owner account to create students." };
+      return { error: "Unable to finish creating the student. Your entries are still here. Try again on this form; the same request will not create a second student. If it keeps failing, check your sign-in and that the SQL migration was applied." };
     }
-
-    if (assessment.converted_student_id) {
-      redirect(
-        `/${locale}/admin/students/${assessment.converted_student_id}`
-      );
-    }
+    studentId = data;
+  } catch (error) {
+    console.error("Create student connection failed:", error);
+    return { error: "Connection interrupted. Try again on this form to safely finish the same request." };
   }
-
-  const { data, error } = await supabase
-    .from("students")
-    .insert({
-      full_name: fullName,
-      preferred_name: preferredName || null,
-      email: email || null,
-      country: country || null,
-      timezone: timezone || null,
-      contact_method: contactMethod || null,
-      preferred_language: preferredLanguage || null,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error(error);
-    throw new Error("Unable to create student.");
-  }
-
-  if (assessmentId) {
-    const { data: convertedAssessment, error: conversionError } =
-      await supabase
-        .from("assessment_bookings")
-        .update({
-          converted_student_id: data.id,
-          converted_at: new Date().toISOString(),
-        })
-        .eq("id", assessmentId)
-        .is("converted_student_id", null)
-        .select("id")
-        .maybeSingle();
-
-    if (conversionError || !convertedAssessment) {
-      console.error(
-        "Student was created but assessment conversion could not be recorded:",
-        conversionError
-      );
-
-      await supabase
-        .from("students")
-        .delete()
-        .eq("id", data.id);
-
-      throw new Error(
-        "Unable to complete assessment conversion."
-      );
-    }
-  }
-
-  redirect(`/${locale}/admin/students/${data.id}`);
+  redirect(`/${locale}/admin/students/${studentId}`);
 }
 
 function getSupportedTimezones() {
@@ -166,6 +83,12 @@ export default async function NewStudentPage({
     filters.assessment?.trim() ?? "";
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Sign in to manage students.");
+  const { data: viewer } = await supabase.from("profiles").select("role, status").eq("id", user.id).single();
+  if (!viewer || viewer.status !== "active" || !["owner", "admin"].includes(viewer.role)) {
+    throw new Error("You do not have permission to manage students.");
+  }
 
   let assessment: AssessmentPrefillRow | null = null;
 
@@ -182,6 +105,7 @@ export default async function NewStudentPage({
         email,
         timezone,
         status,
+        follow_up_status,
         converted_student_id
       `)
       .eq("id", assessmentId)
@@ -209,6 +133,9 @@ export default async function NewStudentPage({
     }
   }
 
+  if (assessmentId && (!assessment || assessment.status !== "completed" || assessment.follow_up_status !== "interested")) {
+    redirect(`/${locale}/admin/assessments`);
+  }
   const convertingAssessment = Boolean(assessment);
 
   const supportedTimezones = getSupportedTimezones();
@@ -263,10 +190,8 @@ export default async function NewStudentPage({
           lg:px-10
         "
       >
-        <form
-          action={createStudent}
-          className="space-y-12"
-        >
+        <StudentCreateForm action={createStudent}>
+          <input type="hidden" name="request_id" value={randomUUID()} />
           <input
             type="hidden"
             name="locale"
@@ -785,27 +710,9 @@ export default async function NewStudentPage({
               Cancel
             </Link>
 
-            <button
-              type="submit"
-              className="
-                rounded-full
-                bg-[#6F8F72]
-                px-7
-                py-3
-                font-sans
-                text-sm
-                font-medium
-                text-white
-                transition-opacity
-                hover:opacity-85
-              "
-            >
-              {convertingAssessment
-                ? "Create Student"
-                : "Create Student"}
-            </button>
+            <CreateStudentButton />
           </div>
-        </form>
+        </StudentCreateForm>
 
         {/* FOOTER */}
         <div className="mt-20">
