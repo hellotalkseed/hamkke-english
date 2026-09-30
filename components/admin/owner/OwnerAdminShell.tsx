@@ -137,7 +137,7 @@ export default function OwnerAdminShell({
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5]">
+    <div className="owner-admin-shell min-h-screen bg-[#FAF8F5]">
       <aside className="group/adminrail fixed inset-y-0 left-0 z-50 w-[64px] overflow-hidden border-r border-[#E4DDD4] bg-[#F4F1EC] shadow-[4px_0_18px_rgba(41,41,41,0)] transition-[width,box-shadow] duration-200 ease-out hover:w-[228px] focus-within:w-[228px] hover:shadow-[4px_0_18px_rgba(41,41,41,0.08)]">
         <div className="flex h-full w-[228px] flex-col">
           <Link
@@ -325,7 +325,7 @@ export default function OwnerAdminShell({
       )}
 
       <div
-        className={`min-h-screen transition-[margin] ${
+        className={`owner-admin-content min-h-screen transition-[margin] ${
           overviewOpen
       ? "ml-[64px] md:ml-[254px]"
       : collectionOpen

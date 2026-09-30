@@ -1,4 +1,5 @@
 import Link from "next/link";
+import IncomeStatement from "./IncomeStatement";
 import { createClient } from "@/lib/supabase/server";
 import PrintMonthlyIncomeButton from "./print-button";
 
@@ -31,6 +32,7 @@ interface EnrollmentRow {
   id: string;
   student_id: string | null;
   package_name: string | null;
+  enrollment_number: string | null;
 }
 
 interface EnrollmentStudentRow {
@@ -160,7 +162,8 @@ export default async function IncomePage({
       .select(`
         id,
         student_id,
-        package_name
+        package_name,
+        enrollment_number
       `)
       .in("id", enrollmentIds);
 
@@ -224,7 +227,7 @@ export default async function IncomePage({
     studentRows.map((student) => [student.id, student])
   );
 
-  function getStudentNames(enrollmentId: string) {
+  function getStudentNames(enrollmentId: string, fullName = false) {
     const enrollment = enrollmentById.get(enrollmentId);
 
     const participantIds = participantRows
@@ -241,7 +244,7 @@ export default async function IncomePage({
     const names = Array.from(new Set(ids))
       .map((studentId) => studentById.get(studentId))
       .filter((student): student is StudentRow => Boolean(student))
-      .map((student) => student.preferred_name || student.full_name);
+      .map((student) => fullName ? student.full_name : student.preferred_name || student.full_name);
 
     return names.length > 0 ? names.join(" · ") : "—";
   }
@@ -257,28 +260,19 @@ export default async function IncomePage({
   }`;
 
   return (
-    <main className="min-h-screen bg-[#FAF8F5] text-[#292929]">
-      <header className="hidden print:block print:pb-5">
-        <div className="flex items-start justify-between gap-8 border-b border-[#DCD8D2] pb-5">
-          <div>
-            <div className="font-sans text-[13px] font-semibold tracking-[0.18em] text-[#5F7F63]">
-              HAMKKE │ 함께
-            </div>
-            <div className="mt-1 font-serif text-[10px] text-[#5F7F63]">
-              From Small Talk to Big Ideas
-            </div>
-          </div>
-
-          <div className="text-right">
-            <div className="font-sans text-[8px] uppercase tracking-[0.2em] text-[#6F6B65]">
-              Income Statement
-            </div>
-          </div>
-        </div>
-      </header>
+    <main className="income-page min-h-screen bg-[#FAF8F5] text-[#292929]">
+      <IncomeStatement period={selectedLabel} reportId={`HK-INC-${selectedYear}${String(selectedMonth).padStart(2, "0")}`} generatedAt={now.toISOString()}
+        entries={paymentRows.map(payment => ({
+          id: payment.id, date: payment.payment_date, learner: getStudentNames(payment.enrollment_id, true),
+          enrollment: enrollmentById.get(payment.enrollment_id)?.enrollment_number || "Not recorded",
+          description: enrollmentById.get(payment.enrollment_id)?.package_name || "English lessons",
+          method: payment.payment_method, reference: payment.reference,
+          php: payment.amount_php === null || !Number.isFinite(Number(payment.amount_php)) ? null : Number(payment.amount_php),
+        }))} />
 
       <section
         className="
+          income-screen
           mx-auto
           max-w-[1200px]
           px-6
@@ -310,39 +304,9 @@ export default async function IncomePage({
           </p>
         </div>
 
-        <div className="hidden print:block">
-          <div className="flex items-start justify-between gap-8 border-b border-[#DCD8D2] pb-8">
-            <div>
-              <p className="font-sans text-[13px] font-semibold leading-none tracking-[0.18em] text-[#6F8F72]">
-                HAMKKE │ 함께
-              </p>
-              <p className="mt-2 font-serif text-[11px] leading-none tracking-[0.02em] text-[#6F8F72]">
-                From Small Talk to Big Ideas
-              </p>
-            </div>
-
-            <div className="text-right">
-              <p className="font-sans text-[9px] font-medium uppercase tracking-[0.16em] text-[#8A8A84]">
-                Income Statement
-              </p>
-              <p className="mt-2 font-serif text-[17px] text-[#55544F]">
-                {selectedLabel}
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-9">
-            <h1 className="font-serif text-[34px] font-normal tracking-[-0.025em]">
-              Monthly Income
-            </h1>
-            <p className="mt-2 font-serif text-[14px] text-[#74716B]">
-              Payments received during {selectedLabel}
-            </p>
-          </div>
-        </div>
       </section>
 
-      <section className="mx-auto max-w-[1200px] px-6 pb-24 sm:px-8 lg:px-10 print:max-w-none print:px-0 print:pb-0">
+      <section className="income-screen mx-auto max-w-[1200px] px-6 pb-24 sm:px-8 lg:px-10 print:max-w-none print:px-0 print:pb-0">
         <div className="print:hidden mb-8">
           <div className="grid grid-cols-2 items-end gap-6 pb-1">
             <Link
@@ -467,7 +431,7 @@ export default async function IncomePage({
 
                       <td className="px-4 py-[18px]">
                         <p className="font-serif text-[14px] text-[#55544F]">
-                          {payment.payment_method || "—"}
+                          {payment.payment_method ? formatPaymentMethod(payment.payment_method) : "—"}
                         </p>
 
                         {payment.reference && (
@@ -516,3 +480,20 @@ export default async function IncomePage({
     </main>
   );
 }
+
+function formatPaymentMethod(value: string | null): string {
+  if (!value?.trim()) return "Not recorded";
+  const key = value.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  const brands: Record<string, string> = {
+    gcash: "GCash", paypal: "PayPal", sentbe: "SentBe", maya: "Maya",
+    paymaya: "PayMaya", wise: "Wise", remitly: "Remitly", gotyme: "GoTyme",
+    gotymebank: "GoTyme Bank", bpi: "BPI", bdo: "BDO", unionbank: "UnionBank",
+    metrobank: "Metrobank", seabank: "SeaBank", grabpay: "GrabPay",
+    shopeepay: "ShopeePay", alipay: "Alipay", wechatpay: "WeChat Pay",
+    banktransfer: "Bank Transfer", koreanbanktransfer: "Korean Bank Transfer",
+    cash: "Cash", creditcard: "Credit Card", debitcard: "Debit Card",
+    pending: "Pending", other: "Other",
+  };
+  return brands[key] ?? value.trim().replace(/[_-]+/g, " ").replace(/\b[a-z]/g, letter => letter.toUpperCase());
+}
+
