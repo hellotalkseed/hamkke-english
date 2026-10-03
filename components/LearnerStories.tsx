@@ -545,6 +545,7 @@ export default function LearnerStories({
                               alt=""
                               fill
                               sizes="42px"
+                              unoptimized
                               className="object-cover"
                             />
                           </div>
@@ -930,6 +931,7 @@ export default function LearnerStories({
                       alt=""
                       fill
                       sizes="56px"
+                      unoptimized
                       className="object-cover"
                     />
                   </div>

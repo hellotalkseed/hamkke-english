@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Star } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 
 import type { Locale } from "@/lib/i18n";
 
@@ -519,6 +518,115 @@ export default function ReflectionForm({ locale }: ReflectionFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const siteKey =
+      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+    if (!siteKey) {
+      console.error(
+        "NEXT_PUBLIC_TURNSTILE_SITE_KEY is not configured."
+      );
+      return;
+    }
+
+    function renderTurnstile() {
+      if (
+        !window.turnstile ||
+        !turnstileContainerRef.current ||
+        turnstileWidgetIdRef.current
+      ) {
+        return;
+      }
+
+      turnstileWidgetIdRef.current =
+        window.turnstile.render(
+          turnstileContainerRef.current,
+          {
+            sitekey: siteKey,
+            theme: "light",
+
+            callback: (token) => {
+              setTurnstileToken(token);
+              setErrorMessage("");
+            },
+
+            "expired-callback": () => {
+              setTurnstileToken("");
+            },
+
+            "error-callback": () => {
+              setTurnstileToken("");
+            },
+          }
+        );
+    }
+
+    const scriptSelector =
+      'script[src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"]';
+
+    const existingScript =
+      document.querySelector<HTMLScriptElement>(
+        scriptSelector
+      );
+
+    let addedScript: HTMLScriptElement | null = null;
+
+    if (existingScript) {
+      if (window.turnstile) {
+        renderTurnstile();
+      } else {
+        existingScript.addEventListener(
+          "load",
+          renderTurnstile
+        );
+      }
+    } else {
+      const script =
+        document.createElement("script");
+
+      script.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
+      script.async = true;
+      script.defer = true;
+
+      script.addEventListener(
+        "load",
+        renderTurnstile
+      );
+
+      document.head.appendChild(script);
+      addedScript = script;
+    }
+
+    return () => {
+      existingScript?.removeEventListener(
+        "load",
+        renderTurnstile
+      );
+
+      addedScript?.removeEventListener(
+        "load",
+        renderTurnstile
+      );
+
+      if (
+        window.turnstile &&
+        turnstileWidgetIdRef.current
+      ) {
+        window.turnstile.remove(
+          turnstileWidgetIdRef.current
+        );
+
+        turnstileWidgetIdRef.current = null;
+      }
+    };
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -533,36 +641,52 @@ export default function ReflectionForm({ locale }: ReflectionFormProps) {
       setErrorMessage(t.permissionRequired);
       return;
     }
+    if (!turnstileToken) {
+      setErrorMessage(t.submissionError);
+      return;
+    }
+
 
     submitting.current = true;
     setLoading(true);
+
     try {
-      let photoUrl: string | null = null;
+      const formData = new FormData();
+      formData.set("rating", String(rating));
+      formData.set("name", name.trim());
+      formData.set("role", role);
+      formData.set("country", country);
+      formData.set("reflection", reflection.trim());
+      formData.set("permission", String(permission));
+      formData.set("turnstileToken", turnstileToken);
+
       if (photo) {
-        const fileName = `${crypto.randomUUID()}-${photo.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-        const { error: uploadError } = await supabase.storage
-          .from("reflections")
-          .upload(fileName, photo);
-        if (uploadError) throw uploadError;
-        photoUrl = supabase.storage.from("reflections").getPublicUrl(fileName).data.publicUrl;
+        formData.set("photo", photo);
       }
 
-      // The database supplies created_at via DEFAULT now().
-      // Keep the existing insert-only flow: public submissions may not have read access.
-      const { error } = await supabase.from("reflections").insert({
-        rating,
-        name: name.trim(),
-        role,
-        country,
-        reflection: reflection.trim(),
-        photo_url: photoUrl,
-        photo_name: photo ? photo.name : null,
+      const response = await fetch("/api/reflections", {
+        method: "POST",
+        body: formData,
       });
-      if (error) throw error;
+
+      if (!response.ok) {
+        throw new Error("Reflection submission failed.");
+      }
+
       setSubmitted(true);
     } catch (error) {
       console.error("Reflection submission failed:", error);
       setErrorMessage(t.submissionError);
+      setTurnstileToken("");
+
+      if (
+        window.turnstile &&
+        turnstileWidgetIdRef.current
+      ) {
+        window.turnstile.reset(
+          turnstileWidgetIdRef.current
+        );
+      }
     } finally {
       submitting.current = false;
       setLoading(false);
@@ -659,7 +783,7 @@ export default function ReflectionForm({ locale }: ReflectionFormProps) {
             <div>
               <label htmlFor="reflection-photo" className={labelClass}>{t.photo} <span className="font-normal text-[#758477]">{t.photoOptional}</span></label>
               <p id="reflection-photo-help" className={helpClass}>{t.photoHelp}</p>
-              <input id="reflection-photo" type="file" accept="image/*" aria-describedby="reflection-photo-help" onChange={(event) => setPhoto(event.target.files?.[0] ?? null)} className="mt-3 block w-full min-w-0 rounded-xl border border-dashed border-[#B8C9B5] bg-[#F3F4EB] p-3 text-xs text-[#56645B] file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#E5EBDD] file:px-4 file:py-2 file:text-xs file:font-medium file:text-[#304A39] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#718A73]" />
+              <input id="reflection-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="reflection-photo-help" onChange={(event) => setPhoto(event.target.files?.[0] ?? null)} className="mt-3 block w-full min-w-0 rounded-xl border border-dashed border-[#B8C9B5] bg-[#F3F4EB] p-3 text-xs text-[#56645B] file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#E5EBDD] file:px-4 file:py-2 file:text-xs file:font-medium file:text-[#304A39] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#718A73]" />
             </div>
           </div>
         </section>
@@ -671,6 +795,11 @@ export default function ReflectionForm({ locale }: ReflectionFormProps) {
               <span>{t.permission} <span aria-hidden="true">*</span></span>
             </label>
             {errorMessage && <p role="alert" className="mt-5 rounded-lg border border-[#D9B8AF] bg-[#FBF0EC] px-4 py-3 text-sm leading-6 text-[#8B4137]">{errorMessage}</p>}
+            <div
+              ref={turnstileContainerRef}
+              className="mt-5 min-h-[65px]"
+              aria-label="Security verification"
+            />
             <div className="relative mt-5 inline-block w-full sm:w-auto">
               <span aria-hidden="true" className="absolute inset-0 translate-y-[7px] rounded-[20px] bg-[#718A73]" />
               <button type="submit" disabled={loading} className="group relative flex min-h-[60px] w-full items-center justify-between gap-8 rounded-[20px] bg-[#304A39] px-7 py-4 text-sm font-semibold text-[#FFFDF8] transition-transform hover:-translate-y-0.5 active:translate-y-1 disabled:cursor-wait disabled:opacity-70 sm:min-w-[270px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#718A73]">

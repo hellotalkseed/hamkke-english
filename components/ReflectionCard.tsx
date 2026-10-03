@@ -149,6 +149,7 @@ export default function ReflectionCard({
                 alt=""
                 fill
                 sizes="46px"
+                unoptimized
                 className="object-cover"
               />
             </div>

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { supabase } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase/admin";
 import ReflectionActions from "@/components/ReflectionActions";
 
 import {
@@ -24,6 +24,8 @@ export default async function ReflectionsAdminPage({
   }
 
   const currentLocale = locale as Locale;
+
+  const supabase = createAdminClient();
 
   const { data: reflections, error } = await supabase
     .from("reflections")

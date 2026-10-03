@@ -294,6 +294,7 @@ export default function ReflectionModal({
                       alt=""
                       fill
                       sizes="58px"
+                      unoptimized
                       className="object-cover"
                     />
                   </div>
