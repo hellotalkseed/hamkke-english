@@ -3,47 +3,195 @@ import { NextResponse } from "next/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+type ContactBody = {
+  name?: unknown;
+  email?: unknown;
+  message?: unknown;
+  contactMethod?: unknown;
+  contactId?: unknown;
+  level?: unknown;
+  goal?: unknown;
+  inquirySource?: unknown;
+};
+
+function cleanText(value: unknown): string {
+  return typeof value === "string"
+    ? value.trim()
+    : "";
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body: ContactBody;
 
-    const {
-      name,
-      email,
-      contactMethod,
-      contactId,
-      level,
-      goal,
-      message,
-      inquirySource,
-    } = body;
+    try {
+      body = (await request.json()) as ContactBody;
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request.",
+        },
+        { status: 400 }
+      );
+    }
 
-    await resend.emails.send({
-      from: "Hamkke <hello@hamkkeenglish.com>",
-      to: "hamkke.english@gmail.com",
-      replyTo: email,
-      subject: `New Hamkke Inquiry from ${name}`,
-      html: `
-        <h2>New Hamkke Inquiry</h2>
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request.",
+        },
+        { status: 400 }
+      );
+    }
 
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Preferred Contact Method:</strong> ${contactMethod}</p>
-        <p><strong>Contact ID:</strong> ${contactId || "Not provided"}</p>
-        <p><strong>English Level:</strong> ${level}</p>
-        <p><strong>Learning Goal:</strong> ${goal}</p>
-        <p><strong>Inquiry Source:</strong> ${inquirySource}</p>
+    const name = cleanText(body.name);
+    const email = cleanText(body.email);
+    const message = cleanText(body.message);
+    const contactMethod = cleanText(
+      body.contactMethod
+    );
+    const contactId = cleanText(body.contactId);
+    const level = cleanText(body.level);
+    const goal = cleanText(body.goal);
+    const inquirySource = cleanText(
+      body.inquirySource
+    );
 
-        <hr />
+    if (!name || !email || !message) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Name, email, and message are required.",
+        },
+        { status: 400 }
+      );
+    }
 
-        <p><strong>Message:</strong></p>
-        <p>${message || "No additional message provided."}</p>
-      `,
+    if (
+      name.length > 100 ||
+      email.length > 254 ||
+      message.length > 5000 ||
+      contactId.length > 254 ||
+      level.length > 100 ||
+      goal.length > 500
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "One or more fields are too long.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Please provide a valid email address.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      contactMethod !== "email" ||
+      inquirySource !== "start-a-conversation"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (contactId !== email) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid contact information.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safeContactMethod =
+      escapeHtml(contactMethod);
+    const safeContactId = escapeHtml(contactId);
+    const safeLevel = escapeHtml(level);
+    const safeGoal = escapeHtml(goal);
+    const safeInquirySource =
+      escapeHtml(inquirySource);
+    const safeMessage = escapeHtml(message)
+      .replace(/\r?\n/g, "<br />");
+
+    const { error: resendError } =
+      await resend.emails.send({
+        from: "Hamkke <hello@hamkkeenglish.com>",
+        to: "hamkke.english@gmail.com",
+        replyTo: email,
+        subject: `New Hamkke Inquiry from ${name}`,
+        html: `
+          <h2>New Hamkke Inquiry</h2>
+
+          <p><strong>Name:</strong> ${safeName}</p>
+          <p><strong>Email:</strong> ${safeEmail}</p>
+          <p><strong>Preferred Contact Method:</strong> ${safeContactMethod}</p>
+          <p><strong>Contact ID:</strong> ${safeContactId || "Not provided"}</p>
+          <p><strong>English Level:</strong> ${safeLevel || "Not provided"}</p>
+          <p><strong>Learning Goal:</strong> ${safeGoal || "Not provided"}</p>
+          <p><strong>Inquiry Source:</strong> ${safeInquirySource}</p>
+
+          <hr />
+
+          <p><strong>Message:</strong></p>
+          <p>${safeMessage}</p>
+        `,
+      });
+
+    if (resendError) {
+      console.error(
+        "Contact email delivery error:",
+        resendError
+      );
+
+      return NextResponse.json(
+        { success: false },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
     });
-
-    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Contact API error:",
+      error
+    );
 
     return NextResponse.json(
       { success: false },
