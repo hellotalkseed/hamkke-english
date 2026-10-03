@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 const MODEL = "gemini-3.1-flash-lite";
 
@@ -118,21 +119,115 @@ export async function POST(
   try {
     console.log("=== HAMKKE GEMINI POLISH START ===");
 
+    /*
+     * AUTHENTICATION
+     *
+     * This endpoint uses Hamkke's authenticated Supabase session.
+     * Never allow an anonymous request to reach Gemini.
+     */
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized.",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    /*
+     * AUTHORIZATION
+     *
+     * AI polishing is available only to active Hamkke owners
+     * and active teachers.
+     */
+    const {
+      data: profile,
+      error: profileError,
+    } = await supabase
+      .from("profiles")
+      .select("id, role, status")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error(
+        "Gemini polish profile lookup error:",
+        profileError
+      );
+
+      return NextResponse.json(
+        {
+          error: "Unable to verify access.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    if (!profile) {
+      return NextResponse.json(
+        {
+          error: "Access denied.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const role = String(profile.role || "").toLowerCase();
+    const profileStatus = String(
+      profile.status || ""
+    ).toLowerCase();
+
+    const canPolish =
+      profileStatus === "active" &&
+      (role === "owner" || role === "teacher");
+
+    if (!canPolish) {
+      return NextResponse.json(
+        {
+          error: "Access denied.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+     * GEMINI CONFIGURATION
+     *
+     * Read the API key only after authentication and
+     * authorization have succeeded.
+     */
     const apiKey = process.env.GEMINI_API_KEY;
 
     console.log("Gemini API key exists:", !!apiKey);
-    console.log(
-      "Gemini API key length:",
-      apiKey ? apiKey.length : 0
-    );
 
     if (!apiKey) {
+      console.error(
+        "GEMINI_API_KEY is missing from the server environment."
+      );
+
       return NextResponse.json(
         {
           error:
-            "GEMINI_API_KEY is missing. Make sure it is in .env.local and restart the development server.",
+            "AI polishing is temporarily unavailable.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -140,6 +235,9 @@ export async function POST(
       apiKey,
     });
 
+    /*
+     * LESSON
+     */
     const { lessonId } = await params;
 
     console.log("Lesson ID:", lessonId);
@@ -149,14 +247,52 @@ export async function POST(
         {
           error: "Lesson ID is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const body = await request.json();
+    /*
+     * REQUEST VALIDATION
+     */
+    let body: unknown;
 
-    const type = body?.type;
-    const text = body?.text;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          error: "Invalid request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        {
+          error: "Invalid request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const requestBody = body as {
+      type?: unknown;
+      text?: unknown;
+    };
+
+    const type = requestBody.type;
+    const text = requestBody.text;
 
     console.log("Polish type:", type);
 
@@ -168,7 +304,9 @@ export async function POST(
         {
           error: "Invalid polishing type.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -177,7 +315,9 @@ export async function POST(
         {
           error: "Text is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -191,7 +331,9 @@ export async function POST(
           error:
             "Please write something before using AI polishing.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -200,7 +342,9 @@ export async function POST(
         {
           error: "The text is too long to polish.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -259,8 +403,7 @@ IMPORTANT:
 
     if (!polishedText) {
       console.error(
-        "Gemini returned no output text.",
-        response
+        "Gemini returned no output text."
       );
 
       return NextResponse.json(
@@ -268,33 +411,50 @@ IMPORTANT:
           error:
             "The AI did not return a polished version.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
-    console.log("=== HAMKKE GEMINI POLISH SUCCESS ===");
+    console.log(
+      "=== HAMKKE GEMINI POLISH SUCCESS ==="
+    );
 
     return NextResponse.json({
       success: true,
       polishedText,
     });
-  } catch (error: any) {
-    console.error("=== HAMKKE GEMINI POLISH ERROR ===");
+  } catch (error: unknown) {
+    console.error(
+      "=== HAMKKE GEMINI POLISH ERROR ==="
+    );
     console.error(error);
 
+    const errorObject =
+      error && typeof error === "object"
+        ? (error as {
+            status?: unknown;
+            message?: unknown;
+            code?: unknown;
+            type?: unknown;
+          })
+        : null;
+
     const status =
-      typeof error?.status === "number"
-        ? error.status
+      typeof errorObject?.status === "number"
+        ? errorObject.status
         : 500;
 
     const message =
-      error?.message ||
-      "Something went wrong while polishing the text.";
+      typeof errorObject?.message === "string"
+        ? errorObject.message
+        : "Something went wrong while polishing the text.";
 
     console.error("Error message:", message);
     console.error("Error status:", status);
-    console.error("Error code:", error?.code);
-    console.error("Error type:", error?.type);
+    console.error("Error code:", errorObject?.code);
+    console.error("Error type:", errorObject?.type);
 
     if (status === 429) {
       return NextResponse.json(
@@ -302,7 +462,9 @@ IMPORTANT:
           error:
             "Gemini's free-tier usage limit has been reached temporarily. Please try again later.",
         },
-        { status: 429 }
+        {
+          status: 429,
+        }
       );
     }
 
@@ -312,15 +474,17 @@ IMPORTANT:
           error:
             "Gemini is temporarily busy. Please try again in a moment.",
         },
-        { status: 503 }
+        {
+          status: 503,
+        }
       );
     }
 
     return NextResponse.json(
       {
         error: message,
-        code: error?.code || null,
-        type: error?.type || null,
+        code: errorObject?.code || null,
+        type: errorObject?.type || null,
       },
       {
         status,
