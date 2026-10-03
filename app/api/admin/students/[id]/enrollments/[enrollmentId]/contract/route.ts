@@ -28,6 +28,64 @@ export async function POST(
   const supabase =
     await createClient();
 
+  /*
+   * AUTHENTICATION + AUTHORIZATION
+   *
+   * Contract creation is an owner-admin operation.
+   * Authenticate before creating or modifying contract records.
+   */
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Unauthorized." },
+      { status: 401 }
+    );
+  }
+
+  const {
+    data: profile,
+    error: profileError,
+  } = await supabase
+    .from("profiles")
+    .select("id, role, status")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error(
+      "Contract authorization profile lookup error:",
+      profileError
+    );
+
+    return NextResponse.json(
+      { error: "Unable to verify access." },
+      { status: 500 }
+    );
+  }
+
+  const role = String(
+    profile?.role || ""
+  ).toLowerCase();
+
+  const profileStatus = String(
+    profile?.status || ""
+  ).toLowerCase();
+
+  if (
+    !profile ||
+    role !== "owner" ||
+    profileStatus !== "active"
+  ) {
+    return NextResponse.json(
+      { error: "Access denied." },
+      { status: 403 }
+    );
+  }
+
   /* ======================================================================== */
   /* STEP 1: VERIFY ENROLLMENT                                                */
   /* ======================================================================== */
