@@ -12,6 +12,12 @@ type ContactBody = {
   level?: unknown;
   goal?: unknown;
   inquirySource?: unknown;
+  turnstileToken?: unknown;
+};
+
+type TurnstileVerification = {
+  success: boolean;
+  "error-codes"?: string[];
 };
 
 function cleanText(value: unknown): string {
@@ -75,8 +81,11 @@ export async function POST(request: Request) {
     const inquirySource = cleanText(
       body.inquirySource
     );
+    const turnstileToken = cleanText(
+  body.turnstileToken
+);
 
-    if (!name || !email || !message) {
+    if (!name || !email || !message || !turnstileToken) {
       return NextResponse.json(
         {
           success: false,
@@ -137,6 +146,66 @@ export async function POST(request: Request) {
     }
 
     const safeName = escapeHtml(name);
+const turnstileSecret =
+  process.env.TURNSTILE_SECRET_KEY;
+
+if (!turnstileSecret) {
+  console.error(
+    "TURNSTILE_SECRET_KEY is not configured."
+  );
+
+  return NextResponse.json(
+    { success: false },
+    { status: 500 }
+  );
+}
+
+const verificationResponse = await fetch(
+  "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type":
+        "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      secret: turnstileSecret,
+      response: turnstileToken,
+    }),
+    cache: "no-store",
+  }
+);
+
+if (!verificationResponse.ok) {
+  console.error(
+    "Turnstile verification request failed:",
+    verificationResponse.status
+  );
+
+  return NextResponse.json(
+    { success: false },
+    { status: 502 }
+  );
+}
+
+const verification =
+  (await verificationResponse.json()) as
+    TurnstileVerification;
+
+if (!verification.success) {
+  console.warn(
+    "Turnstile verification rejected the request.",
+    verification["error-codes"] ?? []
+  );
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "Security verification failed.",
+    },
+    { status: 403 }
+  );
+}
     const safeEmail = escapeHtml(email);
     const safeContactMethod =
       escapeHtml(contactMethod);
