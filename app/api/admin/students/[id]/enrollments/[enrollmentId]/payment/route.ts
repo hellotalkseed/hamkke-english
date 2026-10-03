@@ -135,6 +135,65 @@ export async function POST(
   const { id, enrollmentId } = await params;
 
   const supabase = await createClient();
+
+  /*
+   * AUTHENTICATION + AUTHORIZATION
+   *
+   * Payment confirmation is an owner-admin operation.
+   * Authenticate before processing submitted payment data.
+   */
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Unauthorized." },
+      { status: 401 }
+    );
+  }
+
+  const {
+    data: profile,
+    error: profileError,
+  } = await supabase
+    .from("profiles")
+    .select("id, role, status")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error(
+      "Payment authorization profile lookup error:",
+      profileError
+    );
+
+    return NextResponse.json(
+      { error: "Unable to verify access." },
+      { status: 500 }
+    );
+  }
+
+  const role = String(
+    profile?.role || ""
+  ).toLowerCase();
+
+  const profileStatus = String(
+    profile?.status || ""
+  ).toLowerCase();
+
+  if (
+    !profile ||
+    role !== "owner" ||
+    profileStatus !== "active"
+  ) {
+    return NextResponse.json(
+      { error: "Access denied." },
+      { status: 403 }
+    );
+  }
+
   const formData = await request.formData();
 
   const locale =
