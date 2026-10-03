@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/seo/publicMetadata";
 import { notFound } from "next/navigation";
 
 import Navbar from "@/components/Navbar";
@@ -223,4 +224,7 @@ export default async function ReflectionsPage({
       </main>
     </>
   );
+}
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  return publicPageMetadata(params, "reflections");
 }

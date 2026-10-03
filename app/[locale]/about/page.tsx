@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/seo/publicMetadata";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -890,4 +891,7 @@ export default async function AboutPage({
       <Footer />
     </>
   );
+}
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  return publicPageMetadata(params, "about");
 }

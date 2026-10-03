@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/seo/publicMetadata";
 import Image from "next/image";
 import PublicTeacherCard from "../../../components/PublicTeacherCard";
 import Link from "next/link";
@@ -357,3 +358,7 @@ export default async function TeachersPage({
 }
 
 
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  return publicPageMetadata(params, "teachers");
+}

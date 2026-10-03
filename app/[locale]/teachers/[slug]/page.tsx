@@ -1,4 +1,6 @@
-﻿import Image from "next/image";
+import { buildPublicMetadata } from "@/lib/seo/publicMetadata";
+import { getPublicTeachers } from "@/lib/getPublicTeachers";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -612,3 +614,24 @@ export default async function TeacherProfilePage({
   );
 }
 
+
+export async function generateMetadata({ params }: TeacherProfilePageProps) {
+  const { locale, slug } = await params;
+  if (!isValidLocale(locale)) notFound();
+  // Use only the same published, active teacher information available publicly.
+  const teacher = (await getPublicTeachers()).find(item => item.slug === slug);
+  if (!teacher) notFound();
+  const titles = {
+    en: `${teacher.name} | English Teacher | Hamkke`,
+    ko: `${teacher.name} | 영어 선생님 | Hamkke`,
+    zh: `${teacher.name} | 英语教师 | Hamkke`,
+    ja: `${teacher.name} | 英語講師 | Hamkke`,
+  };
+  const descriptions = {
+    en: `Meet ${teacher.name} at Hamkke. Explore this teacher’s background and approach to one-to-one online English lessons.`,
+    ko: `함께 Hamkke의 ${teacher.name} 선생님을 만나보세요. 선생님의 경력과 일대일 온라인 영어 수업 방식을 확인하세요.`,
+    zh: `认识 Hamkke 的 ${teacher.name} 老师，了解教师背景和一对一在线英语教学方式。`,
+    ja: `Hamkkeの${teacher.name}講師をご紹介します。経歴やマンツーマンオンライン英語レッスンの進め方をご覧ください。`,
+  };
+  return buildPublicMetadata(locale, `/teachers/${encodeURIComponent(slug)}`, titles[locale], descriptions[locale]);
+}

@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/seo/publicMetadata";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -35,4 +36,7 @@ export default async function AssessmentPage({
       <Footer />
     </>
   );
+}
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  return publicPageMetadata(params, "assessment");
 }

@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/seo/publicMetadata";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -873,4 +874,7 @@ export default async function HowItWorksPage({
       </main>
     </>
   );
+}
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  return publicPageMetadata(params, "how-it-works");
 }
