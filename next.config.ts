@@ -1,7 +1,10 @@
-﻿import type { NextConfig } from "next";
+import type { NextConfig } from "next";
 
 const supabaseOrigin = "https://xjkqwoprmqptcroqnycr.supabase.co";
 const turnstileOrigin = "https://challenges.cloudflare.com";
+
+// React debugging needs eval only in development. Production keeps the original CSP.
+const isDevelopment = process.env.NODE_ENV === "development";
 
 const contentSecurityPolicy = `
   default-src 'self';
@@ -9,7 +12,7 @@ const contentSecurityPolicy = `
   object-src 'none';
   frame-ancestors 'none';
   form-action 'self';
-  script-src 'self' 'unsafe-inline' ${turnstileOrigin};
+  script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} ${turnstileOrigin};
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: ${supabaseOrigin};
   font-src 'self' data:;
