@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -360,8 +361,8 @@ export async function GET(
       return ownerResult.error;
     }
 
-    const { supabase } =
-      ownerResult;
+    // getActiveOwner above has already verified the session, role and status.
+    const supabase = createAdminClient();
 
     const { id: teacherId } =
       await context.params;

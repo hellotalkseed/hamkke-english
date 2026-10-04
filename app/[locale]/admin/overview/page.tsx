@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { requireOwnerDataClient } from "@/lib/supabase/owner-data";
 import SearchFilters from "./SearchFilters";
 
 interface OverviewPageProps {
@@ -337,7 +337,7 @@ export default async function OverviewPage({
   const statusFilter =
     filters.status?.trim() ?? "";
 
-  const supabase = await createClient();
+  const supabase = await requireOwnerDataClient(locale);
 
   /* ----------------------------------------------------------------------- */
   /* STUDENTS                                                                */

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Users } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { requireOwnerDataClient } from "@/lib/supabase/owner-data";
 import StudentsList from "@/components/admin/StudentsList";
 
 interface StudentsPageProps {
@@ -14,7 +14,7 @@ export default async function StudentsPage({
 }: StudentsPageProps) {
   const { locale } = await params;
 
-  const supabase = await createClient();
+  const supabase = await requireOwnerDataClient(locale);
 
   /*
    * ---------------------------------------------------------

@@ -10,7 +10,7 @@ import {
   FileText,
   User,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { requireOwnerDataClient } from "@/lib/supabase/owner-data";
 import { countConsumedEnrollmentLessons } from "@/lib/enrollmentLessonUsage";
 import LessonActions from "@/components/admin/LessonActions";
 import PrintAttendanceButton from "@/components/admin/PrintAttendanceButton";
@@ -157,7 +157,7 @@ export default async function StudentPage({
   const { locale, id } = await params;
   const { enrollmentId } = await searchParams;
 
-  const supabase = await createClient();
+  const supabase = await requireOwnerDataClient(locale);
 
   /* ------------------------------------------------------------------------ */
   /* 1. LOAD STUDENT + ALL STUDENTS                                          */
@@ -187,7 +187,7 @@ export default async function StudentPage({
         created_at
       `)
       .eq("id", id)
-      .single(),
+      .maybeSingle(),
 
     supabase
       .from("students")
@@ -205,9 +205,11 @@ export default async function StudentPage({
       }),
   ]);
 
-  if (studentError || !student) {
-    notFound();
+  if (studentError) {
+    console.error("Error loading student details:", studentError);
+    throw new Error("Unable to load student details. Please try again.");
   }
+  if (!student) notFound();
 
   const allStudents =
     allStudentsError || !allStudentsData
