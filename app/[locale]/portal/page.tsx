@@ -1,3 +1,4 @@
+import PortalFeedback from "@/components/feedback/PortalFeedback";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, ChevronDown, Home, BookOpen, ClipboardCheck, FileText, Settings, NotebookPen } from "lucide-react";
@@ -647,6 +648,8 @@ export default async function PortalPage({ params, searchParams }: {
             </div>}
               </div>
             )}
+            {view === "lessons" && !failed && selectedId && <PortalFeedback key={selectedId} locale={locale} studentId={selectedId} />}
+
             {view === "attendance" && (failed || attendanceFailed ? <section role="alert" className="rounded-2xl border border-[#718A73]/20 p-6 sm:p-8">
               <p className="text-sm leading-6 text-[#607568]">{d.attendanceError}</p>
               <a href={href("attendance")} className={`mt-4 inline-flex min-h-11 items-center text-sm underline ${focus}`}>{t.retry}</a>

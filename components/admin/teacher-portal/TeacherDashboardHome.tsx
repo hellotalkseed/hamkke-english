@@ -95,6 +95,7 @@ const nav = (locale: string) => [
   { label: "My Lessons", href: `/${locale}/admin/teachers/lessons`, icon: BookOpen },
   { label: "My Students", href: `/${locale}/admin/teachers/students`, icon: Users },
   { label: "Progress Reports", href: `/${locale}/admin/teachers/progress-reports`, icon: FileText },
+  { label: "Learner Stories", href: `/${locale}/admin/teachers/stories`, icon: FileText },
   { label: "Availability", href: `/${locale}/admin/teachers/availability`, icon: CalendarDays },
   { label: "My Profile", href: `/${locale}/admin/teachers/profile`, icon: UserRound },
   { label: "Teacher Agreement", href: `/${locale}/admin/teachers/agreement`, icon: FileText },
@@ -212,6 +213,7 @@ export default function TeacherDashboardHome({ locale, fullName, avatarUrl, sign
 
         <section className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
           <div className="mb-7 flex items-center justify-between lg:hidden"><div className="font-sans text-[13px] font-semibold tracking-[0.14em] text-[#5F7F63]">HAMKKE │ 함께</div></div>
+          <Link href={`/${locale}/admin/teachers/stories`} className="mb-5 inline-block rounded-full border border-[#DCE4D7] px-4 py-2 text-sm text-[#49614D] lg:hidden">Learner Stories →</Link>
           <p className="font-sans text-[11px] font-medium uppercase tracking-[0.16em] text-[#6F8F72]">Teacher Portal</p>
           <h1 className="mt-3 font-serif text-[38px] font-normal tracking-[-0.03em] sm:text-[46px]">{`Greetings, Teacher ${firstName}.`}</h1>
           <p className="mt-2 font-serif text-[17px] text-[#74716B]">Here&apos;s what&apos;s happening with your classes today.</p>

@@ -1,11 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import ReflectionForm from "@/components/ReflectionForm";
+import FeedbackForm from "@/components/feedback/FeedbackForm";
+import { getPublicTeachers } from "@/lib/getPublicTeachers";
+import { feedbackMessages } from "@/lib/feedback/messages";
 import { isValidLocale, type Locale } from "@/lib/i18n";
 
 interface SharePageProps {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ teacher?: string }>;
 }
 
 const languages: { locale: Locale; label: string; name: string }[] = [
@@ -62,10 +65,15 @@ const copy: Record<Locale, {
   },
 };
 
-export default async function SharePage({ params }: SharePageProps) {
+export default async function SharePage({ params, searchParams }: SharePageProps) {
   const { locale } = await params;
   if (!isValidLocale(locale)) notFound();
   const t = copy[locale];
+  const { teacher: slug } = await searchParams;
+  const allTeachers = await getPublicTeachers();
+  const teachers = slug ? allTeachers.filter(teacher => teacher.slug === slug) : allTeachers;
+  if (slug && !teachers.length) notFound();
+  const teacherQuery = slug ? `?teacher=${encodeURIComponent(slug)}` : "";
 
   return (
     <main lang={locale} className="min-h-screen bg-[#FFFDF8] text-[#304A39]">
@@ -88,7 +96,7 @@ export default async function SharePage({ params }: SharePageProps) {
             </summary>
             <nav aria-label={t.language} className="absolute right-0 top-full z-50 mt-2 min-w-[140px] overflow-hidden rounded-xl border border-[#DCE4D7] bg-[#FFFDF8] py-1 shadow-[0_12px_30px_rgba(41,58,48,0.10)]">
               {languages.map((language) => (
-                <Link key={language.locale} href={`/${language.locale}/share`} hrefLang={language.locale} lang={language.locale} aria-label={language.name} aria-current={locale === language.locale ? "page" : undefined} className={`flex min-h-11 items-center px-4 text-[13px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#718A73] ${locale === language.locale ? "bg-[#E5EBDD] font-medium text-[#304A39]" : "text-[#758477] hover:bg-[#F3F4EB] hover:text-[#304A39]"}`}>
+                <Link key={language.locale} href={`/${language.locale}/share${teacherQuery}`} hrefLang={language.locale} lang={language.locale} aria-label={language.name} aria-current={locale === language.locale ? "page" : undefined} className={`flex min-h-11 items-center px-4 text-[13px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#718A73] ${locale === language.locale ? "bg-[#E5EBDD] font-medium text-[#304A39]" : "text-[#758477] hover:bg-[#F3F4EB] hover:text-[#304A39]"}`}>
                   {language.label}
                 </Link>
               ))}
@@ -96,7 +104,7 @@ export default async function SharePage({ params }: SharePageProps) {
           </details>
           <nav aria-label={t.language} className="ml-auto hidden shrink-0 items-center gap-1 text-center md:flex">
             {languages.map((language) => (
-              <Link key={language.locale} href={`/${language.locale}/share`} hrefLang={language.locale} lang={language.locale} aria-label={language.name} aria-current={locale === language.locale ? "page" : undefined} className={`whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium leading-5 transition-colors sm:px-3 sm:py-2 sm:text-[12px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#718A73] ${locale === language.locale ? "bg-[#E5EBDD] text-[#304A39]" : "text-[#758477] hover:bg-[#F3F4EB] hover:text-[#304A39]"}`}>
+              <Link key={language.locale} href={`/${language.locale}/share${teacherQuery}`} hrefLang={language.locale} lang={language.locale} aria-label={language.name} aria-current={locale === language.locale ? "page" : undefined} className={`whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium leading-5 transition-colors sm:px-3 sm:py-2 sm:text-[12px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#718A73] ${locale === language.locale ? "bg-[#E5EBDD] text-[#304A39]" : "text-[#758477] hover:bg-[#F3F4EB] hover:text-[#304A39]"}`}>
                 {language.label}
               </Link>
             ))}
@@ -112,11 +120,11 @@ export default async function SharePage({ params }: SharePageProps) {
             <span className="mt-2 block italic text-[#718A73]">{t.accent}</span>
           </h1>
           <div aria-hidden="true" className="mt-6 h-px w-14 bg-[#B8C9B5]" />
-          <p className="mt-5 max-w-[420px] text-[15px] leading-8 text-[#758477]">{t.description}</p>
+          <p className="mt-5 max-w-[420px] text-[15px] leading-8 text-[#758477]">{feedbackMessages[locale].intro}</p>
         </section>
 
         <div className="min-w-0">
-          <ReflectionForm locale={locale} />
+          <FeedbackForm locale={locale} teachers={teachers.map(teacher => ({ id: teacher.id, name: teacher.name, slug: teacher.slug }))} />
         </div>
       </div>
 

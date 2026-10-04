@@ -23,6 +23,7 @@ const nav = (locale: string) => [
   { label: "My Lessons", href: `/${locale}/admin/teachers/lessons`, icon: BookOpen },
   { label: "My Students", href: `/${locale}/admin/teachers/students`, icon: Users },
   { label: "Progress Reports", href: `/${locale}/admin/teachers/progress-reports`, icon: FileText },
+  { label: "Learner Stories", href: `/${locale}/admin/teachers/stories`, icon: FileText },
   { label: "Availability", href: `/${locale}/admin/teachers/availability`, icon: CalendarDays },
   { label: "My Profile", href: `/${locale}/admin/teachers/profile`, icon: UserRound },
   { label: "Teacher Agreement", href: `/${locale}/admin/teachers/agreement`, icon: FileText },

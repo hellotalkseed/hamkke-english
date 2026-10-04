@@ -1,4 +1,6 @@
-import { notFound } from "next/navigation";
+import FeedbackReview from "@/components/feedback/FeedbackReview";
+import { FeedbackError, staffIdentity } from "@/lib/feedback/server";
+import { notFound, redirect } from "next/navigation";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import ReflectionActions from "@/components/ReflectionActions";
@@ -24,6 +26,10 @@ export default async function ReflectionsAdminPage({
   }
 
   const currentLocale = locale as Locale;
+  await staffIdentity("owner").catch(error => {
+    if (error instanceof FeedbackError) redirect(`/${locale}/portal/login`);
+    throw error;
+  });
 
   const supabase = createAdminClient();
 
@@ -69,6 +75,8 @@ export default async function ReflectionsAdminPage({
       </section>
 
       <section className="mx-auto w-full max-w-[1320px] px-8 pb-24 sm:px-10 lg:px-14 xl:px-16">
+        <FeedbackReview />
+        <h2 className="mb-5 font-serif text-2xl">Earlier public-story submissions</h2>
         <div className="border-t border-[#DED9D2] pt-8">
           {error && (
             <div className="mb-6 rounded-[18px] border border-[#E4D4CF] bg-white px-5 py-4">
