@@ -381,51 +381,70 @@ export default function TeacherPayrollPage() {
   /* ----------------------------------------------------------------------- */
 
   useEffect(() => {
+    let disposed = false;
+    let inFlight = false;
+    let hasLoaded = false;
+    const controller = new AbortController();
+
     async function loadPayroll() {
+      if (disposed || inFlight) return;
+      inFlight = true;
+      if (!hasLoaded) setLoading(true);
+
       try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch(
-          "/api/admin/teachers/payroll",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-
+        const response = await fetch("/api/admin/teachers/payroll", {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+        });
         const data = await response.json();
-
         if (!response.ok) {
-          throw new Error(
-            data.error || "Unable to load your payroll."
-          );
+          throw new Error(data.error || "Unable to load your payroll.");
         }
+        if (disposed) return;
 
         const payrollData = data as PayrollApiResponse;
-
+        const history = payrollData.history || [];
         setTeacher(payrollData.teacher);
         setCurrentPayroll(payrollData.current);
-        setPayrollHistory(payrollData.history || []);
+        setPayrollHistory(history);
         setLessonBreakdown(payrollData.lesson_breakdown || []);
-        setHistoryBreakdowns(
-          payrollData.history_breakdowns || {}
-        );
+        setHistoryBreakdowns(payrollData.history_breakdowns || {});
         setCompensationProgression(payrollData.compensation_progression);
+        // Keep the open detail view in sync with the same saved payroll record.
+        setSelectedPayroll(previous => previous
+          ? history.find(record => record.id === previous.id) ?? null
+          : null);
+        setError("");
+        hasLoaded = true;
       } catch (err) {
+        if (disposed) return;
         console.error("Error loading payroll:", err);
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "We couldn't load your payroll right now."
-        );
+        // A temporary background failure must not replace an open payroll view.
+        if (!hasLoaded) setError(err instanceof Error
+          ? err.message : "We couldn't load your payroll right now.");
       } finally {
-        setLoading(false);
+        inFlight = false;
+        if (!disposed) setLoading(false);
       }
     }
 
-    loadPayroll();
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") void loadPayroll();
+    }
+    void loadPayroll();
+    const timer = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    window.addEventListener("online", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      disposed = true;
+      controller.abort();
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshWhenVisible);
+      window.removeEventListener("online", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, []);
 
   async function confirmPaymentReceived(record: PayrollRecord) {
@@ -1799,7 +1818,7 @@ function TeacherPortalSidebar({ locale, teacher }: { locale: string; teacher: Te
   const initial = name.trim().charAt(0).toUpperCase() || "T";
 
   return (
-    <aside className="hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:flex lg:flex-col">
+    <aside className="lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:flex lg:flex-col">
       <div className="block">
         <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p>
         <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p>

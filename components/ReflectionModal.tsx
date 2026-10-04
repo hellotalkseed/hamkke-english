@@ -265,7 +265,7 @@ export default function ReflectionModal({
 
                     <span className="text-[#758477]">
                       {" "}
-                      · with{" "}
+                      · with Teacher{" "}
                     </span>
 
                     <span className="font-bold text-[#718A73]">

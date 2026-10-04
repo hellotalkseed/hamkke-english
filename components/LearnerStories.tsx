@@ -370,7 +370,7 @@ export default function LearnerStories({
                     content.withTeacher,
                     {
                       name:
-                        story.teacher_name,
+                        `Teacher ${story.teacher_name}`,
                     }
                   );
 
@@ -879,7 +879,7 @@ export default function LearnerStories({
                         content.withTeacher,
                         {
                           name:
-                            selectedStory.teacher_name,
+                            `Teacher ${selectedStory.teacher_name}`,
                         }
                       )}
                     </span>

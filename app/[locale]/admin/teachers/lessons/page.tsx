@@ -739,7 +739,7 @@ export default function TeacherLessonsPage({
     const teacherName = data?.teacher?.full_name || "Teacher";
     const firstName = teacherName.trim().split(/\s+/)[0] || "T";
     return (
-      <aside className="hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:flex lg:flex-col">
+      <aside className="lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto hidden w-[250px] shrink-0 border-r border-[#E4DDD4] bg-[#F4F1EC] px-5 py-7 lg:flex lg:flex-col">
         <div className="block">
           <p className="font-sans text-[14px] font-semibold tracking-[0.16em] text-[#5F7F63]">HAMKKE │ 함께</p>
           <p className="mt-1 font-serif text-[13px] text-[#6F8F72]">Teacher Portal</p>
