@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface RouteContext {
   params: Promise<{
@@ -194,6 +195,9 @@ export async function POST(
     );
   }
 
+  // Only the verified active owner reaches these server-side operations.
+  const ownerData = createAdminClient();
+
   const formData = await request.formData();
 
   const locale =
@@ -206,7 +210,7 @@ export async function POST(
   const {
     data: enrollment,
     error: enrollmentError,
-  } = await supabase
+  } = await ownerData
     .from("enrollments")
     .select(
       `
@@ -288,7 +292,7 @@ export async function POST(
     const {
       data: participant,
       error: participantError,
-    } = await supabase
+    } = await ownerData
       .from("enrollment_students")
       .select(
         `
@@ -342,7 +346,7 @@ export async function POST(
     const {
       data: participants,
       error: participantsError,
-    } = await supabase
+    } = await ownerData
       .from("enrollment_students")
       .select(
         `
@@ -398,7 +402,7 @@ export async function POST(
   const {
     data: payment,
     error: paymentLookupError,
-  } = await supabase
+  } = await ownerData
     .from("payments")
     .select(
       `
@@ -628,7 +632,7 @@ Message: ${
   const {
     data: contractForAcceptance,
     error: contractLookupError,
-  } = await supabase
+  } = await ownerData
     .from("contracts")
     .select(
       `
@@ -902,7 +906,7 @@ Message: ${
 
   const {
     error: contractAcceptanceError,
-  } = await supabase
+  } = await ownerData
     .from("contracts")
     .update({
       accepted_by_name:
@@ -951,7 +955,7 @@ Message: ${
   const {
     data: acceptedContract,
     error: acceptedContractError,
-  } = await supabase
+  } = await ownerData
     .from("contracts")
     .select(
       `
@@ -1011,7 +1015,7 @@ Message: ${
 
   const {
     error: paymentUpdateError,
-  } = await supabase
+  } = await ownerData
     .from("payments")
     .update({
       amount,
@@ -1093,7 +1097,7 @@ Hint: ${
   const {
     data: updatedPayment,
     error: updatedPaymentError,
-  } = await supabase
+  } = await ownerData
     .from("payments")
     .select(
       `
@@ -1223,7 +1227,7 @@ Hint: ${
   const {
     data: updatedEnrollment,
     error: updatedEnrollmentError,
-  } = await supabase
+  } = await ownerData
     .from("enrollments")
     .select(
       `
@@ -1287,7 +1291,7 @@ Hint: ${
   const {
     data: contract,
     error: contractError,
-  } = await supabase
+  } = await ownerData
     .from("contracts")
     .select(
       `
@@ -1426,7 +1430,7 @@ Hint: ${
   const {
     count: lessonCount,
     error: lessonsError,
-  } = await supabase
+  } = await ownerData
     .from("lessons")
     .select(
       "id",

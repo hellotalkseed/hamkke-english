@@ -70,6 +70,34 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      // These teacher pages host the Class Record modal.
+      ...[
+        "/:locale(en|ko|zh|ja)/admin/teachers",
+        "/:locale(en|ko|zh|ja)/admin/teachers/lessons",
+      ].map((source) => ({
+        source,
+        headers: [{
+          key: "Content-Security-Policy",
+          value: contentSecurityPolicy.replace(
+            `frame-src ${turnstileOrigin};`,
+            `frame-src 'self' ${turnstileOrigin};`
+          ),
+        }],
+      })),
+      // Only lesson detail pages may be framed, and only by the same origin.
+      {
+        source: "/:locale(en|ko|zh|ja)/admin/teachers/lessons/:lessonId",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy.replace(
+              "frame-ancestors 'none';",
+              "frame-ancestors 'self';"
+            ),
+          },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+        ],
+      },
     ];
   },
 };
