@@ -770,8 +770,8 @@ export async function POST(
       return ownerResult.error;
     }
 
-    const { supabase } =
-      ownerResult;
+    // Owner authorization above must succeed before privileged data access.
+    const supabase = createAdminClient();
 
     const { id: teacherId } =
       await context.params;
@@ -880,12 +880,24 @@ export async function POST(
         "id",
         enrollmentStudentId
       )
-      .single();
+      .maybeSingle();
 
-    if (
-      enrollmentStudentError ||
-      !enrollmentStudent
-    ) {
+    if (enrollmentStudentError) {
+      console.error(
+        "Teacher assignment enrollment lookup error:",
+        enrollmentStudentError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to load the selected student enrollment. Please try again. If this continues, check the server log.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!enrollmentStudent) {
       return NextResponse.json(
         {
           error:
