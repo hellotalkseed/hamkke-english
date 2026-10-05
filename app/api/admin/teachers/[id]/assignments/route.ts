@@ -727,8 +727,13 @@ export async function GET(
           teacher.created_at,
       },
 
-      assignments:
-        formattedAssignments,
+      // A teacher assignment can outlive its completed package.
+      // Only current active packages belong in the active assignment list.
+      assignments: formattedAssignments.filter(
+        (assignment) =>
+          assignment.status === "active" &&
+          assignment.enrollment?.status === "active"
+      ),
     });
   } catch (error) {
     console.error(

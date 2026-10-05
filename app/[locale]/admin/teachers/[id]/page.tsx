@@ -115,8 +115,8 @@ type CalendarDay = {
 
 type TeacherLessonProgress = {
   enrollment_id: string;
-  lesson_number: number;
-  consumes_lesson: boolean;
+  consumed: number;
+  total: number;
 };
 
 type SubstituteCandidate = {
@@ -903,60 +903,10 @@ function getAssignmentForSlot(
 /* ========================================================================= */
 
 function getLessonProgress(
-  lessons: TeacherLessonProgress[],
+  progress: TeacherLessonProgress[],
   enrollmentId: string | null | undefined
 ) {
-  if (!enrollmentId) {
-    return {
-      consumed: 0,
-      total: 0,
-    };
-  }
-
-  const enrollmentLessons = lessons.filter(
-    (lesson) =>
-      lesson.enrollment_id === enrollmentId
-  );
-
-  /*
-   * A lesson counts toward progress only when
-   * consumes_lesson is true.
-   */
-  const consumed = enrollmentLessons.filter(
-    (lesson) =>
-      lesson.consumes_lesson === true
-  ).length;
-
-  /*
-   * The highest lesson_number represents the actual
-   * number of lessons generated for this enrollment.
-   *
-   * This means progress comes from the lesson records
-   * themselves, rather than assignment date or
-   * teacher assignment date.
-   */
-  const total = enrollmentLessons.reduce(
-    (highestLessonNumber, lesson) => {
-      const lessonNumber = Number(
-        lesson.lesson_number
-      );
-
-      if (Number.isNaN(lessonNumber)) {
-        return highestLessonNumber;
-      }
-
-      return Math.max(
-        highestLessonNumber,
-        lessonNumber
-      );
-    },
-    0
-  );
-
-  return {
-    consumed,
-    total,
-  };
+  return progress.find((item) => item.enrollment_id === enrollmentId) ?? null;
 }
 
 /* ========================================================================= */
@@ -1001,6 +951,8 @@ export default function ManageTeacherPage() {
     teacherLessons,
     setTeacherLessons,
   ] = useState<TeacherLessonProgress[]>([]);
+
+  const [progressState, setProgressState] = useState<"loading" | "ready" | "error">("loading");
 
   const [loading, setLoading] = useState(true);
 
@@ -1189,91 +1141,27 @@ export default function ManageTeacherPage() {
   /* ----------------------------------------------------------------------- */
 
   async function loadTeacherLessons() {
+    setProgressState("loading");
     try {
-      /*
-       * IMPORTANT:
-       *
-       * Do NOT use:
-       *
-       * /api/admin/teachers/lessons
-       *
-       * That route is scoped to the logged-in teacher.
-       *
-       * This page is the Owner/Admin teacher-management
-       * page, so progress is loaded through the
-       * teacher-specific Owner/Admin endpoint.
-       */
-      const response = await fetch(
-        `/api/admin/teachers/${teacherId}/progress`,
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
-
+      const response = await fetch(`/api/admin/teachers/${teacherId}/progress`, {
+        method: "GET", cache: "no-store",
+      });
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Unable to load teacher lesson progress."
-        );
+      if (!response.ok || !Array.isArray(data.progress)) {
+        throw new Error(data.error || "Unable to load attendance progress.");
       }
-
-      const lessons = Array.isArray(
-        data.lessons
-      )
-        ? data.lessons
-        : [];
-
-      const progressLessons: TeacherLessonProgress[] =
-        lessons
-          .filter(
-            (lesson: unknown) =>
-              lesson &&
-              typeof lesson === "object"
-          )
-          .map(
-            (
-              lesson: Record<string, unknown>
-            ) => ({
-              enrollment_id:
-                String(
-                  lesson.enrollment_id || ""
-                ),
-
-              lesson_number: Number(
-                lesson.lesson_number || 0
-              ),
-
-              consumes_lesson:
-                lesson.consumes_lesson === true,
-            })
-          )
-          .filter(
-            (
-              lesson: TeacherLessonProgress
-            ) =>
-              lesson.enrollment_id &&
-              lesson.lesson_number > 0
-          );
-
-      setTeacherLessons(
-        progressLessons
+      const valid = data.progress.every((item: TeacherLessonProgress) =>
+        item && typeof item.enrollment_id === "string" &&
+        Number.isFinite(item.consumed) && item.consumed >= 0 &&
+        Number.isFinite(item.total) && item.total >= 0
       );
-    } catch (err) {
-      console.error(
-        "Error loading teacher lesson progress:",
-        err
-      );
-
-      /*
-       * Progress is supplementary information.
-       *
-       * We do not prevent the teacher management
-       * page from loading if lesson progress fails.
-       */
+      if (!valid) throw new Error("Invalid attendance progress data.");
+      setTeacherLessons(data.progress);
+      setProgressState("ready");
+    } catch (error) {
+      console.error("Error loading teacher lesson progress:", error);
       setTeacherLessons([]);
+      setProgressState("error");
     }
   }
 
@@ -2984,7 +2872,7 @@ export default function ManageTeacherPage() {
                       );
 
                     const progressPercent =
-                      progress.total > 0
+                      progress && progress.total > 0
                         ? Math.min(
                             100,
                             Math.round(
@@ -3078,10 +2966,12 @@ export default function ManageTeacherPage() {
                         {/* ================================================= */}
 
                         <td className="px-3 py-4 sm:py-[18px]">
+                          {progressState === "ready" && progress ? (
+                            <>
                           <div className="flex min-w-[145px] items-center gap-3">
                             <div
                               className="h-[5px] flex-1 overflow-hidden rounded-full bg-[#E5E1DB]"
-                              aria-label={`${progress.consumed} of ${progress.total} classes completed`}
+                              aria-label={`${progress.consumed} of ${progress.total} lessons used`}
                             >
                               <div
                                 className="h-full rounded-full bg-[#6F8F72] transition-[width] duration-300"
@@ -3101,6 +2991,16 @@ export default function ManageTeacherPage() {
                             <p className="mt-1.5 font-sans text-[8px] uppercase tracking-[0.1em] text-[#9A9790]">
                               {progressPercent}%
                             </p>
+                          )}
+                            </>
+                          ) : (
+                            <div className="text-xs text-[#777]" role="status">
+                              {progressState === "loading" ? "Loading progress…" : "Progress unavailable"}
+                              {progressState !== "loading" && (
+                                <button type="button" onClick={() => void loadTeacherLessons()}
+                                  className="ml-2 underline text-[#607963]">Retry</button>
+                              )}
+                            </div>
                           )}
                         </td>
 

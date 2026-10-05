@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /* ========================================================================= */
 /* TYPES                                                                     */
@@ -151,8 +152,7 @@ export async function GET(
     }
 
     if (
-      profile.status &&
-      String(profile.status).toLowerCase() !==
+      String(profile.status || "").toLowerCase() !==
         "active"
     ) {
       return NextResponse.json(
@@ -165,6 +165,9 @@ export async function GET(
       );
     }
 
+    // Privileged reads begin only after authenticated, active owner/admin checks.
+    const dataClient = createAdminClient();
+
     /* --------------------------------------------------------------------- */
     /* VERIFY TEACHER                                                        */
     /* --------------------------------------------------------------------- */
@@ -172,7 +175,7 @@ export async function GET(
     const {
       data: teacher,
       error: teacherError,
-    } = await supabase
+    } = await dataClient
       .from("profiles")
       .select("id, role, status")
       .eq("id", teacherId)
@@ -212,7 +215,7 @@ export async function GET(
     const {
       data: rawAssignments,
       error: assignmentsError,
-    } = await supabase
+    } = await dataClient
       .from("teacher_assignments")
       .select(
         "id, enrollment_student_id, teacher_id, status"
@@ -294,6 +297,7 @@ export async function GET(
     if (assignments.length === 0) {
       return NextResponse.json({
         lessons: [],
+        progress: [],
       });
     }
 
@@ -312,7 +316,7 @@ export async function GET(
     const {
       data: rawEnrollmentStudents,
       error: enrollmentStudentsError,
-    } = await supabase
+    } = await dataClient
       .from("enrollment_students")
       .select("id, enrollment_id")
       .in(
@@ -401,6 +405,7 @@ export async function GET(
     ) {
       return NextResponse.json({
         lessons: [],
+        progress: [],
       });
     }
 
@@ -408,105 +413,58 @@ export async function GET(
     /* ACTUAL LESSON RECORDS                                                 */
     /* --------------------------------------------------------------------- */
 
-    const {
-      data: rawLessons,
-      error: lessonsError,
-    } = await supabase
-      .from("lessons")
-      .select(
-        "enrollment_id, lesson_number, consumes_lesson"
-      )
-      .in(
-        "enrollment_id",
-        uniqueEnrollmentIds
-      )
-      .order(
-        "enrollment_id",
-        {
-          ascending: true,
-        }
-      )
-      .order(
-        "lesson_number",
-        {
-          ascending: true,
-        }
-      );
-
-    if (lessonsError) {
-      console.error(
-        "Error loading lesson progress:",
-        lessonsError
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Unable to load lesson progress.",
-        },
-        {
-          status: 500,
-        }
-      );
+    const { data: packages, error: packagesError } = await dataClient
+      .from("enrollments")
+      .select("id, number_of_lessons")
+      .in("id", uniqueEnrollmentIds);
+    if (packagesError) throw packagesError;
+    if ((packages || []).length !== uniqueEnrollmentIds.length) {
+      throw new Error("Incomplete enrollment progress data.");
     }
 
-    /* --------------------------------------------------------------------- */
-    /* NORMALIZE LESSONS                                                     */
-    /* --------------------------------------------------------------------- */
+    // Fetch every attendance row, including unnumbered records, in stable pages.
+    const attendance: {
+      enrollment_id: string;
+      lesson_number: number | null;
+      consumes_lesson: boolean | null;
+      attendance_status: string | null;
+      resolution: string | null;
+    }[] = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data: rows, error } = await dataClient.from("lessons")
+        .select("id, enrollment_id, lesson_number, consumes_lesson, attendance_status, resolution")
+        .in("enrollment_id", uniqueEnrollmentIds)
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      attendance.push(...(rows || []));
+      if (!rows || rows.length < pageSize) break;
+    }
 
-    const lessons: LessonProgress[] =
-      Array.isArray(rawLessons)
-        ? rawLessons
-            .filter(
-              (
-                item: unknown
-              ): item is Record<
-                string,
-                unknown
-              > =>
-                Boolean(
-                  item &&
-                    typeof item ===
-                      "object"
-                )
-            )
-            .map(
-              (
-                item: Record<
-                  string,
-                  unknown
-                >
-              ): LessonProgress => ({
-                enrollment_id:
-                  String(
-                    item.enrollment_id ||
-                      ""
-                  ),
-                lesson_number:
-                  Number(
-                    item.lesson_number ||
-                      0
-                  ),
-                consumes_lesson:
-                  item.consumes_lesson ===
-                  true,
-              })
-            )
-            .filter(
-              (
-                item: LessonProgress
-              ) =>
-                item.enrollment_id &&
-                item.lesson_number > 0
-            )
-        : [];
+    // Match Overview exactly: attendance is the source of truth for usage.
+    const progress = (packages || []).map((enrollment) => ({
+      enrollment_id: enrollment.id,
+      total: enrollment.number_of_lessons ?? 0,
+      consumed: attendance.filter((lesson) =>
+        lesson.enrollment_id === enrollment.id && (
+          lesson.attendance_status === "completed" ||
+          lesson.attendance_status === "no_show" ||
+          lesson.attendance_status === "late_cancellation" ||
+          (lesson.attendance_status === "unexpected_circumstance" &&
+           lesson.resolution === "counted_as_completed")
+        )
+      ).length,
+    }));
 
-    /* --------------------------------------------------------------------- */
-    /* RETURN                                                               */
-    /* --------------------------------------------------------------------- */
-
-    return NextResponse.json({
-      lessons,
+    // Retain the existing lessons response for compatibility with other callers.
+    const lessons: LessonProgress[] = attendance.map((lesson) => ({
+      enrollment_id: lesson.enrollment_id,
+      lesson_number: Number(lesson.lesson_number || 0),
+      consumes_lesson: lesson.consumes_lesson === true,
+    })).filter((lesson) => lesson.lesson_number > 0);
+    return NextResponse.json({ lessons, progress }, {
+      headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
     console.error(
