@@ -1,7 +1,7 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { notFound, redirect } from "next/navigation";
+import { requireOwnerDataClient } from "@/lib/supabase/owner-data";
 import PrintButton from "./PrintButton";
 
 interface ContractPageProps {
@@ -35,7 +35,7 @@ export default async function ContractPage({
 }: ContractPageProps) {
   const { locale, id, contractId } = await params;
 
-  const supabase = await createClient();
+  const supabase = await requireOwnerDataClient(locale);
 
   /* ---------------------------------------------------------------------- */
   /* LOAD STUDENT                                                           */
@@ -48,11 +48,13 @@ export default async function ContractPage({
     .from("students")
     .select("id, full_name, timezone")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
-  if (studentError || !student) {
-    notFound();
+  if (studentError) {
+    console.error("Owner contract student lookup failed:", studentError);
+    throw new Error("Unable to load contract student data.");
   }
+  if (!student) notFound();
 
   /* ---------------------------------------------------------------------- */
   /* LOAD CONTRACT + ENROLLMENT                                             */
@@ -83,18 +85,37 @@ export default async function ContractPage({
       )
     `)
     .eq("id", contractId)
-    .single();
+    .maybeSingle();
 
-  if (contractError || !contract) {
-    notFound();
+  if (contractError) {
+    console.error("Owner contract contract lookup failed:", contractError);
+    throw new Error("Unable to load contract contract data.");
   }
+  if (!contract) notFound();
 
   const enrollment = Array.isArray(contract.enrollment)
     ? contract.enrollment[0]
     : contract.enrollment;
 
-  if (!enrollment || enrollment.student_id !== id) {
-    notFound();
+  if (!enrollment) notFound();
+
+  if (enrollment.student_id !== id) {
+    const { data: participant, error: participantError } = await supabase
+      .from("enrollment_students")
+      .select("student_id")
+      .eq("enrollment_id", enrollment.id)
+      .eq("student_id", id)
+      .limit(1)
+      .maybeSingle();
+
+    if (participantError) {
+      console.error("Owner contract membership lookup failed:", participantError);
+      throw new Error("Unable to verify the contract participant.");
+    }
+    if (!participant) notFound();
+
+    // The enrollment contract page renders all shared participants correctly.
+    redirect(`/${locale}/admin/students/${id}/enrollments/${enrollment.id}/contract`);
   }
 
   /* ---------------------------------------------------------------------- */
@@ -126,6 +147,7 @@ export default async function ContractPage({
       "Error loading enrollment schedules for contract:",
       enrollmentScheduleError
     );
+    throw new Error("Unable to load contract schedules.");
   }
 
   const enrollmentSchedules =

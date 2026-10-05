@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireOwnerDataClient } from "@/lib/supabase/owner-data";
 import PrintButton from "./PrintButton";
 
 interface ContractPageProps {
@@ -60,7 +60,7 @@ export default async function ContractPage({
 }: ContractPageProps) {
   const { locale, id, enrollmentId } = await params;
 
-  const supabase = await createClient();
+  const supabase = await requireOwnerDataClient(locale);
 
   /* ---------------------------------------------------------------------- */
   /* CURRENT STUDENT                                                         */
@@ -73,11 +73,13 @@ export default async function ContractPage({
     .from("students")
     .select("id, full_name, preferred_name, timezone")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
-  if (studentError || !student) {
-    notFound();
+  if (studentError) {
+    console.error("Owner contract student lookup failed:", studentError);
+    throw new Error("Unable to load contract student data.");
   }
+  if (!student) notFound();
 
   /* ---------------------------------------------------------------------- */
   /* ENROLLMENT                                                              */
@@ -119,11 +121,13 @@ export default async function ContractPage({
       schedule_time
     `)
     .eq("id", enrollmentId)
-    .single();
+    .maybeSingle();
 
-  if (enrollmentError || !enrollment) {
-    notFound();
+  if (enrollmentError) {
+    console.error("Owner contract enrollment lookup failed:", enrollmentError);
+    throw new Error("Unable to load contract enrollment data.");
   }
+  if (!enrollment) notFound();
 
   /* ---------------------------------------------------------------------- */
   /* SHARED PARTICIPANTS                                                     */
@@ -144,6 +148,7 @@ export default async function ContractPage({
       "Contract enrollment_students error:",
       participantsError
     );
+    throw new Error("Unable to load contract participants.");
   }
 
   /*
@@ -210,10 +215,14 @@ export default async function ContractPage({
         "Contract participant students error:",
         participantStudentsError
       );
+    throw new Error("Unable to load contract participant details.");
     }
 
     participants =
       (participantStudents ?? []) as Participant[];
+    if (participants.length !== participantIds.length) {
+      throw new Error("Some contract participant details could not be loaded.");
+    }
   }
 
   /*
@@ -308,6 +317,7 @@ export default async function ContractPage({
       "Contract enrollment_schedules error:",
       scheduleError
     );
+    throw new Error("Unable to load contract schedules.");
   }
 
   const enrollmentSchedules: EnrollmentSchedule[] =
@@ -330,11 +340,13 @@ export default async function ContractPage({
       accepted_by_relationship
     `)
     .eq("enrollment_id", enrollmentId)
-    .single();
+    .maybeSingle();
 
-  if (contractError || !contract) {
-    notFound();
+  if (contractError) {
+    console.error("Owner contract contract lookup failed:", contractError);
+    throw new Error("Unable to load contract contract data.");
   }
+  if (!contract) notFound();
 
   /* ---------------------------------------------------------------------- */
   /* BASIC VALUES                                                            */
