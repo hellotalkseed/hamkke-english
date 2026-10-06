@@ -17,7 +17,7 @@ const contentSecurityPolicy = `
   img-src 'self' data: blob: ${supabaseOrigin};
   font-src 'self' data:;
   connect-src 'self' ${supabaseOrigin} ${turnstileOrigin};
-  frame-src ${turnstileOrigin};
+  frame-src 'self' ${turnstileOrigin};
   media-src 'self' ${supabaseOrigin};
   worker-src 'self' blob:;
   manifest-src 'self';
