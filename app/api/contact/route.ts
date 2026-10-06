@@ -207,38 +207,71 @@ if (!verification.success) {
   );
 }
     const safeEmail = escapeHtml(email);
-    const safeContactMethod =
-      escapeHtml(contactMethod);
-    const safeContactId = escapeHtml(contactId);
-    const safeLevel = escapeHtml(level);
-    const safeGoal = escapeHtml(goal);
-    const safeInquirySource =
-      escapeHtml(inquirySource);
     const safeMessage = escapeHtml(message)
       .replace(/\r?\n/g, "<br />");
+    const optionalDetails = [
+      { label: "English level", value: level },
+      { label: "Learning goal", value: goal },
+    ].filter((item) => item.value);
+    const detailRows = [
+      { label: "Name", value: name },
+      { label: "Email", value: email },
+      { label: "Preferred contact", value: "Email" },
+      ...optionalDetails,
+    ];
+    const detailsHtml = detailRows.map((item) => `
+      <tr>
+        <td style="padding:8px 0;vertical-align:top;">
+          <div style="font-size:12px;line-height:18px;color:#647568;">${escapeHtml(item.label)}</div>
+          <div style="font-size:15px;line-height:23px;color:#293B30;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(item.value).replace(/\r?\n/g, "<br />")}</div>
+        </td>
+      </tr>`).join("");
+    const subjectName = name.replace(/[\r\n]+/g, " ");
 
     const { error: resendError } =
       await resend.emails.send({
         from: "Hamkke <hello@hamkkeenglish.com>",
         to: "hamkke.english@gmail.com",
         replyTo: email,
-        subject: `New Hamkke Inquiry from ${name}`,
-        html: `
-          <h2>New Hamkke Inquiry</h2>
-
-          <p><strong>Name:</strong> ${safeName}</p>
-          <p><strong>Email:</strong> ${safeEmail}</p>
-          <p><strong>Preferred Contact Method:</strong> ${safeContactMethod}</p>
-          <p><strong>Contact ID:</strong> ${safeContactId || "Not provided"}</p>
-          <p><strong>English Level:</strong> ${safeLevel || "Not provided"}</p>
-          <p><strong>Learning Goal:</strong> ${safeGoal || "Not provided"}</p>
-          <p><strong>Inquiry Source:</strong> ${safeInquirySource}</p>
-
-          <hr />
-
-          <p><strong>Message:</strong></p>
-          <p>${safeMessage}</p>
-        `,
+        subject: `New Contact Message from ${subjectName} | Hamkke`,
+        text: [
+          "HAMKKE | 함께",
+          "New Contact Message",
+          "",
+          ...detailRows.map((item) => `${item.label}: ${item.value}`),
+          "",
+          "Message",
+          message,
+          "",
+          "Sent through the Hamkke contact form.",
+          "Use Reply to respond directly to the sender.",
+        ].join("\n"),
+        html: `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#F4F5F0;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F4F5F0;">
+    <tr><td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#FFFDF8;border:1px solid #DEE5D9;border-radius:16px;">
+        <tr><td style="padding:28px 24px;background-color:#E8EEE2;border-bottom:1px solid #DEE5D9;border-radius:16px 16px 0 0;">
+          <div style="font-size:13px;letter-spacing:2px;line-height:20px;color:#506B56;">HAMKKE | 함께</div>
+          <h1 style="margin:12px 0 0;font-family:Georgia,serif;font-size:27px;line-height:35px;font-weight:normal;color:#293B30;">New Contact Message</h1>
+        </td></tr>
+        <tr><td style="padding:20px 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${detailsHtml}</table>
+        </td></tr>
+        <tr><td style="padding:0 24px 28px;">
+          <h2 style="margin:0 0 12px;font-size:16px;line-height:24px;color:#293B30;">Message</h2>
+          <div style="padding:18px;background-color:#F2F5EE;border:1px solid #DEE5D9;border-radius:10px;font-size:16px;line-height:26px;color:#293B30;overflow-wrap:anywhere;word-break:break-word;">${safeMessage}</div>
+        </td></tr>
+        <tr><td style="padding:18px 24px;border-top:1px solid #DEE5D9;font-size:12px;line-height:20px;color:#647568;">
+          Sent through the Hamkke contact form.<br />Use Reply to respond directly to ${safeName} (${safeEmail}).
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
       });
 
     if (resendError) {
