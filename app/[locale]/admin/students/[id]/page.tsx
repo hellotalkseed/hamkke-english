@@ -1,3 +1,6 @@
+import ContractLink from "@/components/admin/ContractLink";
+import ContractModal from "@/components/admin/ContractModal";
+import IndividualContractDocument from "@/components/admin/contracts/IndividualContractDocument";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -18,6 +21,8 @@ import PrintableAttendance from "@/components/admin/PrintableAttendance";
 import RenewEnrollmentButton from "@/components/admin/RenewEnrollmentButton";
 import StudentPortalInviteButton from "@/components/admin/StudentPortalInviteButton";
 import type { ReactNode } from "react";
+import EnrollmentTable from "@/components/admin/EnrollmentTable";
+import AttendancePrintDocument from "@/components/admin/AttendancePrintDocument";
 
 interface StudentPageProps {
   params: Promise<{
@@ -26,6 +31,7 @@ interface StudentPageProps {
   }>;
   searchParams: Promise<{
     enrollmentId?: string;
+    contractId?: string;
   }>;
 }
 
@@ -155,7 +161,7 @@ export default async function StudentPage({
   searchParams,
 }: StudentPageProps) {
   const { locale, id } = await params;
-  const { enrollmentId } = await searchParams;
+  const { enrollmentId, contractId } = await searchParams;
 
   const supabase = await requireOwnerDataClient(locale);
 
@@ -584,6 +590,8 @@ export default async function StudentPage({
     ...new Set(participantStudentIds),
   ];
 
+  let participantPrintMap: Record<string, string> = {};
+  let participantTimezoneMap: Record<string, string> = {};
   let participantMap: Record<
     string,
     string
@@ -600,7 +608,8 @@ export default async function StudentPage({
       .select(`
         id,
         full_name,
-        preferred_name
+        preferred_name,
+        timezone
       `)
       .in(
         "id",
@@ -613,6 +622,8 @@ export default async function StudentPage({
         participantStudentsError
       );
     } else {
+      participantPrintMap = Object.fromEntries((participantStudents ?? []).map(p => [p.id, p.full_name]));
+      participantTimezoneMap = Object.fromEntries((participantStudents ?? []).map(p => [p.id, p.timezone || ""]));
       participantMap = Object.fromEntries(
         (
           participantStudents ?? []
@@ -801,12 +812,7 @@ export default async function StudentPage({
         (enrollment) =>
           enrollment.id === enrollmentId
       )
-    : sortedEnrollments.find(
-        (enrollment) =>
-          enrollment.status === "active"
-      ) ??
-      sortedEnrollments[0] ??
-      null;
+    : null;
 
   if (enrollmentId && !selectedEnrollment) {
     notFound();
@@ -814,13 +820,6 @@ export default async function StudentPage({
 
   const currentEnrollment =
     selectedEnrollment;
-
-  const enrollmentHistory =
-    sortedEnrollments.filter(
-      (enrollment) =>
-        enrollment.id !==
-        currentEnrollment?.id
-    );
 
   /* ------------------------------------------------------------------------ */
   /* 9. CURRENT ENROLLMENT PARTICIPANTS                                       */
@@ -969,12 +968,12 @@ export default async function StudentPage({
             (schedule) =>
               schedule.enrollment_id ===
                 currentEnrollment.id &&
-              Boolean(schedule.student_id)
+              (Boolean(schedule.student_id) || !currentEnrollment.isShared)
           )
           .map(
             (schedule) => ({
               student_id:
-                schedule.student_id!,
+                schedule.student_id || currentEnrollment.student_id || student.id,
               student_name:
                 participantMap[
                   schedule.student_id!
@@ -1003,7 +1002,7 @@ export default async function StudentPage({
   /* 14. PAYMENT HISTORY                                                       */
   /* ------------------------------------------------------------------------ */
 
-  const paymentHistory = enrollments
+  const paymentHistory = (currentEnrollment ? [currentEnrollment] : [])
     .flatMap((enrollment) =>
       Array.isArray(enrollment.payments)
         ? enrollment.payments.map(
@@ -1014,13 +1013,14 @@ export default async function StudentPage({
           )
         : []
     )
-    .sort(comparePaymentHistory);
+    .sort(comparePaymentHistory)
+    .filter((payment) => payment.id !== currentPayment?.id);
 
   /* ------------------------------------------------------------------------ */
   /* 15. CONTRACT HISTORY                                                      */
   /* ------------------------------------------------------------------------ */
 
-  const contractHistory = enrollments
+  const contractHistory = (currentEnrollment ? [currentEnrollment] : [])
     .flatMap((enrollment) => {
       const enrollmentContracts =
         normalizeContracts(
@@ -1034,7 +1034,8 @@ export default async function StudentPage({
         })
       );
     })
-    .sort(compareContractHistory);
+    .sort(compareContractHistory)
+    .filter((contract) => contract.id !== (currentEnrollment ? getEnrollmentContract(currentEnrollment)?.id : undefined));
 
   /* ------------------------------------------------------------------------ */
   /* 16. CURRENT CONTRACT                                                      */
@@ -1174,27 +1175,24 @@ export default async function StudentPage({
         </div>
       </section>
 
+      {contractId && (
+        <ContractModal>
+          <IndividualContractDocument embedded params={Promise.resolve({ locale, id: student.id, contractId })} />
+        </ContractModal>
+      )}
+
       {/* PRINTABLE ATTENDANCE */}
-      {currentEnrollment && (
-        <div className="hidden print:block">
+      {currentEnrollment && !contractId && (
+        <AttendancePrintDocument>
           <PrintableAttendance
-            studentName={
-              student.preferred_name ||
-              student.full_name
-            }
-            enrollment={currentEnrollment}
+            studentName={student.full_name}
+            enrollment={{ ...currentEnrollment, is_shared: currentEnrollment.isShared }}
             lessons={printableLessons}
-            participantNames={
-              printableParticipantNames
-            }
-            participantNameById={
-              participantMap
-            }
-            participantSchedules={
-              printableParticipantSchedules
-            }
+            participantNames={uniqueCurrentEnrollmentParticipantIds.map(id => participantPrintMap[id] || participantMap[id] || "Participant")}
+            participantNameById={Object.fromEntries(uniqueCurrentEnrollmentParticipantIds.map(id => [id, participantPrintMap[id] || participantMap[id] || "Participant"]))}
+            participantSchedules={printableParticipantSchedules.map(row => ({ ...row, student_name: participantPrintMap[row.student_id] || row.student_name, timezone: participantTimezoneMap[row.student_id] || student.timezone || undefined }))}
           />
-        </div>
+        </AttendancePrintDocument>
       )}
 
       {/* SCREEN CONTENT */}
@@ -1294,9 +1292,34 @@ export default async function StudentPage({
           </div>
         </section>
 
+        <section className="border-t border-[#DCD8D2] py-8">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+            <SectionHeading icon={<BookOpen size={17} strokeWidth={1.5} />} title="Enrollments" />
+            <Link href={`/${locale}/admin/students/${student.id}/enrollments/new`} className="rounded-full bg-[#6F8F72] px-5 py-2.5 font-sans text-sm font-medium text-white hover:bg-[#5E7C61]">+ New Enrollment</Link>
+          </div>
+          <p className="mb-4 font-sans text-sm text-[#777771]">All enrollments, newest first.</p>
+          <EnrollmentTable
+            selectedId={currentEnrollment?.id ?? null}
+            studentName={student.preferred_name || student.full_name}
+            rows={sortedEnrollments.map((enrollment) => {
+              const latestPayment = [...enrollment.payments].sort(comparePayments)[0];
+              const contract = getEnrollmentContract(enrollment);
+              return {
+                id: enrollment.id,
+                number: enrollment.enrollment_number || "Enrollment",
+                kind: [enrollment.renewal_of ? "Renewal" : "", enrollment.isShared ? "Shared" : ""].filter(Boolean).join(" · "),
+                contractNumber: contract?.contract_number ?? null,
+                contractHref: contract ? `/${locale}/admin/students/${student.id}/contracts/${contract.id}` : null,
+                status: formatEnrollmentStatus(enrollment.status),
+                payment: latestPayment ? formatCurrency(latestPayment.amount ?? latestPayment.amount_krw ?? latestPayment.amount_php, latestPayment.currency ?? (latestPayment.amount_php != null ? "PHP" : "KRW")) : "Not recorded",
+              };
+            })}
+          >
+            {currentEnrollment && (
+              <>
         {/* ENROLLMENT */}
-        <section className="border-t border-[#DCD8D2] py-10">
-          <div className="flex items-center justify-between gap-6">
+        <section className="border-t border-[#DCD8D2] py-5">
+          <div className="flex items-center justify-between gap-4">
             <SectionHeading
               icon={
                 <BookOpen
@@ -1304,7 +1327,7 @@ export default async function StudentPage({
                   strokeWidth={1.5}
                 />
               }
-              title="Enrollment"
+              title="Package & schedule"
             />
 
             {currentEnrollment ? (
@@ -1340,13 +1363,7 @@ export default async function StudentPage({
             ) : (
               <Link
                 href={`/${locale}/admin/students/${student.id}/enrollments/new`}
-                className="
-                  font-sans
-                  text-sm
-                  text-[#6F8F72]
-                  transition-colors
-                  hover:text-[#5F655F]
-                "
+                className="font-sans text-sm text-[#6F8F72] transition-colors hover:text-[#5F655F]"
               >
                 + New Enrollment
               </Link>
@@ -1355,112 +1372,21 @@ export default async function StudentPage({
 
           {currentEnrollment ? (
             <div
-              className="
-                mt-8
-                rounded-2xl
-                bg-[#F0F4ED]
-                p-6
-                sm:p-8
-              "
+              className="mt-4 rounded-2xl bg-[#F0F4ED] p-4 sm:p-5"
             >
               <div
-                className="
-                  flex
-                  flex-col
-                  gap-6
-                  sm:flex-row
-                  sm:items-start
-                  sm:justify-between
-                "
+                className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
               >
                 <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p
-                      className="
-                        font-sans
-                        text-[11px]
-                        font-medium
-                        uppercase
-                        tracking-[0.14em]
-                        text-[#6F8F72]
-                      "
-                    >
-                      {currentEnrollment.renewal_of
-                        ? "Renewal"
-                        : currentEnrollment.isShared
-                        ? "Shared Enrollment"
-                        : "Package"}
-                    </p>
-
-                    {currentEnrollment.isShared && (
-                      <span
-                        className="
-                          rounded-full
-                          bg-white
-                          px-3
-                          py-1
-                          font-sans
-                          text-[10px]
-                          font-medium
-                          uppercase
-                          tracking-[0.08em]
-                          text-[#6F8F72]
-                        "
-                      >
-                        Shared
-                      </span>
-                    )}
-                  </div>
-
                   <h3
-                    className="
-                      mt-2
-                      font-serif
-                      text-[28px]
-                      font-normal
-                    "
+                    className="mt-2 font-serif text-[28px] font-normal"
                   >
                     {currentEnrollment.package_name}
                   </h3>
 
-                  {currentEnrollment.enrollment_number && (
-                    <p
-                      className="
-                        mt-2
-                        font-sans
-                        text-[11px]
-                        uppercase
-                        tracking-[0.08em]
-                        text-[#8A8A84]
-                      "
-                    >
-                      {
-                        currentEnrollment.enrollment_number
-                      }
-                    </p>
-                  )}
-
-                  {currentEnrollment.renewal_of && (
-                    <p
-                      className="
-                        mt-2
-                        font-sans
-                        text-[12px]
-                        text-[#777771]
-                      "
-                    >
-                      Renewal of a previous enrollment
-                    </p>
-                  )}
-
                   {currentEnrollment.isShared && (
                     <p
-                      className="
-                        mt-2
-                        font-sans
-                        text-[12px]
-                        text-[#777771]
-                      "
+                      className="mt-2 font-sans text-[12px] text-[#777771]"
                     >
                       This enrollment is shared with
                       other participant(s).
@@ -1469,20 +1395,7 @@ export default async function StudentPage({
                 </div>
 
                 <span
-                  className="
-                    inline-flex
-                    w-fit
-                    rounded-full
-                    bg-white
-                    px-4
-                    py-2
-                    font-sans
-                    text-[11px]
-                    font-medium
-                    uppercase
-                    tracking-[0.12em]
-                    text-[#6F8F72]
-                  "
+                  className="inline-flex w-fit rounded-full bg-white px-4 py-2 font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]"
                 >
                   {formatEnrollmentStatus(
                     currentEnrollment.status
@@ -1490,19 +1403,13 @@ export default async function StudentPage({
                 </span>
               </div>
 
+              <p className="mt-3 font-sans text-[12px] text-[#777771]">
+                Schedule timezone: {formatTimezoneForDisplay(student.timezone)}
+                {currentEnrollment.isShared && <> · Participants: {printableParticipantNames.join(", ")}</>}
+              </p>
               {/* ENROLLMENT DETAILS */}
               <div
-                className="
-                  mt-8
-                  grid
-                  gap-x-8
-                  gap-y-7
-                  border-t
-                  border-[#D8E1D3]
-                  pt-7
-                  sm:grid-cols-2
-                  lg:grid-cols-3
-                "
+                className="mt-4 grid gap-x-8 gap-y-4 border-t border-[#D8E1D3] pt-4 sm:grid-cols-2 lg:grid-cols-3"
               >
                 <DetailItem
                   icon={
@@ -1553,6 +1460,7 @@ export default async function StudentPage({
                   )}
                 />
 
+                {(!currentPayment || (currentEnrollment.tuition_amount ?? currentEnrollment.tuition_amount_krw ?? currentEnrollment.tuition_amount_php) !== currentPayment.amount || (currentEnrollment.currency ?? "KRW") !== (currentPayment.currency ?? "KRW")) && (
                 <DetailItem
                   icon={
                     <CreditCard
@@ -1560,7 +1468,7 @@ export default async function StudentPage({
                       strokeWidth={1.5}
                     />
                   }
-                  label="Tuition"
+                  label="Agreed tuition"
                   value={formatCurrency(
                     currentEnrollment.tuition_amount ??
                       currentEnrollment.tuition_amount_krw ??
@@ -1571,68 +1479,22 @@ export default async function StudentPage({
                         : "KRW")
                   )}
                 />
+                )}
               </div>
 
-              {/* STATS */}
-              <div
-                className="
-                  mt-8
-                  grid
-                  gap-6
-                  border-t
-                  border-[#D8E1D3]
-                  pt-7
-                  sm:grid-cols-3
-                "
-              >
-                <Stat
-                  label="Total"
-                  value={totalLessons}
-                  suffix="lessons"
-                />
-
-                <Stat
-                  label="Completed"
-                  value={completedLessons}
-                  suffix="lessons"
-                />
-
-                <Stat
-                  label="Remaining"
-                  value={remainingLessons}
-                  suffix="lessons"
-                />
-              </div>
             </div>
           ) : (
             <div
-              className="
-                mt-8
-                border
-                border-dashed
-                border-[#CFCBC4]
-                px-6
-                py-12
-                text-center
-              "
+              className="mt-4 border border-dashed border-[#CFCBC4] px-6 py-12 text-center"
             >
               <p
-                className="
-                  font-serif
-                  text-[21px]
-                  text-[#4A4A4A]
-                "
+                className="font-serif text-[21px] text-[#4A4A4A]"
               >
                 No enrollment yet
               </p>
 
               <p
-                className="
-                  mt-2
-                  font-sans
-                  text-sm
-                  text-[#8A8A84]
-                "
+                className="mt-2 font-sans text-sm text-[#8A8A84]"
               >
                 This student can be enrolled once
                 their record is ready.
@@ -1640,69 +1502,11 @@ export default async function StudentPage({
             </div>
           )}
 
-          {/* OTHER ENROLLMENTS */}
-          {enrollmentHistory.length > 0 && (
-            <div className="mt-12 border-t border-[#DCD8D2] pt-10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p
-                    className="
-                      font-sans
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.14em]
-                      text-[#6F8F72]
-                    "
-                  >
-                    History
-                  </p>
-
-                  <h3
-                    className="
-                      mt-2
-                      font-serif
-                      text-[25px]
-                      font-normal
-                    "
-                  >
-                    Other Enrollments
-                  </h3>
-                </div>
-
-                <span
-                  className="
-                    font-sans
-                    text-[12px]
-                    text-[#8A8A84]
-                  "
-                >
-                  {enrollmentHistory.length}{" "}
-                  {enrollmentHistory.length === 1
-                    ? "record"
-                    : "records"}
-                </span>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {enrollmentHistory.map(
-                  (enrollment) => (
-                    <EnrollmentHistoryRow
-                      key={enrollment.id}
-                      enrollment={enrollment}
-                      locale={locale}
-                      studentId={student.id}
-                    />
-                  )
-                )}
-              </div>
-            </div>
-          )}
         </section>
 
         {/* CONTRACT */}
-        <section className="border-t border-[#DCD8D2] py-10">
-          <div className="flex items-center justify-between gap-6">
+        <section className="border-t border-[#DCD8D2] py-5">
+          <div className="flex items-center justify-between gap-4">
             <SectionHeading
               icon={
                 <FileText
@@ -1714,62 +1518,38 @@ export default async function StudentPage({
             />
 
             {currentEnrollment && (
+              currentEnrollmentContract ? (
+              <ContractLink
+                contractId={currentEnrollmentContract.id}
+                className="inline-flex items-center rounded-full bg-[#6F8F72] px-5 py-2.5 font-sans text-sm font-medium text-white transition-opacity hover:opacity-85"
+              >
+                {enrollmentIsConfirmed
+                  ? "View Contract"
+                  : "Prepare Contract"}
+              </ContractLink>
+              ) : (
               <Link
                 href={`/${locale}/admin/students/${student.id}/enrollments/${currentEnrollment.id}/contract`}
-                className="
-                  inline-flex
-                  items-center
-                  rounded-full
-                  bg-[#6F8F72]
-                  px-5
-                  py-2.5
-                  font-sans
-                  text-sm
-                  font-medium
-                  text-white
-                  transition-opacity
-                  hover:opacity-85
-                "
+                className="inline-flex items-center rounded-full bg-[#6F8F72] px-5 py-2.5 font-sans text-sm font-medium text-white transition-opacity hover:opacity-85"
               >
                 {enrollmentIsConfirmed
                   ? "View Contract"
                   : "Prepare Contract"}
               </Link>
+              )
             )}
           </div>
 
           {currentEnrollment ? (
             <div
-              className="
-                mt-8
-                rounded-2xl
-                border
-                border-[#DCD8D2]
-                bg-white/40
-                p-6
-                sm:p-8
-              "
+              className="mt-4 rounded-2xl border border-[#DCD8D2] bg-white/40 p-4 sm:p-5"
             >
               <div
-                className="
-                  flex
-                  flex-col
-                  gap-6
-                  sm:flex-row
-                  sm:items-start
-                  sm:justify-between
-                "
+                className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
               >
                 <div>
                   <p
-                    className="
-                      font-sans
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.14em]
-                      text-[#6F8F72]
-                    "
+                    className="font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]"
                   >
                     Contract
                   </p>
@@ -1781,12 +1561,7 @@ export default async function StudentPage({
                   </p>
 
                   <p
-                    className="
-                      mt-2
-                      font-sans
-                      text-[12px]
-                      text-[#777771]
-                    "
+                    className="mt-2 font-sans text-[12px] text-[#777771]"
                   >
                     {currentEnrollmentContract
                       ?.agreement_date
@@ -1798,20 +1573,7 @@ export default async function StudentPage({
                 </div>
 
                 <span
-                  className="
-                    inline-flex
-                    w-fit
-                    rounded-full
-                    bg-[#F0F4ED]
-                    px-4
-                    py-2
-                    font-sans
-                    text-[11px]
-                    font-medium
-                    uppercase
-                    tracking-[0.12em]
-                    text-[#6F8F72]
-                  "
+                  className="inline-flex w-fit rounded-full bg-[#F0F4ED] px-4 py-2 font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]"
                 >
                   {currentContractDisplayStatus
                     ? formatContractStatus(
@@ -1824,20 +1586,10 @@ export default async function StudentPage({
               {enrollmentIsCompleted &&
                 currentEnrollmentContract && (
                   <div
-                    className="
-                      mt-6
-                      border-t
-                      border-[#E2DED7]
-                      pt-5
-                    "
+                    className="mt-6 border-t border-[#E2DED7] pt-5"
                   >
                     <p
-                      className="
-                        font-sans
-                        text-[12px]
-                        leading-6
-                        text-[#777771]
-                      "
+                      className="font-sans text-[12px] leading-6 text-[#777771]"
                     >
                       This contract is marked as completed
                       because the associated enrollment has
@@ -1848,31 +1600,14 @@ export default async function StudentPage({
             </div>
           ) : (
             <div
-              className="
-                mt-8
-                rounded-2xl
-                border
-                border-dashed
-                border-[#CFCBC4]
-                px-6
-                py-12
-                text-center
-              "
+              className="mt-4 rounded-2xl border border-dashed border-[#CFCBC4] px-6 py-12 text-center"
             >
               <p className="font-serif text-[21px]">
                 No contract yet
               </p>
 
               <p
-                className="
-                  mx-auto
-                  mt-2
-                  max-w-[500px]
-                  font-sans
-                  text-[13px]
-                  leading-6
-                  text-[#8A8A84]
-                "
+                className="mx-auto mt-2 max-w-[500px] font-sans text-[13px] leading-6 text-[#8A8A84]"
               >
                 A contract will become available once
                 an enrollment has been created.
@@ -1882,40 +1617,24 @@ export default async function StudentPage({
 
           {/* CONTRACT HISTORY */}
           {contractHistory.length > 0 && (
-            <div className="mt-12 border-t border-[#DCD8D2] pt-10">
-              <div className="flex items-center justify-between gap-6">
+            <div className="mt-6 border-t border-[#DCD8D2] pt-5">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <p
-                    className="
-                      font-sans
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.14em]
-                      text-[#6F8F72]
-                    "
+                    className="font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]"
                   >
-                    History
+                    This enrollment
                   </p>
 
                   <h3
-                    className="
-                      mt-2
-                      font-serif
-                      text-[25px]
-                      font-normal
-                    "
+                    className="mt-2 font-serif text-[25px] font-normal"
                   >
-                    Contract History
+                    Additional contracts
                   </h3>
                 </div>
 
                 <span
-                  className="
-                    font-sans
-                    text-[12px]
-                    text-[#8A8A84]
-                  "
+                  className="font-sans text-[12px] text-[#8A8A84]"
                 >
                   {contractHistory.length}{" "}
                   {contractHistory.length === 1
@@ -1959,7 +1678,7 @@ export default async function StudentPage({
         </section>
 
         {/* CURRENT PAYMENT */}
-        <section className="border-t border-[#DCD8D2] py-10">
+        <section className="border-t border-[#DCD8D2] py-5">
           <SectionHeading
             icon={
               <CreditCard
@@ -1981,8 +1700,8 @@ export default async function StudentPage({
               description="This enrollment does not have a payment record yet."
             />
           ) : paymentIsPending ? (
-            <div className="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
-              <div className="rounded-2xl border border-[#DCD8D2] bg-white/40 p-6 sm:p-8">
+            <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-start">
+              <div className="rounded-2xl border border-[#DCD8D2] bg-white/40 p-4 sm:p-5">
                 <div className="mb-7">
                   <p className="font-serif text-[24px]">
                     Confirm Payment
@@ -2089,57 +1808,24 @@ export default async function StudentPage({
                       name="accepted_by_minor"
                       type="checkbox"
                       value="yes"
-                      className="
-                        peer
-                        absolute
-                        right-[248px]
-                        top-[3px]
-                        h-4
-                        w-4
-                        rounded
-                        border-[#CFCBC4]
-                        accent-[#6F8F72]
-                      "
+                      className="peer absolute right-[248px] top-[3px] h-4 w-4 rounded border-[#CFCBC4] accent-[#6F8F72]"
                     />
 
                     <label
                       htmlFor="accepted_by_minor"
-                      className="
-                        block
-                        cursor-pointer
-                        text-right
-                        font-sans
-                        text-[12px]
-                        leading-5
-                        text-[#5F655F]
-                      "
+                      className="block cursor-pointer text-right font-sans text-[12px] leading-5 text-[#5F655F]"
                     >
                       Parent or guardian is accepting on behalf
                       of a minor.
                     </label>
 
                     <div
-                      className="
-                        mt-4
-                        hidden
-                        gap-3
-                        peer-checked:grid
-                        sm:grid-cols-2
-                      "
+                      className="mt-4 hidden gap-3 peer-checked:grid sm:grid-cols-2"
                     >
                     <div>
                       <label
                         htmlFor="accepted_by_name"
-                        className="
-                          mb-2
-                          block
-                          font-sans
-                          text-[9px]
-                          font-medium
-                          uppercase
-                          tracking-[0.12em]
-                          text-[#777771]
-                        "
+                        className="mb-2 block font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#777771]"
                       >
                         Accepted by
                       </label>
@@ -2150,38 +1836,14 @@ export default async function StudentPage({
                         type="text"
                         autoComplete="name"
                         placeholder="Parent or guardian full name"
-                        className="
-                          w-full
-                          rounded-xl
-                          border
-                          border-[#DCD8D2]
-                          bg-white
-                          px-4
-                          py-3
-                          font-sans
-                          text-[13px]
-                          text-[#292929]
-                          outline-none
-                          transition-colors
-                          placeholder:text-[#AAA6A0]
-                          focus:border-[#6F8F72]
-                        "
+                        className="w-full rounded-xl border border-[#DCD8D2] bg-white px-4 py-3 font-sans text-[13px] text-[#292929] outline-none transition-colors placeholder:text-[#AAA6A0] focus:border-[#6F8F72]"
                       />
                     </div>
 
                     <div>
                       <label
                         htmlFor="accepted_by_relationship"
-                        className="
-                          mb-2
-                          block
-                          font-sans
-                          text-[9px]
-                          font-medium
-                          uppercase
-                          tracking-[0.12em]
-                          text-[#777771]
-                        "
+                        className="mb-2 block font-sans text-[9px] font-medium uppercase tracking-[0.12em] text-[#777771]"
                       >
                         Relationship to Student
                       </label>
@@ -2190,21 +1852,7 @@ export default async function StudentPage({
                         id="accepted_by_relationship"
                         name="accepted_by_relationship"
                         defaultValue=""
-                        className="
-                          w-full
-                          rounded-xl
-                          border
-                          border-[#DCD8D2]
-                          bg-white
-                          px-4
-                          py-3
-                          font-sans
-                          text-[13px]
-                          text-[#292929]
-                          outline-none
-                          transition-colors
-                          focus:border-[#6F8F72]
-                        "
+                        className="w-full rounded-xl border border-[#DCD8D2] bg-white px-4 py-3 font-sans text-[13px] text-[#292929] outline-none transition-colors focus:border-[#6F8F72]"
                       >
                         <option value="" disabled>
                           Select relationship
@@ -2225,20 +1873,7 @@ export default async function StudentPage({
                   <div className="mt-3 flex justify-end">
                     <button
                       type="submit"
-                      className="
-                        inline-flex
-                        items-center
-                        rounded-full
-                        bg-[#6F8F72]
-                        px-5
-                        py-2.5
-                        font-sans
-                        text-sm
-                        font-medium
-                        text-white
-                        transition-opacity
-                        hover:opacity-85
-                      "
+                      className="inline-flex items-center rounded-full bg-[#6F8F72] px-5 py-2.5 font-sans text-sm font-medium text-white transition-opacity hover:opacity-85"
                     >
                       Confirm Payment
                     </button>
@@ -2253,35 +1888,14 @@ export default async function StudentPage({
               </div>
 
 <div
-              className="
-                rounded-2xl
-                border
-                border-[#DCD8D2]
-                bg-white/40
-                p-6
-                sm:p-8
-              "
+              className="rounded-2xl border border-[#DCD8D2] bg-white/40 p-4 sm:p-5"
             >
               <div
-                className="
-                  flex
-                  flex-col
-                  gap-6
-                  sm:flex-row
-                  sm:items-start
-                  sm:justify-between
-                "
+                className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
               >
                 <div>
                   <p
-                    className="
-                      font-sans
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.14em]
-                      text-[#6F8F72]
-                    "
+                    className="font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]"
                   >
                     Payment
                   </p>
@@ -2300,17 +1914,7 @@ export default async function StudentPage({
               </div>
 
               <div
-                className="
-                  mt-8
-                  grid
-                  gap-x-8
-                  gap-y-7
-                  border-t
-                  border-[#E2DED7]
-                  pt-7
-                  sm:grid-cols-2
-                  lg:grid-cols-3
-                "
+                className="mt-4 grid gap-x-8 gap-y-4 border-t border-[#E2DED7] pt-4 sm:grid-cols-2 lg:grid-cols-3"
               >
                 <PaymentDetail
                   label="Payment Date"
@@ -2338,14 +1942,11 @@ export default async function StudentPage({
                   }
                 />
 
-                {currentPayment.amount_php !==
-                  null &&
-                  currentPayment.amount_php !==
-                    undefined && (
+                {(currentPayment.amount_received_php ?? currentPayment.amount_php) != null && (
                     <PaymentDetail
                       label="PHP Received"
                       value={formatCurrency(
-                        currentPayment.amount_php,
+                        currentPayment.amount_received_php ?? currentPayment.amount_php,
                         "PHP"
                       )}
                     />
@@ -2354,34 +1955,16 @@ export default async function StudentPage({
 
               {currentPayment.notes && (
                 <div
-                  className="
-                    mt-7
-                    border-t
-                    border-[#E2DED7]
-                    pt-6
-                  "
+                  className="mt-7 border-t border-[#E2DED7] pt-6"
                 >
                   <p
-                    className="
-                      font-sans
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.12em]
-                      text-[#6F8F72]
-                    "
+                    className="font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]"
                   >
                     Notes
                   </p>
 
                   <p
-                    className="
-                      mt-2
-                      font-sans
-                      text-[13px]
-                      leading-6
-                      text-[#777771]
-                    "
+                    className="mt-2 font-sans text-[13px] leading-6 text-[#777771]"
                   >
                     {currentPayment.notes}
                   </p>
@@ -2393,35 +1976,14 @@ export default async function StudentPage({
             </div>
           ) : (
 <div
-              className="
-                rounded-2xl
-                border
-                border-[#DCD8D2]
-                bg-white/40
-                p-6
-                sm:p-8
-              "
+              className="rounded-2xl border border-[#DCD8D2] bg-white/40 p-4 sm:p-5"
             >
               <div
-                className="
-                  flex
-                  flex-col
-                  gap-6
-                  sm:flex-row
-                  sm:items-start
-                  sm:justify-between
-                "
+                className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
               >
                 <div>
                   <p
-                    className="
-                      font-sans
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.14em]
-                      text-[#6F8F72]
-                    "
+                    className="font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[#6F8F72]"
                   >
                     Payment
                   </p>
@@ -2440,17 +2002,7 @@ export default async function StudentPage({
               </div>
 
               <div
-                className="
-                  mt-8
-                  grid
-                  gap-x-8
-                  gap-y-7
-                  border-t
-                  border-[#E2DED7]
-                  pt-7
-                  sm:grid-cols-2
-                  lg:grid-cols-3
-                "
+                className="mt-4 grid gap-x-8 gap-y-4 border-t border-[#E2DED7] pt-4 sm:grid-cols-2 lg:grid-cols-3"
               >
                 <PaymentDetail
                   label="Payment Date"
@@ -2478,14 +2030,11 @@ export default async function StudentPage({
                   }
                 />
 
-                {currentPayment.amount_php !==
-                  null &&
-                  currentPayment.amount_php !==
-                    undefined && (
+                {(currentPayment.amount_received_php ?? currentPayment.amount_php) != null && (
                     <PaymentDetail
                       label="PHP Received"
                       value={formatCurrency(
-                        currentPayment.amount_php,
+                        currentPayment.amount_received_php ?? currentPayment.amount_php,
                         "PHP"
                       )}
                     />
@@ -2494,34 +2043,16 @@ export default async function StudentPage({
 
               {currentPayment.notes && (
                 <div
-                  className="
-                    mt-7
-                    border-t
-                    border-[#E2DED7]
-                    pt-6
-                  "
+                  className="mt-7 border-t border-[#E2DED7] pt-6"
                 >
                   <p
-                    className="
-                      font-sans
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.12em]
-                      text-[#6F8F72]
-                    "
+                    className="font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-[#6F8F72]"
                   >
                     Notes
                   </p>
 
                   <p
-                    className="
-                      mt-2
-                      font-sans
-                      text-[13px]
-                      leading-6
-                      text-[#777771]
-                    "
+                    className="mt-2 font-sans text-[13px] leading-6 text-[#777771]"
                   >
                     {currentPayment.notes}
                   </p>
@@ -2535,8 +2066,8 @@ export default async function StudentPage({
 
         {/* PAYMENT HISTORY */}
         {paymentHistory.length > 0 && (
-          <section className="border-t border-[#DCD8D2] py-10">
-            <div className="flex items-center justify-between gap-6">
+          <section className="border-t border-[#DCD8D2] py-5">
+            <div className="flex items-center justify-between gap-4">
               <SectionHeading
                 icon={
                   <CreditCard
@@ -2544,15 +2075,11 @@ export default async function StudentPage({
                     strokeWidth={1.5}
                   />
                 }
-                title="Payment History"
+                title="Additional payments"
               />
 
               <span
-                className="
-                  font-sans
-                  text-[12px]
-                  text-[#8A8A84]
-                "
+                className="font-sans text-[12px] text-[#8A8A84]"
               >
                 {paymentHistory.length}{" "}
                 {paymentHistory.length === 1
@@ -2561,7 +2088,7 @@ export default async function StudentPage({
               </span>
             </div>
 
-            <div className="mt-8 space-y-3">
+            <div className="mt-4 space-y-3">
               {paymentHistory.map(
                 ({
                   id: paymentId,
@@ -2590,13 +2117,9 @@ export default async function StudentPage({
 
         {/* ATTENDANCE & LESSONS */}
         <section
-          className="
-            border-t
-            border-[#DCD8D2]
-            py-10
-          "
+          className="border-t border-[#DCD8D2] py-5"
         >
-          <div className="flex items-center justify-between gap-6">
+          <div className="flex items-center justify-between gap-4">
             <SectionHeading
               icon={
                 <Check
@@ -2614,47 +2137,23 @@ export default async function StudentPage({
 
           {currentEnrollment ? (
             <>
-              <div
-                className="
-                  mt-8
-                  grid
-                  gap-6
-                  sm:grid-cols-3
-                  lg:grid-cols-5
-                "
-              >
-                <Stat
-                  label="Scheduled"
-                  value={scheduledLessons}
-                  suffix="lessons"
-                />
-
-                <Stat
-                  label="Completed"
-                  value={completedLessons}
-                  suffix="lessons"
-                />
-
-                <Stat
-                  label="No-show"
-                  value={noShowLessons}
-                  suffix="lessons"
-                />
-
-                <Stat
-                  label="Late Cancellation"
-                  value={lateCancellationLessons}
-                  suffix="lessons"
-                />
-
-                <Stat
-                  label="Remaining"
-                  value={remainingLessons}
-                  suffix="lessons"
-                />
+              <div className="mt-4" data-attendance-summary>
+                <dl className="grid grid-cols-2 gap-4 rounded-xl bg-[#EEF2EA] px-4 py-3 sm:grid-cols-5">
+                  {[
+                    ["Total", totalLessons],
+                    ["Completed", completedLessons],
+                    ["No-show", noShowLessons],
+                    ["Late cancellation", lateCancellationLessons],
+                    ["Remaining", remainingLessons],
+                  ].map(([label, value]) => (
+                    <div key={label}><dt>{label}</dt><dd>{value}</dd><p className="text-xs text-[#777771]">lessons</p></div>
+                  ))}
+                </dl>
               </div>
 
-              <div className="mt-8 space-y-3">
+              <div className="mt-5">
+                <p className="font-sans text-sm text-[#777771]">{currentLessons.length} lesson records</p>
+                <div className="mt-4 space-y-3">
                 {currentLessons.length > 0 ? (
                   currentLessons.map((lesson) => (
                     <LessonRow
@@ -2672,65 +2171,44 @@ export default async function StudentPage({
                   ))
                 ) : (
                   <div
-                    className="
-                      rounded-2xl
-                      border
-                      border-dashed
-                      border-[#CFCBC4]
-                      px-6
-                      py-10
-                      text-center
-                    "
+                    className="rounded-2xl border border-dashed border-[#CFCBC4] px-6 py-5 text-center"
                   >
                     <p className="font-serif text-[20px]">
                       No lessons recorded yet
                     </p>
 
                     <p
-                      className="
-                        mt-2
-                        font-sans
-                        text-[13px]
-                        text-[#8A8A84]
-                      "
+                      className="mt-2 font-sans text-[13px] text-[#8A8A84]"
                     >
                       Lessons will appear here once
                       they are created for this enrollment.
                     </p>
                   </div>
                 )}
+                </div>
               </div>
             </>
           ) : (
             <div
-              className="
-                mt-8
-                rounded-2xl
-                border
-                border-dashed
-                border-[#CFCBC4]
-                px-6
-                py-10
-                text-center
-              "
+              className="mt-4 rounded-2xl border border-dashed border-[#CFCBC4] px-6 py-5 text-center"
             >
               <p className="font-serif text-[20px]">
                 No enrollment yet
               </p>
 
               <p
-                className="
-                  mt-2
-                  font-sans
-                  text-[13px]
-                  text-[#8A8A84]
-                "
+                className="mt-2 font-sans text-[13px] text-[#8A8A84]"
               >
                 Attendance will appear here after the
                 student is enrolled.
               </p>
             </div>
           )}
+        </section>
+
+              </>
+            )}
+          </EnrollmentTable>
         </section>
       </section>
     </main>
@@ -2793,488 +2271,48 @@ function getEffectiveContractStatus(
 /* CONTRACT HISTORY ROW                                                       */
 /* -------------------------------------------------------------------------- */
 
-function ContractHistoryRow({
-  contract,
-  enrollment,
-  locale,
-  studentId,
-  isCurrent,
-}: {
+function ContractHistoryRow({ contract, enrollment, locale, studentId }: {
   contract: Contract;
   enrollment: Enrollment;
   locale: string;
   studentId: string;
   isCurrent: boolean;
 }) {
-  const effectiveStatus =
-    getEffectiveContractStatus(
-      contract,
-      enrollment
-    );
-
   return (
-    <Link
-      href={`/${locale}/admin/students/${studentId}?enrollmentId=${enrollment.id}`}
-      className="
-        block
-        rounded-2xl
-        border
-        border-[#DCD8D2]
-        bg-white/40
-        p-5
-        transition-colors
-        hover:border-[#BFCDBA]
-        hover:bg-[#F5F7F3]
-        sm:p-6
-      "
-    >
-      <div
-        className="
-          flex
-          flex-col
-          gap-5
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
-        "
-      >
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <h4
-              className="
-                font-serif
-                text-[20px]
-                font-normal
-              "
-            >
-              {contract.contract_number ||
-                "Contract"}
-            </h4>
-
-            <span
-              className="
-                rounded-full
-                bg-[#F0F4ED]
-                px-3
-                py-1
-                font-sans
-                text-[10px]
-                font-medium
-                uppercase
-                tracking-[0.08em]
-                text-[#6F8F72]
-              "
-            >
-              {formatContractStatus(
-                effectiveStatus
-              )}
-            </span>
-
-            {isCurrent && (
-              <span
-                className="
-                  rounded-full
-                  bg-[#E2EBDD]
-                  px-3
-                  py-1
-                  font-sans
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.08em]
-                  text-[#6F8F72]
-                "
-              >
-                Current
-              </span>
-            )}
-          </div>
-
-          <p
-            className="
-              mt-2
-              font-sans
-              text-[12px]
-              text-[#777771]
-            "
-          >
-            {enrollment.package_name}
-            {enrollment.renewal_of
-              ? " · Renewal"
-              : ""}
-            {enrollment.isShared
-              ? " · Shared"
-              : ""}
-          </p>
-
-          <div
-            className="
-              mt-3
-              flex
-              flex-wrap
-              gap-x-5
-              gap-y-2
-              font-sans
-              text-[12px]
-              text-[#8A8A84]
-            "
-          >
-            <span>
-              {contract.agreement_date
-                ? formatDate(
-                    contract.agreement_date
-                  )
-                : "Agreement date not set"}
-            </span>
-
-            <span>
-              {enrollment.number_of_lessons} lessons
-            </span>
-
-            {enrollment.enrollment_number && (
-              <span>
-                {enrollment.enrollment_number}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="shrink-0">
-          <span
-            className="
-              font-sans
-              text-[12px]
-              text-[#8A8A84]
-            "
-          >
-            View enrollment →
-          </span>
-        </div>
+    <ContractLink contractId={contract.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#DCD8D2] p-4 hover:bg-[#F0F4ED]">
+      <div>
+        <p className="font-medium">{contract.contract_number || "View contract"}</p>
+        <p className="mt-1 text-xs text-[#777771]">Agreement date: {formatDate(contract.agreement_date)}</p>
       </div>
-    </Link>
+      <span className="text-xs text-[#6F8F72]">{formatContractStatus(getEffectiveContractStatus(contract, enrollment))} · View contract →</span>
+    </ContractLink>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* PAYMENT HISTORY ROW                                                        */
-/* -------------------------------------------------------------------------- */
-
-function PaymentHistoryRow({
-  payment,
-  enrollment,
-  locale,
-  studentId,
-  isCurrent,
-}: {
+function PaymentHistoryRow({ payment }: {
   payment: Payment;
   enrollment: Enrollment;
   locale: string;
   studentId: string;
   isCurrent: boolean;
 }) {
+  const received = payment.amount_received_php ?? payment.amount_php;
   return (
-    <Link
-      href={`/${locale}/admin/students/${studentId}?enrollmentId=${enrollment.id}`}
-      className="
-        block
-        rounded-2xl
-        border
-        border-[#DCD8D2]
-        bg-white/40
-        p-5
-        transition-colors
-        hover:border-[#BFCDBA]
-        hover:bg-[#F5F7F3]
-        sm:p-6
-      "
-    >
-      <div
-        className="
-          flex
-          flex-col
-          gap-5
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
-        "
-      >
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <h4
-              className="
-                font-serif
-                text-[20px]
-                font-normal
-              "
-            >
-              {formatCurrency(
-                payment.amount,
-                payment.currency
-              )}
-            </h4>
-
-            <PaymentStatusBadge
-              status={payment.status}
-            />
-
-            {isCurrent && (
-              <span
-                className="
-                  rounded-full
-                  bg-[#E2EBDD]
-                  px-3
-                  py-1
-                  font-sans
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.08em]
-                  text-[#6F8F72]
-                "
-              >
-                Current
-              </span>
-            )}
-          </div>
-
-          <p
-            className="
-              mt-2
-              font-sans
-              text-[12px]
-              text-[#777771]
-            "
-          >
-            {enrollment.package_name}
-            {enrollment.renewal_of
-              ? " · Renewal"
-              : ""}
-            {enrollment.isShared
-              ? " · Shared"
-              : ""}
-          </p>
-
-          <div
-            className="
-              mt-3
-              flex
-              flex-wrap
-              gap-x-5
-              gap-y-2
-              font-sans
-              text-[12px]
-              text-[#8A8A84]
-            "
-          >
-            <span>
-              {formatDate(payment.payment_date)}
-            </span>
-
-            <span>
-              {formatPaymentMethod(
-                payment.payment_method
-              )}
-            </span>
-
-            {payment.reference && (
-              <span>
-                Ref. {payment.reference}
-              </span>
-            )}
-
-            {enrollment.enrollment_number && (
-              <span>
-                {enrollment.enrollment_number}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="shrink-0">
-          <span
-            className="
-              font-sans
-              text-[12px]
-              text-[#8A8A84]
-            "
-          >
-            View enrollment →
-          </span>
-        </div>
+    <div className="rounded-xl border border-[#DCD8D2] p-4">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <p>{formatCurrency(payment.amount, payment.currency)}</p>
+        <PaymentStatusBadge status={payment.status} />
       </div>
-    </Link>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <PaymentDetail label="Payment date" value={formatDate(payment.payment_date)} />
+        <PaymentDetail label="Method" value={formatPaymentMethod(payment.payment_method)} />
+        <PaymentDetail label="Reference" value={payment.reference || "Not provided"} />
+        {received != null && <PaymentDetail label="PHP received" value={formatCurrency(received, "PHP")} />}
+      </div>
+      {payment.notes && <p className="mt-4 whitespace-pre-wrap text-sm text-[#777771]">{payment.notes}</p>}
+    </div>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/* ENROLLMENT HISTORY ROW                                                     */
-/* -------------------------------------------------------------------------- */
-
-function EnrollmentHistoryRow({
-  enrollment,
-  locale,
-  studentId,
-}: {
-  enrollment: Enrollment;
-  locale: string;
-  studentId: string;
-}) {
-  return (
-    <Link
-      href={`/${locale}/admin/students/${studentId}?enrollmentId=${enrollment.id}`}
-      className="
-        block
-        rounded-2xl
-        border
-        border-[#DCD8D2]
-        bg-white/40
-        p-5
-        transition-colors
-        hover:border-[#BFCDBA]
-        hover:bg-[#F5F7F3]
-        sm:p-6
-      "
-    >
-      <div
-        className="
-          flex
-          flex-col
-          gap-4
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
-        "
-      >
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h4
-              className="
-                font-serif
-                text-[20px]
-                font-normal
-              "
-            >
-              {enrollment.package_name}
-            </h4>
-
-            {enrollment.isShared && (
-              <span
-                className="
-                  rounded-full
-                  bg-[#E2EBDD]
-                  px-3
-                  py-1
-                  font-sans
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.08em]
-                  text-[#6F8F72]
-                "
-              >
-                Shared
-              </span>
-            )}
-
-            {enrollment.renewal_of && (
-              <span
-                className="
-                  rounded-full
-                  bg-[#E2EBDD]
-                  px-3
-                  py-1
-                  font-sans
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.08em]
-                  text-[#6F8F72]
-                "
-              >
-                Renewal
-              </span>
-            )}
-
-            <span
-              className="
-                rounded-full
-                bg-[#F0F4ED]
-                px-3
-                py-1
-                font-sans
-                text-[10px]
-                font-medium
-                uppercase
-                tracking-[0.08em]
-                text-[#6F8F72]
-              "
-            >
-              {formatEnrollmentStatus(
-                enrollment.status
-              )}
-            </span>
-          </div>
-
-          <div
-            className="
-              mt-3
-              flex
-              flex-wrap
-              gap-x-5
-              gap-y-2
-              font-sans
-              text-[12px]
-              text-[#777771]
-            "
-          >
-            {enrollment.enrollment_number && (
-              <span>
-                {enrollment.enrollment_number}
-              </span>
-            )}
-
-            <span>
-              {formatDate(enrollment.start_date)}
-            </span>
-
-            <span>
-              {enrollment.number_of_lessons} lessons
-            </span>
-
-            {enrollment.lesson_duration && (
-              <span>
-                {enrollment.lesson_duration} minutes
-              </span>
-            )}
-
-            {enrollment.lessons_per_week && (
-              <span>
-                {enrollment.lessons_per_week}× per week
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="shrink-0">
-          <span
-            className="
-              font-sans
-              text-[12px]
-              text-[#8A8A84]
-            "
-          >
-            {enrollment.lessons?.length ?? 0} lessons
-            recorded
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* LESSON ROW                                                                 */
-/* -------------------------------------------------------------------------- */
 
 function LessonRow({
   lesson,
@@ -3748,48 +2786,6 @@ function ScheduleDetail({
 /* -------------------------------------------------------------------------- */
 /* STAT                                                                       */
 /* -------------------------------------------------------------------------- */
-
-function Stat({
-  label,
-  value,
-  suffix,
-}: {
-  label: string;
-  value: number;
-  suffix: string;
-}) {
-  return (
-    <div>
-      <p
-        className="
-          font-sans
-          text-[11px]
-          font-medium
-          uppercase
-          tracking-[0.14em]
-          text-[#6F8F72]
-        "
-      >
-        {label}
-      </p>
-
-      <p className="mt-2 font-serif text-[28px]">
-        {value}
-      </p>
-
-      <p
-        className="
-          mt-1
-          font-sans
-          text-[13px]
-          text-[#777771]
-        "
-      >
-        {suffix}
-      </p>
-    </div>
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /* PAYMENT STATUS                                                             */

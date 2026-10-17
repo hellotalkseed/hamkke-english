@@ -1,0 +1,49 @@
+.container { color: #292929; }
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; min-width: 600px; border-collapse: collapse; text-align: left; }
+.table th { border-top: 1px solid #dcd8d2; border-bottom: 1px solid #dcd8d2; padding: 17px 20px; font-family: var(--font-inter), sans-serif; font-size: 11px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; color: #81847c; }
+.table td { border-bottom: 1px solid #e2ded7; padding: 24px 20px; font-family: var(--font-inter), sans-serif; font-size: 14px; font-weight: 400; vertical-align: middle; }
+.table tbody tr:hover { background: #f0f4ed; }
+.kind { display: block; margin-top: 7px; font-family: var(--font-inter), sans-serif; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #7b8975; }
+.contract { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 5px; text-decoration-color: #c2cbbb; }
+.contract:hover { color: #6f8f72; }
+.amount { font-variant-numeric: tabular-nums; }
+.badge { display: inline-flex; align-items: center; gap: 7px; border-radius: 20px; background: #e5eddf; padding: 7px 12px; font-family: var(--font-inter), sans-serif; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #68836a; white-space: nowrap; }
+.badge span { font-size: 8px; }
+.actionCell { text-align: right; }
+.view { border: 1px solid #cad5c3; border-radius: 20px; padding: 8px 20px; font-family: var(--font-inter), sans-serif; font-size: 12px; color: #59715a; cursor: pointer; background: transparent; }
+.view:hover { background: #e7eedf; }
+.view:disabled, .close:disabled { opacity: .6; cursor: wait; }
+.view:focus-visible, .close:focus-visible, .contract:focus-visible { outline: 2px solid #6f8f72; outline-offset: 4px; }
+.notice { min-height: 20px; margin-top: 8px; font-family: var(--font-inter), sans-serif; color: #6c7867; font-size: 12px; }
+.muted { font-family: var(--font-inter), sans-serif; font-size: 12px; color: #777771; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.dialog { position: fixed; inset: 0; margin: auto; width: min(960px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 0; border: 1px solid #dcd8d2; border-radius: 18px; background: #faf8f5; color: #292929; overflow-y: auto; overscroll-behavior: contain; }
+.dialog::backdrop { background: rgb(28 39 29 / .48); }
+.modalHeader { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 28px; border-bottom: 1px solid #dcd8d2; background: #faf8f5; }
+.modalHeader h2 { font-family: var(--font-inter), sans-serif; font-size: 18px; font-weight: 400; margin-top: 3px; }
+.modalKind { margin-left: 12px; font-family: var(--font-inter), sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: #6f8f72; }
+.close { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: #edf1e8; color: #52674f; cursor: pointer; }
+.dialog { font-family: var(--font-inter), sans-serif; font-size: 14px; line-height: 1.5; }
+.details { padding: 0 28px 24px; font-family: var(--font-inter), sans-serif; font-size: 14px; }
+.details > section:first-child { border-top: 0; }
+.details :global(.font-serif) { font-family: var(--font-inter), sans-serif !important; font-size: 14px !important; line-height: 1.5; font-weight: 400; }
+.details h2 { font-size: 16px !important; font-weight: 500; }
+.details h3 { font-size: 14px !important; font-weight: 500; }
+.empty { border: 1px dashed #cfd6c9; padding: 24px; border-radius: 14px; font-size: 14px; color: #6b7565; }
+@media(max-width:640px) {
+  .table th, .table td { padding-left: 12px; padding-right: 12px; }
+  .table td { font-size: 14px; }
+  .dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 12px; }
+  .modalHeader { padding: 16px; }
+  .details { padding: 0 16px 16px; }
+  .details :global(.flex) { flex-wrap: wrap; }
+}
+@media print { .container, .dialog, .dialog::backdrop { display: none !important; } }
+
+.details [data-attendance-summary] dt { font-size: 12px; color: #687562; }
+.details [data-attendance-summary] dd { margin: 4px 0 0; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.details [data-attendance-breakdown] > div { display: flex; align-items: baseline; gap: 6px; }
+.details [data-attendance-breakdown] dd { margin: 0; font-size: 13px; font-weight: 500; }
+
+.contractActions { display: flex; align-items: center; gap: 12px; }

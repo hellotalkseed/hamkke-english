@@ -1,9 +1,12 @@
 "use client";
 
+import { countConsumedEnrollmentLessons, lessonConsumesPackage } from "@/lib/enrollmentLessonUsage";
+
 interface Lesson {
   id: string;
   lesson_number: number;
   lesson_date: string | null;
+  schedule_time?: string | null;
   duration: number | null;
   attendance_status: string;
   notes: string | null;
@@ -26,9 +29,11 @@ interface Enrollment {
   schedule_time: string | null;
   lessons: Lesson[];
   is_shared?: boolean;
+  isShared?: boolean;
 }
 
 interface ParticipantSchedule {
+  timezone?: string;
   student_id: string;
   student_name: string;
   day_of_week: number;
@@ -95,6 +100,8 @@ export default function PrintableAttendance({
 
   const isSharedEnrollment =
     enrollment.is_shared === true ||
+    enrollment.isShared === true ||
+    Object.keys(participantNameById ?? {}).filter(id => lessons.some(l => l.student_id === id)).length > 1 ||
     enrollment.package_name
       .toLowerCase()
       .includes("shared");
@@ -324,8 +331,7 @@ export default function PrintableAttendance({
   const completedLessons = lessons.filter(
     (lesson) =>
       lesson.attendance_status ===
-        "completed" &&
-      lesson.consumes_lesson
+        "completed"
   ).length;
 
   const noShowLessons = lessons.filter(
@@ -345,10 +351,7 @@ export default function PrintableAttendance({
    * Every lesson with consumes_lesson = true deducts exactly one
    * lesson from the enrollment's lesson pool.
    */
-  const consumedLessons = lessons.filter(
-    (lesson) =>
-      lesson.consumes_lesson === true
-  ).length;
+  const consumedLessons = countConsumedEnrollmentLessons(lessons);
 
   const remainingLessons = Math.max(
     enrollment.number_of_lessons -
@@ -361,7 +364,7 @@ export default function PrintableAttendance({
    * PARTICIPANT COLUMN
    * ------------------------------------------------------------------------
    *
-   * For shared enrollments, ALWAYS show "Consumed By".
+   * For shared enrollments, ALWAYS show "Participant".
    */
 
   const showParticipantColumn =
@@ -520,8 +523,7 @@ export default function PrintableAttendance({
               Schedule
             </p>
 
-            {isSharedEnrollment ? (
-              hasParticipantSchedules ? (
+            {hasParticipantSchedules ? (
                 <div className="mt-1 space-y-1.5">
                   {participantScheduleGroups.map(
                     (group) => (
@@ -531,7 +533,7 @@ export default function PrintableAttendance({
                         }
                       >
                         <p className="font-serif text-[11px] font-medium leading-4">
-                          {group.student_name}
+                          {group.student_name}{group.schedules[0]?.timezone ? ` (${group.schedules[0].timezone})` : ""}
                         </p>
 
                         <p className="font-sans text-[9px] leading-4 text-[#55544F]">
@@ -554,11 +556,6 @@ export default function PrintableAttendance({
                     )
                   )}
                 </div>
-              ) : (
-                <p className="mt-0.5 font-serif text-[12px] leading-4">
-                  Not set
-                </p>
-              )
             ) : (
               <p className="mt-0.5 font-serif text-[12px] leading-4">
                 {formatSchedule(
@@ -663,7 +660,7 @@ export default function PrintableAttendance({
               {/* PARTICIPANT */}
               {showParticipantColumn && (
                 <th className="w-[20%] py-2 text-left font-sans text-[8px] font-medium uppercase tracking-[0.1em]">
-                  Consumed By
+                  Participant
                 </th>
               )}
 
@@ -712,7 +709,7 @@ export default function PrintableAttendance({
               return (
                 <tr
                   key={lesson.id}
-                  className="border-b border-[#E5E1DB]"
+                  className="border-b border-[#E5E1DB] break-inside-avoid"
                 >
                   {/* LESSON NUMBER */}
                   <td className="py-[7px] font-serif text-[12px]">
@@ -724,6 +721,8 @@ export default function PrintableAttendance({
                     {formatDate(
                       lesson.lesson_date
                     )}
+
+                    {lesson.schedule_time && <span className="block text-[8px] text-[#777771]">{formatTime(lesson.schedule_time)}</span>}
 
                     {lesson.original_lesson_date &&
                       lesson.original_lesson_date !==
@@ -740,15 +739,7 @@ export default function PrintableAttendance({
                   {/* CONSUMED BY */}
                   {showParticipantColumn && (
                     <td className="py-[7px] font-sans text-[9px] font-medium">
-                      {lesson.consumes_lesson ? (
-                        <span>
-                          {participantName}
-                        </span>
-                      ) : (
-                        <span className="font-normal text-[#777771]">
-                          Not consumed
-                        </span>
-                      )}
+                      {participantName}
                     </td>
                   )}
 
@@ -777,7 +768,7 @@ export default function PrintableAttendance({
 
                   {/* CONSUMED */}
                   <td className="py-[7px] text-right font-sans text-[9px]">
-                    {lesson.consumes_lesson
+                    {lessonConsumesPackage(lesson)
                       ? "Yes"
                       : "No"}
                   </td>
@@ -807,10 +798,7 @@ export default function PrintableAttendance({
           <div className="mt-3 border-l-2 border-[#DCD8D2] pl-3">
             <p className="font-sans text-[8px] leading-4 text-[#777771]">
               For this shared enrollment,
-              “Consumed By” identifies the
-              participant whose lesson consumed
-              one lesson from the shared lesson
-              pool.
+              “Participant” identifies the learner for each record. Used indicates whether the record consumes one lesson from the shared pool.
             </p>
           </div>
         )}
@@ -1054,6 +1042,7 @@ function formatScheduleDays(
     string,
     string
   > = {
+    mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday",
     monday: "Monday",
     tuesday: "Tuesday",
     wednesday: "Wednesday",
