@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { randomUUID } from "node:crypto";
 import StudentCreateForm, { CreateStudentButton } from "./StudentCreateForm";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,6 +25,13 @@ interface AssessmentPrefillRow {
   status: string;
   follow_up_status: string | null;
   converted_student_id: string | null;
+  learner_type: string;
+  contact_name: string | null;
+  contact_method: string | null;
+  contact_id: string | null;
+  english_level: string | null;
+  learning_goal: string | null;
+  teacher_observation: string | null;
 }
 
 async function createStudent(_previous: { error: string }, formData: FormData): Promise<{ error: string }> {
@@ -38,8 +47,18 @@ async function createStudent(_previous: { error: string }, formData: FormData): 
   const value = (name: string) => String(formData.get(name) || "").trim();
   if (!value("full_name")) return { error: "Full name is required." };
   let studentId: string;
+  let continueToEnrollment = false;
   try {
     const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Sign in again before creating the student." };
+    const { data: viewer, error: viewerError } = await supabase
+      .from("profiles").select("role, status").eq("id", user.id).maybeSingle();
+    if (viewerError || !viewer || viewer.status !== "active" || !["owner", "admin"].includes(viewer.role)) {
+      return { error: "An active owner or administrator account is required." };
+    }
+    continueToEnrollment = Boolean(assessmentId) && viewer.role === "owner";
+    // Keep the caller's session: this RPC checks auth.uid() and handles atomic conversion.
     const { data, error } = await supabase.rpc("create_student_once", {
       p_request_id: requestId,
       p_assessment_id: assessmentId || null,
@@ -60,7 +79,11 @@ async function createStudent(_previous: { error: string }, formData: FormData): 
     console.error("Create student connection failed:", error);
     return { error: "Connection interrupted. Try again on this form to safely finish the same request." };
   }
-  redirect(`/${locale}/admin/students/${studentId}`);
+  revalidatePath(`/${locale}/admin/assessments`);
+  revalidatePath(`/${locale}/admin/students`);
+  redirect(continueToEnrollment
+    ? `/${locale}/admin/students/${studentId}/enrollments/new`
+    : `/${locale}/admin/students/${studentId}`);
 }
 
 function getSupportedTimezones() {
@@ -83,12 +106,15 @@ export default async function NewStudentPage({
     filters.assessment?.trim() ?? "";
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Sign in to manage students.");
-  const { data: viewer } = await supabase.from("profiles").select("role, status").eq("id", user.id).single();
-  if (!viewer || viewer.status !== "active" || !["owner", "admin"].includes(viewer.role)) {
-    throw new Error("You do not have permission to manage students.");
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect(`/${locale}/admin/login`);
+  const { data: viewer, error: viewerError } = await supabase
+    .from("profiles").select("role, status").eq("id", user.id).maybeSingle();
+  if (viewerError || !viewer || viewer.status !== "active" || !["owner", "admin"].includes(viewer.role)) {
+    notFound();
   }
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (assessmentId && !uuid.test(assessmentId)) notFound();
 
   let assessment: AssessmentPrefillRow | null = null;
 
@@ -96,7 +122,7 @@ export default async function NewStudentPage({
     const {
       data: assessmentData,
       error: assessmentError,
-    } = await supabase
+    } = await createAdminClient()
       .from("assessment_bookings")
       .select(`
         id,
@@ -106,7 +132,14 @@ export default async function NewStudentPage({
         timezone,
         status,
         follow_up_status,
-        converted_student_id
+        converted_student_id,
+        learner_type,
+        contact_name,
+        contact_method,
+        contact_id,
+        english_level,
+        learning_goal,
+        teacher_observation
       `)
       .eq("id", assessmentId)
       .maybeSingle();
@@ -137,6 +170,12 @@ export default async function NewStudentPage({
     redirect(`/${locale}/admin/assessments`);
   }
   const convertingAssessment = Boolean(assessment);
+  const contactMethods: Record<string, string> = {
+    kakao: "kakao", kakaotalk: "kakao", email: "email", messenger: "messenger", other: "other",
+  };
+  const prefilledContactMethod = assessment?.contact_method
+    ? contactMethods[assessment.contact_method.toLowerCase()] ?? "other" : "";
+  const continueToEnrollment = convertingAssessment && viewer.role === "owner";
 
   const supportedTimezones = getSupportedTimezones();
 
@@ -172,7 +211,7 @@ export default async function NewStudentPage({
           </h1>
           <p className="mt-4 max-w-[760px] font-serif text-[17px] leading-8 text-[#74716B] sm:text-[18px]">
             {convertingAssessment
-              ? "Review the assessment details, complete any missing information, and create the student record."
+              ? "Review the learner details and create their student record. Enrollment is a separate step; no payment is confirmed here."
               : "Create a student record before setting up their lesson enrollment."}
           </p>
         </div>
@@ -223,6 +262,20 @@ export default async function NewStudentPage({
               have been prefilled where available. You can
               review or edit them before creating the student.
             </div>
+          )}
+
+          {assessment && (
+            <aside className="rounded-2xl border border-[#DCD8D2] bg-[#F0F4ED] p-6 font-sans text-sm leading-6">
+              <h2 className="mb-4 font-medium text-[#3E5744]">Assessment reference</h2>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <div><dt className="text-[#74716B]">{assessment.learner_type === "child" ? "Parent / guardian" : "Contact name"}</dt><dd>{assessment.contact_name || "Not provided"}</dd></div>
+                <div><dt className="text-[#74716B]">Contact method / ID</dt><dd className="break-words">{[assessment.contact_method, assessment.contact_id].filter(Boolean).join(" · ") || "Not provided"}</dd></div>
+                <div><dt className="text-[#74716B]">Reported English level</dt><dd>{assessment.english_level?.replaceAll("_", " ") || "Not provided"}</dd></div>
+                <div><dt className="text-[#74716B]">Learning goal</dt><dd className="whitespace-pre-wrap">{assessment.learning_goal?.replaceAll("_", " ") || "Not provided"}</dd></div>
+                <div className="sm:col-span-2"><dt className="text-[#74716B]">Teacher observation</dt><dd className="whitespace-pre-wrap">{assessment.teacher_observation || "No observation recorded yet."}</dd></div>
+              </dl>
+              <p className="mt-4 border-t border-[#DCD8D2] pt-4 text-xs text-[#74716B]">These reference details stay in the assessment. Check the learner's full name and contact details below before continuing. If they already have a student record, cancel and open that record instead.</p>
+            </aside>
           )}
 
           {/* BASIC INFORMATION */}
@@ -557,7 +610,7 @@ export default async function NewStudentPage({
                 <select
                   id="contact_method"
                   name="contact_method"
-                  defaultValue=""
+                  defaultValue={prefilledContactMethod}
                   className="
                     mt-3
                     w-full
@@ -710,7 +763,7 @@ export default async function NewStudentPage({
               Cancel
             </Link>
 
-            <CreateStudentButton />
+            <CreateStudentButton label={continueToEnrollment ? "Create Student & Continue to Enrollment" : "Create Student"} />
           </div>
         </StudentCreateForm>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -256,6 +256,7 @@ export default function AssessmentsTable({
 }: AssessmentsTableProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [rows, setRows] = useState(assessments);
+  useEffect(() => { setRows(assessments); }, [assessments]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<Record<string, string>>({});
 

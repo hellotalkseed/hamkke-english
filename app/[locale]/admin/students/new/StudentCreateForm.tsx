@@ -36,10 +36,10 @@ export default function StudentCreateForm({ action, children }: {
   </PendingContext.Provider>;
 }
 
-export function CreateStudentButton() {
+export function CreateStudentButton({ label = "Create Student" }: { label?: string }) {
   const pending = useContext(PendingContext);
   return <button type="submit" disabled={pending}
     className="rounded-full bg-[#6F8F72] px-7 py-3 font-sans text-sm font-medium text-white transition-opacity hover:opacity-85 disabled:cursor-wait disabled:opacity-60">
-    <span role="status">{pending ? "Creating student…" : "Create Student"}</span>
+    <span role="status">{pending ? "Creating student…" : label}</span>
   </button>;
 }
