@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface RouteContext {
   params: Promise<{
@@ -706,12 +707,12 @@ export async function POST(
    * Enrollment creation is an owner-admin operation.
    * Authenticate before parsing or processing submitted enrollment data.
    */
-  const supabase = await createClient();
+  const session = await createClient();
 
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await session.auth.getUser();
 
   if (userError || !user) {
     return NextResponse.json(
@@ -723,7 +724,7 @@ export async function POST(
   const {
     data: profile,
     error: profileError,
-  } = await supabase
+  } = await session
     .from("profiles")
     .select("id, role, status")
     .eq("id", user.id)
@@ -759,6 +760,9 @@ export async function POST(
       { status: 403 }
     );
   }
+
+  // Privileged data access is allowed only after the active-owner check above.
+  const supabase = createAdminClient();
 
   const { id } = await params;
 

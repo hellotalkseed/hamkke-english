@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { requireOwnerDataClient } from "@/lib/supabase/owner-data";
 import NewEnrollmentForm from "./NewEnrollmentForm";
 
 interface NewEnrollmentPageProps {
@@ -13,7 +14,7 @@ export default async function NewEnrollmentPage({
 }: NewEnrollmentPageProps) {
   const { locale, id } = await params;
 
-  const supabase = await createClient();
+  const supabase = await requireOwnerDataClient(locale);
 
   /* ================================================================ */
   /* LOAD CURRENT STUDENT                                             */
@@ -26,11 +27,13 @@ export default async function NewEnrollmentPage({
     .from("students")
     .select("id, full_name, preferred_name")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
-  if (studentError || !student) {
-    throw new Error("Student not found.");
+  if (studentError) {
+    console.error("New enrollment student lookup failed:", studentError);
+    throw new Error("Unable to load student for enrollment.");
   }
+  if (!student) notFound();
 
   /* ================================================================ */
   /* LOAD ALL STUDENTS                                                 */
@@ -45,9 +48,8 @@ export default async function NewEnrollmentPage({
     .order("full_name", { ascending: true });
 
   if (studentsError) {
-    throw new Error(
-      `Unable to load students: ${studentsError.message}`
-    );
+    console.error("New enrollment student list failed:", studentsError);
+    throw new Error("Unable to load students for enrollment.");
   }
 
   /* ================================================================ */
