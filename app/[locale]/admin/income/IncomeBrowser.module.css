@@ -1,0 +1,36 @@
+.root { font-family:var(--font-inter),Arial,sans-serif; font-size:14px; }
+.tableWrap { overflow-x:auto; border:1px solid #dedfd5; border-radius:12px; background:#fffdf8; }
+.table,.monthTable { width:100%; border-collapse:collapse; min-width:400px; table-layout:fixed; }
+.table th,.table td,.monthTable th,.monthTable td { padding:18px 20px; border-bottom:1px solid #e7e3dd; text-align:left; font-weight:400; }
+.table thead th,.monthTable thead th { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#68776b; background:#eef2e9; font-weight:500; }
+.table th:first-child { width:42%; }
+.table .amount,.monthTable .amount { text-align:right; font-variant-numeric:tabular-nums; }
+.table .action,.monthTable .action { width:100px; text-align:right; }
+.year { font-size:15px; font-weight:600; color:#304a39; }
+.table .expandCell { width:52px; padding:0 10px 0 0; text-align:right; }
+.expandButton { display:inline-flex; align-items:center; justify-content:center; width:32px; height:36px; border:0; border-radius:6px; background:none; color:#8b988c; cursor:pointer; }
+.expandButton:hover { color:#49614d; background:#eef2e9; }
+.arrow { display:block; transition:transform .15s; }
+.expanded { transform:rotate(180deg); }
+.table > tbody > tr > .amount { font-weight:500; color:#304a39; }
+.table > tbody > tr:hover > th,.table > tbody > tr:hover > td:not(.monthCell) { background:#f7f8f2; }
+
+.view { border:1px solid #cbd4c6; border-radius:6px; background:#f2f5ed; color:#49614d; padding:7px 16px; font:inherit; font-size:12px; cursor:pointer; }
+.table .monthCell { padding:0 52px 12px 20px; background:#f8f9f4; }
+.monthTable th,.monthTable td { padding:12px 16px; font-size:13px; }
+.note { display:block; font-size:11px; color:#885b42; margin-top:4px; }
+.srOnly { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+.dialog { position:fixed; inset:0; margin:auto; width:min(1060px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); padding:0; border:1px solid #dcd8d2; border-radius:12px; background:#f3f1ec; color:#292929; overflow:auto; font:14px/1.5 Arial,sans-serif; }
+.dialog::backdrop { background:rgb(20 30 24 / .5); }
+.toolbar { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 24px; background:#fffdf8; border-bottom:1px solid #ddd8cd; }
+.toolbar h2 { font:500 16px/1.4 Arial,sans-serif; margin:0; }
+.toolbar > div { display:flex; gap:12px; align-items:center; }
+.print { border:0; border-radius:6px; background:#6f8f72; color:white; padding:9px 20px; font:inherit; cursor:pointer; }
+.close { border:0; background:transparent; padding:8px; font:inherit; cursor:pointer; }
+.preview { padding:24px; overflow-x:auto; }
+.preview > div { min-width:650px; max-width:816px; margin:auto; }
+.expandButton:focus-visible,.view:focus-visible,.print:focus-visible,.close:focus-visible { outline:2px solid #6f8f72; outline-offset:3px; }
+@media(max-width:600px) { .toolbar { padding:12px; } .preview { padding:12px; } .table th,.table td { padding:12px; } }
+
+.view:hover { background:#e7eddf; border-color:#aebfa8; }
+@media(prefers-reduced-motion:reduce) { .arrow { transition:none; } }

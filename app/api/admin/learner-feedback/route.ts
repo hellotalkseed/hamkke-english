@@ -4,7 +4,9 @@ export async function GET(request: Request) {
   try {
     const { admin } = await staffIdentity("owner");
     const page = Math.max(0, Math.min(100000, Math.floor(Number(new URL(request.url).searchParams.get("page")) || 0)));
-    const result = await admin.from("learner_feedback").select("id, name, role, country, rating, reflection, teacher_id, source, learning_context, share_with_teacher, publish_consent, review_status, published_reflection_id, created_at", { count: "exact" }).order("created_at", { ascending: false }).order("id").range(page * 30, page * 30 + 29);
+    let query = admin.from("learner_feedback").select("id, name, role, country, rating, reflection, teacher_id, source, learning_context, share_with_teacher, publish_consent, review_status, published_reflection_id, created_at", { count: "exact" }).order("created_at", { ascending: false }).order("id");
+    query = query.neq("review_status", "reviewed").is("published_reflection_id", null);
+    const result = await query.range(page * 24, page * 24 + 23);
     if (result.error) throw result.error;
     const ids = [...new Set((result.data ?? []).map(r => r.teacher_id))];
     const teachers = ids.length ? await admin.from("profiles").select("id, full_name").in("id", ids) : { data: [], error: null };

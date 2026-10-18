@@ -1,6 +1,6 @@
 "use client";
 
-export default function PrintMonthlyIncomeButton() {
+export default function PrintMonthlyIncomeButton({ label = "Print Monthly Income" }: { label?: string }) {
   return (
     <button
       type="button"
@@ -21,7 +21,7 @@ export default function PrintMonthlyIncomeButton() {
         hover:text-[#6F8F72]
       "
     >
-      Print Monthly Income
+      {label}
     </button>
   );
 }

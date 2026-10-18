@@ -1,0 +1,43 @@
+.section { margin-bottom: 40px; font-family: var(--font-inter), sans-serif; color: #304a39; }
+.heading { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:20px; }
+.heading h2 { font-family:var(--font-cormorant),Georgia,serif; font-size:32px; line-height:1.2; font-weight:500; }
+.description { font-size:13px; line-height:1.7; color:#69796d; margin-top:8px; }
+.count { font-size:13px; color:#69796d; white-space:nowrap; }
+.filters { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 24px; }
+.button,.filter { border:1px solid #cbd4c6; background:transparent; border-radius:24px; padding:9px 16px; font-size:13px; cursor:pointer; }
+.filter[aria-pressed=true],.primary { background:#6f8f72; color:white; border-color:#6f8f72; }
+.button:disabled,.filter:disabled { opacity:.5; cursor:wait; }
+.grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; }
+.card { background:#fffdf8; border-radius:22px; padding:22px; min-height:265px; display:flex; flex-direction:column; border:1px solid #e8e4d9; }
+.card:nth-child(4n+1) { background:#f4edda; border-color:#e4dbc4; }
+.card:nth-child(4n+2) { background:#e1e8db; border-color:#cdd8c7; }
+.card:nth-child(4n+3) { background:#e9dfd0; border-color:#d9cdbb; }
+.card:nth-child(4n) { background:#efdfd8; border-color:#dfcbc2; }
+.cardTop { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.quoteMark { font-family:Georgia,serif; font-size:29px; line-height:1; color:#7b967b; }
+.rating { font-size:12px; color:#607568; }
+.preview { margin:18px 0 12px; font-family:var(--font-cormorant),Georgia,serif; font-size:20px; line-height:1.35; color:#304a39; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+.read { align-self:flex-start; background:none; border:0; text-decoration:underline; text-underline-offset:3px; color:#607568; cursor:pointer; font-size:12px; padding:4px 0; }
+.byline { margin-top:auto; padding-top:16px; font-size:12px; line-height:1.7; }
+.meta { font-size:11px; color:#69796d; }
+.status { margin-top:8px; font-size:11px; font-weight:500; }
+.pagination { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:22px; font-size:12px; }
+.empty,.alert { border:1px solid #ddd8cd; border-radius:16px; padding:24px; font-size:14px; line-height:1.7; }
+.alert { background:#fff4ef; color:#884b3f; margin:16px 0; }
+.dialog { position:fixed; inset:0; margin:auto; width:min(720px,calc(100vw - 24px)); max-height:calc(100dvh - 40px); overflow:auto; border:1px solid #ddd8cd; border-radius:22px; background:#fffdf8; padding:0; color:#304a39; font-family:var(--font-inter),sans-serif; }
+.dialog::backdrop { background:rgb(31 44 34 / .48); }
+.modalHeader { position:sticky; top:0; background:#fffdf8; border-bottom:1px solid #e2e5dc; padding:20px 24px; display:flex; justify-content:space-between; align-items:center; gap:16px; z-index:1; }
+.modalHeader h3 { font-size:18px; font-weight:500; }
+.close { border:0; border-radius:50%; width:36px; height:36px; background:#eef2ea; cursor:pointer; flex-shrink:0; }
+.body { padding:24px; }
+.fullText { white-space:pre-wrap; overflow-wrap:anywhere; font-size:15px; line-height:1.85; }
+.details { display:grid; grid-template-columns:1fr 1fr; gap:16px 24px; border-top:1px solid #e2e5dc; padding-top:20px; margin-top:24px; }
+.details dt { font-size:11px; color:#69796d; margin-bottom:4px; }
+.details dd { font-size:13px; line-height:1.6; margin:0; }
+.actions { display:flex; flex-wrap:wrap; gap:10px; border-top:1px solid #e2e5dc; padding-top:20px; margin-top:24px; }
+.danger { color:#94594d; border-color:#d8bcb3; }
+.confirm { margin-top:20px; border:1px solid #d8bcb3; border-radius:12px; padding:16px; font-size:13px; line-height:1.7; }
+.photo { max-width:180px; max-height:180px; object-fit:cover; border-radius:14px; margin-top:20px; }
+.button:focus-visible,.filter:focus-visible,.read:focus-visible,.close:focus-visible { outline:2px solid #607568; outline-offset:3px; }
+@media(max-width:1050px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .grid { grid-template-columns:1fr; } .details { grid-template-columns:1fr; } .heading { align-items:start; } .body,.modalHeader { padding:20px; } }

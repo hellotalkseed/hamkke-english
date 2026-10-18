@@ -3,11 +3,11 @@ import { FeedbackError, staffIdentity } from "@/lib/feedback/server";
 import { notFound, redirect } from "next/navigation";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import ReflectionActions from "@/components/ReflectionActions";
+import LegacyReflectionReview from "@/components/feedback/LegacyReflectionReview";
 
 import {
   isValidLocale,
-  type Locale,
+
 } from "@/lib/i18n";
 
 interface ReflectionsAdminPageProps {
@@ -25,7 +25,7 @@ export default async function ReflectionsAdminPage({
     notFound();
   }
 
-  const currentLocale = locale as Locale;
+
   await staffIdentity("owner").catch(error => {
     if (error instanceof FeedbackError) redirect(`/${locale}/portal/login`);
     throw error;
@@ -58,88 +58,17 @@ export default async function ReflectionsAdminPage({
                 Reflections
               </h1>
               <p className="mt-4 max-w-[720px] font-serif text-[17px] leading-8 text-[#74716B] sm:text-[18px]">
-                Review student reflections before they appear publicly on the Hamkke website.
+                Review learner feedback and manage what teachers and visitors can see.
               </p>
             </div>
 
-            <div className="pb-1 text-right">
-              <p className="font-sans text-[9px] font-medium uppercase tracking-[0.16em] text-[#8A8A84]">
-                Pending
-              </p>
-              <p className="mt-1 font-serif text-[30px] leading-none text-[#49614D]">
-                {reflections?.length ?? 0}
-              </p>
-            </div>
           </div>
         </div>
       </section>
 
       <section className="mx-auto w-full max-w-[1320px] px-8 pb-24 sm:px-10 lg:px-14 xl:px-16">
         <FeedbackReview />
-        <h2 className="mb-5 font-serif text-2xl">Earlier public-story submissions</h2>
-        <div className="border-t border-[#DED9D2] pt-8">
-          {error && (
-            <div className="mb-6 rounded-[18px] border border-[#E4D4CF] bg-white px-5 py-4">
-              <p className="font-sans text-[13px] text-[#7A5149]">
-                Reflections could not be loaded right now.
-              </p>
-            </div>
-          )}
-
-          <div className="grid gap-5 xl:grid-cols-2">
-            {reflections?.map((item) => (
-              <article
-                key={item.id}
-                className="flex min-h-[300px] flex-col rounded-[20px] border border-[#E7DDD1] bg-white p-6 sm:p-7"
-              >
-                <div className="flex items-start justify-between gap-5 border-b border-[#EEE8E1] pb-5">
-                  <div className="min-w-0">
-                    <p className="font-serif text-[25px] leading-tight text-[#292929]">
-                      {item.name}
-                    </p>
-                    <p className="mt-1.5 font-sans text-[11px] uppercase tracking-[0.12em] text-[#8A8A84]">
-                      {item.role}
-                      {item.country ? ` · ${item.country}` : ""}
-                    </p>
-                  </div>
-
-                  <div className="shrink-0 rounded-full bg-[#E2EBDD] px-3 py-1.5 font-sans text-[11px] font-medium text-[#49614D]">
-                    ★ {item.rating}/5
-                  </div>
-                </div>
-
-                <div className={`mt-5 grid flex-1 gap-6 ${item.photo_url ? "sm:grid-cols-[1fr_150px]" : ""}`}>
-                  <p className="font-serif text-[17px] leading-8 text-[#55534F]">
-                    “{item.reflection}”
-                  </p>
-
-                  {item.photo_url && (
-                    <img
-                      src={item.photo_url}
-                      alt=""
-                      className="h-[150px] w-full rounded-[16px] object-cover sm:w-[150px]"
-                    />
-                  )}
-                </div>
-
-                <div className="mt-7 border-t border-[#EEE8E1] pt-5">
-                  <ReflectionActions id={item.id} />
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {(!reflections || reflections.length === 0) && !error && (
-            <div className="rounded-[20px] border border-[#E7DDD1] bg-white px-8 py-16 text-center">
-              <p className="font-serif text-[25px] text-[#292929]">
-                All caught up.
-              </p>
-              <p className="mt-2 font-sans text-[13px] leading-6 text-[#777771]">
-                There are no student reflections waiting for review.
-              </p>
-            </div>
-          )}
-        </div>
+        {error ? <p role="alert" className="mt-8 text-sm">Earlier submissions could not be loaded. Please reload.</p> : <LegacyReflectionReview rows={(reflections ?? []).map(item => ({ id: item.id, name: item.name, role: item.role, country: item.country, rating: item.rating, reflection: item.reflection, photo_url: item.photo_url, created_at: item.created_at }))} />}
       </section>
     </main>
   );

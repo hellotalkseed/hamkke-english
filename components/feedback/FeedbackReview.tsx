@@ -1,32 +1,47 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-type Entry = { id: string; name: string; role: string; country: string | null; rating: number; reflection: string; teacher_name: string; source: string; learning_context: string; share_with_teacher: boolean; publish_consent: boolean; review_status: string; published_reflection_id: string | null; created_at: string };
-export default function FeedbackReview() {
-  const [rows, setRows] = useState<Entry[]>([]); const [page, setPage] = useState(0); const [total, setTotal] = useState(0);
-  const [busy, setBusy] = useState(""); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [tick, setTick] = useState(0); const lock = useRef(false);
-  useEffect(() => {
-    const abort = new AbortController(); setLoading(true); setError("");
-    fetch(`/api/admin/learner-feedback?page=${page}`, { cache: "no-store", signal: abort.signal }).then(async r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(v => { setRows(v.feedback); setTotal(v.total); }).catch(e => { if (e.name !== "AbortError") setError("Unable to load feedback. Check that the feedback SQL migration has been applied, then retry."); }).finally(() => { if (!abort.signal.aborted) setLoading(false); });
-    return () => abort.abort();
-  }, [page, tick]);
-  async function act(id: string, action: string) {
-    if (lock.current) return; lock.current = true; setBusy(id); setError("");
-    try { const r = await fetch(`/api/admin/learner-feedback/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
-      const body = await r.json(); if (!r.ok) throw new Error(body.error || "Unable to update feedback."); setTick(v => v+1);
-    } catch (e) { setError(e instanceof Error ? e.message : "Unable to update feedback."); }
-    finally { lock.current = false; setBusy(""); }
-  }
-  return <section className="mb-12 border-b border-[#DED9D2] pb-10"><h2 className="font-serif text-3xl">Learner feedback</h2><p className="mt-2 text-sm leading-6 text-[#607568]">Review teacher sharing and public publication separately. Private feedback stays private.</p>
-    {error && <div role="alert" className="mt-4 rounded-xl border border-[#E4D4CF] p-4"><p>{error}</p><button onClick={() => setTick(v => v+1)} className="mt-2 underline">Retry</button></div>}
-    {loading ? <p role="status" className="mt-6">Loading feedback…</p> : <div className="mt-6 space-y-5">{!rows.length && !error && <p className="text-sm text-[#777]">No feedback submitted through the new form yet.</p>}{rows.map(f => <article key={f.id} className="rounded-2xl border border-[#E7DDD1] bg-white p-6"><div className="flex flex-wrap justify-between gap-3"><h3 className="font-serif text-2xl">{f.name}</h3><span className="text-sm">{f.rating} / 5</span></div><p className="mt-1 text-sm text-[#607568]">For {f.teacher_name} · {f.role} · {new Date(f.created_at).toLocaleDateString()}</p><div className="mt-3 flex flex-wrap gap-2 text-xs">{[f.source === "portal" ? "Linked portal submission" : "Public link · identity not verified", f.learning_context === "elsewhere" ? "Lessons outside Hamkke" : "Hamkke lessons", f.share_with_teacher ? "Teacher + Hamkke" : "Hamkke only", f.publish_consent ? "Publication permitted" : "No publication permission", f.review_status, f.published_reflection_id ? "Published" : "Not published"].map(label => <span key={label} className="rounded-full bg-[#EEF2EA] px-3 py-1">{label}</span>)}</div><p className="mt-5 whitespace-pre-wrap break-words leading-8">{f.reflection}</p>
-      <div className="mt-6 flex flex-wrap gap-3 text-sm">
-        {f.review_status !== "reviewed" && <button disabled={!!busy} onClick={() => act(f.id,"review")} className="rounded-full border px-4 py-2 disabled:opacity-50">{f.share_with_teacher ? "Approve for teacher" : "Mark reviewed"}</button>}
-        {f.publish_consent && f.share_with_teacher && f.review_status !== "archived" && !f.published_reflection_id && <button disabled={!!busy} onClick={() => act(f.id,"publish")} className="rounded-full bg-[#304A39] px-4 py-2 text-white disabled:opacity-50">Publish on website</button>}
-        {f.published_reflection_id && <button disabled={!!busy} onClick={() => act(f.id,"unpublish")} className="rounded-full border px-4 py-2 disabled:opacity-50">Unpublish</button>}
-        {f.review_status !== "archived" && <button disabled={!!busy} onClick={() => act(f.id,"archive")} className="rounded-full border px-4 py-2 disabled:opacity-50">Archive{f.published_reflection_id ? " and unpublish" : ""}</button>}
-        {busy === f.id && <span role="status">Saving…</span>}
-      </div></article>)}</div>}
-    <div className="mt-5 flex items-center gap-4 text-sm"><button disabled={page === 0 || loading || !!busy} onClick={() => setPage(v => v-1)}>Previous</button><span>Page {page+1}</span><button disabled={(page+1)*30 >= total || loading || !!busy} onClick={() => setPage(v => v+1)}>Next</button></div>
-  </section>;
+import ReviewDialog from "./ReviewDialog";
+import styles from "./FeedbackReview.module.css";
+type Entry = { id:string; name:string; role:string; country:string|null; rating:number; reflection:string; teacher_name:string; source:string; learning_context:string; share_with_teacher:boolean; publish_consent:boolean; review_status:string; published_reflection_id:string|null; created_at:string };
+function approved(f:Entry){return f.review_status==='reviewed'&&(!(f.publish_consent&&f.share_with_teacher)||!!f.published_reflection_id);}
+function status(f:Entry){return approved(f)?'Approved':'Needs review';}
+function date(value:string){return new Intl.DateTimeFormat('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'Asia/Manila'}).format(new Date(value));}
+export default function FeedbackReview(){
+ const [rows,setRows]=useState<Entry[]>([]),[page,setPage]=useState(0),[total,setTotal]=useState(0);
+ const [selected,setSelected]=useState<Entry|null>(null),[confirmDelete,setConfirmDelete]=useState(false),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[actionError,setActionError]=useState(''),[tick,setTick]=useState(0);const lock=useRef(false);
+ useEffect(()=>{const abort=new AbortController();setLoading(true);setError('');fetch(`/api/admin/learner-feedback?page=${page}`,{cache:'no-store',signal:abort.signal}).then(async r=>{if(!r.ok)throw new Error();return r.json();}).then(v=>{if(abort.signal.aborted)return;if(page>0&&v.total<=page*24){setPage(Math.max(0,Math.ceil(v.total/24)-1));return;}setRows(v.feedback);setTotal(v.total);}).catch(e=>{if(e.name!=='AbortError')setError('Unable to load feedback. Please retry.');}).finally(()=>{if(!abort.signal.aborted)setLoading(false);});return()=>abort.abort();},[page,tick]);
+ function open(f:Entry){setSelected(f);setConfirmDelete(false);setActionError('');}
+ async function act(action:string){if(!selected||lock.current)return;lock.current=true;setBusy(true);setActionError('');try{const r=await fetch(`/api/admin/learner-feedback/${selected.id}`,{method:action==='delete'?'DELETE':'PATCH',headers:{'Content-Type':'application/json'},...(action==='delete'?{}:{body:JSON.stringify({action})})});const body=await r.json();if(!r.ok)throw new Error(body.error||'Unable to update feedback.');setSelected(null);setConfirmDelete(false);setTick(v=>v+1);}catch(e){setActionError(e instanceof Error?e.message:'Unable to update feedback.');}finally{lock.current=false;setBusy(false);}}
+ return <section className={styles.section}>
+  <div className={styles.heading}><div><h2>Learner feedback</h2><p className={styles.description}>Read their stories. Approve a story or delete it. Approved feedback leaves this queue.</p></div><span className={styles.count}>{loading?'…':total} stories</span></div>
+
+  {error&&<div role="alert" className={styles.alert}>{error} <button className={styles.read} onClick={()=>setTick(v=>v+1)}>Retry</button></div>}
+  {loading?<p role="status" className={styles.empty}>Loading feedback…</p>:!rows.length&&!error?<p className={styles.empty}>All caught up. No feedback is waiting for approval.</p>:<div className={styles.grid}>{rows.map(f=><article key={f.id} className={styles.card}>
+   <div className={styles.cardTop}><span className={styles.quoteMark} aria-hidden="true">“</span><span className={styles.rating}>{f.rating} / 5</span></div>
+   <p className={styles.preview}>{f.reflection}</p><button type="button" className={styles.read} onClick={()=>open(f)} aria-haspopup="dialog" aria-label={`Read feedback from ${f.name}`}>Read more</button>
+   <div className={styles.byline}>{f.name} · For {f.teacher_name}<p className={styles.meta}>{f.role}{f.country?` · ${f.country}`:''} · {date(f.created_at)}</p><p className={styles.status}>{status(f)}</p></div>
+  </article>)}</div>}
+  <nav className={styles.pagination} aria-label="Feedback pages"><button className={styles.button} disabled={page===0||loading||busy} onClick={()=>setPage(v=>v-1)}>Previous</button><span>Page {page+1} of {Math.max(1,Math.ceil(total/24))}</span><button className={styles.button} disabled={(page+1)*24>=total||loading||busy} onClick={()=>setPage(v=>v+1)}>Next</button></nav>
+  {selected&&<ReviewDialog title={`Feedback from ${selected.name}`} busy={busy} onClose={()=>setSelected(null)}>
+   <p className={styles.description}>For {selected.teacher_name} · {selected.rating} / 5 · {date(selected.created_at)}</p><p className={styles.fullText}>{selected.reflection}</p>
+   <dl className={styles.details}>{[
+    ['Submitted by',`${selected.name} · ${selected.role}${selected.country?` · ${selected.country}`:''}`],
+    ['Submission source',selected.source==='portal'?'Student portal · linked account':'Public feedback link · identity not verified'],
+    ['Lesson context',selected.learning_context==='elsewhere'?'Lessons outside Hamkke':'Hamkke lessons'],
+    ['Sharing permission',selected.share_with_teacher?'Teacher and Hamkke':'Hamkke only · private'],
+    ['Public publication consent',selected.publish_consent?'Permission given':'No permission given'],
+    ['Teacher visibility',selected.share_with_teacher&&selected.review_status==='reviewed'?'Visible to the assigned teacher':'Not visible to the teacher'],
+    ['Review status',status(selected)],
+    ['Website',selected.published_reflection_id?'Published':'Not published'],
+   ].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+   {actionError&&<p role="alert" className={styles.alert}>{actionError}</p>}
+   <div className={styles.actions}>
+    {approved(selected)?<span className={styles.status}>Approved</span>:<button disabled={busy} className={`${styles.button} ${styles.primary}`} onClick={()=>act('approve')}>Approve</button>}
+    <button disabled={busy} className={`${styles.button} ${styles.danger}`} onClick={()=>setConfirmDelete(true)}>Delete</button>
+   </div>
+   <p className={styles.description}>Approval shares this feedback only with the audiences the learner permitted, then removes it from this queue. Approved feedback can only be removed through Supabase.</p>
+   {confirmDelete&&<div className={styles.confirm}><p>Delete feedback from {selected.name}? This cannot be undone.</p><div className={styles.actions}><button disabled={busy} className={`${styles.button} ${styles.danger}`} onClick={()=>act('delete')}>Yes, delete feedback</button><button disabled={busy} className={styles.button} onClick={()=>setConfirmDelete(false)}>Keep feedback</button></div></div>}
+   {busy&&<p role="status" className={styles.description}>Saving…</p>}
+  </ReviewDialog>}
+ </section>;
 }

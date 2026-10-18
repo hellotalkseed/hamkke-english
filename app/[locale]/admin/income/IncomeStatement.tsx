@@ -19,15 +19,15 @@ const money = (amount: number) => amount.toLocaleString("en-US", { minimumFracti
 function dateLabel(value: string | null) {
   return value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`)) : "Not recorded";
 }
-export default function IncomeStatement({ period, reportId, generatedAt, entries }: { period: string; reportId: string; generatedAt: string; entries: Entry[] }) {
+export default function IncomeStatement({ period, reportId, generatedAt, entries, title = "Monthly Income Statement", includeDeclaration = true, annualReference }: { includeDeclaration?: boolean; annualReference?: string; title?: string; period: string; reportId: string; generatedAt: string; entries: Entry[] }) {
   const total = entries.reduce((sum, entry) => sum + (entry.php ?? 0), 0);
   const missing = entries.filter(entry => entry.php === null).length;
   const issued = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Manila" }).format(new Date(generatedAt));
-  return <article className="income-print" aria-label="Printable monthly income statement">
+  return <article className="income-print" aria-label={`Printable ${title.toLowerCase()}`}>
     <style>{`
       .income-print { display: none; }
       @media print {
-        @page { size: A4 portrait; margin: 16mm 14mm 18mm;
+        @page { size: Letter portrait; margin: 0.55in 0.5in 0.6in;
           @bottom-left { content: "Hamkke | Self-prepared statement"; font: 8pt Arial, sans-serif; color: #666; }
           @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt Arial, sans-serif; color: #666; }
         }
@@ -67,8 +67,9 @@ export default function IncomeStatement({ period, reportId, generatedAt, entries
       <div><div className="brand">HAMKKE │ 함께</div><div className="small">Private English Lessons · hamkkeenglish.com</div></div>
       <div className="small">SELF-PREPARED STATEMENT</div>
     </header>
-    <h1>Monthly Income Statement</h1>
+    <h1>{title}</h1>
     <p className="subtitle">Schedule of recorded lesson payments · {period}</p>
+    {annualReference && <p className="small">Part of annual statement {annualReference}. Declaration and signature appear on the annual summary page.</p>}
     <div className="metadata">
       <div><span className="label">Prepared by</span><strong>Jesica Abejaron</strong></div>
       <div><span className="label">Reporting period</span>{period}</div>
@@ -90,11 +91,11 @@ export default function IncomeStatement({ period, reportId, generatedAt, entries
     </div>
     <div className="notes">
       {missing > 0 && <p><strong>Incomplete PHP total:</strong> {missing} payment record(s) have no PHP amount and are excluded from the subtotal. Complete those records before presenting this statement.</p>}
-      <p>Includes payments marked paid, selected by payment date. PHP amounts are those recorded in Hamkke; no exchange rates have been recalculated. This statement reports receipts before expenses and does not calculate net profit or taxable income.</p>
-      <p>This is a self-prepared summary, not an invoice, tax return, or independently certified statement. Supporting payment records should accompany it when required.</p>
+      {includeDeclaration && <><p>Includes payments marked paid, selected by payment date. PHP amounts are those recorded in Hamkke; no exchange rates have been recalculated. This statement reports receipts before expenses and does not calculate net profit or taxable income.</p>
+      <p>This is a self-prepared summary, not an invoice, tax return, or independently certified statement. Supporting payment records should accompany it when required.</p></>}
     </div>
-    <section className="declaration"><h2>Declaration</h2><p>By signing below, I confirm that I have reviewed this statement and that, to the best of my knowledge, it accurately reflects the recorded payments for the stated period.</p>
+    {includeDeclaration && <section className="declaration"><h2>Declaration</h2><p>By signing below, I confirm that I have reviewed this statement and that, to the best of my knowledge, it accurately reflects the recorded payments for the stated period.</p>
       <div className="signature"><div><strong>Jesica Abejaron</strong><div className="small">Signature over printed name</div></div><div>Date signed</div></div>
-    </section>
+    </section>}
   </article>;
 }
