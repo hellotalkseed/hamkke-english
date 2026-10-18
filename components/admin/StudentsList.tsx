@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  GraduationCap,
   Search,
   X,
 } from "lucide-react";
@@ -15,6 +14,7 @@ interface Lesson {
 }
 
 interface Enrollment {
+  is_shared?: boolean;
   id: string;
   package_name: string | null;
   number_of_lessons: number | null;
@@ -358,295 +358,47 @@ export default function StudentsList({
 
       {/* STUDENT LIST */}
       {filteredStudents.length > 0 ? (
-        <div>
-          {filteredStudents.map(
-            (student, index) => {
-              const enrollments =
-                student.enrollments ?? [];
-
-              /*
-               * -------------------------------------------------
-               * ACTIVE ENROLLMENT
-               * -------------------------------------------------
-               *
-               * This now works for BOTH:
-               *
-               * Individual enrollment
-               * → attached directly to the student
-               *
-               * Shared enrollment
-               * → attached to the student through
-               *   enrollment_students
-               *
-               * The enrollment is still represented only once.
-               */
-              const activeEnrollment =
-                enrollments.find(
-                  (enrollment) =>
-                    enrollment.status ===
-                    "active"
-                );
-
-              /*
-               * -------------------------------------------------
-               * SHARED / ENROLLMENT-LEVEL LESSON COUNT
-               * -------------------------------------------------
-               *
-               * The lesson pool belongs to the enrollment,
-               * not to the participant.
-               *
-               * Therefore we count consumed lessons from
-               * the enrollment's complete lesson track.
-               *
-               * Example:
-               *
-               * 20 total
-               * 1 consumed
-               * 19 remaining
-               *
-               * Both Dasom and Bin will show the same count.
-               */
-              const lessons =
-                activeEnrollment?.lessons ?? [];
-
-              const consumedLessons =
-                lessons.filter(
-                  (lesson) =>
-                    lesson.consumes_lesson ===
-                    true
-                ).length;
-
-              const totalLessons =
-                activeEnrollment?.number_of_lessons ??
-                0;
-
-              const remainingLessons =
-                Math.max(
-                  0,
-                  totalLessons -
-                    consumedLessons
-                );
-
-              const studentNumber =
-                student.student_number
-                  ? String(
-                      student.student_number
-                    )
-                  : null;
-
-              return (
-                <Link
-                  key={student.id}
-                  href={`/${locale}/admin/students/${student.id}`}
-                  className="
-                    group
-                    block
-                    border-b
-                    border-[#DCD8D2]
-                    py-10
-                    transition-colors
-                    hover:bg-[#F0F4ED]
-                  "
-                >
-                  <div className="flex gap-6">
-                    {/* LIST NUMBER */}
-                    <div
-                      className="
-                        shrink-0
-                        pt-1
-                        font-sans
-                        text-[11px]
-                        font-medium
-                        tracking-[0.14em]
-                        text-[#8A8A84]
-                      "
-                    >
-                      {String(index + 1).padStart(
-                        2,
-                        "0"
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      {/* NAME + ICON */}
-                      <div
-                        className="
-                          flex
-                          items-start
-                          justify-between
-                          gap-6
-                        "
-                      >
-                        <div>
-                          {/* STUDENT NUMBER */}
-                          {studentNumber && (
-                            <div
-                              className="
-                                mb-2
-                                font-sans
-                                text-[11px]
-                                font-medium
-                                tracking-[0.12em]
-                                text-[#6F8F72]
-                              "
-                            >
-                              {studentNumber}
-                            </div>
-                          )}
-
-                          {/* STUDENT NAME */}
-                          <h2
-                            className="
-                              font-serif
-                              text-[30px]
-                              font-normal
-                              leading-tight
-                              tracking-[-0.02em]
-                              text-[#292929]
-                              sm:text-[34px]
-                            "
-                          >
-                            {student.preferred_name ||
-                              student.full_name}
-                          </h2>
-
-                          {/* FULL NAME */}
-                          {student.preferred_name &&
-                            student.preferred_name !==
-                              student.full_name && (
-                              <p
-                                className="
-                                  mt-2
-                                  font-sans
-                                  text-sm
-                                  text-[#777771]
-                                "
-                              >
-                                {student.full_name}
-                              </p>
-                            )}
-                        </div>
-
-                        {/* ICON */}
-                        <div
-                          className="
-                            flex
-                            h-10
-                            w-10
-                            shrink-0
-                            items-center
-                            justify-center
-                            rounded-full
-                            bg-[#E2EBDD]
-                            text-[#6F8F72]
-                            transition-transform
-                            group-hover:translate-x-1
-                          "
-                        >
-                          <GraduationCap
-                            size={18}
-                            strokeWidth={1.5}
-                          />
-                        </div>
-                      </div>
-
-                      {/* STUDENT INFORMATION */}
-                      <div
-                        className="
-                          mt-6
-                          flex
-                          flex-wrap
-                          gap-x-5
-                          gap-y-2
-                          font-sans
-                          text-[13px]
-                          text-[#6B6B66]
-                        "
-                      >
-                        {student.country && (
-                          <span>
-                            {student.country}
-                          </span>
-                        )}
-
-                        {student.timezone && (
-                          <span>
-                            {student.timezone}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* ACTIVE ENROLLMENT */}
-                      {activeEnrollment ? (
-                        <div
-                          className="
-                            mt-6
-                            inline-flex
-                            flex-wrap
-                            items-center
-                            gap-x-4
-                            gap-y-2
-                            rounded-2xl
-                            bg-[#F0F4ED]
-                            px-5
-                            py-4
-                          "
-                        >
-                          <span
-                            className="
-                              font-sans
-                              text-[11px]
-                              font-medium
-                              uppercase
-                              tracking-[0.14em]
-                              text-[#6F8F72]
-                            "
-                          >
-                            Active
-                          </span>
-
-                          <span
-                            className="
-                              font-serif
-                              text-[16px]
-                            "
-                          >
-                            {
-                              activeEnrollment.package_name
-                            }
-                          </span>
-
-                          <span
-                            className="
-                              font-sans
-                              text-[13px]
-                              text-[#6B6B66]
-                            "
-                          >
-                            {totalLessons} lessons ·{" "}
-                            {remainingLessons}{" "}
-                            remaining
-                          </span>
-                        </div>
-                      ) : (
-                        <p
-                          className="
-                            mt-6
-                            font-sans
-                            text-[13px]
-                            italic
-                            text-[#8A8A84]
-                          "
-                        >
-                          No active enrollment
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            }
-          )}
+        <div className="overflow-hidden rounded-xl border border-[#DCD8D2] bg-[#FFFEFC]">
+          <div className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-[#6F8F72]" role="region" aria-label="Students table" tabIndex={0}>
+            <table className="w-full min-w-[760px] border-collapse text-left font-sans text-[14px] leading-6">
+              <caption className="sr-only">Students and their active enrollment type</caption>
+              <thead className="bg-[#EAF0E5] text-[12px] font-medium text-[#526650]">
+                <tr>
+                  {['English name', 'Korean name', 'Student number', 'Timezone', 'Enrollment'].map((heading) => (
+                    <th key={heading} scope="col" className="px-5 py-3.5 font-medium">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E6E3DC]">
+                {filteredStudents.map((student) => {
+                  const active = (student.enrollments ?? []).filter((enrollment) => enrollment.status === "active");
+                  const shared = active.some((enrollment) => enrollment.is_shared === true);
+                  const individual = active.some((enrollment) => enrollment.is_shared === false);
+                  const enrollmentLabel = !active.length ? "No active enrollment" : shared && individual ? "Individual / Shared" : shared ? "Shared" : individual ? "Individual" : "Not recorded";
+                  const href = `/${locale}/admin/students/${student.id}`;
+                  return (
+                    <tr key={student.id} className="transition-colors hover:bg-[#F3F5EE] focus-within:bg-[#F3F5EE]">
+                      <td className="px-5 py-4 font-medium text-[#354D3B]">
+                        <Link href={href} className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#6F8F72]">
+                          {student.preferred_name?.trim() || student.full_name}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-4 text-[#555A53]">
+                        <Link href={href} className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#6F8F72]">{student.full_name || "—"}</Link>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4 tabular-nums text-[#666B63]">{student.student_number ?? "—"}</td>
+                      <td className="px-5 py-4 text-[#666B63]">{student.timezone || "Not set"}</td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex rounded-md px-2.5 py-1 text-[12px] leading-5 ${shared ? "bg-[#E7EBDD] text-[#526344]" : active.length ? "bg-[#F0EEE8] text-[#6C6558]" : "text-[#88877F]"}`}>
+                          {enrollmentLabel}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         /* NO RESULTS */

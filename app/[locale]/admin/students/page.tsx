@@ -153,6 +153,10 @@ export default async function StudentsPage({
       enrollments: studentEnrollments.map(
         (enrollment) => ({
           id: enrollment.id,
+          is_shared: new Set([
+            enrollment.student_id,
+            ...(enrollment.enrollment_students ?? []).map((participant) => participant.student_id),
+          ].filter((id): id is string => Boolean(id))).size > 1,
           package_name:
             enrollment.package_name,
           number_of_lessons:

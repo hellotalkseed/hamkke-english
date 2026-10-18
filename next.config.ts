@@ -84,6 +84,20 @@ const nextConfig: NextConfig = {
           ),
         }],
       })),
+      // Student agreements may open inside the same-origin portal popup.
+      {
+        source: "/:locale(en|ko|zh|ja)/portal/agreement",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy.replace(
+              "frame-ancestors 'none';",
+              "frame-ancestors 'self';"
+            ),
+          },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+        ],
+      },
       // Only lesson detail pages may be framed, and only by the same origin.
       {
         source: "/:locale(en|ko|zh|ja)/admin/teachers/lessons/:lessonId",
