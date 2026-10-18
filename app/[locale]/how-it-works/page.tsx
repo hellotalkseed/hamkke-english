@@ -423,10 +423,10 @@ export default async function HowItWorksPage({
                         sm:gap-6
                         sm:px-8
 
-                        lg:grid-cols-[60px_210px_minmax(0,1fr)_250px]
-                        lg:items-center
-                        lg:gap-7
-                        lg:px-9
+                        xl:grid-cols-[60px_210px_minmax(0,1fr)_250px]
+                        xl:items-center
+                        xl:gap-7
+                        xl:px-9
 
                         ${
                           index !==
@@ -484,6 +484,9 @@ export default async function HowItWorksPage({
 
                       <p
                         className="
+                          min-w-0
+                          sm:col-start-2
+                          xl:col-start-auto
                           text-[14px]
                           leading-7
                           text-[#66736A]
@@ -494,6 +497,9 @@ export default async function HowItWorksPage({
 
                       <div
                         className="
+                          min-w-0
+                          sm:col-start-2
+                          xl:col-start-auto
                           rounded-[14px]
                           bg-[#EEF2EA]
                           px-4
