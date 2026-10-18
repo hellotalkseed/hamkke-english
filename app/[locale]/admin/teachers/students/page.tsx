@@ -30,16 +30,6 @@ const nav = (locale: string) => [
   { label: "Payroll", href: `/${locale}/admin/teachers/payroll`, icon: Wallet },
 ];
 
-const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-function formatTime(value: string | null) {
-  if (!value) return "Time to be confirmed";
-  const [h, m] = value.split(":").map(Number);
-  return new Date(2000, 0, 1, h, m).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
-function formatDate(value: string) {
-  const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 function displayName(item: StudentItem) { return item.student?.preferred_name || item.student?.full_name || "Student"; }
 
 export default function TeacherStudentsPage({ params }: Props) {
@@ -90,28 +80,48 @@ export default function TeacherStudentsPage({ params }: Props) {
 
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div><p className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A857E]">Assigned students</p><p className="mt-1 font-serif text-[22px]">{loading ? "Loading..." : `${students.length} ${students.length === 1 ? "student" : "students"}`}</p></div>
-              <label className="flex w-full items-center gap-2 rounded-xl border border-[#DDD6CE] bg-white px-3.5 py-2.5 sm:w-[300px]"><Search size={16} className="text-[#8B857E]" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search students" className="w-full bg-transparent font-sans text-[13px] outline-none placeholder:text-[#AAA49C]" /></label>
+              <label className="flex w-full items-center gap-2 rounded-xl border border-[#DDD6CE] bg-white px-3.5 py-2.5 sm:w-[300px]"><Search size={16} className="text-[#8B857E]" /><input aria-label="Search students" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search students" className="w-full bg-transparent font-sans text-[13px] outline-none placeholder:text-[#AAA49C]" /></label>
             </div>
 
             {loading ? <div className="mt-6 rounded-[20px] border border-[#E7DDD1] bg-white p-10 text-center text-[13px] text-[#8B857E]">Loading your students...</div> : error ? <div className="mt-6 rounded-[20px] border border-[#E6D6D1] bg-[#FFFAF8] p-5 text-[13px] text-[#A45F58]">{error}</div> : filtered.length === 0 ? <div className="mt-6 rounded-[20px] border border-[#E7DDD1] bg-white p-10 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#E2EBDD] text-[#55705A]"><Users size={20} /></div><h2 className="mt-4 font-serif text-[20px]">{query ? "No matching students" : "No assigned students yet"}</h2><p className="mt-1 text-[13px] text-[#8B857E]">{query ? "Try another name or student number." : "Students assigned to your regular teaching schedule will appear here."}</p></div> : (
-              <div className="mt-6 grid gap-4 xl:grid-cols-2">
-                {filtered.map((item) => {
-                  const total = item.progress.total || 0;
-                  const used = Math.min(item.progress.used, total || item.progress.used);
-                  const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
-                  return <article key={item.enrollment_student_id} className="rounded-[20px] border border-[#E7DDD1] bg-white p-5 sm:p-6">
-                    <div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E2EBDD] font-serif text-[18px] text-[#55705A]">{displayName(item).charAt(0).toUpperCase()}</div><div><h2 className="font-serif text-[24px] leading-tight">{displayName(item)}</h2><p className="mt-1 font-sans text-[11px] text-[#8B857E]">{item.student?.student_number || "Student number to be confirmed"}</p></div></div></div><span className="rounded-full border border-[#C9D8C8] bg-[#EEF4EB] px-2.5 py-1 font-sans text-[10px] font-medium text-[#55705A]">{item.enrollment?.status ? item.enrollment.status.charAt(0).toUpperCase() + item.enrollment.status.slice(1).replaceAll("_", " ") : "-"}</span></div>
-                    <div className="mt-5 grid gap-4 border-t border-[#EEE9E3] pt-5 sm:grid-cols-2">
-                      <div><p className="font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-[#9A948C]">Current package</p><p className="mt-1.5 font-sans text-[13px] font-medium text-[#4E4A45]">{item.enrollment?.package_name || "Package to be confirmed"}</p><p className="mt-1 text-[11px] text-[#8B857E]">{item.enrollment?.lesson_duration ? `${item.enrollment.lesson_duration} minutes per lesson` : ""}</p></div>
-                      <div><p className="font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-[#9A948C]">Next lesson</p>{item.next_lesson ? <><p className="mt-1.5 font-sans text-[13px] font-medium text-[#4E4A45]">{formatDate(item.next_lesson.philippine_date)} · {formatTime(item.next_lesson.philippine_time)}</p><p className="mt-1 text-[11px] text-[#8B857E]">Lesson {item.next_lesson.lesson_number} · Philippine Time</p></> : <p className="mt-1.5 text-[12px] text-[#8B857E]">No upcoming lesson scheduled.</p>}</div>
-                    </div>
-                    <div className="mt-5"><div className="flex items-center justify-between"><p className="font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-[#9A948C]">Lesson progress</p><p className="font-sans text-[11px] font-medium text-[#657064]">{used} / {total || "-"} used</p></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#EEEAE4]"><div className="h-full rounded-full bg-[#8FAA91]" style={{ width: `${pct}%` }} /></div></div>
-                    {item.regular_schedule.length > 0 && <div className="mt-5 border-t border-[#EEE9E3] pt-4"><p className="font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-[#9A948C]">Regular schedule</p><div className="mt-2 flex flex-wrap gap-2">{item.regular_schedule.map((s, index) => <span key={`${s.day_of_week}-${s.schedule_time}-${index}`} className="rounded-full bg-[#F4F1EC] px-3 py-1.5 font-sans text-[11px] text-[#625E58]">{dayNames[s.day_of_week] || "Day"} · {formatTime(s.schedule_time)}</span>)}</div><p className="mt-2 text-[10px] text-[#9A948C]">Student-local recurring schedule</p></div>}
-                    <div className="mt-5 flex justify-end border-t border-[#EEE9E3] pt-4">
-                      <Link href={`/${locale}/admin/teachers/students/${item.enrollment_student_id}`} className="font-sans text-[12px] font-medium text-[#5F7F63] transition hover:text-[#405844]">View Teaching Record →</Link>
-                    </div>
-                  </article>;
-                })}
+              <div className="mt-6 border-y border-[#DCD8D2]">
+                <div role="region" aria-label="Assigned students" tabIndex={0} className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-[#6F8F72]">
+                  <table className="w-full min-w-[720px] border-collapse text-left font-sans text-[13px] font-normal leading-5">
+                    <caption className="sr-only">Assigned students and lesson progress</caption>
+                    <thead className="border-b border-[#DCD8D2] text-[11px] uppercase tracking-[0.1em] text-[#85877F]">
+                      <tr>{["Student", "Student number", "Progress", "Status", "View teaching record"].map((heading) => <th key={heading} scope="col" className="px-5 py-4 font-normal">{heading}</th>)}</tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E5E1DA]">
+                      {filtered.map((item) => {
+                        const total = item.progress.total || 0;
+                        const used = Math.min(item.progress.used, total || item.progress.used);
+                        const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+                        const remaining = Math.max(0, total - used);
+                        const href = `/${locale}/admin/teachers/students/${item.enrollment_student_id}`;
+                        const status = item.enrollment?.status || "";
+                        return <tr key={item.enrollment_student_id} className="transition-colors hover:bg-[#F1F3EC] focus-within:bg-[#F1F3EC]">
+                          <td className="px-5 py-5">
+                            <Link href={href} className="rounded-sm font-normal text-[#354D3B] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#6F8F72]">{displayName(item)}</Link>
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-5 tabular-nums text-[#797D74]">{item.student?.student_number || "—"}</td>
+                          <td className="w-[28%] min-w-[210px] px-5 py-5">
+                            <div className="max-w-[240px]">
+                              <div className="flex items-center justify-between gap-5"><span className="tabular-nums text-[#354D3B]">{used} / {total || "—"}</span><span className="text-[10px] tabular-nums text-[#85877F]">{total > 0 ? `${pct}%` : "—"}</span></div>
+                              <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-[#E2E0D9]" role="progressbar" aria-label={`${displayName(item)} lesson progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-valuetext={`${used} of ${total || "unknown"} lessons used`}><div className="h-full rounded-full bg-[#81967E]" style={{ width: `${pct}%` }} /></div>
+                              <p className="mt-2 text-[10px] text-[#85877F]">{total > 0 ? `${remaining} ${remaining === 1 ? "lesson" : "lessons"} remaining` : "Lesson total not set"}</p>
+                            </div>
+                          </td>
+                          <td className="px-5 py-5">
+                            <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.06em] ${status === "active" ? "bg-[#E2EBDD] text-[#607D60]" : "bg-[#ECE9E2] text-[#7A776D]"}`}><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />{status.replaceAll("_", " ") || "Not set"}</span>
+                          </td>
+                          <td className="px-5 py-5">
+                            <Link href={href} aria-label={`View teaching record for ${displayName(item)}`} className="inline-flex min-h-10 items-center rounded-sm text-[12px] font-normal text-[#5F7F63] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#6F8F72]">View teaching record →</Link>
+                          </td>
+                        </tr>;
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
