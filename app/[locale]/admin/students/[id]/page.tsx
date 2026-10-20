@@ -1332,6 +1332,11 @@ export default async function StudentPage({
 
             {currentEnrollment ? (
               <RenewEnrollmentButton
+                key={currentEnrollment.id}
+                students={allStudents}
+                participantIds={uniqueCurrentEnrollmentParticipantIds}
+                participantSchedules={printableParticipantSchedules}
+                enrollmentType={currentEnrollment.isShared ? "shared" : "individual"}
                 studentId={student.id}
                 enrollmentId={
                   currentEnrollment.id
