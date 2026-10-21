@@ -18,6 +18,8 @@ type EnrollmentRow = {
   number_of_lessons: number | null;
   lesson_duration: number | null;
   renewal_of: string | null;
+  start_date: string | null;
+  created_at: string | null;
 };
 
 type EnrollmentStudentRow = {
@@ -90,7 +92,7 @@ export async function GET() {
       .select(`
         id, enrollment_id, student_id,
         students ( id, student_number, full_name, preferred_name, timezone ),
-        enrollments ( id, package_name, status, number_of_lessons, lesson_duration, renewal_of )
+        enrollments ( id, package_name, status, number_of_lessons, lesson_duration, renewal_of, start_date, created_at )
       `)
       .in("id", ids);
 
@@ -98,16 +100,14 @@ export async function GET() {
     const assignedParticipants = (participantData || []) as EnrollmentStudentRow[];
     const studentIds = Array.from(new Set(assignedParticipants.map((p) => p.student_id)));
 
-    // Owner/Admin enrollment state is the source of truth for the current term.
-    // A teacher assignment may still point at the just-completed enrollment after
-    // the Owner activates its renewal. Follow only that student's renewal chain,
-    // and use the active descendant as the Teacher Portal current package.
+    // Resolve renewals within each assigned student's enrollment chain.
+    // An active renewal must wait while its previous term has lessons left.
     const { data: ownerParticipantData, error: ownerParticipantError } = await admin
       .from("enrollment_students")
       .select(`
         id, enrollment_id, student_id,
         students ( id, student_number, full_name, preferred_name, timezone ),
-        enrollments ( id, package_name, status, number_of_lessons, lesson_duration, renewal_of )
+        enrollments ( id, package_name, status, number_of_lessons, lesson_duration, renewal_of, start_date, created_at )
       `)
       .in("student_id", studentIds);
 
@@ -123,6 +123,46 @@ export async function GET() {
       ownerByStudent.set(participant.student_id, list);
     }
 
+    // Fetch complete lesson pools for assigned enrollments and their active or
+    // completed renewal descendants. Never filter shared usage by student ID.
+    const reachableEnrollmentIds = new Set(assignedParticipants.map((p) => p.enrollment_id));
+    const queue = [...assignedParticipants];
+    const visitedParticipants = new Set<string>();
+    for (let index = 0; index < queue.length; index++) {
+      const current = queue[index];
+      if (visitedParticipants.has(current.id)) continue;
+      visitedParticipants.add(current.id);
+      for (const candidate of ownerByStudent.get(current.student_id) || []) {
+        const enrollment = one(candidate.enrollments);
+        if (enrollment?.renewal_of === current.enrollment_id &&
+            (enrollment.status === "active" || enrollment.status === "completed")) {
+          reachableEnrollmentIds.add(candidate.enrollment_id);
+          queue.push(candidate);
+        }
+      }
+    }
+    const { data: lessons, error: lessonError } = await admin.from("lessons")
+      .select("id, enrollment_id, student_id, lesson_number, lesson_date, schedule_time, duration, attendance_status, consumes_lesson, resolution")
+      .in("enrollment_id", Array.from(reachableEnrollmentIds))
+      .order("lesson_date", { ascending: true })
+      .order("schedule_time", { ascending: true });
+    if (lessonError) return NextResponse.json({ error: lessonError.message }, { status: 500 });
+
+    const hasRemainingLessons = (participant: EnrollmentStudentRow) => {
+      const enrollment = one(participant.enrollments);
+      return enrollment?.status === "active" &&
+        (enrollment.number_of_lessons ?? 0) > countConsumedEnrollmentLessons(
+          (lessons || []).filter((lesson) => lesson.enrollment_id === participant.enrollment_id)
+        );
+    };
+    const compareTerms = (a: EnrollmentStudentRow, b: EnrollmentStudentRow) => {
+      const first = one(a.enrollments);
+      const second = one(b.enrollments);
+      return (first?.start_date || "9999-12-31").localeCompare(second?.start_date || "9999-12-31") ||
+        (first?.created_at || "").localeCompare(second?.created_at || "") ||
+        a.enrollment_id.localeCompare(b.enrollment_id);
+    };
+
     const resolveOwnerCurrentParticipant = (assigned: EnrollmentStudentRow) => {
       const candidates = ownerByStudent.get(assigned.student_id) || [];
       let current = assigned;
@@ -130,12 +170,16 @@ export async function GET() {
 
       while (!visited.has(current.enrollment_id)) {
         visited.add(current.enrollment_id);
+        const currentEnrollment = one(current.enrollments);
+        if (hasRemainingLessons(current)) break;
+        if (currentEnrollment?.status !== "completed" && currentEnrollment?.status !== "active") break;
 
-        const child = candidates.find((candidate) => {
+        const child = [...candidates].sort(compareTerms).find((candidate) => {
           const enrollment = one(candidate.enrollments);
           return (
             enrollment?.renewal_of === current.enrollment_id &&
-            enrollment.status === "active"
+            (enrollment.status === "active" || enrollment.status === "completed") &&
+            !visited.has(candidate.enrollment_id)
           );
         });
 
@@ -158,9 +202,14 @@ export async function GET() {
 
       const existingEnrollment = one(existing.enrollments);
       const resolvedEnrollment = one(resolved.enrollments);
+      const existingUnfinished = hasRemainingLessons(existing);
+      const resolvedUnfinished = hasRemainingLessons(resolved);
       if (
-        existingEnrollment?.status !== "active" &&
-        resolvedEnrollment?.status === "active"
+        (resolvedUnfinished && !existingUnfinished) ||
+        (resolvedUnfinished && existingUnfinished && compareTerms(resolved, existing) < 0) ||
+        (!resolvedUnfinished && !existingUnfinished &&
+          ((existingEnrollment?.status !== "active" && resolvedEnrollment?.status === "active") ||
+           (existingEnrollment?.status === resolvedEnrollment?.status && compareTerms(resolved, existing) > 0)))
       ) {
         resolvedByStudent.set(assigned.student_id, resolved);
       }
@@ -169,22 +218,12 @@ export async function GET() {
     const participants = Array.from(resolvedByStudent.values());
     const enrollmentIds = Array.from(new Set(participants.map((p) => p.enrollment_id)));
 
-    const [{ data: lessons, error: lessonError }, { data: schedules, error: scheduleError }] = await Promise.all([
-      admin.from("lessons")
-        .select("id, enrollment_id, student_id, lesson_number, lesson_date, schedule_time, duration, attendance_status, consumes_lesson, resolution")
-        .in("enrollment_id", enrollmentIds)
-        .in("student_id", studentIds)
-        .order("lesson_date", { ascending: true })
-        .order("schedule_time", { ascending: true }),
-      admin.from("enrollment_schedules")
-        .select("id, enrollment_id, student_id, day_of_week, schedule_time")
-        .in("enrollment_id", enrollmentIds)
-        .in("student_id", studentIds)
-        .order("day_of_week", { ascending: true })
-        .order("schedule_time", { ascending: true }),
-    ]);
-
-    if (lessonError) return NextResponse.json({ error: lessonError.message }, { status: 500 });
+    const { data: schedules, error: scheduleError } = await admin.from("enrollment_schedules")
+      .select("id, enrollment_id, student_id, day_of_week, schedule_time")
+      .in("enrollment_id", enrollmentIds)
+      .in("student_id", studentIds)
+      .order("day_of_week", { ascending: true })
+      .order("schedule_time", { ascending: true });
     if (scheduleError) return NextResponse.json({ error: scheduleError.message }, { status: 500 });
 
     const nowParts = new Intl.DateTimeFormat("en-CA", {
