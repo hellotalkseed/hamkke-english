@@ -29,6 +29,7 @@ interface EnrollmentRow {
   number_of_lessons: number | null;
   status: string | null;
   start_date: string | null;
+  created_at: string | null;
   schedule_days: string[] | null;
   schedule_time: string | null;
 }
@@ -388,6 +389,7 @@ export default async function OverviewPage({
       number_of_lessons,
       status,
       start_date,
+      created_at,
       schedule_days,
       schedule_time
     `);
@@ -703,35 +705,31 @@ export default async function OverviewPage({
     )[0] ?? null;
   }
 
-  /*
-   * The active enrollment remains the primary
-   * enrollment whenever one exists.
-   *
-   * This prevents a pending renewal from
-   * replacing the student's current active
-   * enrollment in the Overview.
-   */
-  function getPrimaryEnrollment(
-    studentId: string
-  ) {
-    const enrollmentsForStudent =
-      getEnrollmentsForStudent(
-        studentId
-      );
-
-    const activeEnrollment =
-      enrollmentsForStudent.find(
-        (enrollment) =>
-          enrollment.status === "active"
-      );
-
-    if (activeEnrollment) {
-      return activeEnrollment;
-    }
-
-    return getLatestEnrollment(
-      enrollmentsForStudent
+  // Paid renewals can also be active. Finish the earlier term first,
+  // using attendance across the entire enrollment (including shared lessons).
+  function getPrimaryEnrollment(studentId: string) {
+    const enrollmentsForStudent = getEnrollmentsForStudent(studentId);
+    const activeEnrollments = enrollmentsForStudent.filter(
+      (enrollment) => enrollment.status === "active"
     );
+    const unfinishedEnrollments = activeEnrollments.filter(
+      (enrollment) =>
+        (enrollment.number_of_lessons ?? 0) >
+        getAttendanceConsumedLessons(enrollment.id)
+    );
+    unfinishedEnrollments.sort((a, b) => {
+      // Unknown start dates follow dated terms. Creation time and ID make
+      // equal-date results stable regardless of database response order.
+      const startComparison = (a.start_date || "9999-12-31").localeCompare(
+        b.start_date || "9999-12-31"
+      );
+      return startComparison ||
+        (a.created_at || "").localeCompare(b.created_at || "") ||
+        a.id.localeCompare(b.id);
+    });
+    return unfinishedEnrollments[0] ??
+      getLatestEnrollment(activeEnrollments) ??
+      getLatestEnrollment(enrollmentsForStudent);
   }
 
   /* ----------------------------------------------------------------------- */
@@ -1740,11 +1738,6 @@ export default async function OverviewPage({
               <tbody>
                 {filteredStudentRows.map(
                   (student) => {
-                    const enrollmentsForStudent =
-                      getEnrollmentsForStudent(
-                        student.id
-                      );
-
                     const primaryEnrollment =
                       getPrimaryEnrollment(
                         student.id
@@ -1756,16 +1749,7 @@ export default async function OverviewPage({
                       return null;
                     }
 
-                    const activeEnrollment =
-                      enrollmentsForStudent.find(
-                        (enrollment) =>
-                          enrollment.status ===
-                          "active"
-                      );
-
-                    const displayEnrollment =
-                      activeEnrollment ??
-                      primaryEnrollment;
+                    const displayEnrollment = primaryEnrollment;
 
                     const shared =
                       isSharedEnrollment(
