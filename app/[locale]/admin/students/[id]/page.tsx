@@ -2458,6 +2458,7 @@ function LessonRow({
             enrollmentId={enrollmentId}
             lessonId={lesson.id}
             currentStatus={lesson.attendance_status}
+            currentNotes={lesson.notes}
             currentResolution={lesson.resolution}
             currentLessonDate={lesson.lesson_date}
             currentScheduleTime={lesson.schedule_time}

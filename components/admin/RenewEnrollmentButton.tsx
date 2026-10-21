@@ -1,5 +1,7 @@
 "use client";
 
+import SharedLessonStart from "@/components/admin/SharedLessonStart";
+
 import { useMemo, useState } from "react";
 import {
   BookOpen,
@@ -1624,6 +1626,13 @@ export default function RenewEnrollmentButton({
                     />
                   ) : (
                     <div className="space-y-4">
+                      <SharedLessonStart
+                    startDate={startDate}
+                    participants={participantScheduleEntries.map((participant) => ({
+                      ...participant,
+                      name: getParticipantName(participant.studentId),
+                    }))}
+                  />
                       {participantScheduleEntries.map(
                         (participant) => (
                           <ParticipantScheduleCard

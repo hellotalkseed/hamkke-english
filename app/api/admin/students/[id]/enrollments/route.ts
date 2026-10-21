@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getStartOptions } from "@/lib/enrollments/sharedLessonStart";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -1153,6 +1154,17 @@ export async function POST(
     }
   }
 
+  const firstLessonStudentId = getString(formData, "first_lesson_student_id") || null;
+  if (firstLessonStudentId && (
+    !isShared || !isValidUuid(firstLessonStudentId) ||
+    !getStartOptions(startDate, participants).some((option) => option.studentId === firstLessonStudentId)
+  )) {
+    return new NextResponse(
+      "Choose a participating student with a lesson scheduled on the enrollment start date.",
+      { status: 400 }
+    );
+  }
+
   /* ======================================================================== */
   /* DERIVE LESSONS PER WEEK                                                  */
   /* ======================================================================== */
@@ -1508,6 +1520,8 @@ export async function POST(
 
       start_date:
         startDate,
+
+      first_lesson_student_id: firstLessonStudentId,
 
       status:
         "pending",

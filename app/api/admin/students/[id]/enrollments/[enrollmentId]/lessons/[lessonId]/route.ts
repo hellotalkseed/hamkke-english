@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface RouteContext {
   params: Promise<{
@@ -820,7 +821,7 @@ export async function PATCH(
    * ------------------------------------------------------------
    */
 
-  const supabase = await createClient();
+  const session = await createClient();
 
   /*
    * AUTHENTICATION + AUTHORIZATION
@@ -831,7 +832,7 @@ export async function PATCH(
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await session.auth.getUser();
 
   if (userError || !user) {
     return NextResponse.json(
@@ -843,7 +844,7 @@ export async function PATCH(
   const {
     data: profile,
     error: profileError,
-  } = await supabase
+  } = await session
     .from("profiles")
     .select("id, role, status")
     .eq("id", user.id)
@@ -904,6 +905,9 @@ export async function PATCH(
    *   Shared enrollment
    */
 
+  // Owner authorization must pass before privileged data access.
+  const supabase = createAdminClient();
+
   const {
     data: enrollmentParticipant,
     error: enrollmentParticipantError,
@@ -949,7 +953,7 @@ export async function PATCH(
     return NextResponse.json(
       {
         error:
-          "You are not a participant in this enrollment.",
+          "This student is not linked to this enrollment.",
       },
       { status: 403 }
     );

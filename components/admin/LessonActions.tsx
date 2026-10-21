@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Check,
   CalendarClock,
   CreditCard,
-  MoreHorizontal,
+  Pencil,
   X,
 } from "lucide-react";
 
@@ -15,12 +15,14 @@ interface LessonActionsProps {
   enrollmentId: string;
   lessonId: string;
   currentStatus: string;
+  currentNotes?: string | null;
   currentResolution: string | null;
   currentLessonDate: string | null;
   currentScheduleTime: string | null;
 }
 
 type Action =
+  | "scheduled"
   | "completed"
   | "no_show"
   | "late_cancellation"
@@ -40,10 +42,13 @@ export default function LessonActions({
   enrollmentId,
   lessonId,
   currentStatus,
+  currentNotes = null,
   currentResolution,
   currentLessonDate,
   currentScheduleTime,
 }: LessonActionsProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const saveInFlight = useRef(false);
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<Action | null>(null);
   const [unexpectedResolution, setUnexpectedResolution] =
@@ -56,9 +61,27 @@ export default function LessonActions({
     currentScheduleTime?.slice(0, 5) ?? ""
   );
 
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(currentNotes ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+
+  function openEditor() {
+    if (saveInFlight.current) return;
+    setAction(null);
+    setUnexpectedResolution(null);
+    setLessonDate(currentLessonDate ?? "");
+    setLessonTime(currentScheduleTime?.slice(0, 5) ?? "");
+    setNotes(currentNotes ?? "");
+    setError("");
+    setOpen(true);
+  }
 
   function selectAction(nextAction: Action) {
     setError("");
@@ -67,7 +90,7 @@ export default function LessonActions({
   }
 
   function close() {
-    if (loading) return;
+    if (saveInFlight.current) return;
 
     setOpen(false);
     setAction(null);
@@ -77,7 +100,7 @@ export default function LessonActions({
   }
 
   async function save() {
-    if (!action) return;
+    if (!action || saveInFlight.current) return;
 
     setError("");
 
@@ -114,6 +137,7 @@ export default function LessonActions({
       return;
     }
 
+    saveInFlight.current = true;
     setLoading(true);
 
     try {
@@ -156,11 +180,13 @@ export default function LessonActions({
           : "Unable to update lesson."
       );
 
+      saveInFlight.current = false;
       setLoading(false);
     }
   }
 
   const actionLabel: Record<Action, string> = {
+    scheduled: "Mark scheduled",
     completed: "Mark completed",
     no_show: "Mark no-show",
     late_cancellation: "Mark late cancellation",
@@ -177,45 +203,35 @@ export default function LessonActions({
     <div className="relative">
       <button
         type="button"
-        onClick={() => {
-          setOpen((value) => !value);
-          setAction(null);
-          setUnexpectedResolution(null);
-          setError("");
-        }}
-        className="
-          flex
-          h-9
-          w-9
-          items-center
-          justify-center
-          rounded-full
-          text-[#777771]
-          transition-colors
-          hover:bg-[#F0F4ED]
-          hover:text-[#6F8F72]
-        "
-        aria-label="Lesson actions"
+        onClick={openEditor}
+        className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#DCD8D2] px-3 py-2 font-sans text-xs text-[#5F7F63] hover:bg-[#F0F4ED]"
+        aria-haspopup="dialog"
       >
-        <MoreHorizontal size={18} strokeWidth={1.5} />
+        <Pencil size={14} strokeWidth={1.5} />
+        Edit status
       </button>
 
+      <dialog
+        ref={dialogRef}
+        aria-labelledby={`lesson-editor-title-${lessonId}`}
+        onCancel={(event) => { event.preventDefault(); event.stopPropagation(); close(); }}
+        className="fixed inset-0 m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl border border-[#DCD8D2] bg-[#FAF8F5] p-5 text-[#292929] shadow-xl backdrop:bg-black/30"
+      >
+        <header className="mb-4 flex items-start justify-between gap-4 border-b border-[#DCD8D2] pb-4">
+          <div>
+            <h2 id={`lesson-editor-title-${lessonId}`} className="font-sans text-base font-medium">Edit lesson status</h2>
+            <p className="mt-1 font-sans text-xs text-[#777771]">Current: {currentStatus.replaceAll("_", " ")}</p>
+          </div>
+          <button type="button" onClick={close} disabled={loading} aria-label="Close lesson editor" className="rounded-full p-2 hover:bg-[#F0F4ED]"><X size={18} /></button>
+        </header>
+
       {open && !action && (
-        <div
-          className="
-            absolute
-            right-0
-            z-30
-            mt-2
-            w-64
-            rounded-2xl
-            border
-            border-[#DCD8D2]
-            bg-[#FAF8F5]
-            p-2
-            shadow-[0_12px_35px_rgba(41,41,41,0.10)]
-          "
-        >
+        <div className="w-full">
+          <ActionButton
+            icon={<CalendarClock size={15} strokeWidth={1.5} />}
+            label="Scheduled"
+            onClick={() => selectAction("scheduled")}
+          />
           <ActionButton
             icon={<Check size={15} strokeWidth={1.5} />}
             label="Completed"
@@ -299,24 +315,10 @@ export default function LessonActions({
       )}
 
       {open && action && (
-        <div
-          className="
-            absolute
-            right-0
-            z-30
-            mt-2
-            w-[320px]
-            rounded-2xl
-            border
-            border-[#DCD8D2]
-            bg-[#FAF8F5]
-            p-5
-            shadow-[0_12px_35px_rgba(41,41,41,0.10)]
-          "
-        >
+        <div className="w-full">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="font-serif text-[21px]">
+              <p className="font-sans text-base font-medium">
                 {actionLabel[action]}
               </p>
 
@@ -529,12 +531,9 @@ export default function LessonActions({
             </p>
           )}
 
-          {currentStatus === "completed" &&
-            !action && (
-              <p className="mt-5 font-sans text-[12px] text-[#777771]">
-                This lesson is already completed.
-              </p>
-            )}
+          {action === "scheduled" && (
+            <p className="mt-5 font-sans text-xs leading-5 text-[#777771]">This returns the lesson to scheduled without consuming a lesson. Its existing date and time are retained.</p>
+          )}
 
           <div className="mt-5">
             <label
@@ -633,6 +632,7 @@ export default function LessonActions({
           </div>
         </div>
       )}
+      </dialog>
     </div>
   );
 }

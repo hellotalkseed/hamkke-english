@@ -1,5 +1,7 @@
 "use client";
 
+import SharedLessonStart from "@/components/admin/SharedLessonStart";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
@@ -87,6 +89,7 @@ export default function NewEnrollmentForm({
     });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [enrollmentStartDate, setEnrollmentStartDate] = useState("");
 
   const [tuitionCurrency, setTuitionCurrency] =
     useState<TuitionCurrency>("KRW");
@@ -1045,6 +1048,8 @@ export default function NewEnrollmentForm({
                 <input
                   id="start_date"
                   name="start_date"
+                  value={enrollmentStartDate}
+                  onChange={(event) => setEnrollmentStartDate(event.target.value)}
                   type="date"
                   required
                   className="
@@ -1240,6 +1245,14 @@ export default function NewEnrollmentForm({
                   Participant Schedules
                 </h2>
               </div>
+
+              <SharedLessonStart
+                    startDate={enrollmentStartDate}
+                    participants={participantScheduleEntries.map((participant) => ({
+                      ...participant,
+                      name: getParticipantName(participant.studentId),
+                    }))}
+                  />
 
               <div className="space-y-6">
                 {participantScheduleEntries.map(
