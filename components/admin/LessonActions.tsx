@@ -62,6 +62,7 @@ export default function LessonActions({
   );
 
   const [notes, setNotes] = useState(currentNotes ?? "");
+  const [notesEdited, setNotesEdited] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -79,6 +80,7 @@ export default function LessonActions({
     setLessonDate(currentLessonDate ?? "");
     setLessonTime(currentScheduleTime?.slice(0, 5) ?? "");
     setNotes(currentNotes ?? "");
+    setNotesEdited(false);
     setError("");
     setOpen(true);
   }
@@ -86,6 +88,10 @@ export default function LessonActions({
   function selectAction(nextAction: Action) {
     setError("");
     setUnexpectedResolution(null);
+    if (nextAction !== action) {
+      setNotes(nextAction === currentStatus ? (currentNotes ?? "") : "");
+      setNotesEdited(false);
+    }
     setAction(nextAction);
   }
 
@@ -160,6 +166,7 @@ export default function LessonActions({
                 ? lessonTime
                 : null,
             notes: notes.trim() || null,
+            notes_edited: notesEdited,
           }),
         }
       );
@@ -536,6 +543,9 @@ export default function LessonActions({
           )}
 
           <div className="mt-5">
+            <p className="mb-2 font-sans text-xs text-[#777771]">
+              Changing the status clears the previous attendance note. Add a new note below if needed.
+            </p>
             <label
               htmlFor={`lesson-notes-${lessonId}`}
               className="
@@ -553,9 +563,10 @@ export default function LessonActions({
             <textarea
               id={`lesson-notes-${lessonId}`}
               value={notes}
-              onChange={(event) =>
-                setNotes(event.target.value)
-              }
+              onChange={(event) => {
+                setNotes(event.target.value);
+                setNotesEdited(true);
+              }}
               rows={3}
               placeholder="Optional"
               className="

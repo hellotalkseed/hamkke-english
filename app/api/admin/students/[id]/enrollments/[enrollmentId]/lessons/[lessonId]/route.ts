@@ -1252,7 +1252,12 @@ export async function PATCH(
     attendance_status: status,
     consumes_lesson: consumesLesson,
     resolution,
-    notes,
+    notes:
+      status !== lesson.attendance_status
+        ? (body.notes_edited === true || (notes !== null && notes.trim() !== (lesson.notes ?? "").trim())
+            ? notes
+            : null)
+        : (body.notes === undefined ? lesson.notes : notes),
     actual_teacher_id: actualTeacherId,
   };
 
@@ -1348,11 +1353,13 @@ export async function PATCH(
     return NextResponse.json(
       {
         error:
-          "Unable to update lesson.",
+          updateError.message.startsWith("Cannot reverse this credit")
+            ? updateError.message
+            : "Unable to update lesson.",
         details:
           updateError.message,
       },
-      { status: 500 }
+      { status: updateError.message.startsWith("Cannot reverse this credit") ? 409 : 500 }
     );
   }
 

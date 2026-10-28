@@ -2982,21 +2982,11 @@ export async function PATCH(
           lesson.rescheduled_at,
       };
 
-      /*
-       * Attendance notes are written to the existing lesson
-       * notes column only when attendance notes were actually
-       * provided.
-       *
-       * Leaving the attendance notes field empty will therefore
-       * not accidentally erase existing Lesson Notes.
-       */
-
-      if (
-        attendanceNotes !==
-        null
-      ) {
-        updateData.notes =
-          attendanceNotes;
+      // A changed status replaces its old attendance note. A freshly entered
+      // note belongs to the new status; a blank field clears the old note.
+      // Saving the same status without a new note preserves existing notes.
+      if (attendanceStatus !== lesson.attendance_status || attendanceNotes !== null) {
+        updateData.notes = attendanceNotes;
       }
 
       if (
@@ -3063,7 +3053,7 @@ export async function PATCH(
               updateError.message,
           },
           {
-            status: 500,
+            status: updateError.message.startsWith("Cannot reverse this credit") ? 409 : 500,
           }
         );
       }
