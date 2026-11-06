@@ -1,5 +1,7 @@
 "use client";
 
+import { getPlatformContact } from "@/lib/assessments/platformContact";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -416,10 +418,11 @@ export default function AssessmentsTable({
                         <Mail size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-[#6F8F72]" />
                         <a href={`mailto:${assessment.email}`} className="underline underline-offset-4">{assessment.email}</a>
                       </p>
-                      {assessment.contact_method && (
+                      {(assessment.contact_method || assessment.contact_id) && (
                         <p className="break-words font-sans text-[11px] leading-5 text-[#666862]">
-                          Preferred contact · {formatValue(assessment.contact_method)}
-                          {assessment.contact_id ? ` · ${assessment.contact_id}` : ""}
+                          {assessment.contact_id
+                            ? `${getPlatformContact(assessment.contact_method ?? assessment.preferred_platform)?.label ?? "Contact ID"} · ${assessment.contact_id}`
+                            : `Preferred contact · ${formatValue(assessment.contact_method ?? "")}`}
                         </p>
                       )}
                       <p className="flex items-start gap-2 font-sans text-[11px] leading-5 text-[#666862]">

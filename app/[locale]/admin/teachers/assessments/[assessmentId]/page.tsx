@@ -1,5 +1,7 @@
 "use client";
 
+import { getPlatformContact } from "@/lib/assessments/platformContact";
+
 import Link from "next/link";
 import AssessmentMeetingDetails from "@/components/admin/AssessmentMeetingDetails";
 import { use, useEffect, useState } from "react";
@@ -24,6 +26,8 @@ interface AssessmentDetail {
   learner_age: number | null;
   contact_name: string;
   email: string;
+  contact_method: string | null;
+  contact_id: string | null;
   english_level: string;
   learning_goal: string;
   notes: string | null;
@@ -600,6 +604,15 @@ export default function TeacherAssessmentPage({
                   )}
                 </p>
               </div>
+
+              {assessment.contact_id && (
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
+                    {getPlatformContact(assessment.contact_method ?? assessment.preferred_platform)?.label ?? "Contact ID"}
+                  </p>
+                  <p className="mt-2 break-all text-sm select-text">{assessment.contact_id}</p>
+                </div>
+              )}
 
               <div>
                 <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">

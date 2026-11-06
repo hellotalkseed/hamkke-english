@@ -7,6 +7,8 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Locale } from "@/lib/i18n";
+import { getPlatformContact, normalizePlatformContact } from "@/lib/assessments/platformContact";
+
 
 type AssessmentBookingFormProps = {
   locale: Locale;
@@ -893,6 +895,8 @@ export default function AssessmentBookingForm({
     preferredPlatform,
     setPreferredPlatform,
   ] = useState("microsoft_teams");
+  const [platformContactId, setPlatformContactId] = useState("");
+  const platformContact = getPlatformContact(preferredPlatform, locale);
 
   const [
     availabilityLoading,
@@ -1274,6 +1278,11 @@ export default function AssessmentBookingForm({
       return;
     }
 
+    if (platformContact && !normalizePlatformContact(preferredPlatform, platformContactId)) {
+      setSubmitError(platformContact.requiredMessage);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -1307,9 +1316,8 @@ export default function AssessmentBookingForm({
 
             email,
 
-            // Kept compatible with the current API.
-            contactMethod: "",
-            contactId: "",
+            contactMethod: platformContact ? preferredPlatform : "",
+            contactId: normalizePlatformContact(preferredPlatform, platformContactId),
 
             englishLevel,
             learningGoal,
@@ -1696,11 +1704,13 @@ export default function AssessmentBookingForm({
                       preferredPlatform ===
                       platform.value
                     }
-                    onClick={() =>
-                      setPreferredPlatform(
-                        platform.value
-                      )
-                    }
+                    onClick={() => {
+                      if (platform.value !== preferredPlatform) {
+                        setPlatformContactId("");
+                        setSubmitError("");
+                      }
+                      setPreferredPlatform(platform.value);
+                    }}
                   >
                     {platform.label}
                   </ChoiceButton>
@@ -1708,6 +1718,22 @@ export default function AssessmentBookingForm({
               )}
             </div>
           </FieldGroup>
+
+          {platformContact && (
+            <div className="space-y-2">
+              <InputField
+                label={platformContact.label}
+                value={platformContactId}
+                onChange={setPlatformContactId}
+                required
+                maxLength={200}
+                autoComplete="off"
+              />
+              <p className="text-sm leading-6 text-[#77756F]">
+                {platformContact.help}
+              </p>
+            </div>
+          )}
         </FormSection>
 
         <FormSection
@@ -1974,6 +2000,12 @@ export default function AssessmentBookingForm({
                       preferredPlatform
                     )}
                   />
+                  {platformContact && platformContactId.trim() && (
+                    <SummaryItem
+                      label={platformContact.label}
+                      value={platformContactId.trim()}
+                    />
+                  )}
                 </div>
 
                 <p className="mt-7 border-t border-[#E6E2DB] pt-5 text-sm leading-6 text-[#77756F]">
@@ -2096,6 +2128,7 @@ function InputField({
   autoComplete,
   min,
   max,
+  maxLength,
 }: {
   label: string;
   hint?: string;
@@ -2107,6 +2140,7 @@ function InputField({
   autoComplete?: string;
   min?: string;
   max?: string;
+  maxLength?: number;
 }) {
   return (
     <label className="block">
@@ -2131,6 +2165,7 @@ function InputField({
         autoComplete={autoComplete}
         min={min}
         max={max}
+        maxLength={maxLength}
         className="w-full rounded-[16px] border border-[#D8D4CC] bg-[#FAF8F5] px-4 py-3.5 text-[15px] text-[#333B36] outline-none transition placeholder:text-[#AAA9A3] hover:border-[#C7C3BB] focus:border-[#7F9782] focus:bg-white focus:ring-2 focus:ring-[#DDE7DE]"
       />
     </label>

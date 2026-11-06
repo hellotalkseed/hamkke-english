@@ -1,3 +1,4 @@
+import { getPlatformContact, normalizePlatformContact } from "@/lib/assessments/platformContact";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { isValidLocale, type Locale } from "@/lib/i18n";
@@ -688,16 +689,6 @@ export async function POST(
         body.email
       ).toLowerCase();
 
-    const contactMethod =
-      optionalString(
-        body.contactMethod
-      );
-
-    const contactId =
-      optionalString(
-        body.contactId
-      );
-
     const englishLevel =
       cleanString(
         body.englishLevel
@@ -722,6 +713,10 @@ export async function POST(
       cleanString(
         body.preferredPlatform
       );
+
+    const platformContact = getPlatformContact(preferredPlatform, locale);
+    const contactMethod = platformContact ? preferredPlatform : null;
+    const contactId = normalizePlatformContact(preferredPlatform, body.contactId);
 
     const timezone =
       cleanString(
@@ -832,6 +827,13 @@ export async function POST(
      * Email
      * -------------------------------------------------------
      */
+
+    if (platformContact && !contactId) {
+      return NextResponse.json(
+        { success: false, error: platformContact.requiredMessage },
+        { status: 400 }
+      );
+    }
 
     if (
       !isValidEmail(email)
@@ -1513,7 +1515,7 @@ export async function POST(
 
     const safeContactMethod =
       escapeHtml(
-        contactMethod
+        contactMethod ? platformLabel : null
       );
 
     const safeContactId =
@@ -1680,7 +1682,7 @@ export async function POST(
             contactId
               ? `
                 <p>
-                  <strong>Contact ID:</strong>
+                  <strong>${escapeHtml(getPlatformContact(preferredPlatform)?.label ?? "Contact ID")}:</strong>
                   ${safeContactId}
                 </p>
               `
@@ -1805,6 +1807,12 @@ export async function POST(
                           ${escapeHtml(platformLabel)}
                         </td>
                       </tr>
+                      ${contactId && platformContact ? `
+                        <tr>
+                          <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">${escapeHtml(platformContact.label)}</td>
+                          <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;color:#3d4740;word-break:break-word;">${safeContactId}</td>
+                        </tr>
+                      ` : ""}
                     </table>
                   </div>
 
