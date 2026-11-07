@@ -7,7 +7,9 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Locale } from "@/lib/i18n";
-import { getPlatformContact, normalizePlatformContact } from "@/lib/assessments/platformContact";
+import SharedContactSummary from "@/components/assessments/SharedContactSummary";
+import ContactDetailInput from "@/components/assessments/ContactDetailInput";
+import { CONTACT_METHODS, contactCopy, contactName as formatContactName, emptyContact, requiredContactMethods, validateContactDrafts, type ContactDrafts } from "@/lib/assessments/contactDetails";
 
 
 type AssessmentBookingFormProps = {
@@ -894,9 +896,19 @@ export default function AssessmentBookingForm({
   const [
     preferredPlatform,
     setPreferredPlatform,
-  ] = useState("microsoft_teams");
-  const [platformContactId, setPlatformContactId] = useState("");
-  const platformContact = getPlatformContact(preferredPlatform, locale);
+  ] = useState(locale === "ko" ? "kakaotalk" : "microsoft_teams");
+  const [contactMethod, setContactMethod] = useState(locale === "ko" ? "kakaotalk" : "email");
+  const [contactDrafts, setContactDrafts] = useState<ContactDrafts>({
+    microsoft_teams: { mode: "id", text: "", useEmail: true },
+  });
+  const [contactFiles, setContactFiles] = useState<Record<string, File | undefined>>({});
+  const contactText = contactCopy(locale);
+  const renderContactInput = (method: string) => (
+    <ContactDetailInput key={method} method={method} locale={locale}
+      value={contactDrafts[method]} file={contactFiles[method]} email={email}
+      onChange={value => setContactDrafts(previous => ({ ...previous, [method]: value }))}
+      onFile={file => setContactFiles(previous => ({ ...previous, [method]: file }))} />
+  );
 
   const [
     availabilityLoading,
@@ -1278,24 +1290,16 @@ export default function AssessmentBookingForm({
       return;
     }
 
-    if (platformContact && !normalizePlatformContact(preferredPlatform, platformContactId)) {
-      setSubmitError(platformContact.requiredMessage);
+    const contactError = validateContactDrafts(contactMethod, preferredPlatform, email, contactDrafts, contactFiles, locale);
+    if (contactError) {
+      setSubmitError(contactError);
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const response = await fetch(
-        "/api/assessments",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
+      const payload = {
             locale,
             teacherSlug:
               selectedTeacherSlug,
@@ -1316,8 +1320,9 @@ export default function AssessmentBookingForm({
 
             email,
 
-            contactMethod: platformContact ? preferredPlatform : "",
-            contactId: normalizePlatformContact(preferredPlatform, platformContactId),
+            contactMethod,
+            contactDetails: Object.fromEntries(requiredContactMethods(contactMethod, preferredPlatform)
+              .map(method => [method, contactDrafts[method] ?? emptyContact()])) ,
 
             englishLevel,
             learningGoal,
@@ -1332,7 +1337,18 @@ export default function AssessmentBookingForm({
 
             assessmentTime:
               selectedSlot.sourceTime,
-          }),
+      };
+      const formData = new FormData();
+      formData.set("payload", JSON.stringify(payload));
+      for (const method of requiredContactMethods(contactMethod, preferredPlatform)) {
+        const file = contactFiles[method];
+        if (contactDrafts[method]?.mode === "qr" && file) formData.set("qr_" + method, file);
+      }
+      const response = await fetch(
+        "/api/assessments",
+        {
+          method: "POST",
+          body: formData,
         }
       );
 
@@ -1350,7 +1366,7 @@ export default function AssessmentBookingForm({
         }
 
         throw new Error(
-          t("We couldn't book your assessment.")
+          data.error || t("We couldn't book your assessment.")
         );
       }
 
@@ -1609,6 +1625,16 @@ export default function AssessmentBookingForm({
           />
 
           <p className="-mt-2 text-xs leading-5 text-[#8A8A83]">{t("We'll use this email for your booking confirmation and assessment details.")}</p>
+
+          <div id="assessment-contact-details" tabIndex={-1} className="space-y-4 scroll-mt-24">
+            <SelectField label={contactText.method} value={contactMethod}
+              onChange={value => { setContactMethod(value); setSubmitError(""); }} required>
+              {CONTACT_METHODS.map(method => (
+                <option key={method} value={method}>{method === "email" ? t("Email") : formatContactName(method)}</option>
+              ))}
+            </SelectField>
+            {contactMethod !== "email" && renderContactInput(contactMethod)}
+          </div>
         </FormSection>
 
         <FormSection
@@ -1705,10 +1731,7 @@ export default function AssessmentBookingForm({
                       platform.value
                     }
                     onClick={() => {
-                      if (platform.value !== preferredPlatform) {
-                        setPlatformContactId("");
-                        setSubmitError("");
-                      }
+                      setSubmitError("");
                       setPreferredPlatform(platform.value);
                     }}
                   >
@@ -1719,21 +1742,16 @@ export default function AssessmentBookingForm({
             </div>
           </FieldGroup>
 
-          {platformContact && (
-            <div className="space-y-2">
-              <InputField
-                label={platformContact.label}
-                value={platformContactId}
-                onChange={setPlatformContactId}
-                required
-                maxLength={200}
-                autoComplete="off"
-              />
-              <p className="text-sm leading-6 text-[#77756F]">
-                {platformContact.help}
-              </p>
-            </div>
-          )}
+          {preferredPlatform === "kakaotalk" && contactMethod === "kakaotalk" ? (
+            <SharedContactSummary locale={locale}
+              draft={contactDrafts.kakaotalk} file={contactFiles.kakaotalk}
+              onEdit={() => {
+                const element = document.getElementById("assessment-contact-details");
+                element?.scrollIntoView({ behavior: "smooth", block: "center" });
+                element?.focus({ preventScroll: true });
+              }} />
+          ) : ["kakaotalk", "microsoft_teams"].includes(preferredPlatform)
+            ? renderContactInput(preferredPlatform) : null}
         </FormSection>
 
         <FormSection
@@ -2000,12 +2018,14 @@ export default function AssessmentBookingForm({
                       preferredPlatform
                     )}
                   />
-                  {platformContact && platformContactId.trim() && (
-                    <SummaryItem
-                      label={platformContact.label}
-                      value={platformContactId.trim()}
-                    />
-                  )}
+                  <SummaryItem label={contactText.method} value={formatContactName(contactMethod)} />
+                  {requiredContactMethods(contactMethod, preferredPlatform).map(method => {
+                    const draft = contactDrafts[method];
+                    const value = draft?.mode === "qr"
+                      ? (contactFiles[method] ? contactText.qrSaved : "")
+                      : method === "microsoft_teams" && draft?.useEmail ? email : draft?.text;
+                    return value ? <SummaryItem key={method} label={formatContactName(method)} value={value} /> : null;
+                  })}
                 </div>
 
                 <p className="mt-7 border-t border-[#E6E2DB] pt-5 text-sm leading-6 text-[#77756F]">

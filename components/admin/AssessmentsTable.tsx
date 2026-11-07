@@ -1,6 +1,7 @@
 "use client";
 
-import { getPlatformContact } from "@/lib/assessments/platformContact";
+import AssessmentContacts from "@/components/assessments/AssessmentContacts";
+import type { ContactDetails } from "@/lib/assessments/contactDetails";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -31,6 +32,7 @@ export interface AssessmentTableRow {
   contact_name: string;
   contact_method: string | null;
   contact_id: string | null;
+  contact_details: ContactDetails;
   email: string;
   english_level: string;
   learning_goal: string;
@@ -418,13 +420,8 @@ export default function AssessmentsTable({
                         <Mail size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-[#6F8F72]" />
                         <a href={`mailto:${assessment.email}`} className="underline underline-offset-4">{assessment.email}</a>
                       </p>
-                      {(assessment.contact_method || assessment.contact_id) && (
-                        <p className="break-words font-sans text-[11px] leading-5 text-[#666862]">
-                          {assessment.contact_id
-                            ? `${getPlatformContact(assessment.contact_method ?? assessment.preferred_platform)?.label ?? "Contact ID"} · ${assessment.contact_id}`
-                            : `Preferred contact · ${formatValue(assessment.contact_method ?? "")}`}
-                        </p>
-                      )}
+                      <AssessmentContacts id={assessment.id} method={assessment.contact_method}
+                        platform={assessment.preferred_platform} details={assessment.contact_details} legacyId={assessment.contact_id} />
                       <p className="flex items-start gap-2 font-sans text-[11px] leading-5 text-[#666862]">
                         <UserRound size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-[#6F8F72]" />
                         {assessment.learner_type === "child"

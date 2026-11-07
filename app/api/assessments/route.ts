@@ -1,4 +1,5 @@
-import { getPlatformContact, normalizePlatformContact } from "@/lib/assessments/platformContact";
+import { contactCopy, contactName as formatContactName, QR_BUCKET, QR_METHODS, requiredContactMethods, validateContactDrafts } from "@/lib/assessments/contactDetails";
+import { parseContactDrafts, prepareQRImages, saveContactDetails } from "@/lib/assessments/contactUploads";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { isValidLocale, type Locale } from "@/lib/i18n";
@@ -52,6 +53,7 @@ type AssessmentRequestBody = {
 
   contactMethod?: unknown;
   contactId?: unknown;
+  contactDetails?: unknown;
 
   englishLevel?: unknown;
   learningGoal?: unknown;
@@ -637,12 +639,30 @@ function isUniqueViolation(
 export async function POST(
   request: Request
 ) {
+  const uploadedQRPaths: string[] = [];
+  let bookingSaved = false;
   try {
     let body: AssessmentRequestBody;
+    const qrFiles: Record<string, File> = {};
 
     try {
-      body =
-        (await request.json()) as AssessmentRequestBody;
+      const length = Number(request.headers.get("content-length") || 0);
+      if (length > 3 * 1024 * 1024) {
+        return NextResponse.json({ success: false, error: "Upload is too large." }, { status: 413 });
+      }
+      if (request.headers.get("content-type")?.includes("multipart/form-data")) {
+        const form = await request.formData();
+        const payload = form.get("payload");
+        if (typeof payload !== "string" || payload.length > 30000) throw new Error("Invalid payload.");
+        body = JSON.parse(payload) as AssessmentRequestBody;
+        for (const method of QR_METHODS) {
+          const file = form.get("qr_" + method);
+          if (file instanceof File) qrFiles[method] = file;
+        }
+      } else {
+        body = (await request.json()) as AssessmentRequestBody;
+      }
+      if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Invalid payload.");
     } catch {
       return NextResponse.json(
         {
@@ -714,9 +734,16 @@ export async function POST(
         body.preferredPlatform
       );
 
-    const platformContact = getPlatformContact(preferredPlatform, locale);
-    const contactMethod = platformContact ? preferredPlatform : null;
-    const contactId = normalizePlatformContact(preferredPlatform, body.contactId);
+    const contactMethod = cleanString(body.contactMethod) || "email";
+    const contactDrafts = parseContactDrafts(body.contactDetails);
+    // Older open tabs used contactId for the assessment platform.
+    if (body.contactDetails === undefined && ["kakaotalk", "microsoft_teams"].includes(preferredPlatform)) {
+      contactDrafts[preferredPlatform] = { mode: "id", text: cleanString(body.contactId), useEmail: false };
+    }
+    // Teams was previously also saved as a contact method.
+    const preferredContact = contactMethod === "microsoft_teams" ? "email" : contactMethod;
+    const contactId = preferredContact === "email" ? null
+      : contactDrafts[preferredContact]?.mode === "id" ? contactDrafts[preferredContact].text.trim() || null : null;
 
     const timezone =
       cleanString(
@@ -828,11 +855,13 @@ export async function POST(
      * -------------------------------------------------------
      */
 
-    if (platformContact && !contactId) {
-      return NextResponse.json(
-        { success: false, error: platformContact.requiredMessage },
-        { status: 400 }
-      );
+    const contactError = validateContactDrafts(preferredContact, preferredPlatform, email, contactDrafts, qrFiles, locale);
+    if (contactError) return NextResponse.json({ success: false, error: contactError }, { status: 400 });
+    let preparedImages: Awaited<ReturnType<typeof prepareQRImages>>;
+    try {
+      preparedImages = await prepareQRImages(qrFiles, requiredContactMethods(preferredContact, preferredPlatform), contactDrafts);
+    } catch {
+      return NextResponse.json({ success: false, error: contactCopy(locale).invalidQR }, { status: 400 });
     }
 
     if (
@@ -1329,6 +1358,9 @@ export async function POST(
      * -------------------------------------------------------
      */
 
+    const contactDetails = await saveContactDetails(
+      admin, preferredContact, preferredPlatform, email, contactDrafts, preparedImages, uploadedQRPaths
+    );
     const {
       data: booking,
       error: bookingError,
@@ -1358,10 +1390,11 @@ export async function POST(
         email,
 
         contact_method:
-          contactMethod,
+          preferredContact,
 
         contact_id:
           contactId,
+        contact_details: contactDetails,
 
         english_level:
           englishLevel,
@@ -1444,6 +1477,7 @@ export async function POST(
      * -------------------------------------------------------
      */
 
+    bookingSaved = true;
     const platformLabel =
       formatPlatform(
         preferredPlatform
@@ -1513,15 +1547,11 @@ export async function POST(
     const safeNotes =
       escapeHtml(notes);
 
-    const safeContactMethod =
-      escapeHtml(
-        contactMethod ? platformLabel : null
-      );
-
-    const safeContactId =
-      escapeHtml(
-        contactId
-      );
+    const safeContactMethod = escapeHtml(formatContactName(preferredContact));
+    const contactRows = Object.entries(contactDetails).map(([method, detail]) => ({
+      label: formatContactName(method),
+      value: detail.mode === "qr" ? contactCopy(locale).qrSaved : detail.value || "",
+    }));
 
     const safeTimezone =
       escapeHtml(
@@ -1678,16 +1708,7 @@ export async function POST(
               : ""
           }
 
-          ${
-            contactId
-              ? `
-                <p>
-                  <strong>${escapeHtml(getPlatformContact(preferredPlatform)?.label ?? "Contact ID")}:</strong>
-                  ${safeContactId}
-                </p>
-              `
-              : ""
-          }
+          ${contactRows.map(row => `<p><strong>${escapeHtml(row.label)}:</strong> ${escapeHtml(row.value)}</p>`).join("")}
 
           <hr />
 
@@ -1807,12 +1828,16 @@ export async function POST(
                           ${escapeHtml(platformLabel)}
                         </td>
                       </tr>
-                      ${contactId && platformContact ? `
+                      <tr>
+                        <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;">${escapeHtml(contactCopy(locale).method)}</td>
+                        <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;">${safeContactMethod}</td>
+                      </tr>
+                      ${contactRows.map(row => `
                         <tr>
-                          <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;color:#8a8a83;">${escapeHtml(platformContact.label)}</td>
-                          <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;color:#3d4740;word-break:break-word;">${safeContactId}</td>
+                          <td style="padding:9px 0;border-top:1px solid #e6e2db;font-size:13px;">${escapeHtml(row.label)}</td>
+                          <td align="right" style="padding:9px 0;border-top:1px solid #e6e2db;font-size:14px;word-break:break-word;">${escapeHtml(row.value)}</td>
                         </tr>
-                      ` : ""}
+                      `).join("")}
                     </table>
                   </div>
 
@@ -1934,5 +1959,14 @@ export async function POST(
         status: 500,
       }
     );
+  } finally {
+    if (!bookingSaved && uploadedQRPaths.length) {
+      try {
+        const { error } = await createAdminClient().storage.from(QR_BUCKET).remove(uploadedQRPaths);
+        if (error) console.error("Unable to clean up assessment QR uploads:", error.message);
+      } catch (cleanupError) {
+        console.error("Unable to clean up assessment QR uploads.", cleanupError);
+      }
+    }
   }
 }

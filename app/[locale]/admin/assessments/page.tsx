@@ -1,3 +1,4 @@
+import type { ContactDetails } from "@/lib/assessments/contactDetails";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarCheck2 } from "lucide-react";
@@ -30,6 +31,7 @@ interface AssessmentRow {
   contact_name: string;
   contact_method: string | null;
   contact_id: string | null;
+  contact_details: ContactDetails;
   email: string;
   english_level: string;
   learning_goal: string;
@@ -111,6 +113,7 @@ export default async function AssessmentsPage({
       contact_name,
       contact_method,
       contact_id,
+      contact_details,
       email,
       english_level,
       learning_goal,

@@ -1,6 +1,7 @@
 "use client";
 
-import { getPlatformContact } from "@/lib/assessments/platformContact";
+import AssessmentContacts from "@/components/assessments/AssessmentContacts";
+import type { ContactDetails } from "@/lib/assessments/contactDetails";
 
 import Link from "next/link";
 import AssessmentMeetingDetails from "@/components/admin/AssessmentMeetingDetails";
@@ -28,6 +29,7 @@ interface AssessmentDetail {
   email: string;
   contact_method: string | null;
   contact_id: string | null;
+  contact_details: ContactDetails;
   english_level: string;
   learning_goal: string;
   notes: string | null;
@@ -605,14 +607,8 @@ export default function TeacherAssessmentPage({
                 </p>
               </div>
 
-              {assessment.contact_id && (
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
-                    {getPlatformContact(assessment.contact_method ?? assessment.preferred_platform)?.label ?? "Contact ID"}
-                  </p>
-                  <p className="mt-2 break-all text-sm select-text">{assessment.contact_id}</p>
-                </div>
-              )}
+              <AssessmentContacts id={assessment.id} method={assessment.contact_method}
+                platform={assessment.preferred_platform} details={assessment.contact_details} legacyId={assessment.contact_id} />
 
               <div>
                 <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8b918d]">
