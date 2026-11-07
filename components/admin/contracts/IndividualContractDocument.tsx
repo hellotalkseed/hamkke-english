@@ -1,3 +1,4 @@
+import { formatDocumentStudentName } from "@/lib/formatDocumentStudentName";
 import EnrollmentContractDocument from "./EnrollmentContractDocument";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -48,7 +49,7 @@ export default async function ContractPage({
     error: studentError,
   } = await supabase
     .from("students")
-    .select("id, full_name, timezone")
+    .select("id, full_name, preferred_name, timezone")
     .eq("id", id)
     .maybeSingle();
 
@@ -159,7 +160,7 @@ export default async function ContractPage({
     (enrollmentScheduleRows ??
       []) as EnrollmentSchedule[];
 
-  const studentName = student.full_name;
+  const studentName = formatDocumentStudentName(student);
 
   /* ---------------------------------------------------------------------- */
   /* DATES                                                                   */

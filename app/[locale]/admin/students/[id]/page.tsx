@@ -1,3 +1,4 @@
+import { formatDocumentStudentName } from "@/lib/formatDocumentStudentName";
 import ContractLink from "@/components/admin/ContractLink";
 import ContractModal from "@/components/admin/ContractModal";
 import IndividualContractDocument from "@/components/admin/contracts/IndividualContractDocument";
@@ -622,7 +623,7 @@ export default async function StudentPage({
         participantStudentsError
       );
     } else {
-      participantPrintMap = Object.fromEntries((participantStudents ?? []).map(p => [p.id, p.full_name]));
+      participantPrintMap = Object.fromEntries((participantStudents ?? []).map(p => [p.id, formatDocumentStudentName(p)]));
       participantTimezoneMap = Object.fromEntries((participantStudents ?? []).map(p => [p.id, p.timezone || ""]));
       participantMap = Object.fromEntries(
         (
@@ -1185,7 +1186,7 @@ export default async function StudentPage({
       {currentEnrollment && !contractId && (
         <AttendancePrintDocument>
           <PrintableAttendance
-            studentName={student.full_name}
+            studentName={formatDocumentStudentName(student)}
             enrollment={{ ...currentEnrollment, is_shared: currentEnrollment.isShared }}
             lessons={printableLessons}
             participantNames={uniqueCurrentEnrollmentParticipantIds.map(id => participantPrintMap[id] || participantMap[id] || "Participant")}

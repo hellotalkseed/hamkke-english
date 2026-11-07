@@ -1,3 +1,4 @@
+import { formatDocumentStudentName } from "@/lib/formatDocumentStudentName";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -357,11 +358,10 @@ export default async function ContractPage({
     ? participants
         .map(
           (participant) =>
-            participant.preferred_name ||
-            participant.full_name
+            formatDocumentStudentName(participant)
         )
         .join(" & ")
-    : student.full_name;
+    : formatDocumentStudentName(student);
 
   const contractNumber =
     contract.contract_number ||
@@ -492,8 +492,7 @@ export default async function ContractPage({
         )
         .map((item) => {
           const name =
-            item.participant.preferred_name ||
-            item.participant.full_name;
+            formatDocumentStudentName(item.participant);
 
           return `${name}: ${item.schedule
             .map(
@@ -527,8 +526,7 @@ export default async function ContractPage({
         )
         .map((item) => {
           const name =
-            item.participant.preferred_name ||
-            item.participant.full_name;
+            formatDocumentStudentName(item.participant);
 
           return `${name} — ${item.schedule
             .map(
@@ -838,8 +836,7 @@ export default async function ContractPage({
                   value={participants
                     .map(
                       (participant) =>
-                        participant.preferred_name ||
-                        participant.full_name
+                        formatDocumentStudentName(participant)
                     )
                     .join(" & ")}
                 />
@@ -897,10 +894,7 @@ export default async function ContractPage({
                       participantSchedules.map(
                         (item) => {
                           const name =
-                            item.participant
-                              .preferred_name ||
-                            item.participant
-                              .full_name;
+                            formatDocumentStudentName(item.participant);
 
                           return (
                             <p
@@ -945,7 +939,7 @@ export default async function ContractPage({
                     ? participants
                         .map(
                           (participant) =>
-                            `${participant.preferred_name || participant.full_name}: ${
+                            `${formatDocumentStudentName(participant)}: ${
                               participant.timezone ||
                               "To be confirmed"
                             }`
