@@ -496,7 +496,7 @@ export default async function ContractPage({
           (participant) =>
             formatDocumentStudentName(participant)
         )
-        .join(" & ")
+        .join("\n")
     : formatDocumentStudentName(student);
 
   const contractNumber =
@@ -911,7 +911,7 @@ export default async function ContractPage({
                       (participant) =>
                         formatDocumentStudentName(participant)
                     )
-                    .join(" & ")}
+                    .join("\n")}
                 />
               )}
 
@@ -1576,7 +1576,7 @@ function SummaryItem({
           text-[#222]
         "
       >
-        {value}
+        <span className="whitespace-pre-line">{value}</span>
       </p>
 
     </div>
@@ -1632,7 +1632,7 @@ function DetailRow({
           ${strong ? "text-[15px]" : "text-[13.5px]"}
         `}
       >
-        {value}
+        <span className="whitespace-pre-line">{value}</span>
       </p>
 
     </div>
@@ -1675,7 +1675,7 @@ function Info({
           text-[#222]
         "
       >
-        {value}
+        <span className="whitespace-pre-line">{value}</span>
       </p>
 
     </div>
