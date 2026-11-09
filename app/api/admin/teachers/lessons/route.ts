@@ -223,6 +223,7 @@ export async function GET() {
         actual_teacher_id,
         substitute_teacher_id
       `)
+      .neq("attendance_status", "frozen")
       .eq("substitute_teacher_id", user.id);
 
     if (substituteLessonsError) {
@@ -361,6 +362,7 @@ export async function GET() {
           actual_teacher_id,
           substitute_teacher_id
         `)
+        .neq("attendance_status", "frozen")
         .in("enrollment_id", regularEnrollmentIds)
         .order("lesson_date", { ascending: true })
         .order("schedule_time", { ascending: true })

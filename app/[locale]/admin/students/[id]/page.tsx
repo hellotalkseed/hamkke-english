@@ -22,6 +22,7 @@ import PrintableAttendance from "@/components/admin/PrintableAttendance";
 import RenewEnrollmentButton from "@/components/admin/RenewEnrollmentButton";
 import StudentPortalInviteButton from "@/components/admin/StudentPortalInviteButton";
 import type { ReactNode } from "react";
+import EnrollmentFreezeControls from "@/components/admin/EnrollmentFreezeControls";
 import EnrollmentTable from "@/components/admin/EnrollmentTable";
 import AttendancePrintDocument from "@/components/admin/AttendancePrintDocument";
 
@@ -1318,6 +1319,7 @@ export default async function StudentPage({
           >
             {currentEnrollment && (
               <>
+        <EnrollmentFreezeControls key={currentEnrollment.id} studentId={student.id} enrollmentId={currentEnrollment.id} />
         {/* ENROLLMENT */}
         <section className="border-t border-[#DCD8D2] py-5">
           <div className="flex items-center justify-between gap-4">
@@ -2453,7 +2455,7 @@ function LessonRow({
             )}
           </div>
 
-          <LessonActions
+          {lesson.attendance_status !== "frozen" && <LessonActions
             locale={locale}
             studentId={studentId}
             enrollmentId={enrollmentId}
@@ -2463,7 +2465,7 @@ function LessonRow({
             currentResolution={lesson.resolution}
             currentLessonDate={lesson.lesson_date}
             currentScheduleTime={lesson.schedule_time}
-          />
+          />}
         </div>
       </div>
 
@@ -2841,6 +2843,7 @@ function StatusBadge({
 }) {
   const labels: Record<string, string> = {
     scheduled: "Scheduled",
+    frozen: "On hold",
     completed: "Completed",
     no_show: "No-show",
     late_cancellation:

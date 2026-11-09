@@ -203,6 +203,7 @@ export async function GET(request: Request) {
         .select(
           "id, enrollment_id, student_id, lesson_number, lesson_date, schedule_time, duration, attendance_status, substitute_teacher_id"
         )
+        .neq("attendance_status", "frozen")
         .gte("lesson_date", addDays(date, -1))
         .lte("lesson_date", addDays(date, 1)),
       admin

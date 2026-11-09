@@ -272,10 +272,11 @@ export default async function PortalPage({ params, searchParams }: {
 
   let lessonDetails: ReturnType<typeof parseLessonDetails> = { lessons: [], schedules: [] };
   let lessonsFailed = false;
+  let openHolds: { id: string; student_id: string; starts_on: string }[] = [];
   if (view === "lessons" && !failed && selectedId && activeTerms.length > 0) {
     const response = await supabase.rpc("get_portal_lesson_details");
     if (response.error) lessonsFailed = true;
-    else { try { lessonDetails = parseLessonDetails(response.data); } catch { lessonsFailed = true; } }
+    else { try { lessonDetails = parseLessonDetails(response.data); openHolds = Array.isArray(response.data?.pauses) ? response.data.pauses : []; } catch { lessonsFailed = true; } }
   }
   let attendanceDetails: PortalAttendanceData = { records: [], summary: { completed: 0, no_show: 0, late_cancellation: 0, scheduled: 0 } };
   let attendanceFailed = false;
@@ -371,6 +372,7 @@ export default async function PortalPage({ params, searchParams }: {
     return index < 0 || index > 6 ? value : new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, 7 + index)));
   }
   function attendanceStatus(status: string, resolution: string | null) {
+    if (status === "frozen") return locale === "ko" ? "수업 일시 중지" : locale === "zh" ? "课程暂停" : locale === "ja" ? "レッスン休止中" : "On hold";
     if (status === "completed") return d.completedLabel;
     if (status === "no_show") return d.noShowLabel;
     if (status === "late_cancellation") return d.lateCancellationLabel;
@@ -435,6 +437,9 @@ export default async function PortalPage({ params, searchParams }: {
   return (
     <div className="min-h-screen bg-[#FFFDF8] text-[#293A30]">
       <PortalHeader locale={locale} signOutAction={signOut} studentId={selectedId} view={view} />
+      {openHolds.filter(p => p.student_id === selectedId).map(p => <div key={`${p.id}-${p.student_id}`} className="border-b border-[#DCD8D2] bg-[#EAF0E8] px-6 py-4 font-sans text-sm" role="status">
+        {locale === "ko" ? "수업 일시 중지 시작일" : locale === "zh" ? "课程暂停开始日期" : locale === "ja" ? "レッスン休止開始日" : "Classes on hold from"} {p.starts_on}. {locale === "ko" ? "재개 날짜는 아직 정해지지 않았습니다. 준비가 되면 Hamkke에 연락해 주세요." : locale === "zh" ? "恢复日期尚未确定。准备好后请联系 Hamkke。" : locale === "ja" ? "再開日は未定です。準備ができましたら Hamkke にご連絡ください。" : "Return date not set. Contact Hamkke when you are ready to resume."}
+      </div>)}
       <div className="grid min-h-[calc(100dvh-77px)] lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="min-w-0 border-b border-[#718A73]/20 bg-[#FAF8F5] p-3 lg:border-b-0 lg:border-r lg:px-4 lg:py-8">
           <details key={`${view}-${selectedId}`} className="group/mobile lg:hidden">
