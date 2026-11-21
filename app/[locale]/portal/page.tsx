@@ -1,3 +1,4 @@
+import { readTerm } from "@/lib/reports/termAssessment";
 import PortalFeedback from "@/components/feedback/PortalFeedback";
 import Image from "next/image";
 import Link from "next/link";
@@ -332,6 +333,7 @@ export default async function PortalPage({ params, searchParams }: {
         const term = enrollmentId ? packageByEnrollment.get(enrollmentId) : undefined;
         const teacherId = String(row.teacher_id ?? assignmentByParticipant.get(String(row.enrollment_student_id)) ?? "");
         return {
+          term_assessment: readTerm(row.term_assessment),
           id: String(row.id), enrollment_number: term?.enrollment_number ?? "-", enrollment_status: term?.enrollment_status ?? "completed", teacher_name: teacherById.get(teacherId) ?? "Hamkke Teacher",
           communication_expression: String(row.communication_expression ?? ""), speaking_interaction: String(row.speaking_interaction ?? ""), vocabulary_expression_range: String(row.vocabulary_expression_range ?? ""), grammar_sentence_building: String(row.grammar_sentence_building ?? ""), pronunciation_clarity: String(row.pronunciation_clarity ?? ""), confidence_participation: String(row.confidence_participation ?? ""), overall_progress: String(row.overall_progress ?? ""), next_focus: String(row.next_focus ?? ""), teacher_note: String(row.teacher_note ?? ""),
         };

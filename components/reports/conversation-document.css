@@ -1,0 +1,39 @@
+.hamkke-term { box-sizing:border-box; max-width:820px; margin:auto; padding:38px 44px; background:white; color:#243c33; font:15px/1.48 Arial,sans-serif; overflow-wrap:anywhere }
+.hamkke-term * {box-sizing:border-box}
+.hamkke-term h1,.hamkke-term h2,.hamkke-term p,.hamkke-term dl,.hamkke-term dd {margin:0}
+.hamkke-term .ht-mast,.ht-brand,.ht-byline,.ht-details,.ht-participation,.ht-close {display:flex;align-items:center}
+.hamkke-term .ht-mast {justify-content:space-between;gap:15px;border-bottom:2px solid #325b49;padding-bottom:13px}
+.ht-brand {gap:10px}.ht-brand img {width:49px;height:49px;object-fit:contain}.ht-brand strong,.ht-brand small {display:block}.ht-brand strong {font: bold 22px Georgia,serif}.ht-brand strong span {font:14px sans-serif;color:#54705e}.ht-brand small,.ht-period {font-size:12px;color:#4f6356}.ht-period {text-align:right;max-width:36%}
+.hamkke-term h1 {font:normal 48px/1.04 Georgia,serif;letter-spacing:-1.5px;margin:23px 0 12px}
+.ht-byline {gap:13px}.ht-byline b {font:bold 21px Georgia,serif}.ht-byline span {font-size:13px;border-left:1px solid #bec9bf;padding-left:13px}
+.ht-details,.ht-participation {align-items:stretch;gap:20px}.hamkke-term .ht-details {margin:16px 0 17px;border-top:1px solid #c9d4cb;padding-top:10px}.ht-details>div,.ht-participation>div,.ht-close>section {flex:1;min-width:0}
+.ht-details dt,.ht-participation dt {font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#4b6757;font-weight:bold;margin-bottom:3px}
+.hamkke-term h2 {font:normal 24px/1.15 Georgia,serif;color:#264c39}.ht-finding {border-left:4px solid #527760;background:#edf3ec;padding:14px 19px;margin:15px 0 19px}
+.ht-finding p {margin-top:6px;font-size:16px}.ht-skills h2 {padding-bottom:8px;border-bottom:1.5px solid #78927d}
+.ht-skills dl>div {display:flex;gap:20px;padding:8px 0;border-bottom:1px solid #dce3dc;break-inside:avoid}
+.ht-skills dt {font-weight:bold;flex:0 0 31%}.ht-skills dd {flex:1}.hamkke-term dd,.hamkke-term section p {white-space:pre-line}
+.hamkke-term .ht-participation {margin:17px 0;padding:11px 0;border-bottom:1px solid #cad7cc;font-size:14px}
+.ht-close {gap:24px;align-items:flex-start}.ht-close>section+section {border-left:1px solid #ccd8cd;padding-left:20px}.ht-close h2 {font-size:21px;margin-bottom:7px}.ht-close strong {display:block;font:italic 18px Georgia,serif;margin-top:6px}
+@media screen and (max-width:600px){.hamkke-term{padding:22px 17px}.hamkke-term h1{font-size:36px}.ht-brand strong{font-size:18px}.ht-mast{flex-wrap:wrap}.ht-period{text-align:left;max-width:100%}.ht-details,.ht-participation,.ht-close,.ht-skills dl>div{flex-direction:column;gap:5px}.ht-details>div,.ht-participation>div{margin-bottom:6px}.ht-close>section+section{border-left:0;padding:12px 0 0}.ht-skills dt{flex-basis:auto}}
+@media print {.hamkke-term{max-width:none;padding:0;font-size:10pt;line-height:1.4;print-color-adjust:exact}.hamkke-term h1{font-size:32pt}.ht-finding p{font-size:11pt}.ht-close section,.ht-finding,.ht-byline,.ht-details,.ht-mast{break-inside:avoid}.ht-skills h2{break-after:avoid}}
+.ht-brand strong {white-space:nowrap}.ht-brand {flex-shrink:0}
+
+.hamkke-term .contract-report-head {display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #cfcfc9;padding-bottom:24px;margin-bottom:22px;break-inside:avoid}
+.contract-wordmark {font:normal 25px/1 Georgia,serif;letter-spacing:-.02em;color:#6f8f72;white-space:nowrap}
+.hamkke-term .contract-report-head p {font:500 9px/1.5 Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#666}
+.hamkke-term .contract-wordmark+p {margin-top:8px;color:#6f8f72;letter-spacing:.16em}
+.contract-report-title {text-align:right}
+.hamkke-term .contract-report-title h1 {font:normal 17px/1.25 Georgia,serif;color:#222;letter-spacing:normal;margin:4px 0 0}
+.ht-byline small {font-size:12px;margin-left:auto;color:#58675c}
+.ht-seal {width:32px;height:32px;margin:16px auto 0;display:block}
+@media screen and (max-width:460px){.contract-report-title{max-width:48%}.contract-wordmark{font-size:21px}.ht-byline{flex-wrap:wrap}}
+
+.report-identity{display:flex;align-items:center;gap:9px}.report-identity img{width:42px;height:42px;object-fit:contain;flex-shrink:0}
+.report-period{text-align:right;max-width:36%}.report-period span{font:normal 16px/1.3 Georgia,serif;color:#373c36}
+.hamkke-term .report-intro h1{font:normal 32px/1.12 Georgia,serif;letter-spacing:-.025em;color:#222;margin:0 0 12px}
+.hamkke-term .contract-report-head{align-items:center}
+.hamkke-term .ht-finding{background:#f4f6f1;border-left:2px solid #839b80}
+@media screen and (max-width:460px){.report-identity{gap:4px}.report-identity img{width:28px;height:28px}.hamkke-term .report-intro h1{font-size:26px}.report-period span{font-size:12px}}
+.contract-wordmark+p{white-space:nowrap}.report-identity{flex-shrink:0}
+
+.ht-translation{display:block;margin-top:.22em;color:#495f52;font:normal .91em/1.48 Arial,sans-serif;letter-spacing:normal;text-transform:none;word-break:normal;white-space:pre-line}.ht-close{break-inside:auto}

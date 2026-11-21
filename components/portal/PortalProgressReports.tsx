@@ -1,9 +1,13 @@
 "use client";
+import { ReportBrand, TermDocument } from "@/components/reports/TermAssessment";
+import type { TermAssessment } from "@/lib/reports/termAssessment";
+
 
 import { useEffect, useState } from "react";
 import { Printer, X } from "lucide-react";
 
 export type PortalProgressReport = {
+  term_assessment?: TermAssessment | null;
   id: string;
   enrollment_number: string;
   enrollment_status: string;
@@ -61,9 +65,10 @@ export default function PortalProgressReports({ studentName, reports, emptyText 
   </>;
 }
 
-function OfficialReport({ studentName, report }: { studentName: string; report: PortalProgressReport }) {
+export function OfficialReport({ studentName, report, preview = false }: { studentName: string; report: PortalProgressReport; preview?: boolean }) {
+  if(report.term_assessment) return <TermDocument data={report.term_assessment} student={studentName} enrollment={report.enrollment_number} teacher={report.teacher_name}/>;
   return <article className="hamkke-progress-print mx-auto max-w-[820px] bg-[#FFFDF9] px-8 py-10 text-[#302F2C] sm:px-12 sm:py-12 print:max-w-none print:bg-white print:p-0">
-    <header className="border-b border-[#D8D2C9] pb-7"><div className="flex items-start justify-between gap-6"><div><p className="text-[13px] font-semibold tracking-[0.14em] text-[#71806E]">HAMKKE │ 함께</p><h1 className="mt-3 font-serif text-[30px] leading-none">Progress Report</h1><p className="mt-3 font-serif text-[12px] italic text-[#77736C]">From Small Talk to Big Ideas.</p></div><span className="rounded-full border border-[#CBD3C8] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#657361]">Completed</span></div></header>
+    <header className="border-b border-[#D8D2C9] pb-7"><div className="flex items-start justify-between gap-6"><div><ReportBrand/><h1 className="mt-3 font-serif text-[30px] leading-none">Progress Report</h1></div><span className="rounded-full border border-[#CBD3C8] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#657361]">{preview ? "Draft" : "Completed"}</span></div></header>
     <section className="grid grid-cols-1 gap-x-8 gap-y-5 border-b border-[#E2DDD5] py-7 sm:grid-cols-2"><Meta label="Student" value={studentName}/><Meta label="Enrollment No." value={report.enrollment_number}/><Meta label="Teacher" value={report.teacher_name}/><Meta label="Enrollment Status" value="Completed"/></section>
     <div>{areas.map(([key,title], index) => report[key]?.trim() ? <section key={key} className="report-section border-b border-[#EBE6DF] py-6"><h2 className="font-serif text-[17px] text-[#536451]"><span className="mr-3 font-sans text-[11px] tracking-[0.08em] text-[#899486]">{String(index+1).padStart(2,"0")}</span>{title}</h2><p className="mt-3 whitespace-pre-wrap text-[13px] leading-6 text-[#55514B]">{report[key]}</p></section> : null)}</div>
     {report.overall_progress?.trim() && <section className="report-section mt-7 border-l-2 border-[#91A18D] bg-[#F6F4EF] px-5 py-5"><h2 className="font-serif text-[18px] text-[#3F4B3D]">Overall Progress</h2><p className="mt-3 whitespace-pre-wrap text-[13px] leading-6 text-[#55514B]">{report.overall_progress}</p></section>}

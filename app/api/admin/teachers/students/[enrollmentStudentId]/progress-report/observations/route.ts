@@ -39,10 +39,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ enr
 
     const { data: lessons, error: lessonsError } = await admin
       .from("lessons")
-      .select("id, lesson_number, lesson_date, teacher_observation")
+      .select("id, lesson_number, lesson_date, attendance_status, teacher_observation")
       .eq("enrollment_id", participant.enrollment_id)
       .eq("student_id", participant.student_id)
-      .not("teacher_observation", "is", null)
       .order("lesson_date", { ascending: false })
       .order("lesson_number", { ascending: false });
     if (lessonsError) return NextResponse.json({ error: lessonsError.message }, { status: 500 });
@@ -56,7 +55,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ enr
         observation: lesson.teacher_observation.trim(),
       }));
 
-    return NextResponse.json({ observations });
+    const totals = new Map<string, number>();
+    for (const lesson of lessons ?? []) {
+      if (!lesson.attendance_status) continue;
+      const label = lesson.attendance_status.replaceAll("_", " ");
+      totals.set(label, (totals.get(label) ?? 0) + 1);
+    }
+    const attendance = Array.from(totals, ([label, count]) => count + " " + label).join(", ");
+    return NextResponse.json({ observations, attendance });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to load teacher observations." }, { status: 500 });
   }

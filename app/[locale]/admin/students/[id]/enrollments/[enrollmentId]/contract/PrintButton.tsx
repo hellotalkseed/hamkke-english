@@ -2,7 +2,7 @@
 
 import { Printer } from "lucide-react";
 
-export default function PrintButton() {
+export default function PrintButton({label="Print Contract"}:{label?:string} = {}) {
   return (
     <button
       type="button"
@@ -25,7 +25,7 @@ export default function PrintButton() {
       "
     >
       <Printer size={15} strokeWidth={1.5} />
-      Print Contract
+      {label}
     </button>
   );
 }

@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { access } from "@/lib/reports/teacherAccess";
+
 
 type Params={params:Promise<{enrollmentStudentId:string}>};
 function one<T>(value:T|T[]|null):T|null{return Array.isArray(value)?value[0]??null:value}
 export async function GET(_request:Request,{params}:Params){
   try{
-    const {enrollmentStudentId}=await params; const supabase=await createClient(); const {data:{user}}=await supabase.auth.getUser();
-    if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});
-    const admin=createAdminClient(); const {data:profile}=await admin.from("profiles").select("id,role,status").eq("id",user.id).maybeSingle();
-    if(!profile||profile.role!=="teacher"||profile.status!=="active")return NextResponse.json({error:"Only active teachers can access progress reports."},{status:403});
-    const {data:assignment}=await admin.from("teacher_assignments").select("id").eq("teacher_id",user.id).eq("enrollment_student_id",enrollmentStudentId).eq("status","active").maybeSingle();
-    if(!assignment)return NextResponse.json({error:"This student is not assigned to you."},{status:403});
+    const {enrollmentStudentId}=await params;
+    const auth=await access(enrollmentStudentId);
+    if(auth.error) return auth.error;
+    const {admin}=auth;
     const {data:current,error:currentError}=await admin.from("enrollment_students").select("id,student_id,enrollment_id").eq("id",enrollmentStudentId).single();
     if(currentError||!current)return NextResponse.json({error:currentError?.message||"Student enrollment not found."},{status:404});
     const {data:participants,error:pError}=await admin.from("enrollment_students").select(`id,enrollment_id,enrollments(id,enrollment_number,status)`).eq("student_id",current.student_id);

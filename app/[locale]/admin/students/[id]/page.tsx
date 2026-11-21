@@ -1,3 +1,4 @@
+import { submittedReport } from "@/lib/reports/ownerReport";
 import { formatDocumentStudentName } from "@/lib/formatDocumentStudentName";
 import ContractLink from "@/components/admin/ContractLink";
 import ContractModal from "@/components/admin/ContractModal";
@@ -822,6 +823,7 @@ export default async function StudentPage({
 
   const currentEnrollment =
     selectedEnrollment;
+  const attachedReport = currentEnrollment ? await submittedReport(locale,student.id,currentEnrollment.id) : null;
 
   /* ------------------------------------------------------------------------ */
   /* 9. CURRENT ENROLLMENT PARTICIPANTS                                       */
@@ -1319,6 +1321,11 @@ export default async function StudentPage({
           >
             {currentEnrollment && (
               <>
+        <section className="mb-4 rounded-xl border p-4">
+          <h3 className="font-semibold">End-of-term report</h3>
+          {attachedReport ? <Link className="underline" href={`/${locale}/admin/students/${student.id}/enrollments/${currentEnrollment.id}/report`}>Open submitted report</Link>
+            : <p className="mt-1 text-sm">Awaiting the teacher’s report for this package.</p>}
+        </section>
         <EnrollmentFreezeControls key={currentEnrollment.id} studentId={student.id} enrollmentId={currentEnrollment.id} />
         {/* ENROLLMENT */}
         <section className="border-t border-[#DCD8D2] py-5">
