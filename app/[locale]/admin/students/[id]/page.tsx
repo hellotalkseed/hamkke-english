@@ -23,6 +23,7 @@ import PrintableAttendance from "@/components/admin/PrintableAttendance";
 import RenewEnrollmentButton from "@/components/admin/RenewEnrollmentButton";
 import StudentPortalInviteButton from "@/components/admin/StudentPortalInviteButton";
 import type { ReactNode } from "react";
+import EnrollmentScheduleChange from "@/components/admin/EnrollmentScheduleChange";
 import EnrollmentFreezeControls from "@/components/admin/EnrollmentFreezeControls";
 import EnrollmentTable from "@/components/admin/EnrollmentTable";
 import AttendancePrintDocument from "@/components/admin/AttendancePrintDocument";
@@ -1326,6 +1327,16 @@ export default async function StudentPage({
           {attachedReport ? <Link className="underline" href={`/${locale}/admin/students/${student.id}/enrollments/${currentEnrollment.id}/report`}>Open submitted report</Link>
             : <p className="mt-1 text-sm">Awaiting the teacher’s report for this package.</p>}
         </section>
+        {currentEnrollment.status === "active" && (
+          <EnrollmentScheduleChange
+            key={currentEnrollment.id + student.id}
+            enrollment={currentEnrollment.id}
+            student={student.id}
+            name={student.preferred_name || student.full_name}
+            timezone={student.timezone || "Asia/Manila"}
+            current={currentEnrollment.schedules}
+          />
+        )}
         <EnrollmentFreezeControls key={currentEnrollment.id} studentId={student.id} enrollmentId={currentEnrollment.id} />
         {/* ENROLLMENT */}
         <section className="border-t border-[#DCD8D2] py-5">
