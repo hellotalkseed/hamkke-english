@@ -22,7 +22,14 @@ export async function POST(request:Request,{params}:{params:Promise<{enrollmentS
   if(notes.length>16000 || JSON.stringify(source).length>40000) return fail("Shorten the input and try again.",400);
   if(!process.env.GEMINI_API_KEY) return fail("AI assistance is unavailable. You can continue writing and saving in English.",503);
   const instruction=translate
-    ? "Translate each value into "+names[lang as keyof typeof names]+". Use natural conversational language, the way a thoughtful teacher would say this aloud. Translate each sentence as written: keep its meaning, order, speaker, subject, addressee, timeframe, frequency and level of support. Use everyday words and idiomatic phrasing; adjust word order and omit repeated pronouns when the meaning stays clear. Avoid stiff evaluation jargon and word-for-word English syntax. Match the source’s warmth without adding praise, explanations or greetings. For Korean feedback, prefer polite 해요체 where appropriate; for Japanese, natural です・ます phrasing; for Simplified Chinese, straightforward spoken Mandarin. A third-person observation stays about the learner; a direct message stays addressed to them. Keep ratings brief and quoted English learning expressions intact. Return every original key exactly once."
+    ? [
+        "Translate each field into " + names[lang as keyof typeof names] + ". Translate each sentence as written in a warm, conversational teacher voice suitable for a formal Hamkke report.",
+        "Keep the teacher’s meaning, viewpoint, examples, timeframe and degree of certainty. Preserve details like sometimes, with a little help, and on familiar topics.",
+        "When the teacher speaks to the student, keep speaking directly to the student. When the teacher describes the student by name or in the third person, preserve that perspective. Never recast the sentence as an update or advice to a parent.",
+        "Use everyday phrasing that sounds natural aloud. For Korean, use polite 해요체, omit unnecessary pronouns, and avoid stiff evaluation language. For Japanese, use natural です・ます. For Simplified Chinese, use conversational Mandarin.",
+        "For example, Korean for ‘You sometimes pause to find the right word.’ can be ‘알맞은 단어를 찾느라 가끔 잠시 멈출 때가 있어요.’ Preserve the content of the actual field; never insert the example.",
+        "Keep selected ratings brief, goals forward-looking, and quoted English learning expressions in English. Add no greeting, praise, interpretation, or recommendation. Return every original field key exactly once."
+      ].join(" ")
     : "Turn the teacher’s brief notes into concise English progress-report feedback. Use only supported fields from this list: "+draftFields.join(", ")+". Omit unsupported fields. Preserve who did what, certainty, classroom examples and challenges. Use strengths for progress actually observed, goals only for goals in the notes, comment only for a personal teacher comment. Never infer improvement from a single observation.";
   try {
     const ai=new GoogleGenAI({apiKey:process.env.GEMINI_API_KEY});
