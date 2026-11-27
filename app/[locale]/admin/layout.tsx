@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
+import UpdatesDock from "@/components/admin/notifications/UpdatesDock";
 import OwnerAdminShell from "@/components/admin/owner/OwnerAdminShell";
 
 export default async function AdminLayout({
@@ -26,13 +27,17 @@ export default async function AdminLayout({
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "owner" || profile?.status !== "active") {
+  if (profile?.status !== "active" || !["owner", "teacher"].includes(profile.role)) {
     return children;
+  }
+  if (profile.role === "teacher") {
+    return <>{children}<UpdatesDock key={user.id} userId={user.id} role="teacher" locale={locale}/></>;
   }
 
   return (
     <OwnerAdminShell locale={locale}>
       {children}
+      <UpdatesDock key={user.id} userId={user.id} role="owner" locale={locale}/>
     </OwnerAdminShell>
   );
 }
