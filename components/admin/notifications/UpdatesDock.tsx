@@ -123,12 +123,47 @@ export default function UpdatesDock({ userId, role, locale }: { userId: string; 
     finally { setMarking(false); }
   }
   if (!ready) return null;
-  return <section aria-label="Staff updates" className="fixed bottom-4 right-3 z-[60] w-[min(350px,calc(100vw-5.5rem))] overflow-hidden rounded-2xl border border-[#6F8F72] bg-[#FFFEFA] text-[#34483A] shadow-[0_6px_24px_rgba(35,50,35,0.14)] sm:right-5 print:hidden" style={{ width: expanded ? undefined : "min(260px, calc(100vw - 5.5rem))", bottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+  return <section
+    aria-label="Staff updates"
+    className={`fixed right-4 z-[60] text-[#34483A] sm:right-5 print:hidden ${
+      expanded
+        ? "w-[min(350px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#6F8F72] bg-[#FFFEFA] shadow-lg"
+        : "w-14"
+    }`}
+    style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
+  >
     <span className="sr-only" role="status" aria-live="polite">{announcement}</span>
-    <button type="button" onClick={() => { const value = !expanded; setExpanded(value); storageSet(`${key}:expanded`, value ? "yes" : "no"); }} aria-expanded={expanded} aria-controls="hamkke-updates-body" className="flex w-full items-center gap-2 bg-[#567660] text-[#FFFEFA] hover:bg-[#496853] transition-colors px-4 py-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-[#6F8F72]">
-      <MessageCircle size={17} aria-hidden="true"/><span className="font-medium">Updates</span>
-      <span className="rounded-full bg-[#FFFEFA] text-[#365844] px-2 py-0.5 text-[11px]">{error ? "Offline" : feed.unread ? `${feed.unread} new` : "All read"}</span>
-      {expanded ? <Minus size={17} className="ml-auto" aria-hidden="true"/> : <ChevronUp size={17} className="ml-auto" aria-hidden="true"/>}
+    <button
+      type="button"
+      onClick={() => {
+        const value = !expanded;
+        setExpanded(value);
+        storageSet(`${key}:expanded`, value ? "yes" : "no");
+      }}
+      aria-expanded={expanded}
+      aria-controls="hamkke-updates-body"
+      aria-label={`${expanded ? "Minimize" : "Open"} notifications, ${feed.unread} unread${error ? ", offline" : ""}`}
+      title={expanded ? "Minimize notifications" : "Open notifications"}
+      className={`relative flex items-center bg-[#567660] text-[#FFFEFA] transition-colors hover:bg-[#496853] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#365844] ${
+        expanded
+          ? "w-full gap-2 px-4 py-3 text-left text-sm"
+          : "h-14 w-14 justify-center rounded-full shadow-lg"
+      }`}
+    >
+      <BellRing size={expanded ? 18 : 24} aria-hidden="true"/>
+      {expanded && <span className="font-medium">Notifications</span>}
+      {feed.unread > 0 && (
+        <span
+          aria-hidden="true"
+          className={`flex h-6 min-w-6 items-center justify-center rounded-full bg-[#C43D3D] px-1.5 text-xs font-bold leading-none text-white ${
+            expanded ? "" : "absolute -right-1 -top-1 ring-2 ring-[#FFFEFA]"
+          }`}
+        >
+          {feed.unread > 99 ? "99+" : feed.unread}
+        </span>
+      )}
+      {expanded && error && <span className="text-xs">Offline</span>}
+      {expanded && <Minus size={18} className="ml-auto" aria-hidden="true"/>}
     </button>
     {expanded && <div id="hamkke-updates-body">
       {error && <div role="status" className="px-4 py-2 text-xs text-[#9C4941]">{error} <button type="button" className="underline" onClick={() => refresh.current()}>Retry</button></div>}
